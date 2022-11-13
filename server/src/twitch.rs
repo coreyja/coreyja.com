@@ -44,6 +44,9 @@ pub(crate) struct TwitchConfig {
 
     pub redirect_uri: String,
     pub bot_access_token: String,
+
+    pub channel_user_id: String,
+    pub bot_user_id: String,
 }
 
 impl TwitchConfig {
@@ -53,6 +56,8 @@ impl TwitchConfig {
             client_secret: std::env::var("TWITCH_CLIENT_SECRET")?,
             redirect_uri: std::env::var("TWITCH_REDIRECT_URI")?,
             bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN")?,
+            bot_user_id: std::env::var("TWITCH_BOT_USER_ID")?,
+            channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID")?,
         })
     }
 }
@@ -64,4 +69,37 @@ pub(crate) struct TwitchValidateResponse {
     pub login: String,
     pub scopes: Vec<String>,
     pub user_id: String,
+}
+
+pub(crate) async fn get_chatters(config: &TwitchConfig) -> impl std::fmt::Debug {
+    let client = reqwest::Client::new();
+
+    let broadcaster_id = &config.channel_user_id;
+    let mod_id = &config.bot_user_id;
+    let response = client
+        .get(format!("https://api.twitch.tv/helix/chat/chatters?broadcaster_id={broadcaster_id}&moderator_id={mod_id}"))
+        .bearer_auth(&config.bot_access_token)
+        .header("Client-Id", &config.client_id)
+        .send()
+        .await
+        .unwrap();
+
+    let json = response.json::<TwitchChattersPage>().await.unwrap();
+
+    json
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct Chatters {
+    user_login: String,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct Pagination {
+    cursor: Option<String>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct TwitchChattersPage {
+    data: Vec<Chatters>,
+    pagination: Pagination,
+    total: i64,
 }

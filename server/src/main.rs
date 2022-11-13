@@ -38,6 +38,9 @@ async fn main() -> Result<()> {
     let discord_future = run_discord_bot(&twitch_config);
     let axum_future = run_axum(&twitch_config);
 
+    let chatters = get_chatters(&twitch_config).await;
+    dbg!(chatters);
+
     try_join!(discord_future, axum_future)?;
 
     Ok(())
