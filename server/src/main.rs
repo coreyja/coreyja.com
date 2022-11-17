@@ -64,11 +64,39 @@ async fn main() -> Result<()> {
 
     let discord_future = run_discord_bot(config.clone());
     let axum_future = run_axum(config.clone());
+    let chatters_loop = run_log_chatters_loop(config.clone());
 
+    try_join!(discord_future, axum_future, chatters_loop)?;
+
+    Ok(())
+}
+
+async fn run_log_chatters_loop(config: Config) -> Result<()> {
+    let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+
+    loop {
+        interval.tick().await;
+
+        log_chatters(&config).await?;
+    }
+}
+
+async fn log_chatters(config: &Config) -> Result<()> {
     let chatters = get_chatters(&config.twitch).await;
-    dbg!(chatters);
 
-    try_join!(discord_future, axum_future)?;
+    let chat_log_record = sqlx::query!("INSERT INTO ChatterLogRecord DEFAULT VALUES RETURNING id")
+        .fetch_one(&config.db_pool)
+        .await?;
+
+    for chatter in chatters.data {
+        sqlx::query!(
+            "INSERT INTO ChatterLogs (chatters_log_id, name) VALUES (?, ?)",
+            chat_log_record.id,
+            chatter.user_login
+        )
+        .execute(&config.db_pool)
+        .await?;
+    }
 
     Ok(())
 }

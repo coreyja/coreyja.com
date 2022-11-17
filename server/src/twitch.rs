@@ -89,7 +89,7 @@ pub(crate) async fn get_chatters(config: &TwitchConfig) -> TwitchChattersPage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Chatters {
-    user_login: String,
+    pub(crate) user_login: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct Pagination {
@@ -97,7 +97,7 @@ pub(crate) struct Pagination {
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct TwitchChattersPage {
-    data: Vec<Chatters>,
-    pagination: Pagination,
-    total: i64,
+    pub(crate) data: Vec<Chatters>,
+    pub(crate) pagination: Pagination,
+    pub(crate) total: i64,
 }
