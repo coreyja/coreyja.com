@@ -50,18 +50,34 @@ async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
     let config = ctx.data();
     let author_id: i64 = ctx.author().id.0.try_into()?;
 
-    let state = Uuid::new_v4().to_string();
-    sqlx::query!(
-        "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
-        author_id,
-        state,
+    let existing_twitch_link = sqlx::query!(
+        "SELECT * FROM DiscordTwitchLinks WHERE discord_user_id = $1",
+        author_id
     )
-    .execute(&config.db_pool)
+    .fetch_optional(&config.db_pool)
     .await?;
 
-    let url = generate_user_twitch_link(&config.twitch, &state)?;
+    if let Some(existing_twitch_link) = existing_twitch_link {
+        let twitch_login = existing_twitch_link.twitch_login;
+        ctx.say(format!(
+            "You are already linked as `{twitch_login}` on Twitch"
+        ))
+        .await?;
+    } else {
+        let state = Uuid::new_v4().to_string();
+        sqlx::query!(
+            "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
+            author_id,
+            state,
+        )
+        .execute(&config.db_pool)
+        .await?;
 
-    ctx.say(format!("Twitch Verify: {url}")).await?;
+        let url = generate_user_twitch_link(&config.twitch, &state)?;
+
+        ctx.say(format!("Twitch Verify: {url}")).await?;
+    }
+
     Ok(())
 }
 
