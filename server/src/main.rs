@@ -1,11 +1,11 @@
-use std::net::SocketAddr;
+use std::{fs::OpenOptions, net::SocketAddr};
 
-use axum_macros::debug_handler;
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use sqlx::{migrate, SqlitePool};
 use tokio::try_join;
-use tracing::{info, instrument, warn};
+use tracing::warn;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Layer, Registry};
 use tracing_tree::HierarchicalLayer;
 
@@ -19,6 +19,12 @@ use twitch::*;
 
 mod http_server;
 use http_server::*;
+
+#[derive(Debug, Clone)]
+struct Config {
+    twitch: TwitchConfig,
+    db_pool: SqlitePool,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -35,10 +41,31 @@ async fn main() -> Result<()> {
 
     let twitch_config = TwitchConfig::from_env()?;
 
-    let discord_future = run_discord_bot(&twitch_config);
-    let axum_future = run_axum(&twitch_config);
+    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+        let path = std::env::var("DATABASE_PATH");
 
-    let chatters = get_chatters(&twitch_config).await;
+        if let Ok(p) = &path {
+            OpenOptions::new().write(true).create(true).open(p).unwrap();
+
+            format!("sqlite:{}", p)
+        } else {
+            "sqlite::memory:".to_string()
+        }
+    });
+
+    let pool = SqlitePool::connect(&database_url).await?;
+
+    let config = Config {
+        twitch: twitch_config,
+        db_pool: pool,
+    };
+
+    migrate!("./migrations/").run(&config.db_pool).await?;
+
+    let discord_future = run_discord_bot(config.clone());
+    let axum_future = run_axum(config.clone());
+
+    let chatters = get_chatters(&config.twitch).await;
     dbg!(chatters);
 
     try_join!(discord_future, axum_future)?;

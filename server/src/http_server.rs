@@ -1,16 +1,21 @@
 use crate::*;
 
 use axum::{
-    extract::{Query, State},
-    http::Uri,
+    extract::{FromRef, Query, State},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{get},
     Router, Server,
 };
 
-pub(crate) async fn run_axum(twitch_config: &TwitchConfig) -> color_eyre::Result<()> {
+impl FromRef<Config> for TwitchConfig {
+    fn from_ref(config: &Config) -> Self {
+        config.twitch.clone()
+    }
+}
+
+pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     // build our application with a route
-    let app = Router::with_state(twitch_config.clone())
+    let app = Router::with_state(config)
         // `GET /` goes to `root`
         .route("/twitch_oauth", get(twitch_oauth));
 

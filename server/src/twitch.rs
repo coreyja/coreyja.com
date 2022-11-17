@@ -71,7 +71,7 @@ pub(crate) struct TwitchValidateResponse {
     pub user_id: String,
 }
 
-pub(crate) async fn get_chatters(config: &TwitchConfig) -> impl std::fmt::Debug {
+pub(crate) async fn get_chatters(config: &TwitchConfig) -> TwitchChattersPage {
     let client = reqwest::Client::new();
 
     let broadcaster_id = &config.channel_user_id;
@@ -84,9 +84,7 @@ pub(crate) async fn get_chatters(config: &TwitchConfig) -> impl std::fmt::Debug 
         .await
         .unwrap();
 
-    let json = response.json::<TwitchChattersPage>().await.unwrap();
-
-    json
+    response.json::<TwitchChattersPage>().await.unwrap()
 }
 
 #[derive(Serialize, Deserialize, Debug)]

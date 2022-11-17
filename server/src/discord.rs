@@ -55,8 +55,8 @@ async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) async fn run_discord_bot(twitch_config: &TwitchConfig) -> Result<()> {
-    let twitch_config = twitch_config.clone();
+pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
+    let twitch_config = config.twitch;
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {
