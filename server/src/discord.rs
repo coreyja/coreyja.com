@@ -59,8 +59,10 @@ async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
 
     if let Some(existing_twitch_link) = existing_twitch_link {
         let twitch_login = existing_twitch_link.twitch_login;
+        let twitch_user_id = existing_twitch_link.twitch_user_id;
+
         ctx.say(format!(
-            "You are already linked as `{twitch_login}` on Twitch"
+            "You are already linked as `{twitch_login}#{twitch_user_id}` on Twitch"
         ))
         .await?;
     } else {

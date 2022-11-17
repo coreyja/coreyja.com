@@ -76,11 +76,11 @@ async fn twitch_oauth(
         .await
         .unwrap()
         .discord_user_id;
-        // TODO: This needs to insert a link into the correct table
-        // by reading from the state and getting the correct discord user
+
         sqlx::query!(
-            "INSERT INTO DiscordTwitchLinks (discord_user_id, twitch_login) VALUES ($1, $2)",
+            "INSERT INTO DiscordTwitchLinks (discord_user_id, twitch_user_id, twitch_login) VALUES ($1, $2, $3)",
             discord_user_id,
+            json.user_id,
             json.login
         )
         .execute(&config.db_pool)
