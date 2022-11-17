@@ -3,7 +3,7 @@ use crate::*;
 use axum::{
     extract::{FromRef, Query, State},
     response::IntoResponse,
-    routing::{get},
+    routing::get,
     Router, Server,
 };
 
@@ -34,8 +34,9 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
 // basic handler that responds with a static string
 async fn twitch_oauth(
     Query(oauth): Query<TwitchOauthRequest>,
-    State(twitch_config): State<TwitchConfig>,
+    State(config): State<Config>,
 ) -> impl IntoResponse {
+    let twitch_config = config.twitch;
     let client = reqwest::Client::new();
 
     let token_response = client
@@ -65,6 +66,27 @@ async fn twitch_oauth(
         .json::<TwitchValidateResponse>()
         .await
         .unwrap();
+
+    if let Some(state) = oauth.state {
+        let discord_user_id = sqlx::query!(
+            "SELECT discord_user_id FROM TwitchLinkStates WHERE state = $1",
+            state
+        )
+        .fetch_one(&config.db_pool)
+        .await
+        .unwrap()
+        .discord_user_id;
+        // TODO: This needs to insert a link into the correct table
+        // by reading from the state and getting the correct discord user
+        sqlx::query!(
+            "INSERT INTO DiscordTwitchLinks (discord_user_id, twitch_login) VALUES ($1, $2)",
+            discord_user_id,
+            json.login
+        )
+        .execute(&config.db_pool)
+        .await
+        .unwrap();
+    }
 
     format!("{json:#?}")
 }

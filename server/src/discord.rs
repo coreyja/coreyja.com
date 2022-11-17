@@ -1,11 +1,9 @@
+use uuid::Uuid;
+
 use crate::*;
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
-// User data, which is stored and accessible in all command invocations
-struct Data {
-    twitch_config: TwitchConfig,
-}
+type Error = color_eyre::Report;
+type Context<'a> = poise::Context<'a, Config, Error>;
 
 /// Displays your or another user's account creation date
 #[poise::command(prefix_command, slash_command)]
@@ -49,14 +47,25 @@ async fn ping(ctx: Context<'_>) -> Result<(), Error> {
 
 #[poise::command(slash_command, prefix_command, ephemeral)]
 async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
-    let url = generate_user_twitch_link(&ctx.data().twitch_config)?;
+    let config = ctx.data();
+    let author_id: i64 = ctx.author().id.0.try_into()?;
+
+    let state = Uuid::new_v4().to_string();
+    sqlx::query!(
+        "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
+        author_id,
+        state,
+    )
+    .execute(&config.db_pool)
+    .await?;
+
+    let url = generate_user_twitch_link(&config.twitch, &state)?;
 
     ctx.say(format!("Twitch Verify: {url}")).await?;
     Ok(())
 }
 
 pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
-    let twitch_config = config.twitch;
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {
@@ -78,9 +87,7 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
         .intents(
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
         )
-        .user_data_setup(move |_ctx, _ready, _framework| {
-            Box::pin(async move { Ok(Data { twitch_config }) })
-        });
+        .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
     framework.run().await.unwrap();
 

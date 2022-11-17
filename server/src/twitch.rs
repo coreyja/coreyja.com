@@ -26,14 +26,14 @@ pub(crate) struct TwitchTokenResponse {
     pub token_type: String,
 }
 
-pub(crate) fn generate_user_twitch_link(config: &TwitchConfig) -> Result<Uri> {
+pub(crate) fn generate_user_twitch_link(config: &TwitchConfig, state: &str) -> Result<Uri> {
     let client_id = &config.client_id;
     let redirect_uri = &config.redirect_uri;
 
     Ok(Uri::builder()
         .scheme("https")
         .authority("id.twitch.tv")
-        .path_and_query(format!("/oauth2/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope="))
+        .path_and_query(format!("/oauth2/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=&state={state}"))
         .build()?)
 }
 
