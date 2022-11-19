@@ -17,7 +17,8 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     // build our application with a route
     let app = Router::with_state(config)
         // `GET /` goes to `root`
-        .route("/twitch_oauth", get(twitch_oauth));
+        .route("/twitch_oauth", get(twitch_oauth))
+        .route("/github_oauth", get(github_oauth));
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
@@ -31,7 +32,6 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     Ok(())
 }
 
-// basic handler that responds with a static string
 async fn twitch_oauth(
     Query(oauth): Query<TwitchOauthRequest>,
     State(config): State<Config>,
@@ -89,4 +89,52 @@ async fn twitch_oauth(
     }
 
     format!("{json:#?}")
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct GithubOauthRequest {
+    pub code: String,
+    pub state: Option<String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct GithubCodeExchangeRequest {
+    pub client_id: String,
+    pub client_secret: String,
+    pub code: String,
+    pub redirect_uri: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct GithubTokenResponse {
+    pub(crate) access_token: String,
+    pub(crate) expires_in: i64,
+    pub(crate) refresh_token: String,
+    pub(crate) refresh_token_expires_in: i64,
+    pub(crate) scope: String,
+    pub(crate) token_type: String,
+}
+
+async fn github_oauth(
+    Query(oauth): Query<GithubOauthRequest>,
+    State(config): State<Config>,
+) -> impl IntoResponse {
+    let client = reqwest::Client::new();
+    let github = config.github;
+
+    let token_response = client
+        .post("https://github.com/login/oauth/access_token")
+        .json(&GithubCodeExchangeRequest {
+            client_id: github.client_id.clone(),
+            client_secret: github.client_secret.clone(),
+            code: oauth.code.clone(),
+            redirect_uri: github.redirect_uri.clone(),
+        })
+        .send()
+        .await
+        .unwrap();
+    let text = token_response.text().await.unwrap();
+    let token_response: GithubTokenResponse = serde_urlencoded::from_str(&text).unwrap();
+
+    format!("{token_response:#?}")
 }

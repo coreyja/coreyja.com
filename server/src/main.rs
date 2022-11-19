@@ -20,10 +20,14 @@ use twitch::*;
 mod http_server;
 use http_server::*;
 
+mod github;
+use github::*;
+
 #[derive(Debug, Clone)]
 struct Config {
     twitch: TwitchConfig,
     db_pool: SqlitePool,
+    github: GithubConfig,
 }
 
 #[tokio::main]
@@ -40,6 +44,7 @@ async fn main() -> Result<()> {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let twitch_config = TwitchConfig::from_env()?;
+    let github_config = GithubConfig::from_env()?;
 
     let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
         let path = std::env::var("DATABASE_PATH");
@@ -58,6 +63,7 @@ async fn main() -> Result<()> {
     let config = Config {
         twitch: twitch_config,
         db_pool: pool,
+        github: github_config,
     };
 
     migrate!("./migrations/").run(&config.db_pool).await?;
