@@ -1,9 +1,11 @@
+-- Steps from: https://www.sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes
+;
+
 -- 1. If foreign key constraints are enabled, disable them using PRAGMA foreign_keys=OFF.
 PRAGMA foreign_keys = off;
 
 -- -- 2. Start a transaction.
 -- BEGIN TRANSACTION;
-
 -- 3. Remember the format of all indexes, triggers, and views associated with table X. This information will be needed in step 8 below. One way to do this is to run a query like the following: SELECT type, sql FROM sqlite_schema WHERE tbl_name='X'.
 -- Here we just lookup the indexes and add them manually to this file
 ;
@@ -46,6 +48,5 @@ PRAGMA foreign_key_check;
 
 -- -- 11. Commit the transaction started in step 2.
 -- COMMIT;
-
 -- 12. If foreign key constraints were originally enabled, then re-enable them
 PRAGMA foreign_keys = on;
