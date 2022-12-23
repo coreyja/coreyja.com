@@ -23,6 +23,9 @@ use http_server::*;
 mod github;
 use github::*;
 
+mod db;
+use db::*;
+
 #[derive(Debug, Clone)]
 struct Config {
     twitch: TwitchConfig,
@@ -68,11 +71,15 @@ async fn main() -> Result<()> {
 
     migrate!("./migrations/").run(&config.db_pool).await?;
 
-    let discord_future = run_discord_bot(config.clone());
-    let axum_future = run_axum(config.clone());
-    let chatters_loop = run_log_chatters_loop(config.clone());
+    let discord_future = tokio::spawn(run_discord_bot(config.clone()));
+    let axum_future = tokio::spawn(run_axum(config.clone()));
+    let chatters_loop = tokio::spawn(run_log_chatters_loop(config.clone()));
 
-    try_join!(discord_future, axum_future, chatters_loop)?;
+    let (discord_result, axum_result, chatters_result) =
+        try_join!(discord_future, axum_future, chatters_loop)?;
+    discord_result?;
+    axum_result?;
+    chatters_result?;
 
     Ok(())
 }

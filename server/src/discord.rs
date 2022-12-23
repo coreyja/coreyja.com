@@ -38,7 +38,7 @@ async fn register(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-#[poise::command(prefix_command)]
+#[poise::command(prefix_command, owners_only)]
 async fn ping(ctx: Context<'_>) -> Result<(), Error> {
     warn!("Pong!");
     ctx.say("Pong!").await?;
@@ -50,12 +50,7 @@ async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
     let config = ctx.data();
     let author_id: i64 = ctx.author().id.0.try_into()?;
 
-    let existing_twitch_link = sqlx::query!(
-        "SELECT * FROM DiscordTwitchLinks WHERE discord_user_id = $1",
-        author_id
-    )
-    .fetch_optional(&config.db_pool)
-    .await?;
+    let existing_twitch_link = discord_twitch_link_from_user_id(author_id, &config.db_pool).await?;
 
     if let Some(existing_twitch_link) = existing_twitch_link {
         let twitch_login = existing_twitch_link.twitch_login;
@@ -103,6 +98,16 @@ async fn github(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+#[poise::command(slash_command, ephemeral)]
+async fn me(ctx: Context<'_>) -> Result<(), Error> {
+    let author_id = ctx.author().id;
+
+    ctx.say(format!("Your Discord ID is `{}`", author_id))
+        .await?;
+
+    Ok(())
+}
+
 pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
     let framework = poise::Framework::builder()
         .initialize_owners(true)
@@ -115,6 +120,7 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
                 author_age(),
                 twitch(),
                 github(),
+                me(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("~".into()),
