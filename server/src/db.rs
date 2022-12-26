@@ -1,14 +1,14 @@
 use sqlx::SqlitePool;
 
 #[derive(Debug)]
-pub struct DiscordTwitchLink {
-    id: i64,
-    discord_user_id: i64,
-    twitch_user_id: String,
-    twitch_login: String,
+pub(crate) struct DiscordTwitchLink {
+    pub(crate) id: i64,
+    pub(crate) discord_user_id: i64,
+    pub(crate) twitch_user_id: String,
+    pub(crate) twitch_login: String,
 }
 
-pub async fn discord_twitch_link_from_user_id(
+pub(crate) async fn discord_twitch_link_from_user_id(
     discord_user_id: i64,
     db_pool: &SqlitePool,
 ) -> Result<Option<DiscordTwitchLink>, sqlx::Error> {
