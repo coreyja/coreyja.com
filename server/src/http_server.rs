@@ -6,7 +6,9 @@ use axum::{
     routing::get,
     Router, Server,
 };
+use chrono::Duration;
 use color_eyre::eyre::{Context, ContextCompat};
+use sqlx::types::chrono::Utc;
 
 impl FromRef<Config> for TwitchConfig {
     fn from_ref(config: &Config) -> Self {
@@ -45,8 +47,8 @@ async fn twitch_oauth(
         .send()
         .await?;
 
-    let json = token_response.json::<TwitchTokenResponse>().await?;
-    let access_token = json.access_token;
+    let token_json = token_response.json::<TwitchTokenResponse>().await?;
+    let access_token = &token_json.access_token;
 
     let validate_response = client
         .get("https://id.twitch.tv/oauth2/validate")
@@ -70,16 +72,32 @@ async fn twitch_oauth(
         .fetch_one(&config.db_pool)
         .await?
         .user_id;
+        let now = Utc::now();
+        let expires_at = Utc::now() + Duration::seconds(token_json.expires_in);
 
         sqlx::query!(
-            "INSERT INTO UserTwitchLinks (user_id, external_twitch_user_id, external_twitch_login) VALUES ($1, $2, $3)",
+            "INSERT INTO
+            UserTwitchLinks
+                (
+                    user_id,
+                    external_twitch_user_id,
+                    external_twitch_login,
+                    access_token,
+                    refresh_token,
+                    access_token_expires_at,
+                    access_token_validated_at
+                )
+            VALUES ($1, $2, $3, $4, $5, $6, $7)",
             user_id,
             json.user_id,
-            json.login
+            json.login,
+            token_json.access_token,
+            token_json.refresh_token,
+            expires_at,
+            now
         )
         .execute(&config.db_pool)
-        .await
-        ?;
+        .await?;
 
         sqlx::query!(
             "UPDATE UserTwitchLinkStates
@@ -144,8 +162,8 @@ async fn github_oauth(
         .state
         .wrap_err("Github oauth should always come back with a state when we kick it off")?;
 
-    let discord_user_id = sqlx::query!(
-        "SELECT discord_user_id FROM GithubLinkStates WHERE state = $1",
+    let user_id = sqlx::query!(
+        "SELECT user_id FROM UserGithubLinkStates WHERE state = $1 AND status = 'pending'",
         state
     )
     .fetch_one(&config.db_pool)
@@ -153,10 +171,51 @@ async fn github_oauth(
     .wrap_err(indoc::indoc! {"
         If there was a state from Githun oauth, it should exist in our DB.
         Did this oauth get triggered by someone else with a state we don't know about?
+        Or is the status not pending anymore?
     "})?
-    .discord_user_id;
+    .user_id;
 
-    Ok(format!("{token_response:#?}\n\n{discord_user_id}"))
+    let username: String = "test".into();
+
+    let now = Utc::now();
+    let expires_at = now + Duration::seconds(token_response.expires_in);
+    let refresh_expires_at = now + Duration::seconds(token_response.refresh_token_expires_in);
+
+    sqlx::query!(
+        "
+        INSERT INTO
+            UserGithubLinks (
+                user_id,
+                external_github_username,
+                access_token,
+                refresh_token,
+                access_token_expires_at,
+                refresh_token_expires_at
+            )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ",
+        user_id,
+        username,
+        token_response.access_token,
+        token_response.refresh_token,
+        expires_at,
+        refresh_expires_at,
+    )
+    .execute(&config.db_pool)
+    .await?;
+
+    sqlx::query!(
+        "UPDATE UserGithubLinkStates
+            SET
+                status = 'used' AND
+                updated_at = CURRENT_TIMESTAMP
+            WHERE state = $1",
+        state
+    )
+    .execute(&config.db_pool)
+    .await?;
+
+    Ok(format!("{token_response:#?}"))
 }
 
 struct EyreError(color_eyre::Report);
@@ -166,12 +225,6 @@ impl IntoResponse for EyreError {
         self.0.to_string().into_response()
     }
 }
-
-// impl From<color_eyre::Report> for EyreError {
-//     fn from(report: color_eyre::Report) -> Self {
-//         EyreError(report)
-//     }
-// }
 
 impl<T> From<T> for EyreError
 where

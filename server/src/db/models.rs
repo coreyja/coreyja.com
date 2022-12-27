@@ -31,6 +31,22 @@ pub struct UserTwitchLink {
     pub user_id: i64,
     pub external_twitch_user_id: i64,
     pub external_twitch_login: String,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub access_token_expires_at: NaiveDateTime,
+    pub access_token_validated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+pub struct UserGithubLink {
+    pub id: i64,
+    pub user_id: i64,
+    pub external_github_username: String,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub access_token_expires_at: NaiveDateTime,
+    pub refresh_token_expires_at: NaiveDateTime,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }

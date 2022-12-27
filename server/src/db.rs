@@ -73,3 +73,17 @@ pub async fn user_twitch_link_from_user(
     .fetch_optional(db_pool)
     .await
 }
+
+pub async fn user_github_link_from_user(
+    user: &QueryOnRead<User>,
+    db_pool: &SqlitePool,
+) -> Result<Option<UserGithubLink>, sqlx::Error> {
+    let user_id = user.id();
+    sqlx::query_as!(
+        UserGithubLink,
+        "SELECT * FROM UserGithubLinks WHERE user_id = ?",
+        user_id
+    )
+    .fetch_optional(db_pool)
+    .await
+}

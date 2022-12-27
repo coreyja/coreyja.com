@@ -1,5 +1,6 @@
 use crate::*;
 
+use color_eyre::eyre::WrapErr;
 use uuid::Uuid;
 
 type Error = color_eyre::Report;
@@ -93,8 +94,28 @@ async fn me(ctx: Context<'_>) -> Result<(), Error> {
         format!("You are not linked to Twitch. Click here to login with Twitch: {url}")
     };
 
+    let existing_github_link = user_github_link_from_user(&user, &config.db_pool).await?;
+    let github_message = if let Some(existing_github_link) = existing_github_link {
+        let github_username = existing_github_link.external_github_username;
+
+        format!("You are linked as `{github_username}` on Github")
+    } else {
+        let state = Uuid::new_v4().to_string();
+        sqlx::query!(
+            "INSERT INTO UserGithubLinkStates (user_id, state) VALUES (?, ?)",
+            user_id,
+            state,
+        )
+        .execute(&config.db_pool)
+        .await?;
+
+        let url = generate_user_github_link(&config.github, &state)?;
+
+        format!("You are not linked to Github. Click here to login with Github: {url}")
+    };
+
     ctx.say(format!(
-        "Your Discord ID is `{author_id}`\n\n{twitch_message}"
+        "Your Discord ID is `{author_id}`\n\n{twitch_message}\n\n{github_message}"
     ))
     .await?;
 
@@ -120,7 +141,7 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
             },
             ..Default::default()
         })
-        .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
+        .token(std::env::var("DISCORD_TOKEN").wrap_err("missing DISCORD_TOKEN")?)
         .intents(
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
         )

@@ -25,6 +25,10 @@ CREATE TABLE
     user_id INTEGER REFERENCES Users (id) NOT NULL,
     external_twitch_login TEXT NOT NULL,
     external_twitch_user_id INTEGER NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    access_token_expires_at DATETIME NOT NULL,
+    access_token_validated_at DATETIME NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
   );
