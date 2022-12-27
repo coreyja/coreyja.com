@@ -6,6 +6,7 @@ use axum::{
     routing::get,
     Router, Server,
 };
+use sqlx::query;
 
 impl FromRef<Config> for TwitchConfig {
     fn from_ref(config: &Config) -> Self {
@@ -14,14 +15,10 @@ impl FromRef<Config> for TwitchConfig {
 }
 
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
-    // build our application with a route
     let app = Router::with_state(config)
-        // `GET /` goes to `root`
         .route("/twitch_oauth", get(twitch_oauth))
         .route("/github_oauth", get(github_oauth));
 
-    // run our app with hyper
-    // `axum::Server` is a re-export of `hyper::Server`
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);
     Server::bind(&addr)
@@ -136,5 +133,21 @@ async fn github_oauth(
     let text = token_response.text().await.unwrap();
     let token_response: GithubTokenResponse = serde_urlencoded::from_str(&text).unwrap();
 
-    format!("{token_response:#?}")
+    let state = oauth
+        .state
+        .expect("Github oauth should always come back with a state when we kick it off");
+
+    let discord_user_id = sqlx::query!(
+        "SELECT discord_user_id FROM GithubLinkStates WHERE state = $1",
+        state
+    )
+    .fetch_one(&config.db_pool)
+    .await
+    .expect(indoc::indoc! {"
+        If there was a state from Githun oauth, it should exist in our DB.
+        Did this oauth get triggered by someone else with a state we don't know about?
+    "})
+    .discord_user_id;
+
+    format!("{token_response:#?}\n\n{discord_user_id}")
 }

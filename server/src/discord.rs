@@ -46,39 +46,6 @@ async fn ping(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 #[poise::command(slash_command, prefix_command, ephemeral)]
-async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
-    let config = ctx.data();
-    let author_id: i64 = ctx.author().id.0.try_into()?;
-
-    let existing_twitch_link = discord_twitch_link_from_user_id(author_id, &config.db_pool).await?;
-
-    if let Some(existing_twitch_link) = existing_twitch_link {
-        let twitch_login = existing_twitch_link.twitch_login;
-        let twitch_user_id = existing_twitch_link.twitch_user_id;
-
-        ctx.say(format!(
-            "You are already linked as `{twitch_login}#{twitch_user_id}` on Twitch"
-        ))
-        .await?;
-    } else {
-        let state = Uuid::new_v4().to_string();
-        sqlx::query!(
-            "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
-            author_id,
-            state,
-        )
-        .execute(&config.db_pool)
-        .await?;
-
-        let url = generate_user_twitch_link(&config.twitch, &state)?;
-
-        ctx.say(format!("Twitch Verify: {url}")).await?;
-    }
-
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command, ephemeral)]
 async fn github(ctx: Context<'_>) -> Result<(), Error> {
     let author_id: i64 = ctx.author().id.0.try_into()?;
     let config = ctx.data();
@@ -100,10 +67,33 @@ async fn github(ctx: Context<'_>) -> Result<(), Error> {
 
 #[poise::command(slash_command, ephemeral)]
 async fn me(ctx: Context<'_>) -> Result<(), Error> {
-    let author_id = ctx.author().id;
+    let config = ctx.data();
+    let author_id: i64 = ctx.author().id.0.try_into()?;
 
-    ctx.say(format!("Your Discord ID is `{}`", author_id))
+    let existing_twitch_link = discord_twitch_link_from_user_id(author_id, &config.db_pool).await?;
+    let twitch_message = if let Some(existing_twitch_link) = existing_twitch_link {
+        let twitch_login = existing_twitch_link.twitch_login;
+
+        format!("You are linked as `{twitch_login}` on Twitch")
+    } else {
+        let state = Uuid::new_v4().to_string();
+        sqlx::query!(
+            "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
+            author_id,
+            state,
+        )
+        .execute(&config.db_pool)
         .await?;
+
+        let url = generate_user_twitch_link(&config.twitch, &state)?;
+
+        format!("You are not linked to Twitch. Click here to login with Twitch: {url}")
+    };
+
+    ctx.say(format!(
+        "Your Discord ID is `{author_id}`\n\n{twitch_message}"
+    ))
+    .await?;
 
     Ok(())
 }
@@ -118,7 +108,6 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
                 ping(),
                 user_age(),
                 author_age(),
-                twitch(),
                 github(),
                 me(),
             ],
