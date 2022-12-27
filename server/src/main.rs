@@ -1,6 +1,5 @@
 use std::{fs::OpenOptions, net::SocketAddr};
 
-use color_eyre::eyre;
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
 

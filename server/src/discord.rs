@@ -46,26 +46,6 @@ async fn ping(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-#[poise::command(slash_command, prefix_command, ephemeral)]
-async fn github(ctx: Context<'_>) -> Result<(), Error> {
-    let author_id: i64 = ctx.author().id.0.try_into()?;
-    let config = ctx.data();
-
-    let state = Uuid::new_v4().to_string();
-    sqlx::query!(
-        "INSERT INTO GithubLinkStates (discord_user_id, state) VALUES (?, ?)",
-        author_id,
-        state,
-    )
-    .execute(&config.db_pool)
-    .await?;
-
-    let url = generate_user_github_link(&config.github, &state)?;
-    ctx.say(format!("Github Verify: {url}")).await?;
-
-    Ok(())
-}
-
 #[poise::command(slash_command, ephemeral)]
 async fn me(ctx: Context<'_>) -> Result<(), Error> {
     let config = ctx.data();
@@ -126,15 +106,7 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {
-            commands: vec![
-                age(),
-                register(),
-                ping(),
-                user_age(),
-                author_age(),
-                github(),
-                me(),
-            ],
+            commands: vec![age(), register(), ping(), user_age(), author_age(), me()],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("~".into()),
                 ..Default::default()

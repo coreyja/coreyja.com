@@ -8,27 +8,6 @@ pub use models::*;
 mod findable;
 pub use findable::*;
 
-#[derive(Debug)]
-pub(crate) struct DiscordTwitchLink {
-    pub(crate) id: i64,
-    pub(crate) discord_user_id: i64,
-    pub(crate) twitch_user_id: String,
-    pub(crate) twitch_login: String,
-}
-
-pub(crate) async fn discord_twitch_link_from_user_id(
-    discord_user_id: i64,
-    db_pool: &SqlitePool,
-) -> Result<Option<DiscordTwitchLink>, sqlx::Error> {
-    sqlx::query_as!(
-        DiscordTwitchLink,
-        "SELECT * FROM DiscordTwitchLinks WHERE discord_user_id = ?",
-        discord_user_id
-    )
-    .fetch_optional(db_pool)
-    .await
-}
-
 pub(crate) async fn user_from_discord_user_id(
     discord_user_id: i64,
     db_pool: &SqlitePool,
@@ -60,7 +39,7 @@ pub(crate) async fn user_from_discord_user_id(
     }
 }
 
-pub async fn user_twitch_link_from_user(
+pub(crate) async fn user_twitch_link_from_user(
     user: &QueryOnRead<User>,
     db_pool: &SqlitePool,
 ) -> Result<Option<UserTwitchLink>, sqlx::Error> {
@@ -74,7 +53,7 @@ pub async fn user_twitch_link_from_user(
     .await
 }
 
-pub async fn user_github_link_from_user(
+pub(crate) async fn user_github_link_from_user(
     user: &QueryOnRead<User>,
     db_pool: &SqlitePool,
 ) -> Result<Option<UserGithubLink>, sqlx::Error> {

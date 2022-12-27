@@ -116,26 +116,26 @@ async fn twitch_oauth(
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct GithubOauthRequest {
-    pub code: String,
-    pub state: Option<String>,
+    pub(crate) code: String,
+    pub(crate) state: Option<String>,
 }
 
 #[derive(Serialize)]
 pub(crate) struct GithubCodeExchangeRequest {
-    pub client_id: String,
-    pub client_secret: String,
-    pub code: String,
-    pub redirect_uri: String,
+    pub(crate) client_id: String,
+    pub(crate) client_secret: String,
+    pub(crate) code: String,
+    pub(crate) redirect_uri: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct GithubTokenResponse {
-    pub(crate) access_token: String,
-    pub(crate) expires_in: i64,
-    pub(crate) refresh_token: String,
-    pub(crate) refresh_token_expires_in: i64,
-    pub(crate) scope: String,
-    pub(crate) token_type: String,
+    pub access_token: String,
+    pub expires_in: i64,
+    pub refresh_token: String,
+    pub refresh_token_expires_in: i64,
+    pub scope: String,
+    pub token_type: String,
 }
 
 async fn github_oauth(
