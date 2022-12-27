@@ -1,6 +1,6 @@
-use uuid::Uuid;
-
 use crate::*;
+
+use uuid::Uuid;
 
 type Error = color_eyre::Report;
 type Context<'a> = poise::Context<'a, Config, Error>;
@@ -70,16 +70,19 @@ async fn me(ctx: Context<'_>) -> Result<(), Error> {
     let config = ctx.data();
     let author_id: i64 = ctx.author().id.0.try_into()?;
 
-    let existing_twitch_link = discord_twitch_link_from_user_id(author_id, &config.db_pool).await?;
+    let user = user_from_discord_user_id(author_id, &config.db_pool).await?;
+    let user_id = user.id();
+
+    let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool).await?;
     let twitch_message = if let Some(existing_twitch_link) = existing_twitch_link {
-        let twitch_login = existing_twitch_link.twitch_login;
+        let twitch_login = existing_twitch_link.external_twitch_login;
 
         format!("You are linked as `{twitch_login}` on Twitch")
     } else {
         let state = Uuid::new_v4().to_string();
         sqlx::query!(
-            "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
-            author_id,
+            "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)",
+            user_id,
             state,
         )
         .execute(&config.db_pool)
@@ -123,7 +126,7 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
         )
         .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
-    framework.run().await.unwrap();
+    framework.run().await?;
 
     Ok(())
 }

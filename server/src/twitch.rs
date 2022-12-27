@@ -1,6 +1,6 @@
-use axum::http::Uri;
-
 use crate::*;
+
+use axum::http::Uri;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TwitchOauthRequest {
@@ -71,7 +71,7 @@ pub(crate) struct TwitchValidateResponse {
     pub user_id: String,
 }
 
-pub(crate) async fn get_chatters(config: &TwitchConfig) -> TwitchChattersPage {
+pub(crate) async fn get_chatters(config: &TwitchConfig) -> Result<TwitchChattersPage> {
     let client = reqwest::Client::new();
 
     let broadcaster_id = &config.channel_user_id;
@@ -82,9 +82,9 @@ pub(crate) async fn get_chatters(config: &TwitchConfig) -> TwitchChattersPage {
         .header("Client-Id", &config.client_id)
         .send()
         .await
-        .unwrap();
+        ?;
 
-    response.json::<TwitchChattersPage>().await.unwrap()
+    Ok(response.json::<TwitchChattersPage>().await?)
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -6,7 +6,7 @@ use axum::{
     routing::get,
     Router, Server,
 };
-use sqlx::query;
+use color_eyre::eyre::{Context, ContextCompat};
 
 impl FromRef<Config> for TwitchConfig {
     fn from_ref(config: &Config) -> Self {
@@ -21,10 +21,7 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);
-    Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    Server::bind(&addr).serve(app.into_make_service()).await?;
 
     Ok(())
 }
@@ -32,7 +29,7 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
 async fn twitch_oauth(
     Query(oauth): Query<TwitchOauthRequest>,
     State(config): State<Config>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, EyreError> {
     let twitch_config = config.twitch;
     let client = reqwest::Client::new();
 
@@ -46,46 +43,57 @@ async fn twitch_oauth(
             redirect_uri: twitch_config.redirect_uri.clone(),
         })
         .send()
-        .await
-        .unwrap();
+        .await?;
 
-    let json = token_response.json::<TwitchTokenResponse>().await.unwrap();
+    let json = token_response.json::<TwitchTokenResponse>().await?;
     let access_token = json.access_token;
 
     let validate_response = client
         .get("https://id.twitch.tv/oauth2/validate")
         .bearer_auth(access_token)
         .send()
-        .await
-        .unwrap();
+        .await?;
 
-    let json = validate_response
-        .json::<TwitchValidateResponse>()
-        .await
-        .unwrap();
+    let json = validate_response.json::<TwitchValidateResponse>().await?;
 
     if let Some(state) = oauth.state {
-        let discord_user_id = sqlx::query!(
-            "SELECT discord_user_id FROM TwitchLinkStates WHERE state = $1",
+        let user_id = sqlx::query!(
+            "
+            SELECT user_id
+            FROM UserTwitchLinkStates
+            WHERE  
+                state = $1 AND
+                status = 'pending'
+            ",
             state
         )
         .fetch_one(&config.db_pool)
-        .await
-        .unwrap()
-        .discord_user_id;
+        .await?
+        .user_id;
 
         sqlx::query!(
-            "INSERT INTO DiscordTwitchLinks (discord_user_id, twitch_user_id, twitch_login) VALUES ($1, $2, $3)",
-            discord_user_id,
+            "INSERT INTO UserTwitchLinks (user_id, external_twitch_user_id, external_twitch_login) VALUES ($1, $2, $3)",
+            user_id,
             json.user_id,
             json.login
         )
         .execute(&config.db_pool)
         .await
-        .unwrap();
+        ?;
+
+        sqlx::query!(
+            "UPDATE UserTwitchLinkStates
+            SET
+                status = 'used' AND
+                updated_at = CURRENT_TIMESTAMP
+            WHERE state = $1",
+            state
+        )
+        .execute(&config.db_pool)
+        .await?;
     }
 
-    format!("{json:#?}")
+    Ok(format!("{json:#?}"))
 }
 
 #[derive(Debug, Deserialize)]
@@ -115,7 +123,7 @@ struct GithubTokenResponse {
 async fn github_oauth(
     Query(oauth): Query<GithubOauthRequest>,
     State(config): State<Config>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, EyreError> {
     let client = reqwest::Client::new();
     let github = config.github;
 
@@ -128,14 +136,13 @@ async fn github_oauth(
             redirect_uri: github.redirect_uri.clone(),
         })
         .send()
-        .await
-        .unwrap();
-    let text = token_response.text().await.unwrap();
-    let token_response: GithubTokenResponse = serde_urlencoded::from_str(&text).unwrap();
+        .await?;
+    let text = token_response.text().await?;
+    let token_response: GithubTokenResponse = serde_urlencoded::from_str(&text)?;
 
     let state = oauth
         .state
-        .expect("Github oauth should always come back with a state when we kick it off");
+        .wrap_err("Github oauth should always come back with a state when we kick it off")?;
 
     let discord_user_id = sqlx::query!(
         "SELECT discord_user_id FROM GithubLinkStates WHERE state = $1",
@@ -143,11 +150,34 @@ async fn github_oauth(
     )
     .fetch_one(&config.db_pool)
     .await
-    .expect(indoc::indoc! {"
+    .wrap_err(indoc::indoc! {"
         If there was a state from Githun oauth, it should exist in our DB.
         Did this oauth get triggered by someone else with a state we don't know about?
-    "})
+    "})?
     .discord_user_id;
 
-    format!("{token_response:#?}\n\n{discord_user_id}")
+    Ok(format!("{token_response:#?}\n\n{discord_user_id}"))
+}
+
+struct EyreError(color_eyre::Report);
+
+impl IntoResponse for EyreError {
+    fn into_response(self) -> axum::response::Response {
+        self.0.to_string().into_response()
+    }
+}
+
+// impl From<color_eyre::Report> for EyreError {
+//     fn from(report: color_eyre::Report) -> Self {
+//         EyreError(report)
+//     }
+// }
+
+impl<T> From<T> for EyreError
+where
+    T: Into<color_eyre::Report>,
+{
+    fn from(err: T) -> Self {
+        EyreError(err.into())
+    }
 }

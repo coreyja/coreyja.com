@@ -1,5 +1,6 @@
 use std::{fs::OpenOptions, net::SocketAddr};
 
+use color_eyre::eyre;
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +9,8 @@ use tokio::try_join;
 use tracing::warn;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Layer, Registry};
 use tracing_tree::HierarchicalLayer;
+
+use async_trait::async_trait;
 
 pub use color_eyre::Result;
 
@@ -44,7 +47,7 @@ async fn main() -> Result<()> {
             .with_bracketed_fields(true)
             .with_filter(filter),
     );
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    tracing::subscriber::set_global_default(subscriber)?;
 
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
@@ -53,6 +56,7 @@ async fn main() -> Result<()> {
         let path = std::env::var("DATABASE_PATH");
 
         if let Ok(p) = &path {
+            // CONFUSED: I can't unwrap this error and I don't know why
             OpenOptions::new().write(true).create(true).open(p).unwrap();
 
             format!("sqlite:{}", p)
@@ -95,7 +99,7 @@ async fn run_log_chatters_loop(config: Config) -> Result<()> {
 }
 
 async fn log_chatters(config: &Config) -> Result<()> {
-    let chatters = get_chatters(&config.twitch).await;
+    let chatters = get_chatters(&config.twitch).await?;
 
     let chat_log_record = sqlx::query!("INSERT INTO ChatterLogRecord DEFAULT VALUES RETURNING id")
         .fetch_one(&config.db_pool)
