@@ -26,9 +26,9 @@ pub(crate) struct TwitchTokenResponse {
     pub token_type: String,
 }
 
-pub(crate) fn generate_user_twitch_link(config: &TwitchConfig, state: &str) -> Result<Uri> {
-    let client_id = &config.client_id;
-    let redirect_uri = &config.redirect_uri;
+pub(crate) fn generate_user_twitch_link(config: &Config, state: &str) -> Result<Uri> {
+    let client_id = &config.twitch.client_id;
+    let redirect_uri = format!("{}/twitch_oauth", config.app.base_url);
 
     Ok(Uri::builder()
         .scheme("https")
@@ -42,7 +42,6 @@ pub(crate) struct TwitchConfig {
     pub client_id: String,
     pub client_secret: String,
 
-    pub redirect_uri: String,
     pub bot_access_token: String,
 
     pub channel_user_id: String,
@@ -54,7 +53,6 @@ impl TwitchConfig {
         Ok(Self {
             client_id: std::env::var("TWITCH_CLIENT_ID")?,
             client_secret: std::env::var("TWITCH_CLIENT_SECRET")?,
-            redirect_uri: std::env::var("TWITCH_REDIRECT_URI")?,
             bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN")?,
             bot_user_id: std::env::var("TWITCH_BOT_USER_ID")?,
             channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID")?,

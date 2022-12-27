@@ -1,5 +1,6 @@
 use std::{fs::OpenOptions, net::SocketAddr};
 
+use color_eyre::eyre::Context;
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +29,18 @@ use github::*;
 mod db;
 use db::*;
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
     base_url: String,
+}
+
+impl AppConfig {
+    fn from_env() -> Result<Self> {
+        Ok(Self {
+            base_url: std::env::var("APP_BASE_URL")
+                .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +48,7 @@ struct Config {
     twitch: TwitchConfig,
     db_pool: SqlitePool,
     github: GithubConfig,
+    app: AppConfig,
 }
 
 #[tokio::main]
@@ -52,6 +64,7 @@ async fn main() -> Result<()> {
     );
     tracing::subscriber::set_global_default(subscriber)?;
 
+    let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
 
@@ -73,6 +86,7 @@ async fn main() -> Result<()> {
         twitch: twitch_config,
         db_pool: pool,
         github: github_config,
+        app: app_config,
     };
 
     migrate!("./migrations/").run(&config.db_pool).await?;

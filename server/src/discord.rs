@@ -69,7 +69,7 @@ async fn me(ctx: Context<'_>) -> Result<(), Error> {
         .execute(&config.db_pool)
         .await?;
 
-        let url = generate_user_twitch_link(&config.twitch, &state)?;
+        let url = generate_user_twitch_link(config, &state)?;
 
         format!("You are not linked to Twitch. Click here to login with Twitch: {url}")
     };
@@ -89,7 +89,7 @@ async fn me(ctx: Context<'_>) -> Result<(), Error> {
         .execute(&config.db_pool)
         .await?;
 
-        let url = generate_user_github_link(&config.github, &state)?;
+        let url = generate_user_github_link(config, &state)?;
 
         format!("You are not linked to Github. Click here to login with Github: {url}")
     };

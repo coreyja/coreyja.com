@@ -16,6 +16,12 @@ impl FromRef<Config> for TwitchConfig {
     }
 }
 
+impl FromRef<Config> for AppConfig {
+    fn from_ref(config: &Config) -> Self {
+        config.app.clone()
+    }
+}
+
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     let app = Router::with_state(config)
         .route("/twitch_oauth", get(twitch_oauth))
@@ -35,6 +41,8 @@ async fn twitch_oauth(
     let twitch_config = config.twitch;
     let client = reqwest::Client::new();
 
+    let redirect_uri = format!("{base_url}/twitch_oauth", base_url = config.app.base_url);
+
     let token_response = client
         .post("https://id.twitch.tv/oauth2/token")
         .form(&TwitchCodeExchangeRequest {
@@ -42,7 +50,7 @@ async fn twitch_oauth(
             client_secret: twitch_config.client_secret.clone(),
             code: oauth.code.clone(),
             grant_type: "authorization_code".to_string(),
-            redirect_uri: twitch_config.redirect_uri.clone(),
+            redirect_uri,
         })
         .send()
         .await?;
@@ -143,7 +151,8 @@ async fn github_oauth(
     State(config): State<Config>,
 ) -> Result<impl IntoResponse, EyreError> {
     let client = reqwest::Client::new();
-    let github = config.github;
+    let github = &config.github;
+    let redirect_uri = github_redirect_uri(&config);
 
     let token_response = client
         .post("https://github.com/login/oauth/access_token")
@@ -151,7 +160,7 @@ async fn github_oauth(
             client_id: github.client_id.clone(),
             client_secret: github.client_secret.clone(),
             code: oauth.code.clone(),
-            redirect_uri: github.redirect_uri.clone(),
+            redirect_uri,
         })
         .send()
         .await?;
