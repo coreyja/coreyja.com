@@ -28,6 +28,10 @@ use github::*;
 mod db;
 use db::*;
 
+struct AppConfig {
+    base_url: String,
+}
+
 #[derive(Debug, Clone)]
 struct Config {
     twitch: TwitchConfig,
