@@ -52,18 +52,17 @@ async fn main() -> Result<()> {
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
 
-    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+    let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
         let path = std::env::var("DATABASE_PATH");
 
-        if let Ok(p) = &path {
-            // CONFUSED: I can't unwrap this error and I don't know why
-            OpenOptions::new().write(true).create(true).open(p).unwrap();
+        Ok(if let Ok(p) = &path {
+            OpenOptions::new().write(true).create(true).open(p)?;
 
             format!("sqlite:{}", p)
         } else {
             "sqlite::memory:".to_string()
-        }
-    });
+        })
+    })?;
 
     let pool = SqlitePool::connect(&database_url).await?;
 
