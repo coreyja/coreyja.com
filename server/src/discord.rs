@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use crate::*;
 
 use color_eyre::eyre::WrapErr;
+use poise::{futures_util::StreamExt, CreateReply};
 use uuid::Uuid;
 
 type Error = color_eyre::Report;
@@ -54,50 +57,97 @@ async fn me(ctx: Context<'_>) -> Result<(), Error> {
     let user = user_from_discord_user_id(author_id, &config.db_pool).await?;
     let user_id = user.id();
 
-    let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool).await?;
-    let twitch_message = if let Some(existing_twitch_link) = existing_twitch_link {
-        let twitch_login = existing_twitch_link.external_twitch_login;
+    async fn message_from_user(
+        user: QueryOnRead<User>,
+        ctx: Context<'_>,
+        config: &Config,
+        author_id: i64,
+    ) -> Result<String> {
+        let user_id = user.id();
+        let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool).await?;
+        let twitch_message = if let Some(existing_twitch_link) = existing_twitch_link {
+            let twitch_login = existing_twitch_link.external_twitch_login;
 
-        format!("You are linked as `{twitch_login}` on Twitch")
-    } else {
-        let state = Uuid::new_v4().to_string();
-        sqlx::query!(
-            "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)",
-            user_id,
-            state,
-        )
-        .execute(&config.db_pool)
+            format!("You are linked as `{twitch_login}` on Twitch")
+        } else {
+            let state = Uuid::new_v4().to_string();
+            sqlx::query!(
+                "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)",
+                user_id,
+                state,
+            )
+            .execute(&config.db_pool)
+            .await?;
+
+            let url = generate_user_twitch_link(config, &state)?;
+
+            format!("You are not linked to Twitch. Click here to login with Twitch: {url}")
+        };
+
+        let existing_github_link = user_github_link_from_user(&user, &config.db_pool).await?;
+        let github_message = if let Some(existing_github_link) = existing_github_link {
+            let github_username = existing_github_link.external_github_username;
+
+            format!("You are linked as `{github_username}` on Github")
+        } else {
+            let state = Uuid::new_v4().to_string();
+            sqlx::query!(
+                "INSERT INTO UserGithubLinkStates (user_id, state) VALUES (?, ?)",
+                user_id,
+                state,
+            )
+            .execute(&config.db_pool)
+            .await?;
+
+            let url = generate_user_github_link(config, &state)?;
+
+            format!("You are not linked to Github. Click here to login with Github: {url}")
+        };
+        let message =
+            format!("Your Discord ID is `{author_id}`\n\n{twitch_message}\n\n{github_message}");
+
+        Ok(message)
+    }
+
+    let message = message_from_user(user, ctx, config, author_id).await?;
+    let reply = ctx
+        .send(|cr| {
+            cr.content(message).components(|b| {
+                b.create_action_row(|ar| {
+                    ar.create_button(|b| b.label("Twitch").custom_id("link:twitch"))
+                        .create_button(|b| b.label("Link Github").custom_id("link:github"))
+                })
+            })
+        })
         .await?;
 
-        let url = generate_user_twitch_link(config, &state)?;
+    let mut interations = reply
+        .message()
+        .await?
+        .await_component_interactions(ctx.discord())
+        .author_id(ctx.author().id)
+        // .timeout(Duration::from_secs(1 * 60))
+        .build();
 
-        format!("You are not linked to Twitch. Click here to login with Twitch: {url}")
-    };
-
-    let existing_github_link = user_github_link_from_user(&user, &config.db_pool).await?;
-    let github_message = if let Some(existing_github_link) = existing_github_link {
-        let github_username = existing_github_link.external_github_username;
-
-        format!("You are linked as `{github_username}` on Github")
-    } else {
-        let state = Uuid::new_v4().to_string();
-        sqlx::query!(
-            "INSERT INTO UserGithubLinkStates (user_id, state) VALUES (?, ?)",
-            user_id,
-            state,
-        )
-        .execute(&config.db_pool)
+    while let Some(m) = interations.next().await {
+        dbg!("In interactions loop");
+        m.create_interaction_response(ctx.discord(), |ir| {
+            ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
+        })
         .await?;
 
-        let url = generate_user_github_link(config, &state)?;
+        // TODO: We will need to do something with tis id when the buttons get clicked
+        let _pressed_button_id = &m.data.custom_id;
 
-        format!("You are not linked to Github. Click here to login with Github: {url}")
-    };
+        let message = message_from_user(QueryOnRead::Id(user_id), ctx, config, author_id).await?;
+        reply.edit(ctx, |b| b.content(message)).await?;
+    }
 
-    ctx.say(format!(
-        "Your Discord ID is `{author_id}`\n\n{twitch_message}\n\n{github_message}"
-    ))
-    .await?;
+    dbg!("Method returning");
+    reply
+        .edit(ctx, |b| b.content("We are done here").components(|b| b))
+        .await?;
+    dbg!("Method returning for realz");
 
     Ok(())
 }
