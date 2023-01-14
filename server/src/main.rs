@@ -1,16 +1,14 @@
-use std::{fs::OpenOptions, net::SocketAddr, sync::Arc, time::Instant};
+use std::{fs::OpenOptions, net::SocketAddr, sync::Arc};
 
-use axum::http::request;
-use chrono::{DateTime, Utc};
 use color_eyre::eyre::Context;
-use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId};
+use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId, Color};
 use reqwest::Client;
 use rss::Channel;
 use serde::{Deserialize, Serialize};
 
 use sqlx::{migrate, SqlitePool};
 use tokio::try_join;
-use tracing::warn;
+use tracing::info;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Layer, Registry};
 use tracing_tree::HierarchicalLayer;
 
@@ -33,6 +31,9 @@ use github::*;
 mod db;
 use db::*;
 
+mod my_rss;
+use my_rss::*;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
     base_url: String,
@@ -54,24 +55,6 @@ struct Config {
     github: GithubConfig,
     rss: RssConfig,
     app: AppConfig,
-}
-
-#[derive(Debug, Clone)]
-struct RssConfig {
-    upwork_url: String,
-    discord_notification_channel_id: u64,
-}
-
-impl RssConfig {
-    fn from_env() -> Result<Self> {
-        Ok(Self {
-            upwork_url: std::env::var("UPWORK_RSS_URL")
-                .wrap_err("Missing UPWORK_RSS_URL needed for app launch")?,
-            discord_notification_channel_id: std::env::var("UPWORK_DISCORD_CHANNEL_ID")
-                .wrap_err("Missing UPWORK_DISCORD_CHANNEL_ID")?
-                .parse()?,
-        })
-    }
 }
 
 #[tokio::main]
@@ -125,52 +108,12 @@ async fn main() -> Result<()> {
 
     let rss_future = tokio::spawn(run_rss(config.clone(), http_and_cache.clone()));
 
-    ChannelId(1041140878917513329)
-        .send_message(&http_and_cache.http, |m| m.content("content"))
-        .await?;
-
     let (discord_result, axum_result, run_rss_result) =
         try_join!(discord_future, axum_future, rss_future)?;
 
     discord_result?;
     axum_result?;
     run_rss_result?;
-
-    Ok(())
-}
-
-async fn run_rss(config: Config, discord_client: Arc<CacheAndHttp>) -> Result<()> {
-    let sleep_duration = std::time::Duration::from_secs(60);
-
-    let client = reqwest::Client::new();
-
-    loop {
-        run_upwork_rss(&config, &discord_client, &client).await?;
-
-        tokio::time::sleep(sleep_duration).await;
-    }
-}
-
-async fn run_upwork_rss(
-    config: &Config,
-    discord_client: &CacheAndHttp,
-    client: &Client,
-) -> Result<()> {
-    let resp = client
-        .get(&config.rss.upwork_url)
-        .send()
-        .await?
-        .bytes()
-        .await?;
-    let channel = Channel::read_from(&resp[..])?;
-
-    let first_title = channel.items()[0]
-        .title()
-        .unwrap_or_else(|| "Nothing found");
-
-    ChannelId(config.rss.discord_notification_channel_id)
-        .send_message(&discord_client.http, |m| m.content(&first_title))
-        .await?;
 
     Ok(())
 }

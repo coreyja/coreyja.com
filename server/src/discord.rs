@@ -6,9 +6,8 @@ use color_eyre::{eyre::WrapErr, Report};
 use poise::{
     futures_util::StreamExt,
     serenity_prelude::{EmojiId, ReactionType},
-    CreateReply, Framework, FrameworkError,
+    Framework,
 };
-use uuid::Uuid;
 
 type Error = color_eyre::Report;
 type Context<'a> = poise::Context<'a, Config, Error>;
@@ -153,8 +152,5 @@ pub(crate) async fn build_discord_bot(config: Config) -> Result<Arc<Framework<Co
         )
         .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
-    let framework = framework.build().await?;
-    let returned_framework = framework.clone();
-
-    Ok(framework)
+    Ok(framework.build().await?)
 }
