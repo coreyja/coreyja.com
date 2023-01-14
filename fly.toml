@@ -10,6 +10,7 @@ processes = []
 [env]
   DATABASE_PATH="/data/coreyja.db"
   OTEL_SERVICE_NAME="coreyja"
+  RUST_LOG="server:info"
 
 [experimental]
   allowed_public_ports = []

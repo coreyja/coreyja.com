@@ -99,10 +99,10 @@ workflows:
             - Fly.io
           requires:
             - build-and-test-rust
-          filters:
-            branches:
-              only:
-                - 'main'
+          # filters:
+          #   branches:
+          #     only:
+          #       - 'main'
 
 
 # VS Code Extension Version: 1.5.1
