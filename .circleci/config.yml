@@ -40,7 +40,6 @@ jobs:
       - checkout
       - with-rust-setup:
           do:
-            - run: mkdir -p frontend/pkg
             - run:
                 name: Build
                 command: cargo build --locked --all-targets
@@ -63,12 +62,12 @@ jobs:
                 name: Clippy
                 command: cargo clippy --workspace --no-deps
       - store_artifacts:
-          path: target/debug/peek
-          destination: peek
+          path: target/debug/server
+          destination: server
       - persist_to_workspace:
           root: target
           paths:
-            - debug/peek
+            - debug/server
       - install-sqlx-cli
       - run:
           name: Setup DB
@@ -85,7 +84,7 @@ jobs:
       - run: curl -L https://fly.io/install.sh | sh
       - run: echo 'export FLYCTL_INSTALL="/root/.fly"' >> $BASH_ENV
       - run: echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> $BASH_ENV
-      - run: flyctl deploy --app peek --remote-only
+      - run: flyctl deploy --app coreyja --remote-only
 
 workflows:
   ci:
@@ -101,3 +100,5 @@ workflows:
               only:
                 - 'main'
 
+
+# VS Code Extension Version: 1.5.1
