@@ -2,6 +2,7 @@ use crate::*;
 
 use axum::http::Uri;
 use color_eyre::Result;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub(crate) struct GithubConfig {
@@ -20,9 +21,18 @@ impl GithubConfig {
     }
 }
 
-pub(crate) fn generate_user_github_link(config: &Config, state: &str) -> Result<Uri> {
+pub(crate) async fn generate_user_github_link(config: &Config, user_id: i64) -> Result<Uri> {
     let client_id = &config.github.client_id;
     let redirect_uri = github_redirect_uri(config);
+
+    let state = Uuid::new_v4().to_string();
+    sqlx::query!(
+        "INSERT INTO UserGithubLinkStates (user_id, state) VALUES (?, ?)",
+        user_id,
+        state,
+    )
+    .execute(&config.db_pool)
+    .await?;
 
     Ok(Uri::builder()
         .scheme("https")
