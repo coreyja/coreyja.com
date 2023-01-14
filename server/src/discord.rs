@@ -43,9 +43,8 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
 
             format!("You are linked as `{twitch_login}` on Twitch")
         } else {
-            format!(
-                "You are not linked to Twitch. Use the buttons below to Authenticate with Twitch!"
-            )
+            "You are not linked to Twitch. Use the buttons below to Authenticate with Twitch!"
+                .to_string()
         };
 
         let existing_github_link = user_github_link_from_user(&user, &config.db_pool).await?;
@@ -54,9 +53,8 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
 
             format!("You are linked as `{github_username}` on Github")
         } else {
-            format!(
-                "You are not linked to Github. Use the buttons below to authenticate with Github!"
-            )
+            "You are not linked to Github. Use the buttons below to authenticate with Github!"
+                .to_string()
         };
         let message =
             format!("Your Discord ID is `{author_id}`\n\n{twitch_message}\n\n{github_message}");
@@ -81,7 +79,7 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
         .await?
         .await_component_interactions(ctx.discord())
         .author_id(ctx.author().id)
-        .timeout(Duration::from_secs(1 * 60))
+        .timeout(Duration::from_secs(60))
         .build();
 
     while let Some(m) = interations.next().await {

@@ -44,7 +44,7 @@ async fn run_upwork_rss(
     let channel = Channel::read_from(&resp[..])?;
 
     for item in channel.items() {
-        process_upwork_job_rss(&config, item, discord_client).await?;
+        process_upwork_job_rss(config, item, discord_client).await?;
     }
 
     Ok(())
@@ -62,7 +62,7 @@ async fn process_upwork_job_rss(
         .await?
         .map(|r| r.id);
 
-    if let Some(_) = existing_record_id {
+    if existing_record_id.is_some() {
         info!(guid, "We already recorded this job");
     } else {
         let title = item.title().unwrap();

@@ -1,15 +1,18 @@
-use std::{fs::OpenOptions, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, fs::OpenOptions, net::SocketAddr, sync::Arc, time::Duration};
 
 use color_eyre::eyre::Context;
+use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId, Color};
 use reqwest::Client;
 use rss::Channel;
+use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
 use sqlx::{migrate, SqlitePool};
 use tokio::try_join;
 use tracing::info;
-use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Layer, Registry};
+use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::{prelude::*, util::SubscriberInitExt, EnvFilter, Registry};
 use tracing_tree::HierarchicalLayer;
 
 use async_trait::async_trait;
@@ -57,18 +60,88 @@ struct Config {
     app: AppConfig,
 }
 
+fn setup_sentry() -> Option<ClientInitGuard> {
+    let git_commit = std::option_env!("CIRCLE_SHA1");
+    let release_name = sentry::release_name!().unwrap_or_else(|| "dev".into());
+    let release_name = if let Some(git_commit) = git_commit {
+        git_commit.into()
+    } else {
+        release_name
+    };
+
+    if let Ok(sentry_dsn) = std::env::var("SENTRY_DSN") {
+        println!("Sentry enabled");
+
+        Some(sentry::init((
+            sentry_dsn,
+            sentry::ClientOptions {
+                traces_sample_rate: 0.0,
+                release: Some(release_name),
+                ..Default::default()
+            },
+        )))
+    } else {
+        println!("Sentry not configured in this environment");
+
+        None
+    }
+}
+
+fn setup_tracing() -> Result<()> {
+    let env_filter = EnvFilter::from_default_env();
+
+    let opentelemetry_layer = if let Ok(honeycomb_key) = std::env::var("HONEYCOMB_API_KEY") {
+        let mut map = HashMap::<String, String>::new();
+        map.insert("x-honeycomb-team".to_string(), honeycomb_key);
+        map.insert("x-honeycomb-dataset".to_string(), "coreyja.com".to_string());
+
+        let tracer = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .http()
+                    .with_endpoint("https://api.honeycomb.io/v1/traces")
+                    .with_timeout(Duration::from_secs(3))
+                    .with_headers(map),
+            )
+            .install_batch(opentelemetry::runtime::Tokio)?;
+
+        let opentelemetry_layer = OpenTelemetryLayer::new(tracer);
+
+        Some(opentelemetry_layer)
+    } else {
+        None
+    };
+
+    let heirarchical = if opentelemetry_layer.is_none() {
+        let heirarchical = HierarchicalLayer::default()
+            .with_writer(std::io::stdout)
+            .with_indent_lines(true)
+            .with_indent_amount(2)
+            .with_thread_names(true)
+            .with_thread_ids(true)
+            .with_verbose_exit(true)
+            .with_verbose_entry(true)
+            .with_targets(true);
+
+        Some(heirarchical)
+    } else {
+        None
+    };
+
+    Registry::default()
+        .with(heirarchical)
+        .with(opentelemetry_layer)
+        .with(env_filter)
+        .try_init()?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    let filter = EnvFilter::from_default_env();
-    let subscriber = Registry::default().with(
-        HierarchicalLayer::new(2)
-            .with_ansi(true)
-            .with_verbose_entry(true)
-            .with_verbose_exit(true)
-            .with_bracketed_fields(true)
-            .with_filter(filter),
-    );
-    tracing::subscriber::set_global_default(subscriber)?;
+    let _sentry_guard = setup_sentry();
+    setup_tracing()?;
 
     let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
