@@ -23,9 +23,10 @@ impl FromRef<Config> for AppConfig {
 }
 
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
-    let app = Router::with_state(config)
+    let app = Router::new()
         .route("/twitch_oauth", get(twitch_oauth))
-        .route("/github_oauth", get(github_oauth));
+        .route("/github_oauth", get(github_oauth))
+        .with_state(config);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("listening on {}", addr);
