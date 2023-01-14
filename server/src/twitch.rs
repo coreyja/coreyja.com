@@ -63,7 +63,7 @@ impl TwitchConfig {
         Ok(Self {
             client_id: std::env::var("TWITCH_CLIENT_ID")?,
             client_secret: std::env::var("TWITCH_CLIENT_SECRET")?,
-            bot_access_token: Some(std::env::var("TWITCH_BOT_ACCESS_TOKEN")?),
+            bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN").ok(),
             bot_user_id: std::env::var("TWITCH_BOT_USER_ID")?,
             channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID")?,
         })
@@ -86,7 +86,7 @@ pub(crate) async fn get_chatters(config: &TwitchConfig) -> Result<TwitchChatters
     let mod_id = &config.bot_user_id;
     let response = client
         .get(format!("https://api.twitch.tv/helix/chat/chatters?broadcaster_id={broadcaster_id}&moderator_id={mod_id}"))
-        .bearer_auth(&config.bot_access_token.as_ref().expect("We need a bot access token here. This was required and then it was hard to generate for prod and I was lazy and we aren't using this yet so :shrug:"))
+        .bearer_auth(config.bot_access_token.as_ref().expect("We need a bot access token here. This was required and then it was hard to generate for prod and I was lazy and we aren't using this yet so :shrug:"))
         .header("Client-Id", &config.client_id)
         .send()
         .await
