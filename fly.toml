@@ -4,7 +4,7 @@ kill_timeout = 5
 processes = []
 
 [mounts]
-  source="coreyja_db_data"
+  source="coreyja_data"
   destination="/data"
 
 [env]
