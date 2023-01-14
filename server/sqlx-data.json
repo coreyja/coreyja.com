@@ -1,0 +1,389 @@
+{
+  "db": "SQLite",
+  "089a5a9f15c94bf638a9f7bdbcc9f22a205ecd27efdedb06f131d7df1aeb745c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "\n        INSERT INTO\n            UserGithubLinks (\n                user_id,\n                external_github_username,\n                access_token,\n                refresh_token,\n                access_token_expires_at,\n                refresh_token_expires_at\n            )\n        VALUES ($1, $2, $3, $4, $5, $6)\n        "
+  },
+  "113e318e893b339a6754b4ff6d391f6bc98609b7b2c938862f30e68908cc4526": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT user_id FROM UserDiscordLinks WHERE external_discord_user_id = ?"
+  },
+  "15264e737bea6724c9d92bd5d2f63803998c3d7526750f8bd52a4e1de02eede0": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 7
+      }
+    },
+    "query": "INSERT INTO\n            UserTwitchLinks\n                (\n                    user_id,\n                    external_twitch_user_id,\n                    external_twitch_login,\n                    access_token,\n                    refresh_token,\n                    access_token_expires_at,\n                    access_token_validated_at\n                )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)"
+  },
+  "15bc713fbfa6d063456d5367c359a2a62dddda9b510fe04bc55f0bc8a9415373": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "UPDATE UserGithubLinkStates\n            SET\n                status = 'used' AND\n                updated_at = CURRENT_TIMESTAMP\n            WHERE state = $1"
+  },
+  "1847425b83afb1c6b3402cbd3a26d93c086ed4407cad1f72bd4870c8a44af4ed": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\n            SELECT user_id\n            FROM UserTwitchLinkStates\n            WHERE  \n                state = $1 AND\n                status = 'pending'\n            "
+  },
+  "1f7ad6c748f82592f6fc5af6616adde4f0fcc1ba84151e5f861a0a57b9a624bb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO UpworkJobs (guid, title, content) VALUES (?,?,?) RETURNING id"
+  },
+  "304db47721fe3044b4bd505a7f1305469139599f04308da51832638d09a5d045": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "UPDATE UserTwitchLinkStates\n            SET\n                status = 'used' AND\n                updated_at = CURRENT_TIMESTAMP\n            WHERE state = $1"
+  },
+  "42f645c241c38865b6e7dd4b9de4c378d60721e0c8af5a6d5657190178f544bc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id FROM UpworkJobs where guid = ?"
+  },
+  "52acc76e7cd67eaa8849122ddc45a1e26552b9bbc0a7c3fa195e167ad5672bc8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 1,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 2,
+          "type_info": "Datetime"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "INSERT INTO Users DEFAULT VALUES RETURNING *"
+  },
+  "6fba5afbe0b57cb8b1ea8dc8c869769db63b13554f07cc697cc7dbb836048edb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "INSERT INTO ChatterLogRecord DEFAULT VALUES RETURNING id"
+  },
+  "8cb6371ddeff1abf789eb819960f69e8046d571fcafa3797fa54fa6f520b764e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT user_id FROM UserGithubLinkStates WHERE state = $1 AND status = 'pending'"
+  },
+  "8e3ffe0d11d3eb38cd805771cd133588c0679404a68a8041f414553226abeeb2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 1,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 2,
+          "type_info": "Datetime"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT * FROM Users WHERE id = ?"
+  },
+  "94293fd779d6c71b801c93c2b96836823399e96cc843b8a0b664ad3a12d3d6e1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "external_github_username",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "access_token",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "access_token_expires_at",
+          "ordinal": 5,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "refresh_token_expires_at",
+          "ordinal": 6,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 8,
+          "type_info": "Datetime"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT * FROM UserGithubLinks WHERE user_id = ?"
+  },
+  "bb0470c2b186de8a4e3608e84b05c27c8019be8fac87bf0b244f14a8ed9be923": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)"
+  },
+  "cdeb0c469dc7783162fa1661f8bb0ff05263f498e15b0bad67aea0ee99242f5c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "external_twitch_login",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "external_twitch_user_id",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "access_token",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "access_token_expires_at",
+          "ordinal": 6,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "access_token_validated_at",
+          "ordinal": 7,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 8,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 9,
+          "type_info": "Datetime"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT * FROM UserTwitchLinks WHERE user_id = ?"
+  },
+  "ef2616673daa17c8c827c307f060c3f54864f6c2509a7b35b526a09802fe9e5b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO ChatterLogs (chatters_log_id, name) VALUES (?, ?)"
+  },
+  "f2e83d6779fc2a6b9880f10c16b3434fda05369b7fbd2ce8f077a878b9d713a5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO UserDiscordLinks (user_id, external_discord_user_id) VALUES (?, ?)"
+  },
+  "fc01fba8ed5d7502d683f48ca06db21f805f9723c8c46934935c6b832690926f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO UserGithubLinkStates (user_id, state) VALUES (?, ?)"
+  }
+}

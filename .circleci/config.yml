@@ -36,6 +36,7 @@ jobs:
     resource_class: xlarge
     environment:
       DATABASE_URL: "sqlite:/root/project/server/db.sqlite3"
+      SQLX_OFFLINE: true
     steps:
       - checkout
       - with-rust-setup:
@@ -72,6 +73,9 @@ jobs:
       - run:
           name: Setup DB
           command: cd server && cargo sqlx database setup
+      - run:
+          name: Check prepared sqlx schema
+          command: cd server && cargo sqlx prepare --check
 
   deploy-fly:
     docker:
