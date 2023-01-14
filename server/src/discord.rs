@@ -1,12 +1,12 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use crate::*;
 
-use color_eyre::eyre::WrapErr;
+use color_eyre::{eyre::WrapErr, Report};
 use poise::{
     futures_util::StreamExt,
     serenity_prelude::{EmojiId, ReactionType},
-    CreateReply,
+    CreateReply, Framework, FrameworkError,
 };
 use uuid::Uuid;
 
@@ -136,7 +136,7 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
+pub(crate) async fn build_discord_bot(config: Config) -> Result<Arc<Framework<Config, Report>>> {
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {
@@ -153,7 +153,8 @@ pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
         )
         .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
-    framework.run().await?;
+    let framework = framework.build().await?;
+    let returned_framework = framework.clone();
 
-    Ok(())
+    Ok(framework)
 }

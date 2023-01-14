@@ -1,7 +1,11 @@
-use std::{fs::OpenOptions, net::SocketAddr};
+use std::{fs::OpenOptions, net::SocketAddr, sync::Arc, time::Instant};
 
+use axum::http::request;
+use chrono::{DateTime, Utc};
 use color_eyre::eyre::Context;
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId};
+use reqwest::Client;
+use rss::Channel;
 use serde::{Deserialize, Serialize};
 
 use sqlx::{migrate, SqlitePool};
@@ -48,7 +52,26 @@ struct Config {
     twitch: TwitchConfig,
     db_pool: SqlitePool,
     github: GithubConfig,
+    rss: RssConfig,
     app: AppConfig,
+}
+
+#[derive(Debug, Clone)]
+struct RssConfig {
+    upwork_url: String,
+    discord_notification_channel_id: u64,
+}
+
+impl RssConfig {
+    fn from_env() -> Result<Self> {
+        Ok(Self {
+            upwork_url: std::env::var("UPWORK_RSS_URL")
+                .wrap_err("Missing UPWORK_RSS_URL needed for app launch")?,
+            discord_notification_channel_id: std::env::var("UPWORK_DISCORD_CHANNEL_ID")
+                .wrap_err("Missing UPWORK_DISCORD_CHANNEL_ID")?
+                .parse()?,
+        })
+    }
 }
 
 #[tokio::main]
@@ -67,6 +90,7 @@ async fn main() -> Result<()> {
     let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
+    let rss_config = RssConfig::from_env()?;
 
     let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
         let path = std::env::var("DATABASE_PATH");
@@ -87,23 +111,71 @@ async fn main() -> Result<()> {
         db_pool: pool,
         github: github_config,
         app: app_config,
+        rss: rss_config,
     };
 
     migrate!("./migrations/").run(&config.db_pool).await?;
 
-    let discord_future = tokio::spawn(run_discord_bot(config.clone()));
-    let axum_future = tokio::spawn(run_axum(config.clone()));
-    let chatters_loop = tokio::spawn(run_log_chatters_loop(config.clone()));
+    let discord_bot = build_discord_bot(config.clone()).await?;
 
-    let (discord_result, axum_result, chatters_result) =
-        try_join!(discord_future, axum_future, chatters_loop)?;
+    let http_and_cache = discord_bot.client().cache_and_http.clone();
+
+    let discord_future = tokio::spawn(discord_bot.start());
+    let axum_future = tokio::spawn(run_axum(config.clone()));
+
+    let rss_future = tokio::spawn(run_rss(config.clone(), http_and_cache.clone()));
+
+    ChannelId(1041140878917513329)
+        .send_message(&http_and_cache.http, |m| m.content("content"))
+        .await?;
+
+    let (discord_result, axum_result, run_rss_result) =
+        try_join!(discord_future, axum_future, rss_future)?;
+
     discord_result?;
     axum_result?;
-    chatters_result?;
+    run_rss_result?;
 
     Ok(())
 }
 
+async fn run_rss(config: Config, discord_client: Arc<CacheAndHttp>) -> Result<()> {
+    let sleep_duration = std::time::Duration::from_secs(60);
+
+    let client = reqwest::Client::new();
+
+    loop {
+        run_upwork_rss(&config, &discord_client, &client).await?;
+
+        tokio::time::sleep(sleep_duration).await;
+    }
+}
+
+async fn run_upwork_rss(
+    config: &Config,
+    discord_client: &CacheAndHttp,
+    client: &Client,
+) -> Result<()> {
+    let resp = client
+        .get(&config.rss.upwork_url)
+        .send()
+        .await?
+        .bytes()
+        .await?;
+    let channel = Channel::read_from(&resp[..])?;
+
+    let first_title = channel.items()[0]
+        .title()
+        .unwrap_or_else(|| "Nothing found");
+
+    ChannelId(config.rss.discord_notification_channel_id)
+        .send_message(&discord_client.http, |m| m.content(&first_title))
+        .await?;
+
+    Ok(())
+}
+
+#[allow(dead_code)]
 async fn run_log_chatters_loop(config: Config) -> Result<()> {
     let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
 
