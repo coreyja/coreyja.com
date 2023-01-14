@@ -33,7 +33,7 @@ ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.9/litestrea
 RUN tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz
 
 # Start building the final image
-FROM debian:buster-slim as final
+FROM debian:bullseye-slim as final
 WORKDIR /home/rust/
 
 RUN apt-get update && apt-get install -y \
