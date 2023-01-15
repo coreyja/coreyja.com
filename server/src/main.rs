@@ -107,9 +107,12 @@ fn setup_tracing() -> Result<()> {
             .install_batch(opentelemetry::runtime::Tokio)?;
 
         let opentelemetry_layer = OpenTelemetryLayer::new(tracer);
+        println!("Honeycomb layer configured");
 
         Some(opentelemetry_layer)
     } else {
+        println!("Skipping Honeycomb layer");
+
         None
     };
 
@@ -123,6 +126,8 @@ fn setup_tracing() -> Result<()> {
             .with_verbose_exit(true)
             .with_verbose_entry(true)
             .with_targets(true);
+
+        println!("Since we don't have honeycomb we'll go to stdout");
 
         Some(heirarchical)
     } else {
