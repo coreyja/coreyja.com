@@ -175,16 +175,18 @@ async fn main() -> Result<()> {
         rss: rss_config,
     };
 
+    info!("About to run migrations (if any to apply)");
     migrate!("./migrations/").run(&config.db_pool).await?;
 
     let discord_bot = build_discord_bot(config.clone()).await?;
 
     let http_and_cache = discord_bot.client().cache_and_http.clone();
 
+    info!("Spawning Tasks");
     let discord_future = tokio::spawn(discord_bot.start());
     let axum_future = tokio::spawn(run_axum(config.clone()));
-
     let rss_future = tokio::spawn(run_rss(config.clone(), http_and_cache.clone()));
+    info!("Tasks Spawned");
 
     let (discord_result, axum_result, run_rss_result) =
         try_join!(discord_future, axum_future, rss_future)?;
@@ -192,6 +194,8 @@ async fn main() -> Result<()> {
     discord_result?;
     axum_result?;
     run_rss_result?;
+
+    info!("Main Returning");
 
     Ok(())
 }

@@ -1,3 +1,5 @@
+use tracing::instrument;
+
 use crate::*;
 
 #[derive(Debug, Clone)]
@@ -30,6 +32,7 @@ pub(crate) async fn run_rss(config: Config, discord_client: Arc<CacheAndHttp>) -
     }
 }
 
+#[instrument(skip_all)]
 async fn run_upwork_rss(
     config: &Config,
     discord_client: &CacheAndHttp,
@@ -50,6 +53,7 @@ async fn run_upwork_rss(
     Ok(())
 }
 
+#[instrument(skip(config, discord_client))]
 async fn process_upwork_job_rss(
     config: &Config,
     item: &rss::Item,
