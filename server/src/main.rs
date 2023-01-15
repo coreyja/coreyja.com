@@ -116,7 +116,7 @@ fn setup_tracing() -> Result<()> {
         None
     };
 
-    let heirarchical = if opentelemetry_layer.is_none() {
+    let heirarchical = if true || opentelemetry_layer.is_none() {
         let heirarchical = HierarchicalLayer::default()
             .with_writer(std::io::stdout)
             .with_indent_lines(true)
