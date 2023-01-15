@@ -1,6 +1,7 @@
-use axum::http::Uri;
-
 use crate::*;
+
+use axum::http::Uri;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TwitchOauthRequest {
@@ -26,9 +27,18 @@ pub(crate) struct TwitchTokenResponse {
     pub token_type: String,
 }
 
-pub(crate) fn generate_user_twitch_link(config: &TwitchConfig, state: &str) -> Result<Uri> {
-    let client_id = &config.client_id;
-    let redirect_uri = &config.redirect_uri;
+pub(crate) async fn generate_user_twitch_link(config: &Config, user_id: i64) -> Result<Uri> {
+    let client_id = &config.twitch.client_id;
+    let redirect_uri = format!("{}/twitch_oauth", config.app.base_url);
+
+    let state = Uuid::new_v4().to_string();
+    sqlx::query!(
+        "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)",
+        user_id,
+        state,
+    )
+    .execute(&config.db_pool)
+    .await?;
 
     Ok(Uri::builder()
         .scheme("https")
@@ -42,8 +52,7 @@ pub(crate) struct TwitchConfig {
     pub client_id: String,
     pub client_secret: String,
 
-    pub redirect_uri: String,
-    pub bot_access_token: String,
+    pub bot_access_token: Option<String>,
 
     pub channel_user_id: String,
     pub bot_user_id: String,
@@ -54,8 +63,7 @@ impl TwitchConfig {
         Ok(Self {
             client_id: std::env::var("TWITCH_CLIENT_ID")?,
             client_secret: std::env::var("TWITCH_CLIENT_SECRET")?,
-            redirect_uri: std::env::var("TWITCH_REDIRECT_URI")?,
-            bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN")?,
+            bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN").ok(),
             bot_user_id: std::env::var("TWITCH_BOT_USER_ID")?,
             channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID")?,
         })
@@ -71,20 +79,20 @@ pub(crate) struct TwitchValidateResponse {
     pub user_id: String,
 }
 
-pub(crate) async fn get_chatters(config: &TwitchConfig) -> TwitchChattersPage {
+pub(crate) async fn get_chatters(config: &TwitchConfig) -> Result<TwitchChattersPage> {
     let client = reqwest::Client::new();
 
     let broadcaster_id = &config.channel_user_id;
     let mod_id = &config.bot_user_id;
     let response = client
         .get(format!("https://api.twitch.tv/helix/chat/chatters?broadcaster_id={broadcaster_id}&moderator_id={mod_id}"))
-        .bearer_auth(&config.bot_access_token)
+        .bearer_auth(config.bot_access_token.as_ref().expect("We need a bot access token here. This was required and then it was hard to generate for prod and I was lazy and we aren't using this yet so :shrug:"))
         .header("Client-Id", &config.client_id)
         .send()
         .await
-        .unwrap();
+        ?;
 
-    response.json::<TwitchChattersPage>().await.unwrap()
+    Ok(response.json::<TwitchChattersPage>().await?)
 }
 
 #[derive(Serialize, Deserialize, Debug)]

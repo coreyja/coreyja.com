@@ -1,0 +1,108 @@
+version: 2.1
+
+commands: # a reusable command with parameters
+  install-sqlx-cli:
+    steps:
+      - restore_cache:
+          keys:
+            - v1-sqlx-cli-{{ arch }}-0.6.2
+      - run: which cargo-sqlx || cargo install sqlx-cli --version 0.6.2
+      - save_cache:
+          key: v1-sqlx-cli-{{ arch }}-0.6.2
+          paths:
+            - /usr/local/cargo/bin/cargo-sqlx
+            - /usr/local/cargo/bin/sqlx
+  with-rust-setup:
+    parameters:
+      do:
+        default: []
+        type: steps
+    steps:
+      - run:
+          name: Set Cargo Parallel Jobs Setting
+          command: echo 'export "CARGO_BUILD_JOBS"="8"' >> $BASH_ENV
+
+      - run:
+          name: Print Rust Versions
+          command: rustc --version; cargo --version; rustup --version
+
+      - run: apt update && apt install -y protobuf-compiler
+
+      - steps: << parameters.do >>
+jobs:
+  build-and-test-rust:
+    docker:
+      - image: rust:latest
+    resource_class: xlarge
+    environment:
+      DATABASE_URL: "sqlite:/root/project/server/db.sqlite3"
+      SQLX_OFFLINE: true
+    steps:
+      - checkout
+      - with-rust-setup:
+          do:
+            - run:
+                name: Build
+                command: cargo build --locked --all-targets
+            - run:
+                name: Run Tests
+                command: cargo test --locked --all-targets
+            - run:
+                name: Generate Docs
+                command: cargo doc --workspace --no-deps
+            - run:
+                name: Install Rust Format
+                command: rustup component add rustfmt
+            - run:
+                name: Test Formatting
+                command: cargo fmt -- --check
+            - run:
+                name: Install Clippy
+                command: rustup component add clippy
+            - run:
+                name: Clippy
+                command: cargo clippy --workspace --no-deps
+      - store_artifacts:
+          path: target/debug/server
+          destination: server
+      - persist_to_workspace:
+          root: target
+          paths:
+            - debug/server
+      - install-sqlx-cli
+      - run:
+          name: Setup DB
+          command: cd server && cargo sqlx database setup
+      - run:
+          name: Check prepared sqlx schema
+          command: cd server && cargo sqlx prepare --check
+
+  deploy-fly:
+    docker:
+      - image: rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - attach_workspace:
+          at: target
+      - run: curl -L https://fly.io/install.sh | sh
+      - run: echo 'export FLYCTL_INSTALL="/root/.fly"' >> $BASH_ENV
+      - run: echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> $BASH_ENV
+      - run: flyctl deploy --app coreyja --remote-only
+
+workflows:
+  ci:
+    jobs:
+      - build-and-test-rust
+      - deploy-fly:
+          context:
+            - Fly.io
+          requires:
+            - build-and-test-rust
+          filters:
+            branches:
+              only:
+                - 'main'
+
+
+# VS Code Extension Version: 1.5.1

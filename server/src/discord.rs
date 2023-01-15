@@ -1,36 +1,16 @@
-use uuid::Uuid;
+use std::{sync::Arc, time::Duration};
 
 use crate::*;
 
+use color_eyre::{eyre::WrapErr, Report};
+use poise::{
+    futures_util::StreamExt,
+    serenity_prelude::{EmojiId, ReactionType},
+    Framework,
+};
+
 type Error = color_eyre::Report;
 type Context<'a> = poise::Context<'a, Config, Error>;
-
-/// Displays your or another user's account creation date
-#[poise::command(prefix_command, slash_command)]
-async fn age(
-    ctx: Context<'_>,
-    #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), Error> {
-    let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
-}
-
-#[poise::command(context_menu_command = "Age")]
-async fn user_age(ctx: Context<'_>, u: serenity::User) -> Result<(), Error> {
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
-}
-
-#[poise::command(context_menu_command = "Author Age")]
-async fn author_age(ctx: Context<'_>, msg: serenity::Message) -> Result<(), Error> {
-    let u = msg.author;
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
-}
 
 #[poise::command(prefix_command, owners_only)]
 async fn register(ctx: Context<'_>) -> Result<(), Error> {
@@ -40,101 +20,135 @@ async fn register(ctx: Context<'_>) -> Result<(), Error> {
 
 #[poise::command(prefix_command, owners_only)]
 async fn ping(ctx: Context<'_>) -> Result<(), Error> {
-    warn!("Pong!");
     ctx.say("Pong!").await?;
     Ok(())
 }
 
-#[poise::command(slash_command, prefix_command, ephemeral)]
-async fn twitch(ctx: Context<'_>) -> Result<(), Error> {
+#[poise::command(prefix_command, ephemeral, owners_only)]
+async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
     let config = ctx.data();
     let author_id: i64 = ctx.author().id.0.try_into()?;
 
-    let existing_twitch_link = discord_twitch_link_from_user_id(author_id, &config.db_pool).await?;
+    let user = user_from_discord_user_id(author_id, &config.db_pool).await?;
+    let user_id = user.id();
 
-    if let Some(existing_twitch_link) = existing_twitch_link {
-        let twitch_login = existing_twitch_link.twitch_login;
-        let twitch_user_id = existing_twitch_link.twitch_user_id;
+    async fn message_from_user(
+        user: QueryOnRead<User>,
+        config: &Config,
+        author_id: i64,
+    ) -> Result<String> {
+        let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool).await?;
+        let twitch_message = if let Some(existing_twitch_link) = existing_twitch_link {
+            let twitch_login = existing_twitch_link.external_twitch_login;
 
-        ctx.say(format!(
-            "You are already linked as `{twitch_login}#{twitch_user_id}` on Twitch"
-        ))
-        .await?;
-    } else {
-        let state = Uuid::new_v4().to_string();
-        sqlx::query!(
-            "INSERT INTO TwitchLinkStates (discord_user_id, state) VALUES (?, ?)",
-            author_id,
-            state,
-        )
-        .execute(&config.db_pool)
-        .await?;
+            format!("You are linked as `{twitch_login}` on Twitch")
+        } else {
+            "You are not linked to Twitch. Use the buttons below to Authenticate with Twitch!"
+                .to_string()
+        };
 
-        let url = generate_user_twitch_link(&config.twitch, &state)?;
+        let existing_github_link = user_github_link_from_user(&user, &config.db_pool).await?;
+        let github_message = if let Some(existing_github_link) = existing_github_link {
+            let github_username = existing_github_link.external_github_username;
 
-        ctx.say(format!("Twitch Verify: {url}")).await?;
+            format!("You are linked as `{github_username}` on Github")
+        } else {
+            "You are not linked to Github. Use the buttons below to authenticate with Github!"
+                .to_string()
+        };
+        let message =
+            format!("Your Discord ID is `{author_id}`\n\n{twitch_message}\n\n{github_message}");
+
+        Ok(message)
     }
 
-    Ok(())
-}
-
-#[poise::command(slash_command, prefix_command, ephemeral)]
-async fn github(ctx: Context<'_>) -> Result<(), Error> {
-    let author_id: i64 = ctx.author().id.0.try_into()?;
-    let config = ctx.data();
-
-    let state = Uuid::new_v4().to_string();
-    sqlx::query!(
-        "INSERT INTO GithubLinkStates (discord_user_id, state) VALUES (?, ?)",
-        author_id,
-        state,
-    )
-    .execute(&config.db_pool)
-    .await?;
-
-    let url = generate_user_github_link(&config.github, &state)?;
-    ctx.say(format!("Github Verify: {url}")).await?;
-
-    Ok(())
-}
-
-#[poise::command(slash_command, ephemeral)]
-async fn me(ctx: Context<'_>) -> Result<(), Error> {
-    let author_id = ctx.author().id;
-
-    ctx.say(format!("Your Discord ID is `{}`", author_id))
+    let message = message_from_user(user, config, author_id).await?;
+    let reply = ctx
+        .send(|cr| {
+            cr.content(message.clone()).components(|b| {
+                b.create_action_row(|ar| {
+                    ar.create_button(|b| b.label("Twitch").custom_id("link:twitch"))
+                        .create_button(|b| b.label("Link Github").custom_id("link:github"))
+                })
+            })
+        })
         .await?;
 
+    let mut interations = reply
+        .message()
+        .await?
+        .await_component_interactions(ctx.discord())
+        .author_id(ctx.author().id)
+        .timeout(Duration::from_secs(60))
+        .build();
+
+    while let Some(m) = interations.next().await {
+        m.create_interaction_response(ctx.discord(), |ir| {
+            ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
+        })
+        .await?;
+
+        let pressed_button_id = &m.data.custom_id;
+
+        let (label, url) = match pressed_button_id.as_str() {
+            "link:twitch" => (
+                "Link Twitch",
+                generate_user_twitch_link(config, user_id).await?,
+            ),
+            "link:github" => {
+                let url = generate_user_github_link(config, user_id).await?;
+
+                ("Link Github", url)
+            }
+            _ => panic!("Unknown button pressed"),
+        };
+
+        ctx.send(|cr| {
+            cr.content(label).components(|b| {
+                b.create_action_row(|ar| {
+                    ar.create_button(|b| {
+                        let emoji: ReactionType = ReactionType::Custom {
+                            animated: false,
+                            id: EmojiId(1063871155062198282),
+                            name: Some("github".to_owned()),
+                        };
+                        b.style(serenity::ButtonStyle::Link)
+                            .label("Link Now!")
+                            .emoji(emoji)
+                            .url(url)
+                    })
+                })
+            })
+        })
+        .await?;
+
+        let new_message = message_from_user(QueryOnRead::Id(user_id), config, author_id).await?;
+        if new_message != message {
+            reply.edit(ctx, |b| b.content(new_message)).await?;
+        }
+    }
+
+    reply.delete(ctx).await?;
+
     Ok(())
 }
 
-pub(crate) async fn run_discord_bot(config: Config) -> Result<()> {
+pub(crate) async fn build_discord_bot(config: Config) -> Result<Arc<Framework<Config, Report>>> {
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {
-            commands: vec![
-                age(),
-                register(),
-                ping(),
-                user_age(),
-                author_age(),
-                twitch(),
-                github(),
-                me(),
-            ],
+            commands: vec![register(), ping(), whoami()],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("~".into()),
                 ..Default::default()
             },
             ..Default::default()
         })
-        .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
+        .token(std::env::var("DISCORD_TOKEN").wrap_err("missing DISCORD_TOKEN")?)
         .intents(
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
         )
         .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
-    framework.run().await.unwrap();
-
-    Ok(())
+    Ok(framework.build().await?)
 }
