@@ -53,7 +53,7 @@ async fn run_upwork_rss(
     Ok(())
 }
 
-#[instrument(skip(config, discord_client))]
+#[instrument(skip_all)]
 async fn process_upwork_job_rss(
     config: &Config,
     item: &rss::Item,
