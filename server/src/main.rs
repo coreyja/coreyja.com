@@ -116,7 +116,7 @@ fn setup_tracing() -> Result<()> {
         None
     };
 
-    let heirarchical = if true || opentelemetry_layer.is_none() {
+    let heirarchical = {
         let heirarchical = HierarchicalLayer::default()
             .with_writer(std::io::stdout)
             .with_indent_lines(true)
@@ -127,11 +127,9 @@ fn setup_tracing() -> Result<()> {
             .with_verbose_entry(true)
             .with_targets(true);
 
-        println!("Since we don't have honeycomb we'll go to stdout");
+        println!("Let's also log to stdout");
 
         Some(heirarchical)
-    } else {
-        None
     };
 
     Registry::default()
