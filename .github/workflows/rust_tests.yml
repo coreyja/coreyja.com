@@ -55,6 +55,10 @@ jobs:
       - name: Test
         run: cargo test --all-targets
       - run: cargo doc --workspace --no-deps
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: sqlx-cli
       - run: |
           cd server
           cargo sqlx database setup
