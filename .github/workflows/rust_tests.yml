@@ -35,7 +35,6 @@ jobs:
           - ubuntu-latest
         rust:
           - stable
-          - beta
           - nightly
     runs-on: ${{ matrix.os }}
     needs: [lint]
