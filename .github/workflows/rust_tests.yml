@@ -13,6 +13,10 @@ jobs:
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v2
+      - name: Install apt deps
+        run: |
+          apt-get update
+          apt-get install protobuf-compiler -y
       - name: Setup | Rust
         uses: ATiltedTree/setup-rust@v1
         with:
@@ -39,5 +43,9 @@ jobs:
         uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - name: Install apt deps
+        run: |
+          apt-get update
+          apt-get install protobuf-compiler -y
       - name: Test
         run: cargo test --all-targets
