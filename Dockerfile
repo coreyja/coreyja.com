@@ -22,7 +22,7 @@ RUN cargo build --release --locked --bin server
 
 # We need to touch our real main.rs file or else docker will use
 # the cached one.
-COPY . .
+COPY server/ server/
 RUN touch server/src/main.rs
 
 RUN cargo build --release --locked --bin server
