@@ -1,7 +1,7 @@
 name: Rust Tests
 
 env:
-  DATABASE_URL: "sqlite:./db.sqlite3"
+  DATABASE_URL: "sqlite:/home/runner/work/coreyja.com/coreyja.com/server/db.sqlite3"
   SQLX_OFFLINE: true
 
 on:
