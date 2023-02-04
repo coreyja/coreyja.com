@@ -17,7 +17,12 @@ pub(crate) async fn upwork_proposal_get(
 
     let db_record = db_record.ok_or_else(|| eyre!("No record found for id {}", id))?;
 
-    let template = include_str!("../data/proposal_templates/logo.md");
+    let sample_proposal = include_str!("../data/proposal_templates/logo.md");
+
+    let template_instructions = include_str!("../data/proposal_templates/instructions.md");
+    let template_contents = format!("{}\n{}", db_record.title, db_record.content);
+    let instructions = template_instructions.replace("{job_posting}", &template_contents);
+    let instructions = instructions.replace("{sample_proposal}", &sample_proposal);
 
     Ok(html! {
         h1 { "Upwork Job: " (db_record.title) }
@@ -25,11 +30,10 @@ pub(crate) async fn upwork_proposal_get(
 
         form method="post" {
           textarea name="prompt" {
-            (template)
-
+            (instructions)
           }
 
-          button type="submit" { "Submit" }
+          button type="submit" { "Edit" }
         }
     })
 }
@@ -50,19 +54,21 @@ pub(crate) async fn upwork_proposal_post(
     let db_record = db_record.ok_or_else(|| eyre!("No record found for id {}", id))?;
 
     let prompt = form.prompt;
-    let completion = open_ai::complete_prompt(&config.open_ai, &prompt).await?;
+
+    let edit = open_ai::complete_prompt(&config.open_ai, &prompt).await?;
 
     Ok(html! {
         h1 { "Upwork Job: " (db_record.title) }
         p { (PreEscaped(&db_record.content)) }
 
-        h2 { "Completion Ran"}
+        h2 { "Edited" }
         form method="post" {
-          textarea {
-            (completion)
+          textarea name="prompt" {
+            (prompt)
           }
 
-          button type="submit" { "Submit" }
+          button type="submit" { "Edit" }
         }
+        p style="white-space: pre-wrap" { (PreEscaped(&edit))}
     })
 }
