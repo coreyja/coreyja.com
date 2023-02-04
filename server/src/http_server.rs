@@ -8,6 +8,7 @@ use axum::{
 };
 use chrono::Duration;
 use color_eyre::eyre::{Context, ContextCompat};
+use maud::{html, Markup};
 use sqlx::types::chrono::Utc;
 
 impl FromRef<Config> for TwitchConfig {
@@ -22,8 +23,22 @@ impl FromRef<Config> for AppConfig {
     }
 }
 
+async fn home_page() -> Markup {
+    html! {
+        p {
+            "Hello! You stumbled upon the beta version for my personal site. To see the live version, go to "
+            a href="https://coreyja.com" { "coreyja.com" }
+        }
+
+        p {
+            "Right now this is mostly powering a personal Discord bot. In the future it will be the home for everying `coreyja` branded!"
+        }
+    }
+}
+
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     let app = Router::new()
+        .route("/", get(home_page))
         .route("/twitch_oauth", get(twitch_oauth))
         .route("/github_oauth", get(github_oauth))
         .route(
