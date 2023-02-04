@@ -1,5 +1,9 @@
 name: Rust Tests
 
+env:
+  DATABASE_URL: "sqlite:/root/project/server/db.sqlite3"
+  SQLX_OFFLINE: true
+
 on:
   push:
     branches:
