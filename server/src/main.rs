@@ -49,6 +49,14 @@ impl AppConfig {
                 .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
         })
     }
+
+    fn app_url(&self, path: &str) -> String {
+        if path.starts_with('/') {
+            format!("{}{}", self.base_url, path)
+        } else {
+            format!("{}/{}", self.base_url, path)
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

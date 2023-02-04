@@ -26,6 +26,10 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     let app = Router::new()
         .route("/twitch_oauth", get(twitch_oauth))
         .route("/github_oauth", get(github_oauth))
+        .route(
+            "/admin/upwork/proposals/:id",
+            get(admin::upwork_proposal_get),
+        )
         .with_state(config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -228,7 +232,7 @@ async fn github_oauth(
     Ok(format!("{token_response:#?}"))
 }
 
-struct EyreError(color_eyre::Report);
+pub struct EyreError(color_eyre::Report);
 
 impl IntoResponse for EyreError {
     fn into_response(self) -> axum::response::Response {
@@ -244,3 +248,5 @@ where
         EyreError(err.into())
     }
 }
+
+mod admin;
