@@ -54,3 +54,8 @@ jobs:
           prefix-key: "v0-rust"
       - name: Test
         run: cargo test --all-targets
+      - run: cargo doc --workspace --no-deps
+      - run: |
+          cd server
+          cargo sqlx database setup
+          cargo sqlx prepare --check
