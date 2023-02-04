@@ -1,0 +1,104 @@
+name: Rust Tests
+
+env:
+  DATABASE_URL: "sqlite:/home/runner/work/coreyja.com/coreyja.com/server/db.sqlite3"
+  SQLX_OFFLINE: true
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler
+          version: v0
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+      - name: Build | Lint
+        run: cargo clippy --all-targets --no-deps
+  doc:
+    name: Doc
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler
+          version: v0
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+      - name: Cargo Doc
+        run: cargo doc --workspace --no-deps
+  db:
+    name: Check Schema
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler
+          version: v0
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: sqlx-cli
+          version: 0.6.2
+      - run: |
+          cd server
+          cargo sqlx database setup
+          cargo sqlx prepare --check
+  test:
+    name: Test
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        rust:
+          - stable
+          - nightly
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler
+          version: v0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+      - name: Test
+        run: cargo test --all-targets
