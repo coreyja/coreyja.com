@@ -3,7 +3,7 @@ use crate::*;
 use axum::{
     extract::{FromRef, Query, State},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Router, Server,
 };
 use chrono::Duration;
@@ -29,6 +29,10 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
         .route(
             "/admin/upwork/proposals/:id",
             get(admin::upwork_proposal_get),
+        )
+        .route(
+            "/admin/upwork/proposals/:id",
+            post(admin::upwork_proposal_post),
         )
         .with_state(config);
 
