@@ -112,6 +112,54 @@
     },
     "query": "SELECT id FROM UpworkJobs where guid = ?"
   },
+  "47478d29af51b93077274eda6a5c40511863145ef898bebd7f7de230d92aff58": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "guid",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 4,
+          "type_info": "Datetime"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 5,
+          "type_info": "Datetime"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT * FROM UpworkJobs where id = ?"
+  },
   "52acc76e7cd67eaa8849122ddc45a1e26552b9bbc0a7c3fa195e167ad5672bc8": {
     "describe": {
       "columns": [

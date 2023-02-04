@@ -91,12 +91,21 @@ async fn process_upwork_job_rss(
             }
         }
 
+        let proposal_url = config
+            .app
+            .app_url(&format!("/admin/upwork/proposals/{new_record_id}"));
+
         ChannelId(config.rss.discord_notification_channel_id)
             .send_message(&discord_client.http, |m| {
                 m.add_embed(|e| {
                     e.title(title)
                         .description(truncate(content, 200))
                         .url(guid)
+                        .color(Color::from_rgb(17, 138, 0))
+                })
+                .add_embed(|e| {
+                    e.title("Create Proposal Here")
+                        .url(proposal_url)
                         .color(Color::from_rgb(17, 138, 0))
                 })
             })

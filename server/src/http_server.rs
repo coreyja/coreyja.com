@@ -3,11 +3,12 @@ use crate::*;
 use axum::{
     extract::{FromRef, Query, State},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Router, Server,
 };
 use chrono::Duration;
 use color_eyre::eyre::{Context, ContextCompat};
+use maud::{html, Markup};
 use sqlx::types::chrono::Utc;
 
 impl FromRef<Config> for TwitchConfig {
@@ -22,10 +23,32 @@ impl FromRef<Config> for AppConfig {
     }
 }
 
+async fn home_page() -> Markup {
+    html! {
+        p {
+            "Hello! You stumbled upon the beta version for my personal site. To see the live version, go to "
+            a href="https://coreyja.com" { "coreyja.com" }
+        }
+
+        p {
+            "Right now this is mostly powering a personal Discord bot. In the future it will be the home for everying `coreyja` branded!"
+        }
+    }
+}
+
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     let app = Router::new()
+        .route("/", get(home_page))
         .route("/twitch_oauth", get(twitch_oauth))
         .route("/github_oauth", get(github_oauth))
+        .route(
+            "/admin/upwork/proposals/:id",
+            get(admin::upwork_proposal_get),
+        )
+        .route(
+            "/admin/upwork/proposals/:id",
+            post(admin::upwork_proposal_post),
+        )
         .with_state(config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -228,7 +251,7 @@ async fn github_oauth(
     Ok(format!("{token_response:#?}"))
 }
 
-struct EyreError(color_eyre::Report);
+pub struct EyreError(color_eyre::Report);
 
 impl IntoResponse for EyreError {
     fn into_response(self) -> axum::response::Response {
@@ -244,3 +267,5 @@ where
         EyreError(err.into())
     }
 }
+
+mod admin;

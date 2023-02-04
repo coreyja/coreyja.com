@@ -37,6 +37,9 @@ use db::*;
 mod my_rss;
 use my_rss::*;
 
+mod open_ai;
+use open_ai::*;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
     base_url: String,
@@ -49,6 +52,14 @@ impl AppConfig {
                 .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
         })
     }
+
+    fn app_url(&self, path: &str) -> String {
+        if path.starts_with('/') {
+            format!("{}{}", self.base_url, path)
+        } else {
+            format!("{}/{}", self.base_url, path)
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +67,7 @@ struct Config {
     twitch: TwitchConfig,
     db_pool: SqlitePool,
     github: GithubConfig,
+    open_ai: OpenAiConfig,
     rss: RssConfig,
     app: AppConfig,
 }
@@ -150,6 +162,7 @@ async fn main() -> Result<()> {
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
     let rss_config = RssConfig::from_env()?;
+    let open_ai_config = OpenAiConfig::from_env()?;
 
     let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
         let path = std::env::var("DATABASE_PATH");
@@ -171,6 +184,7 @@ async fn main() -> Result<()> {
         github: github_config,
         app: app_config,
         rss: rss_config,
+        open_ai: open_ai_config,
     };
 
     info!("About to run migrations (if any to apply)");
