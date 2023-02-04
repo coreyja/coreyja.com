@@ -31,6 +31,25 @@ jobs:
           prefix-key: "v0-rust"
       - name: Build | Lint
         run: cargo clippy --all-targets --no-deps
+  doc:
+    name: Doc
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler
+          version: v0
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+      - name: Cargo Doc
+        run: cargo doc --workspace --no-deps
   test:
     name: Test
     strategy:
@@ -41,7 +60,6 @@ jobs:
           - stable
           - nightly
     runs-on: ${{ matrix.os }}
-    needs: [lint]
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v2
@@ -58,7 +76,6 @@ jobs:
           prefix-key: "v0-rust"
       - name: Test
         run: cargo test --all-targets
-      - run: cargo doc --workspace --no-deps
       - name: Install sqlx-cli
         uses: baptiste0928/cargo-install@v1
         with:
