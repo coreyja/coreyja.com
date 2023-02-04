@@ -31,3 +31,4 @@ sentry-tower = { version = "0.29.1", features = ["http"] }
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"], default-features = false }
 opentelemetry-otlp = { version = "0.11.0", features = ["http-proto", "reqwest-rustls", "reqwest-client"], default-features = false }
 tracing-opentelemetry = "0.18.0"
+maud = { git= "https://github.com/lambda-fairy/maud", features = ["axum"] }
