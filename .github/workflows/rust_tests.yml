@@ -59,6 +59,7 @@ jobs:
         uses: baptiste0928/cargo-install@v1
         with:
           crate: sqlx-cli
+          version: 0.6.2
       - run: |
           cd server
           cargo sqlx database setup
