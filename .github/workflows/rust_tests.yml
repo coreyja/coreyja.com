@@ -17,13 +17,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install protobuf-compiler -y
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
       - name: Setup | Rust
         uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: stable
           components: clippy
       - name: Build | Lint
-        run: cargo clippy --all-targets
+        run: cargo clippy --all-target
   test:
     name: Test
     strategy:
@@ -45,7 +48,10 @@ jobs:
           rust-version: ${{ matrix.rust }}
       - name: Install apt deps
         run: |
-          apt-get update
-          apt-get install protobuf-compiler -y
+          sudo apt-get update
+          sudo apt-get install protobuf-compiler -y
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
       - name: Test
         run: cargo test --all-targets
