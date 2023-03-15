@@ -23,8 +23,15 @@ impl FromRef<Config> for AppConfig {
     }
 }
 
+const TAILWIND_STYLES: &str = include_str!("../../target/tailwind.css");
+
 async fn home_page() -> Markup {
     html! {
+        head {
+            title { "coreyja.com" }
+            link rel="stylesheet" href="/styles/tailwind.css" {}
+        }
+
         p {
             "Hello! You stumbled upon the beta version for my personal site. To see the live version, go to "
             a href="https://coreyja.com" { "coreyja.com" }
@@ -38,6 +45,7 @@ async fn home_page() -> Markup {
 
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     let app = Router::new()
+        .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
         .route("/", get(home_page))
         .route("/twitch_oauth", get(twitch_oauth))
         .route("/github_oauth", get(github_oauth))
@@ -51,7 +59,7 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
         )
         .with_state(config);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3003));
     tracing::debug!("listening on {}", addr);
     Server::bind(&addr).serve(app.into_make_service()).await?;
 
