@@ -11,6 +11,8 @@ use color_eyre::eyre::{Context, ContextCompat};
 use maud::{html, Markup};
 use sqlx::types::chrono::Utc;
 
+use self::templates::base;
+
 impl FromRef<Config> for TwitchConfig {
     fn from_ref(config: &Config) -> Self {
         config.twitch.clone()
@@ -26,12 +28,7 @@ impl FromRef<Config> for AppConfig {
 const TAILWIND_STYLES: &str = include_str!("../../target/tailwind.css");
 
 async fn home_page() -> Markup {
-    html! {
-        head {
-            title { "coreyja.com" }
-            link rel="stylesheet" href="/styles/tailwind.css" {}
-        }
-
+    base(html! {
         p {
             "Hello! You stumbled upon the beta version for my personal site. To see the live version, go to "
             a href="https://coreyja.com" { "coreyja.com" }
@@ -40,7 +37,7 @@ async fn home_page() -> Markup {
         p {
             "Right now this is mostly powering a personal Discord bot. In the future it will be the home for everying `coreyja` branded!"
         }
-    }
+    })
 }
 
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
@@ -277,3 +274,5 @@ where
 }
 
 mod admin;
+
+mod templates;
