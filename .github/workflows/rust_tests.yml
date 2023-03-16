@@ -29,6 +29,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
+      - run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Build | Lint
         run: cargo clippy --all-targets --no-deps
   doc:
@@ -48,6 +53,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
+      - run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Cargo Doc
         run: cargo doc --workspace --no-deps
   db:
@@ -72,6 +82,11 @@ jobs:
         with:
           crate: sqlx-cli
           version: 0.6.2
+      - run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - run: |
           cd server
           cargo sqlx database setup
@@ -100,5 +115,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
+      - run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Test
         run: cargo test --all-targets

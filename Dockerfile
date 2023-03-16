@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y \
   protobuf-compiler \
   && rm -rf /var/lib/apt/lists/*
 
+RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+  chmod +x tailwindcss-linux-x64 && \
+  mv tailwindcss-linux-x64 tailwindcss
+
 # Avoid having to install/build all dependencies by copying
 # the Cargo files and making a dummy src/main.rs
 COPY Cargo.toml .
@@ -17,6 +21,8 @@ COPY Cargo.lock .
 
 COPY server/Cargo.toml ./server/
 RUN mkdir -p ./server/src/ && echo "fn main() {}" > ./server/src/main.rs
+
+RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
 
 RUN cargo build --release --locked --bin server
 
