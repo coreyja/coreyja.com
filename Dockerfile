@@ -29,9 +29,9 @@ RUN cargo build --release --locked --bin server
 COPY server/ server/
 RUN touch server/src/main.rs
 
+COPY tailwind.config.js .
 RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
 
-COPY .tailwind.config.js .
 RUN cargo build --release --locked --bin server
 
 # Download the static build of Litestream directly into the path & make it executable.
