@@ -22,14 +22,14 @@ COPY Cargo.lock .
 COPY server/Cargo.toml ./server/
 RUN mkdir -p ./server/src/ && echo "fn main() {}" > ./server/src/main.rs
 
-RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
-
 RUN cargo build --release --locked --bin server
 
 # We need to touch our real main.rs file or else docker will use
 # the cached one.
 COPY server/ server/
 RUN touch server/src/main.rs
+
+RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
 
 RUN cargo build --release --locked --bin server
 
