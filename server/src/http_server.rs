@@ -56,7 +56,7 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
         )
         .with_state(config);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3003));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
     Server::bind(&addr).serve(app.into_make_service()).await?;
 
