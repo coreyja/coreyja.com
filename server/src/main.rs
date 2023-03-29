@@ -197,15 +197,12 @@ async fn main() -> Result<()> {
     info!("Spawning Tasks");
     let discord_future = tokio::spawn(discord_bot.start());
     let axum_future = tokio::spawn(run_axum(config.clone()));
-    let rss_future = tokio::spawn(run_rss(config.clone(), http_and_cache.clone()));
     info!("Tasks Spawned");
 
-    let (discord_result, axum_result, run_rss_result) =
-        try_join!(discord_future, axum_future, rss_future)?;
+    let (discord_result, axum_result) = try_join!(discord_future, axum_future)?;
 
     discord_result?;
     axum_result?;
-    run_rss_result?;
 
     info!("Main Returning");
 
