@@ -7,19 +7,23 @@ pub fn head() -> Markup {
       head {
         title { "coreyja.com" }
         link rel="stylesheet" href="/styles/tailwind.css" {}
+
+        link rel="preconnect" href="https://fonts.googleapis.com" {}
+        link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}
+        link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&&display=swap" rel="stylesheet" {}
       }
     }
 }
 
 pub fn header() -> Markup {
     html! {
-      div class="flex px-8" {
-        div class="max-w-md mx-auto p-4 flex-grow" {
+      div class="flex" {
+        div class="max-w-lg min-w-[200px] py-4 flex-grow" {
           (PreEscaped(LOGO_SVG))
         }
 
-        nav class="flex flex-grow justify-end" {
-          ul class="grid grid-flow-col items-center gap-16" {
+        nav class="flex flex-grow justify-end w-full ml-16 max-w-[50%]" {
+          ul class="flex flex-row items-center justify-between flex-grow" {
             li {
               a href="/" { "Home" }
             }
@@ -49,9 +53,25 @@ pub fn base(inner: Markup) -> Markup {
     html! {
       (head())
 
-      body class="bg-background text-white" {
+      body class="bg-background text-text px-4 max-w-5xl m-auto font-sans" {
         (header())
 
+        (inner)
+      }
+    }
+}
+
+pub fn primary_button(inner: Markup) -> Markup {
+    html! {
+      button class="bg-accent text-text px-8 py-2 rounded font-semibold my-2" {
+        (inner)
+      }
+    }
+}
+
+pub fn secondary_button(inner: Markup) -> Markup {
+    html! {
+      button class="bg-background text-text px-8 py-2 rounded font-semibold border my-2" {
         (inner)
       }
     }
