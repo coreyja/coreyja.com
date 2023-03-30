@@ -1,7 +1,4 @@
-use crate::{
-    http_server::templates::{primary_button, secondary_button, Button},
-    *,
-};
+use crate::{http_server::templates::Button, *};
 
 use axum::{
     extract::{FromRef, Query, State},
