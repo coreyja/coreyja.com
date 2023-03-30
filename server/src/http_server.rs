@@ -1,5 +1,5 @@
 use crate::{
-    http_server::templates::{primary_button, secondary_button},
+    http_server::templates::{primary_button, secondary_button, Button},
     *,
 };
 
@@ -42,11 +42,12 @@ async fn home_page() -> Markup {
             }
 
             div class="text-xl" {
-                span."mr-8" {
-                    (primary_button(html!("View Projects")))
-                }
+                (
+                    Button::primary(html!("View Projects"))
+                    .with_classes("mr-8")
+                )
 
-                (secondary_button(html!("Learn about Corey")))
+                (Button::secondary(html!("Learn about Corey")))
             }
         }
 
