@@ -2,15 +2,19 @@
   height: 2160
   width: 3840
   output: screenshots/4k.png
+  wait: 750
 - url: https://beta.coreyja.com
   height: 1080
   width: 1920
   output: screenshots/desktop.png
+  wait: 750
 - url: https://beta.coreyja.com
   height: 926
   width: 428
   output: screenshots/iphone.png
+  wait: 750
 - url: https://beta.coreyja.com
   height: 1366
   width: 1024
   output: screenshots/ipad.png
+  wait: 750
