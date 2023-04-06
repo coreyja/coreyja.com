@@ -18,11 +18,16 @@ pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode>
     // Thay way we can static routes to route the different posts and avoid the wildcard
     // This might make it easier to do something like generate a sitemap from the routes
     key = key.strip_suffix('/').unwrap_or(&key).to_string();
+    key = key.strip_suffix("index.md").unwrap_or(&key).to_string();
 
     let mut path = BlogPostPath::new(key.clone());
 
     if !path.file_exists() {
-        path = BlogPostPath::new(format!("{}.md", key));
+        path = BlogPostPath::new(format!("{key}.md"));
+    }
+
+    if !path.file_exists() {
+        path = BlogPostPath::new(format!("{key}/index.md"));
     }
 
     let Some(markdown) = path.to_markdown() else {
