@@ -35,3 +35,6 @@ opentelemetry-otlp = { version = "0.11.0", features = ["http-proto", "reqwest-ru
 tracing-opentelemetry = "0.18.0"
 maud = { git= "https://github.com/lambda-fairy/maud", features = ["axum"] }
 include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
+
+markdown = "1.0.0-alpha.7"
+serde_yaml = "0.9"
