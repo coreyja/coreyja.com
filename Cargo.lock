@@ -842,6 +842,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22030e2c5a68ec659fde1e949a745124b48e6fa8b045b7ed5bd1fe4ccc5c4e5d"
 
 [[package]]
+name = "glob"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
+
+[[package]]
 name = "h2"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1062,6 +1068,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "include_dir"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18762faeff7122e89e0857b02f7ce6fcc0d101d5e9ad2ad7846cc01d61b7f19e"
+dependencies = [
+ "glob",
+ "include_dir_macros",
+]
+
+[[package]]
+name = "include_dir_macros"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b139284b5cf57ecfa712bcc66950bb635b31aff41c188e8a4cfc758eca374a3f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "indenter"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1206,6 +1232,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "markdown"
+version = "1.0.0-alpha.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98de49c677e95e00eaa74c42a0b07ea55e1e0b1ebca5b2cbc7657f288cd714eb"
+dependencies = [
+ "unicode-id",
 ]
 
 [[package]]
@@ -2300,6 +2335,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0feade41f4649f0549d22df8c0432b2c25128b50f5d926b22173022e25b7c69e"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "serenity"
 version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2340,7 +2388,9 @@ dependencies = [
  "axum-macros",
  "chrono",
  "color-eyre",
+ "include_dir",
  "indoc",
+ "markdown",
  "maud",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -2352,6 +2402,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "serde_yaml",
  "sqlx",
  "tokio",
  "tracing",
@@ -3125,6 +3176,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "099b7128301d285f79ddd55b9a83d5e6b9e97c92e0ea0daebee7263e932de992"
 
 [[package]]
+name = "unicode-id"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d70b6494226b36008c8366c288d77190b3fad2eb4c10533139c1c1f461127f1a"
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3166,6 +3223,12 @@ name = "unicode_categories"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad2024452afd3874bf539695e04af6732ba06517424dbf958fdb16a01f3bef6c"
 
 [[package]]
 name = "untrusted"

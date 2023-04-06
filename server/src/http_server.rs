@@ -73,6 +73,7 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
             "/admin/upwork/proposals/:id",
             post(admin::upwork_proposal_post),
         )
+        .route("/posts/*key", get(blog::post_get))
         .with_state(config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -295,3 +296,5 @@ where
 mod admin;
 
 mod templates;
+
+mod blog;

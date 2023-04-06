@@ -1,8 +1,11 @@
-FROM rust as builder
-
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR /home/rust/
 
-USER root
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef as builder
 
 RUN rustc --version; cargo --version; rustup --version
 
@@ -10,24 +13,17 @@ RUN apt-get update && apt-get install -y \
   protobuf-compiler \
   && rm -rf /var/lib/apt/lists/*
 
+COPY --from=planner /home/rust/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+
+USER root
+
 RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
   chmod +x tailwindcss-linux-x64 && \
   mv tailwindcss-linux-x64 tailwindcss
 
-# Avoid having to install/build all dependencies by copying
-# the Cargo files and making a dummy src/main.rs
-COPY Cargo.toml .
-COPY Cargo.lock .
-
-COPY server/Cargo.toml ./server/
-RUN mkdir -p ./server/src/ && echo "fn main() {}" > ./server/src/main.rs
-
-RUN cargo build --release --locked --bin server
-
-# We need to touch our real main.rs file or else docker will use
-# the cached one.
-COPY server/ server/
-RUN touch server/src/main.rs
+COPY . .
 
 COPY tailwind.config.js .
 RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css

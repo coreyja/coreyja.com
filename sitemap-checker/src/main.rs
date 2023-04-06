@@ -4,7 +4,6 @@ use sitemap::{reader::SiteMapReader, structs::UrlEntry};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Hello, world!");
     let body = reqwest::get("https://coreyja.com/sitemap.xml")
         .await
         .into_diagnostic()?
