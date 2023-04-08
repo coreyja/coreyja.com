@@ -9,6 +9,26 @@ use serde::{Deserialize, Serialize};
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
+pub async fn posts_index() -> Result<Markup, StatusCode> {
+    let glob = "**/*.md";
+
+    let posts = BLOG_DIR
+        .find(glob)
+        .unwrap()
+        .map(|entry| BlogPostPath::new(entry.path().to_string_lossy().into_owned()))
+        .filter_map(|post| post.to_markdown().map(|m| (m, post)));
+
+    Ok(html! {
+      ul {
+          @for (post, path) in posts {
+              li {
+                a href=(format!("/posts/{}", path.path)) { (post.title) }
+              }
+          }
+      }
+    })
+}
+
 pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode> {
     // TODO: Eventually
     //
@@ -61,10 +81,11 @@ impl BlogPostPath {
         let contents = file.contents_utf8().expect("All posts are UTF8");
 
         let mut options: ParseOptions = Default::default();
+        options.constructs.gfm_footnote_definition = true;
         options.constructs.frontmatter = true;
 
-        let Node::Root(ast) = to_mdast(contents, &options).unwrap() else {
-          panic!("Should be a root node")
+        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
+          panic!("Should be a valid root node")
         };
 
         let children = &ast.children;

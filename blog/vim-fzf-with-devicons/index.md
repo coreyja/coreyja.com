@@ -10,7 +10,7 @@ tags:
 color: blue
 ---
 
-[![Example Screenshot](./example-screenshot.png)](./example-screenshot.png)
+![Example Screenshot](./example-screenshot.png)]
 
 ## Background
 
@@ -324,6 +324,5 @@ This will give you the `devicon-lookup` binary that you can use in your VIM setu
 
 As I get ready to publish this blog post, I realized I didn't mention the [`fzf.vim`](https://github.com/junegunn/fzf.vim) plugin at all! I refer to this as the 'default' implementation for the fzf `:Files` view, and it is an amazing plugin! I basically tried to copy this plugin as closely as possible, especially when trying to reimplement the `:GFiles?` support.
 
-[^1]:
-    After that fact, I found and looked into [phf](https://github.com/sfackler/rust-phf), which DOES provide compile-time static maps. It doesn't use the Rust HashMap and instead implements its own hashing functionality. Their implementation of hashing also differs from the Rust HashMap in ways that weren't meaningful for this project. I wanted to use stable Rust for this, which meant I couldn't use `phf_macros`, which has a much prettier syntax. Being on Stable rust meant I would be forced to use the codegen option, which requires a preliminary 'compile' step, where you run a build script that outputs a rust source file containing the hash code. This seemed like a lot of extra work, and according to [this blog](http://siciarz.net/24-days-rust-static-initialization/) the speed benefits of upgrading would likely exist but would not have been an order of magnitude increase, and I was already happy with the performance.
+[^1]: After that fact, I found and looked into [phf](https://github.com/sfackler/rust-phf), which DOES provide compile-time static maps. It doesn't use the Rust HashMap and instead implements its own hashing functionality. Their implementation of hashing also differs from the Rust HashMap in ways that weren't meaningful for this project. I wanted to use stable Rust for this, which meant I couldn't use `phf_macros`, which has a much prettier syntax. Being on Stable rust meant I would be forced to use the codegen option, which requires a preliminary 'compile' step, where you run a build script that outputs a rust source file containing the hash code. This seemed like a lot of extra work, and according to [this blog](http://siciarz.net/24-days-rust-static-initialization/) the speed benefits of upgrading would likely exist but would not have been an order of magnitude increase, and I was already happy with the performance.
     Edit: Some of this is slightly misinformed. I follow up with another post where I tried out `phf` again! Check it out [here](https://coreyja.com/devicon-binary-search/)!
