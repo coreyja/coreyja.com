@@ -22,7 +22,7 @@ pub(crate) async fn upwork_proposal_get(
     let template_instructions = include_str!("../data/proposal_templates/instructions.md");
     let template_contents = format!("{}\n{}", db_record.title, db_record.content);
     let instructions = template_instructions.replace("{job_posting}", &template_contents);
-    let instructions = instructions.replace("{sample_proposal}", &sample_proposal);
+    let instructions = instructions.replace("{sample_proposal}", sample_proposal);
 
     Ok(html! {
         h1 { "Upwork Job: " (db_record.title) }
