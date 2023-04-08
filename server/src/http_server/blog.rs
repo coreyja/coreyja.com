@@ -7,6 +7,8 @@ use markdown::{
 use maud::{html, Markup, PreEscaped};
 use serde::{Deserialize, Serialize};
 
+use super::templates::base;
+
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
@@ -18,7 +20,7 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
         .map(|entry| BlogPostPath::new(entry.path().to_string_lossy().into_owned()))
         .filter_map(|post| post.to_markdown().map(|m| (m, post)));
 
-    Ok(html! {
+    Ok(base(html! {
       ul {
           @for (post, path) in posts {
               li {
@@ -26,7 +28,7 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
               }
           }
       }
-    })
+    }))
 }
 
 pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode> {
@@ -54,12 +56,12 @@ pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode>
       return Err(StatusCode::NOT_FOUND);
     };
 
-    Ok(html! {
+    Ok(base(html! {
       h1 { (markdown.title) }
       subtitle { (markdown.date) }
 
       (markdown.html)
-    })
+    }))
 }
 
 struct BlogPostPath {
@@ -78,6 +80,7 @@ impl BlogPostPath {
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
         let file = BLOG_DIR.get_file(&self.path)?;
 
+        dbg!(&self.path);
         let contents = file.contents_utf8().expect("All posts are UTF8");
 
         let mut options: ParseOptions = Default::default();

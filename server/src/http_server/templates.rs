@@ -19,7 +19,9 @@ pub fn header() -> Markup {
     html! {
       div class="flex" {
         div class="max-w-lg min-w-[200px] py-4 flex-grow" {
-          (PreEscaped(LOGO_SVG))
+          a href="/" {
+            (PreEscaped(LOGO_SVG))
+          }
         }
 
         nav class="flex flex-grow justify-end w-full ml-16 max-w-[50%]" {
