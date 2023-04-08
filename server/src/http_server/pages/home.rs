@@ -1,6 +1,6 @@
 use maud::{html, Markup};
 
-use crate::http_server::templates::{base, Button};
+use crate::http_server::templates::{base, buttons::Button};
 
 pub async fn home_page() -> Markup {
     base(html! {
