@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, fs::OpenOptions, net::SocketAddr, sync::Arc, time::Duration};
+use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
 use color_eyre::eyre::Context;
 use opentelemetry_otlp::WithExportConfig;

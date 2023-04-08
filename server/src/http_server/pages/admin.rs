@@ -17,9 +17,9 @@ pub(crate) async fn upwork_proposal_get(
 
     let db_record = db_record.ok_or_else(|| eyre!("No record found for id {}", id))?;
 
-    let sample_proposal = include_str!("../data/proposal_templates/logo.md");
+    let sample_proposal = include_str!("../../data/proposal_templates/logo.md");
 
-    let template_instructions = include_str!("../data/proposal_templates/instructions.md");
+    let template_instructions = include_str!("../../data/proposal_templates/instructions.md");
     let template_contents = format!("{}\n{}", db_record.title, db_record.content);
     let instructions = template_instructions.replace("{job_posting}", &template_contents);
     let instructions = instructions.replace("{sample_proposal}", sample_proposal);

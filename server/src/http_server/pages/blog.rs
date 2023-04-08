@@ -80,7 +80,6 @@ impl BlogPostPath {
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
         let file = BLOG_DIR.get_file(&self.path)?;
 
-        dbg!(&self.path);
         let contents = file.contents_utf8().expect("All posts are UTF8");
 
         let mut options: ParseOptions = Default::default();

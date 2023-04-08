@@ -56,8 +56,6 @@ pub(crate) async fn edit_prompt(
         .await?;
     let body = res.json::<EditResponse>().await?;
 
-    dbg!(&body);
-
     let text = body.choices.into_iter().next().unwrap().text;
     Ok(text)
 }
