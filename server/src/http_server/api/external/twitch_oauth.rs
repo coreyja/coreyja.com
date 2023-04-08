@@ -4,7 +4,7 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 
-use crate::*;
+use crate::{http_server::errors::EyreError, *};
 
 pub(crate) async fn handler(
     Query(oauth): Query<TwitchOauthRequest>,

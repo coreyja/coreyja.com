@@ -6,7 +6,7 @@ use chrono::{Duration, Utc};
 use color_eyre::eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 
-use crate::*;
+use crate::{http_server::errors::EyreError, *};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct GithubOauthRequest {
