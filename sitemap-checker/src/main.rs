@@ -1,5 +1,4 @@
 use miette::{IntoDiagnostic, Result};
-use reqwest::Url;
 use sitemap::{reader::SiteMapReader, structs::UrlEntry};
 
 #[tokio::main]

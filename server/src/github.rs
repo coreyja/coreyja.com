@@ -6,7 +6,6 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub(crate) struct GithubConfig {
-    #[allow(dead_code)]
     pub(crate) app_id: u64,
     pub(crate) client_id: String,
     pub(crate) client_secret: String,

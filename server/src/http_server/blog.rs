@@ -112,7 +112,6 @@ impl BlogPostPath {
 struct PostMarkdown {
     title: String,
     date: String,
-    #[allow(dead_code)]
     ast: Root,
     // TODO: Stop using the html here and actually parse the ast above to convert to HTML
     html: Markup,

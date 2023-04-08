@@ -1,6 +1,3 @@
-use std::borrow::Cow;
-
-use axum::body;
 use color_eyre::Result;
 
 use crate::*;
@@ -25,4 +22,5 @@ mod completion;
 pub(crate) use completion::*;
 
 mod edit;
+#[allow(unused_imports)]
 pub(crate) use edit::*;

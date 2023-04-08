@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{collections::HashMap, fs::OpenOptions, net::SocketAddr, sync::Arc, time::Duration};
 
 use color_eyre::eyre::Context;
@@ -192,7 +194,7 @@ async fn main() -> Result<()> {
 
     let discord_bot = build_discord_bot(config.clone()).await?;
 
-    let http_and_cache = discord_bot.client().cache_and_http.clone();
+    // let http_and_cache = discord_bot.client().cache_and_http.clone();
 
     info!("Spawning Tasks");
     let discord_future = tokio::spawn(discord_bot.start());
@@ -209,7 +211,6 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 async fn run_log_chatters_loop(config: Config) -> Result<()> {
     let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
 

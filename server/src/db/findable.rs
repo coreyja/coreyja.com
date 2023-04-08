@@ -28,7 +28,6 @@ where
         }
     }
 
-    #[allow(dead_code)]
     pub async fn hydrate(self, pool: &mut SqliteConnection) -> color_eyre::Result<T> {
         Ok(match self {
             QueryOnRead::Id(id) => T::find(id, pool).await?,
