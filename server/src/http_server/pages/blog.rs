@@ -7,7 +7,7 @@ use markdown::{
 use maud::{html, Markup, PreEscaped};
 use serde::{Deserialize, Serialize};
 
-use super::templates::base;
+use crate::http_server::templates::base;
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 

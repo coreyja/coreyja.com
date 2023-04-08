@@ -1,22 +1,16 @@
-use crate::{
-    http_server::{
-        api::external::{github_oauth, twitch_oauth},
-        pages::home::home_page,
-    },
-    *,
-};
-
 use axum::{
-    extract::FromRef,
     routing::{get, post},
     Router, Server,
 };
+use std::net::SocketAddr;
 
-mod admin;
-mod blog;
-mod templates;
+use crate::Config;
+pub use config::*;
+use errors::*;
 
 mod pages {
+    pub mod admin;
+    pub mod blog;
     pub mod home;
 }
 
@@ -27,36 +21,28 @@ mod api {
     }
 }
 
-impl FromRef<Config> for TwitchConfig {
-    fn from_ref(config: &Config) -> Self {
-        config.twitch.clone()
-    }
-}
-
-impl FromRef<Config> for AppConfig {
-    fn from_ref(config: &Config) -> Self {
-        config.app.clone()
-    }
-}
+mod config;
+pub mod errors;
+mod templates;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 
 pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
     let app = Router::new()
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
-        .route("/", get(home_page))
-        .route("/twitch_oauth", get(twitch_oauth::handler))
-        .route("/github_oauth", get(github_oauth::handler))
+        .route("/", get(pages::home::home_page))
+        .route("/twitch_oauth", get(api::external::twitch_oauth::handler))
+        .route("/github_oauth", get(api::external::github_oauth::handler))
         .route(
             "/admin/upwork/proposals/:id",
-            get(admin::upwork_proposal_get),
+            get(pages::admin::upwork_proposal_get),
         )
         .route(
             "/admin/upwork/proposals/:id",
-            post(admin::upwork_proposal_post),
+            post(pages::admin::upwork_proposal_post),
         )
-        .route("/posts", get(blog::posts_index))
-        .route("/posts/*key", get(blog::post_get))
+        .route("/posts", get(pages::blog::posts_index))
+        .route("/posts/*key", get(pages::blog::post_get))
         .with_state(config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -65,6 +51,3 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
 
     Ok(())
 }
-
-pub mod errors;
-use errors::*;
