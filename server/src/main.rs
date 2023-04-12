@@ -2,7 +2,9 @@
 
 use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
+use clap::Parser;
 use color_eyre::eyre::Context;
+use commands::Command;
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId, Color};
 use reqwest::Client;
@@ -155,88 +157,46 @@ fn setup_tracing() -> Result<()> {
     Ok(())
 }
 
+#[derive(Parser)]
+#[command(author, version, about)]
+struct CliArgs {
+    #[clap(subcommand)]
+    command: Option<Command>,
+}
+
+mod commands {
+    use clap::Subcommand;
+    use color_eyre::eyre::Result;
+
+    pub(crate) mod serve;
+
+    #[derive(Subcommand)]
+    pub(crate) enum Command {
+        Serve,
+    }
+
+    impl Default for Command {
+        fn default() -> Self {
+            Self::Serve
+        }
+    }
+
+    impl Command {
+        pub(crate) async fn run(&self) -> Result<()> {
+            match &self {
+                Self::Serve => serve::serve().await,
+            }
+        }
+    }
+}
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn main() -> Result<()> {
     let _sentry_guard = setup_sentry();
     setup_tracing()?;
 
-    let app_config = AppConfig::from_env()?;
-    let twitch_config = TwitchConfig::from_env()?;
-    let github_config = GithubConfig::from_env()?;
-    let rss_config = RssConfig::from_env()?;
-    let open_ai_config = OpenAiConfig::from_env()?;
+    let cli = CliArgs::parse();
+    let command = cli.command.unwrap_or_default();
 
-    let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
-        let path = std::env::var("DATABASE_PATH");
-
-        Ok(if let Ok(p) = &path {
-            OpenOptions::new().write(true).create(true).open(p)?;
-
-            format!("sqlite:{}", p)
-        } else {
-            "sqlite::memory:".to_string()
-        })
-    })?;
-
-    let pool = SqlitePool::connect(&database_url).await?;
-
-    let config = Config {
-        twitch: twitch_config,
-        db_pool: pool,
-        github: github_config,
-        app: app_config,
-        rss: rss_config,
-        open_ai: open_ai_config,
-    };
-
-    info!("About to run migrations (if any to apply)");
-    migrate!("./migrations/").run(&config.db_pool).await?;
-
-    let discord_bot = build_discord_bot(config.clone()).await?;
-
-    // let http_and_cache = discord_bot.client().cache_and_http.clone();
-
-    info!("Spawning Tasks");
-    let discord_future = tokio::spawn(discord_bot.start());
-    let axum_future = tokio::spawn(run_axum(config.clone()));
-    info!("Tasks Spawned");
-
-    let (discord_result, axum_result) = try_join!(discord_future, axum_future)?;
-
-    discord_result?;
-    axum_result?;
-
-    info!("Main Returning");
-
-    Ok(())
-}
-
-async fn run_log_chatters_loop(config: Config) -> Result<()> {
-    let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
-
-    loop {
-        interval.tick().await;
-
-        log_chatters(&config).await?;
-    }
-}
-
-async fn log_chatters(config: &Config) -> Result<()> {
-    let chatters = get_chatters(&config.twitch).await?;
-
-    let chat_log_record = sqlx::query!("INSERT INTO ChatterLogRecord DEFAULT VALUES RETURNING id")
-        .fetch_one(&config.db_pool)
-        .await?;
-
-    for chatter in chatters.data {
-        sqlx::query!(
-            "INSERT INTO ChatterLogs (chatters_log_id, name) VALUES (?, ?)",
-            chat_log_record.id,
-            chatter.user_login
-        )
-        .execute(&config.db_pool)
-        .await?;
-    }
-
-    Ok(())
+    command.run().await
 }

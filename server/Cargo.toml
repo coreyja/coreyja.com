@@ -38,3 +38,5 @@ include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 
 markdown = "1.0.0-alpha.7"
 serde_yaml = "0.9"
+
+clap = { version = "4.2.1", features = ["derive"] }
