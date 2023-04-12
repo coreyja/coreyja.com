@@ -2,14 +2,18 @@ use axum::{extract::Path, http::StatusCode};
 use include_dir::{include_dir, Dir};
 use markdown::{
     mdast::{Node, Root},
-    to_html, to_mdast, ParseOptions,
+    to_mdast, ParseOptions,
 };
-use maud::{html, Markup, PreEscaped};
+use maud::{html, Markup};
 use serde::{Deserialize, Serialize};
 
 use crate::http_server::templates::base;
 
+use self::md::IntoHtml;
+
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
+
+mod md;
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
     let glob = "**/*.md";
@@ -99,11 +103,13 @@ impl BlogPostPath {
 
         let metadata: FrontMatter = serde_yaml::from_str(yaml).expect("Should be valid YAML");
 
+        let html = ast.clone().into_html();
+
         Some(PostMarkdown {
             title: metadata.title,
             date: metadata.date,
             ast,
-            html: html! { (PreEscaped(to_html(contents))) },
+            html,
         })
     }
 }
