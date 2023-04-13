@@ -1,18 +1,18 @@
 use axum::response::IntoResponse;
 
-pub struct EyreError(color_eyre::Report);
+pub struct MietteError(miette::Report);
 
-impl IntoResponse for EyreError {
+impl IntoResponse for MietteError {
     fn into_response(self) -> axum::response::Response {
         self.0.to_string().into_response()
     }
 }
 
-impl<T> From<T> for EyreError
+impl<T> From<T> for MietteError
 where
-    T: Into<color_eyre::Report>,
+    T: Into<miette::Report>,
 {
     fn from(err: T) -> Self {
-        EyreError(err.into())
+        MietteError(err.into())
     }
 }

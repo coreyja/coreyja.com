@@ -3,10 +3,9 @@ use axum::{
     response::IntoResponse,
 };
 use chrono::{Duration, Utc};
-use color_eyre::eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 
-use crate::{http_server::errors::EyreError, *};
+use crate::{http_server::errors::MietteError, *};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct GithubOauthRequest {
@@ -35,7 +34,7 @@ struct GithubTokenResponse {
 pub(crate) async fn handler(
     Query(oauth): Query<GithubOauthRequest>,
     State(config): State<Config>,
-) -> Result<impl IntoResponse, EyreError> {
+) -> Result<impl IntoResponse, MietteError> {
     let client = reqwest::Client::new();
     let github = &config.github;
     let redirect_uri = github_redirect_uri(&config);
@@ -49,13 +48,15 @@ pub(crate) async fn handler(
             redirect_uri,
         })
         .send()
-        .await?;
-    let text = token_response.text().await?;
-    let token_response: GithubTokenResponse = serde_urlencoded::from_str(&text)?;
+        .await
+        .into_diagnostic()?;
+    let text = token_response.text().await.into_diagnostic()?;
+    let token_response: GithubTokenResponse =
+        serde_urlencoded::from_str(&text).into_diagnostic()?;
 
-    let state = oauth
-        .state
-        .wrap_err("Github oauth should always come back with a state when we kick it off")?;
+    let state = oauth.state.ok_or_else(|| {
+        miette::miette!("Github oauth should always come back with a state when we kick it off")
+    })?;
 
     let user_id = sqlx::query!(
         "SELECT user_id FROM UserGithubLinkStates WHERE state = $1 AND status = 'pending'",
@@ -63,6 +64,7 @@ pub(crate) async fn handler(
     )
     .fetch_one(&config.db_pool)
     .await
+    .into_diagnostic()
     .wrap_err(indoc::indoc! {"
         If there was a state from Githun oauth, it should exist in our DB.
         Did this oauth get triggered by someone else with a state we don't know about?
@@ -97,7 +99,8 @@ pub(crate) async fn handler(
         refresh_expires_at,
     )
     .execute(&config.db_pool)
-    .await?;
+    .await
+    .into_diagnostic()?;
 
     sqlx::query!(
         "UPDATE UserGithubLinkStates
@@ -108,7 +111,8 @@ pub(crate) async fn handler(
         state
     )
     .execute(&config.db_pool)
-    .await?;
+    .await
+    .into_diagnostic()?;
 
     Ok(format!("{token_response:#?}"))
 }

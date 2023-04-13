@@ -2,34 +2,38 @@ use std::sync::Arc;
 
 use crate::*;
 
-use color_eyre::{eyre::WrapErr, Report};
+use miette::Context as _;
 use poise::{
     futures_util::StreamExt,
     serenity_prelude::{EmojiId, ReactionType},
     Framework,
 };
 
-type Error = color_eyre::Report;
+type Error = miette::Report;
 type Context<'a> = poise::Context<'a, Config, Error>;
 
 #[poise::command(prefix_command, owners_only)]
 async fn register(ctx: Context<'_>) -> Result<(), Error> {
-    poise::builtins::register_application_commands_buttons(ctx).await?;
+    poise::builtins::register_application_commands_buttons(ctx)
+        .await
+        .into_diagnostic()?;
     Ok(())
 }
 
 #[poise::command(prefix_command, owners_only)]
 async fn ping(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say("Pong!").await?;
+    ctx.say("Pong!").await.into_diagnostic()?;
     Ok(())
 }
 
 #[poise::command(prefix_command, ephemeral, owners_only)]
 async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
     let config = ctx.data();
-    let author_id: i64 = ctx.author().id.0.try_into()?;
+    let author_id: i64 = ctx.author().id.0.try_into().into_diagnostic()?;
 
-    let user = user_from_discord_user_id(author_id, &config.db_pool).await?;
+    let user = user_from_discord_user_id(author_id, &config.db_pool)
+        .await
+        .into_diagnostic()?;
     let user_id = user.id();
 
     async fn message_from_user(
@@ -37,7 +41,9 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
         config: &Config,
         author_id: i64,
     ) -> Result<String> {
-        let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool).await?;
+        let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool)
+            .await
+            .into_diagnostic()?;
         let twitch_message = if let Some(existing_twitch_link) = existing_twitch_link {
             let twitch_login = existing_twitch_link.external_twitch_login;
 
@@ -47,7 +53,9 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
                 .to_string()
         };
 
-        let existing_github_link = user_github_link_from_user(&user, &config.db_pool).await?;
+        let existing_github_link = user_github_link_from_user(&user, &config.db_pool)
+            .await
+            .into_diagnostic()?;
         let github_message = if let Some(existing_github_link) = existing_github_link {
             let github_username = existing_github_link.external_github_username;
 
@@ -72,11 +80,13 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
                 })
             })
         })
-        .await?;
+        .await
+        .into_diagnostic()?;
 
     let mut interations = reply
         .message()
-        .await?
+        .await
+        .into_diagnostic()?
         .await_component_interactions(ctx.discord())
         .author_id(ctx.author().id)
         .timeout(Duration::from_secs(60))
@@ -86,7 +96,8 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
         m.create_interaction_response(ctx.discord(), |ir| {
             ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
         })
-        .await?;
+        .await
+        .into_diagnostic()?;
 
         let pressed_button_id = &m.data.custom_id;
 
@@ -120,20 +131,26 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
                 })
             })
         })
-        .await?;
+        .await
+        .into_diagnostic()?;
 
         let new_message = message_from_user(QueryOnRead::Id(user_id), config, author_id).await?;
         if new_message != message {
-            reply.edit(ctx, |b| b.content(new_message)).await?;
+            reply
+                .edit(ctx, |b| b.content(new_message))
+                .await
+                .into_diagnostic()?;
         }
     }
 
-    reply.delete(ctx).await?;
+    reply.delete(ctx).await.into_diagnostic()?;
 
     Ok(())
 }
 
-pub(crate) async fn build_discord_bot(config: Config) -> Result<Arc<Framework<Config, Report>>> {
+pub(crate) async fn build_discord_bot(
+    config: Config,
+) -> Result<Arc<Framework<Config, miette::Report>>> {
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {
@@ -144,11 +161,15 @@ pub(crate) async fn build_discord_bot(config: Config) -> Result<Arc<Framework<Co
             },
             ..Default::default()
         })
-        .token(std::env::var("DISCORD_TOKEN").wrap_err("missing DISCORD_TOKEN")?)
+        .token(
+            std::env::var("DISCORD_TOKEN")
+                .into_diagnostic()
+                .wrap_err("missing DISCORD_TOKEN")?,
+        )
         .intents(
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
         )
         .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
-    Ok(framework.build().await?)
+    framework.build().await.into_diagnostic()
 }

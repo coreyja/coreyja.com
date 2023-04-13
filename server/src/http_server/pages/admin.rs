@@ -2,7 +2,6 @@ use axum::{
     extract::{Path, State},
     Form,
 };
-use color_eyre::eyre::eyre;
 use maud::{html, Markup, PreEscaped};
 
 use crate::*;
@@ -10,12 +9,13 @@ use crate::*;
 pub(crate) async fn upwork_proposal_get(
     Path(id): Path<String>,
     State(config): State<Config>,
-) -> Result<Markup, http_server::EyreError> {
+) -> Result<Markup, http_server::MietteError> {
     let db_record = sqlx::query!("SELECT * FROM UpworkJobs where id = ?", id)
         .fetch_optional(&config.db_pool)
-        .await?;
+        .await
+        .into_diagnostic()?;
 
-    let db_record = db_record.ok_or_else(|| eyre!("No record found for id {}", id))?;
+    let db_record = db_record.ok_or_else(|| miette::miette!("No record found for id {}", id))?;
 
     let sample_proposal = include_str!("../../data/proposal_templates/logo.md");
 
@@ -47,11 +47,12 @@ pub(crate) async fn upwork_proposal_post(
     Path(id): Path<String>,
     State(config): State<Config>,
     Form(form): Form<ProposalForm>,
-) -> Result<Markup, http_server::EyreError> {
+) -> Result<Markup, http_server::MietteError> {
     let db_record = sqlx::query!("SELECT * FROM UpworkJobs where id = ?", id)
         .fetch_optional(&config.db_pool)
-        .await?;
-    let db_record = db_record.ok_or_else(|| eyre!("No record found for id {}", id))?;
+        .await
+        .into_diagnostic()?;
+    let db_record = db_record.ok_or_else(|| miette::miette!("No record found for id {}", id))?;
 
     let prompt = form.prompt;
 

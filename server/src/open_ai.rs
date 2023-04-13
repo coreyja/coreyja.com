@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use miette::Result;
 
 use crate::*;
 
@@ -9,8 +9,9 @@ pub(crate) struct OpenAiConfig {
 
 impl OpenAiConfig {
     pub fn from_env() -> Result<Self> {
-        let open_ai_api_key =
-            std::env::var("OPEN_AI_API_KEY").wrap_err("No OpenAI API KEY Found")?;
+        let open_ai_api_key = std::env::var("OPEN_AI_API_KEY")
+            .into_diagnostic()
+            .wrap_err("No OpenAI API KEY Found")?;
 
         Ok(Self {
             api_key: open_ai_api_key,

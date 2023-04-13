@@ -1,7 +1,7 @@
 use crate::*;
 
 use axum::http::Uri;
-use color_eyre::Result;
+use miette::Result;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -14,9 +14,12 @@ pub(crate) struct GithubConfig {
 impl GithubConfig {
     pub(crate) fn from_env() -> Result<Self> {
         Ok(Self {
-            app_id: std::env::var("GITHUB_APP_ID")?.parse()?,
-            client_id: std::env::var("GITHUB_APP_CLIENT_ID")?,
-            client_secret: std::env::var("GITHUB_APP_CLIENT_SECRET")?,
+            app_id: std::env::var("GITHUB_APP_ID")
+                .into_diagnostic()?
+                .parse()
+                .into_diagnostic()?,
+            client_id: std::env::var("GITHUB_APP_CLIENT_ID").into_diagnostic()?,
+            client_secret: std::env::var("GITHUB_APP_CLIENT_SECRET").into_diagnostic()?,
         })
     }
 }
@@ -32,13 +35,14 @@ pub(crate) async fn generate_user_github_link(config: &Config, user_id: i64) -> 
         state,
     )
     .execute(&config.db_pool)
-    .await?;
+    .await
+    .into_diagnostic()?;
 
-    Ok(Uri::builder()
+    Uri::builder()
         .scheme("https")
         .authority("github.com")
         .path_and_query(format!("/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&state={state}"))
-        .build()?)
+        .build().into_diagnostic()
 }
 
 pub(crate) fn github_redirect_uri(config: &Config) -> String {

@@ -3,8 +3,8 @@
 use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
 use clap::Parser;
-use color_eyre::eyre::Context;
 use commands::Command;
+use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId, Color};
 use reqwest::Client;
@@ -21,7 +21,7 @@ use tracing_tree::HierarchicalLayer;
 
 use async_trait::async_trait;
 
-pub use color_eyre::Result;
+pub use miette::Result;
 
 mod discord;
 use discord::*;
@@ -53,6 +53,7 @@ impl AppConfig {
     fn from_env() -> Result<Self> {
         Ok(Self {
             base_url: std::env::var("APP_BASE_URL")
+                .into_diagnostic()
                 .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
         })
     }
@@ -120,7 +121,8 @@ fn setup_tracing() -> Result<()> {
                     .with_timeout(Duration::from_secs(3))
                     .with_headers(map),
             )
-            .install_batch(opentelemetry::runtime::Tokio)?;
+            .install_batch(opentelemetry::runtime::Tokio)
+            .into_diagnostic()?;
 
         let opentelemetry_layer = OpenTelemetryLayer::new(tracer);
         println!("Honeycomb layer configured");
@@ -152,7 +154,8 @@ fn setup_tracing() -> Result<()> {
         .with(heirarchical)
         .with(opentelemetry_layer)
         .with(env_filter)
-        .try_init()?;
+        .try_init()
+        .into_diagnostic()?;
 
     Ok(())
 }
@@ -166,7 +169,7 @@ struct CliArgs {
 
 mod commands {
     use clap::Subcommand;
-    use color_eyre::eyre::Result;
+    use miette::Result;
 
     pub(crate) mod serve;
 

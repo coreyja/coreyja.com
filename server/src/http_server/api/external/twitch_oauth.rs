@@ -4,12 +4,12 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 
-use crate::{http_server::errors::EyreError, *};
+use crate::{http_server::errors::MietteError, *};
 
 pub(crate) async fn handler(
     Query(oauth): Query<TwitchOauthRequest>,
     State(config): State<Config>,
-) -> Result<impl IntoResponse, EyreError> {
+) -> Result<impl IntoResponse, MietteError> {
     let twitch_config = config.twitch;
     let client = reqwest::Client::new();
 
@@ -25,18 +25,26 @@ pub(crate) async fn handler(
             redirect_uri,
         })
         .send()
-        .await?;
+        .await
+        .into_diagnostic()?;
 
-    let token_json = token_response.json::<TwitchTokenResponse>().await?;
+    let token_json = token_response
+        .json::<TwitchTokenResponse>()
+        .await
+        .into_diagnostic()?;
     let access_token = &token_json.access_token;
 
     let validate_response = client
         .get("https://id.twitch.tv/oauth2/validate")
         .bearer_auth(access_token)
         .send()
-        .await?;
+        .await
+        .into_diagnostic()?;
 
-    let json = validate_response.json::<TwitchValidateResponse>().await?;
+    let json = validate_response
+        .json::<TwitchValidateResponse>()
+        .await
+        .into_diagnostic()?;
 
     if let Some(state) = oauth.state {
         let user_id = sqlx::query!(
@@ -50,7 +58,8 @@ pub(crate) async fn handler(
             state
         )
         .fetch_one(&config.db_pool)
-        .await?
+        .await
+        .into_diagnostic()?
         .user_id;
         let now = Utc::now();
         let expires_at = Utc::now() + Duration::seconds(token_json.expires_in);
@@ -77,7 +86,8 @@ pub(crate) async fn handler(
             now
         )
         .execute(&config.db_pool)
-        .await?;
+        .await
+        .into_diagnostic()?;
 
         sqlx::query!(
             "UPDATE UserTwitchLinkStates
@@ -88,7 +98,8 @@ pub(crate) async fn handler(
             state
         )
         .execute(&config.db_pool)
-        .await?;
+        .await
+        .into_diagnostic()?;
     }
 
     Ok(format!("{json:#?}"))

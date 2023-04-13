@@ -1,7 +1,6 @@
 use crate::*;
 
 use async_trait::async_trait;
-use color_eyre::eyre::ContextCompat;
 use sqlx::types::chrono::NaiveDateTime;
 
 #[derive(Debug)]
@@ -16,9 +15,12 @@ impl Findable for User {
     async fn find(id: i64, pool: &mut sqlx::SqliteConnection) -> Result<User> {
         let user = sqlx::query_as!(User, "SELECT * FROM Users WHERE id = ?", id)
             .fetch_optional(pool)
-            .await?;
+            .await
+            .into_diagnostic()?;
 
-        Ok(user.wrap_err("We are expecting the ids used with Findable to always exist")?)
+        Ok(user.ok_or(miette::miette!(
+            "We are expecting the ids used with Findable to always exist"
+        ))?)
     }
 
     fn id(&self) -> i64 {

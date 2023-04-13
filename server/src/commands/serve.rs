@@ -11,7 +11,11 @@ pub(crate) async fn serve() -> Result<()> {
         let path = std::env::var("DATABASE_PATH");
 
         Ok(if let Ok(p) = &path {
-            OpenOptions::new().write(true).create(true).open(p)?;
+            OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(p)
+                .into_diagnostic()?;
 
             format!("sqlite:{}", p)
         } else {
@@ -19,7 +23,7 @@ pub(crate) async fn serve() -> Result<()> {
         })
     })?;
 
-    let pool = SqlitePool::connect(&database_url).await?;
+    let pool = SqlitePool::connect(&database_url).await.into_diagnostic()?;
 
     let config = Config {
         twitch: twitch_config,
@@ -31,7 +35,10 @@ pub(crate) async fn serve() -> Result<()> {
     };
 
     info!("About to run migrations (if any to apply)");
-    migrate!("./migrations/").run(&config.db_pool).await?;
+    migrate!("./migrations/")
+        .run(&config.db_pool)
+        .await
+        .into_diagnostic()?;
 
     let discord_bot = build_discord_bot(config.clone()).await?;
 
@@ -42,9 +49,9 @@ pub(crate) async fn serve() -> Result<()> {
     let axum_future = tokio::spawn(run_axum(config.clone()));
     info!("Tasks Spawned");
 
-    let (discord_result, axum_result) = try_join!(discord_future, axum_future)?;
+    let (discord_result, axum_result) = try_join!(discord_future, axum_future).into_diagnostic()?;
 
-    discord_result?;
+    discord_result.into_diagnostic()?;
     axum_result?;
 
     info!("Main Returning");

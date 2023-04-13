@@ -53,8 +53,9 @@ pub(crate) async fn edit_prompt(
         .bearer_auth(&config.api_key)
         .json::<EditRequest>(&body)
         .send()
-        .await?;
-    let body = res.json::<EditResponse>().await?;
+        .await
+        .into_diagnostic()?;
+    let body = res.json::<EditResponse>().await.into_diagnostic()?;
 
     let text = body.choices.into_iter().next().unwrap().text;
     Ok(text)

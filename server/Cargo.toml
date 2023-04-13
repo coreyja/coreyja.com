@@ -10,7 +10,7 @@ default-run = "server"
 [dependencies]
 axum = "0.6.2"
 axum-macros = "0.3.1"
-color-eyre = "0.6.2"
+miette = { version = "5.7.0", features = ["fancy"] }
 poise = "0.4.1"
 reqwest = { version = "0.11.12", features = ["json", "rustls-tls"], default-features = false }
 serde = "1.0.147"
