@@ -10,15 +10,14 @@ use crate::{
 mod md;
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
-    let posts = BlogPosts::new()
-        .posts()
-        .filter_map(|post| post.to_markdown().map(|m| (m, post)));
+    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
+    let posts = posts.posts();
 
     Ok(base(html! {
       ul {
-          @for (post, path) in posts {
+          @for post in posts {
               li {
-                a href=(format!("/posts/{}", path.path)) { (post.title) }
+                a href=(format!("/posts/{}", post.path().to_string_lossy())) { (post.title()) }
               }
           }
       }

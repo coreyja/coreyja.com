@@ -1,7 +1,7 @@
 ---
 title: blink(1) Github Status
 author: Corey Alexander
-date: 2018-04-29T18:28:05-04:00
+date: 2018-04-29
 color: red
 tags:
   - blink1
