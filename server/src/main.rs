@@ -44,6 +44,9 @@ use my_rss::*;
 mod open_ai;
 use open_ai::*;
 
+mod blog;
+use blog::*;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
     base_url: String,
@@ -171,11 +174,13 @@ mod commands {
     use clap::Subcommand;
     use miette::Result;
 
+    pub(crate) mod info;
     pub(crate) mod serve;
 
     #[derive(Subcommand)]
     pub(crate) enum Command {
         Serve,
+        Print,
     }
 
     impl Default for Command {
@@ -188,6 +193,7 @@ mod commands {
         pub(crate) async fn run(&self) -> Result<()> {
             match &self {
                 Self::Serve => serve::serve().await,
+                Self::Print => info::print_info().await,
             }
         }
     }
