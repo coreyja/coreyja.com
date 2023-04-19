@@ -12,10 +12,13 @@ impl RssConfig {
     pub(crate) fn from_env() -> Result<Self> {
         Ok(Self {
             upwork_url: std::env::var("UPWORK_RSS_URL")
+                .into_diagnostic()
                 .wrap_err("Missing UPWORK_RSS_URL needed for app launch")?,
             discord_notification_channel_id: std::env::var("UPWORK_DISCORD_CHANNEL_ID")
+                .into_diagnostic()
                 .wrap_err("Missing UPWORK_DISCORD_CHANNEL_ID")?
-                .parse()?,
+                .parse()
+                .into_diagnostic()?,
         })
     }
 }
@@ -41,10 +44,12 @@ async fn run_upwork_rss(
     let resp = client
         .get(&config.rss.upwork_url)
         .send()
-        .await?
+        .await
+        .into_diagnostic()?
         .bytes()
-        .await?;
-    let channel = Channel::read_from(&resp[..])?;
+        .await
+        .into_diagnostic()?;
+    let channel = Channel::read_from(&resp[..]).into_diagnostic()?;
 
     for item in channel.items() {
         process_upwork_job_rss(config, item, discord_client).await?;
@@ -63,7 +68,8 @@ async fn process_upwork_job_rss(
 
     let existing_record_id = sqlx::query!("SELECT id FROM UpworkJobs where guid = ?", guid)
         .fetch_optional(&config.db_pool)
-        .await?
+        .await
+        .into_diagnostic()?
         .map(|r| r.id);
 
     if existing_record_id.is_some() {
@@ -79,7 +85,8 @@ async fn process_upwork_job_rss(
             content
         )
         .fetch_one(&config.db_pool)
-        .await?
+        .await
+        .into_diagnostic()?
         .id;
 
         info!(guid, upwork_job_id = new_record_id, "Added new UpworkJob");
@@ -109,7 +116,8 @@ async fn process_upwork_job_rss(
                         .color(Color::from_rgb(17, 138, 0))
                 })
             })
-            .await?;
+            .await
+            .into_diagnostic()?;
 
         info!(
             upwork_job_id = new_record_id,

@@ -38,13 +38,14 @@ pub(crate) async fn generate_user_twitch_link(config: &Config, user_id: i64) -> 
         state,
     )
     .execute(&config.db_pool)
-    .await?;
+    .await
+    .into_diagnostic()?;
 
-    Ok(Uri::builder()
+    Uri::builder()
         .scheme("https")
         .authority("id.twitch.tv")
         .path_and_query(format!("/oauth2/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=&state={state}"))
-        .build()?)
+        .build().into_diagnostic()
 }
 
 #[derive(Debug, Clone)]
@@ -61,11 +62,11 @@ pub(crate) struct TwitchConfig {
 impl TwitchConfig {
     pub(crate) fn from_env() -> Result<Self> {
         Ok(Self {
-            client_id: std::env::var("TWITCH_CLIENT_ID")?,
-            client_secret: std::env::var("TWITCH_CLIENT_SECRET")?,
+            client_id: std::env::var("TWITCH_CLIENT_ID").into_diagnostic()?,
+            client_secret: std::env::var("TWITCH_CLIENT_SECRET").into_diagnostic()?,
             bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN").ok(),
-            bot_user_id: std::env::var("TWITCH_BOT_USER_ID")?,
-            channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID")?,
+            bot_user_id: std::env::var("TWITCH_BOT_USER_ID").into_diagnostic()?,
+            channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID").into_diagnostic()?,
         })
     }
 }
@@ -89,10 +90,13 @@ pub(crate) async fn get_chatters(config: &TwitchConfig) -> Result<TwitchChatters
         .bearer_auth(config.bot_access_token.as_ref().expect("We need a bot access token here. This was required and then it was hard to generate for prod and I was lazy and we aren't using this yet so :shrug:"))
         .header("Client-Id", &config.client_id)
         .send()
-        .await
+        .await.into_diagnostic()
         ?;
 
-    Ok(response.json::<TwitchChattersPage>().await?)
+    response
+        .json::<TwitchChattersPage>()
+        .await
+        .into_diagnostic()
 }
 
 #[derive(Serialize, Deserialize, Debug)]

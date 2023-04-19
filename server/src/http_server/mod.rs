@@ -27,7 +27,7 @@ mod templates;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 
-pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
+pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
     let app = Router::new()
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
         .route("/", get(pages::home::home_page))
@@ -47,7 +47,10 @@ pub(crate) async fn run_axum(config: Config) -> color_eyre::Result<()> {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
-    Server::bind(&addr).serve(app.into_make_service()).await?;
+    Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .map_err(|_| miette::miette!("Failed to run server"))?;
 
     Ok(())
 }

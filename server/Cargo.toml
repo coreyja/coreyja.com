@@ -10,7 +10,7 @@ default-run = "server"
 [dependencies]
 axum = "0.6.2"
 axum-macros = "0.3.1"
-color-eyre = "0.6.2"
+miette = { version = "5.7.0", features = ["fancy"] }
 poise = "0.4.1"
 reqwest = { version = "0.11.12", features = ["json", "rustls-tls"], default-features = false }
 serde = "1.0.147"
@@ -38,3 +38,5 @@ include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 
 markdown = "1.0.0-alpha.7"
 serde_yaml = "0.9"
+
+clap = { version = "4.2.1", features = ["derive"] }

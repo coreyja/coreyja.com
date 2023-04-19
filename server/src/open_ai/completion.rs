@@ -56,8 +56,9 @@ pub(crate) async fn complete_prompt(
         .bearer_auth(&config.api_key)
         .json(&body)
         .send()
-        .await?;
-    let body = res.json::<CompletionResponse>().await?;
+        .await
+        .into_diagnostic()?;
+    let body = res.json::<CompletionResponse>().await.into_diagnostic()?;
 
     let text = body.choices.into_iter().next().unwrap().text;
     Ok(text)

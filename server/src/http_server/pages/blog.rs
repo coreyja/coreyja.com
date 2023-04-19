@@ -1,34 +1,23 @@
 use axum::{extract::Path, http::StatusCode};
-use include_dir::{include_dir, Dir};
-use markdown::{
-    mdast::{Node, Root},
-    to_mdast, ParseOptions,
-};
+
 use maud::{html, Markup};
-use serde::{Deserialize, Serialize};
 
-use crate::http_server::templates::base;
-
-use self::md::IntoHtml;
-
-static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
+use crate::{
+    blog::{BlogPostPath, BlogPosts},
+    http_server::{pages::blog::md::IntoHtml, templates::base},
+};
 
 mod md;
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
-    let glob = "**/*.md";
-
-    let posts = BLOG_DIR
-        .find(glob)
-        .unwrap()
-        .map(|entry| BlogPostPath::new(entry.path().to_string_lossy().into_owned()))
-        .filter_map(|post| post.to_markdown().map(|m| (m, post)));
+    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
+    let posts = posts.posts();
 
     Ok(base(html! {
       ul {
-          @for (post, path) in posts {
+          @for post in posts {
               li {
-                a href=(format!("/posts/{}", path.path)) { (post.title) }
+                a href=(format!("/posts/{}", post.path().to_string_lossy())) { (post.title()) }
               }
           }
       }
@@ -64,66 +53,6 @@ pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode>
       h1 { (markdown.title) }
       subtitle { (markdown.date) }
 
-      (markdown.html)
+      (markdown.ast.into_html())
     }))
-}
-
-struct BlogPostPath {
-    path: String,
-}
-
-impl BlogPostPath {
-    pub fn new(path: String) -> Self {
-        Self { path }
-    }
-
-    pub fn file_exists(&self) -> bool {
-        BLOG_DIR.get_file(&self.path).is_some()
-    }
-
-    pub fn to_markdown(&self) -> Option<PostMarkdown> {
-        let file = BLOG_DIR.get_file(&self.path)?;
-
-        let contents = file.contents_utf8().expect("All posts are UTF8");
-
-        let mut options: ParseOptions = Default::default();
-        options.constructs.gfm_footnote_definition = true;
-        options.constructs.frontmatter = true;
-
-        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
-          panic!("Should be a valid root node")
-        };
-
-        let children = &ast.children;
-        let Node::Yaml(frontmatter) = children.get(0).expect("Should have frontmatter") else {
-          panic!("Should have a YAML Frontmatter")
-        };
-
-        let yaml = &frontmatter.value;
-
-        let metadata: FrontMatter = serde_yaml::from_str(yaml).expect("Should be valid YAML");
-
-        let html = ast.clone().into_html();
-
-        Some(PostMarkdown {
-            title: metadata.title,
-            date: metadata.date,
-            ast,
-            html,
-        })
-    }
-}
-
-struct PostMarkdown {
-    title: String,
-    date: String,
-    ast: Root,
-    // TODO: Stop using the html here and actually parse the ast above to convert to HTML
-    html: Markup,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-struct FrontMatter {
-    title: String,
-    date: String,
 }
