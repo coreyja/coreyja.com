@@ -190,24 +190,6 @@
     },
     "query": "INSERT INTO Users DEFAULT VALUES RETURNING *"
   },
-  "6fba5afbe0b57cb8b1ea8dc8c869769db63b13554f07cc697cc7dbb836048edb": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int64"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Right": 0
-      }
-    },
-    "query": "INSERT INTO ChatterLogRecord DEFAULT VALUES RETURNING id"
-  },
   "8cb6371ddeff1abf789eb819960f69e8046d571fcafa3797fa54fa6f520b764e": {
     "describe": {
       "columns": [
@@ -403,16 +385,6 @@
       }
     },
     "query": "SELECT * FROM UserTwitchLinks WHERE user_id = ?"
-  },
-  "ef2616673daa17c8c827c307f060c3f54864f6c2509a7b35b526a09802fe9e5b": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 2
-      }
-    },
-    "query": "INSERT INTO ChatterLogs (chatters_log_id, name) VALUES (?, ?)"
   },
   "f2e83d6779fc2a6b9880f10c16b3434fda05369b7fbd2ce8f077a878b9d713a5": {
     "describe": {
