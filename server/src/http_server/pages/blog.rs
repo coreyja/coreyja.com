@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 
 use maud::{html, Markup};
@@ -32,7 +33,7 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
 pub(crate) async fn post_get(
     State(context): State<HtmlRenderContext>,
     Path(mut key): Path<String>,
-) -> Result<Markup, StatusCode> {
+) -> Result<Response, StatusCode> {
     // TODO: Eventually
     //
     // I think we can move away from the wildcard route and instead
@@ -53,6 +54,10 @@ pub(crate) async fn post_get(
         path = BlogPostPath::new(format!("{key}/index.md"));
     }
 
+    if !path.file_is_markdown() {
+        return Ok(path.raw_bytes().into_response());
+    }
+
     let Some(markdown) = path.to_markdown() else {
       return Err(StatusCode::NOT_FOUND);
     };
@@ -62,5 +67,6 @@ pub(crate) async fn post_get(
       subtitle { (markdown.date) }
 
       (markdown.ast.into_html(&context))
-    }))
+    })
+    .into_response())
 }

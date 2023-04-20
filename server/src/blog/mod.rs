@@ -126,6 +126,10 @@ impl BlogPostPath {
         BLOG_DIR.get_file(&self.path).is_some()
     }
 
+    pub fn file_is_markdown(&self) -> bool {
+        self.file_exists() && self.path.ends_with(".md")
+    }
+
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
         let file = BLOG_DIR.get_file(&self.path)?;
 
@@ -153,6 +157,12 @@ impl BlogPostPath {
             date: metadata.date,
             ast,
         })
+    }
+
+    pub(crate) fn raw_bytes(&self) -> &'static [u8] {
+        let file = BLOG_DIR.get_file(&self.path).unwrap();
+
+        file.contents()
     }
 }
 
