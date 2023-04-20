@@ -45,7 +45,6 @@ mod open_ai;
 use open_ai::*;
 
 mod blog;
-use blog::*;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {

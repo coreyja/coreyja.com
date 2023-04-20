@@ -49,19 +49,19 @@ impl IntoHtml for Node {
 }
 
 impl IntoHtml for Html {
-    fn into_html(self, context: &HtmlRenderContext) -> Markup {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! { (PreEscaped(self.value)) }
     }
 }
 
 impl IntoHtml for Break {
-    fn into_html(self, context: &HtmlRenderContext) -> Markup {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! { br; }
     }
 }
 
 impl IntoHtml for Yaml {
-    fn into_html(self, context: &HtmlRenderContext) -> Markup {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         // We get Yaml in the Frontmatter, so we don't want to render it
         // to our HTML
         html! {}
@@ -131,7 +131,7 @@ impl IntoHtml for BlockQuote {
 }
 
 impl IntoHtml for Text {
-    fn into_html(self, context: &HtmlRenderContext) -> Markup {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
           (self.value)
         }
@@ -180,7 +180,7 @@ impl IntoHtml for List {
 }
 
 impl IntoHtml for InlineCode {
-    fn into_html(self, context: &HtmlRenderContext) -> Markup {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
           code { (self.value) }
         }
@@ -204,7 +204,7 @@ impl IntoHtml for Emphasis {
 }
 
 impl IntoHtml for Image {
-    fn into_html(self, context: &HtmlRenderContext) -> Markup {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
           img src=(self.url) alt=(self.alt) title=[self.title] {}
         }
