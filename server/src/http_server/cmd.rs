@@ -1,4 +1,6 @@
-use crate::*;
+use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
+
+use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
@@ -25,6 +27,15 @@ pub(crate) async fn serve() -> Result<()> {
 
     let pool = SqlitePool::connect(&database_url).await.into_diagnostic()?;
 
+    // Load these once at the start of your program
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+
+    let markdown_to_html_context = HtmlRenderContext {
+        syntax_set: ps,
+        theme: ts.themes.get("base16-ocean.dark").unwrap().clone(),
+    };
+
     let config = Config {
         twitch: twitch_config,
         db_pool: pool,
@@ -32,6 +43,7 @@ pub(crate) async fn serve() -> Result<()> {
         app: app_config,
         rss: rss_config,
         open_ai: open_ai_config,
+        markdown_to_html_context,
     };
 
     info!("About to run migrations (if any to apply)");

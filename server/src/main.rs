@@ -30,7 +30,7 @@ mod twitch;
 use twitch::*;
 
 mod http_server;
-use http_server::*;
+use http_server::{pages::blog::md::HtmlRenderContext, *};
 
 mod github;
 use github::*;
@@ -45,7 +45,6 @@ mod open_ai;
 use open_ai::*;
 
 mod blog;
-use blog::*;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
@@ -78,6 +77,7 @@ struct Config {
     open_ai: OpenAiConfig,
     rss: RssConfig,
     app: AppConfig,
+    markdown_to_html_context: HtmlRenderContext,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {
@@ -175,7 +175,6 @@ mod commands {
     use miette::Result;
 
     pub(crate) mod info;
-    pub(crate) mod serve;
 
     #[derive(Subcommand)]
     pub(crate) enum Command {
@@ -192,7 +191,7 @@ mod commands {
     impl Command {
         pub(crate) async fn run(&self) -> Result<()> {
             match &self {
-                Self::Serve => serve::serve().await,
+                Self::Serve => crate::http_server::cmd::serve().await,
                 Self::Print => info::print_info().await,
             }
         }

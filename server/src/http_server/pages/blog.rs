@@ -1,4 +1,7 @@
-use axum::{extract::Path, http::StatusCode};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+};
 
 use maud::{html, Markup};
 
@@ -7,7 +10,9 @@ use crate::{
     http_server::{pages::blog::md::IntoHtml, templates::base},
 };
 
-mod md;
+use self::md::HtmlRenderContext;
+
+pub(crate) mod md;
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
     let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
@@ -24,7 +29,10 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
     }))
 }
 
-pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode> {
+pub(crate) async fn post_get(
+    State(context): State<HtmlRenderContext>,
+    Path(mut key): Path<String>,
+) -> Result<Markup, StatusCode> {
     // TODO: Eventually
     //
     // I think we can move away from the wildcard route and instead
@@ -53,6 +61,6 @@ pub async fn post_get(Path(mut key): Path<String>) -> Result<Markup, StatusCode>
       h1 { (markdown.title) }
       subtitle { (markdown.date) }
 
-      (markdown.ast.into_html())
+      (markdown.ast.into_html(&context))
     }))
 }

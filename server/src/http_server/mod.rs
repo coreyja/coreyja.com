@@ -8,7 +8,9 @@ use crate::Config;
 pub use config::*;
 use errors::*;
 
-mod pages {
+pub(crate) mod cmd;
+
+pub(crate) mod pages {
     pub mod admin;
     pub mod blog;
     pub mod home;
