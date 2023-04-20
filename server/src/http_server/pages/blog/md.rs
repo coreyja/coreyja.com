@@ -1,5 +1,6 @@
 use markdown::mdast::*;
 use maud::{html, Markup, PreEscaped};
+use syntect::html::{css_for_theme_with_class_style, ClassStyle, ClassedHTMLGenerator};
 
 pub(crate) trait IntoHtml {
     fn into_html(self) -> Markup;
@@ -223,8 +224,34 @@ impl IntoHtml for Strong {
 
 impl IntoHtml for Code {
     fn into_html(self) -> Markup {
+        use syntect::highlighting::ThemeSet;
+        use syntect::parsing::SyntaxSet;
+        use syntect::util::LinesWithEndings;
+
+        // Load these once at the start of your program
+        let ps = SyntaxSet::load_defaults_newlines();
+        let ts = ThemeSet::load_defaults();
+
+        let syntax = self
+            .lang
+            .and_then(|lang| ps.find_syntax_by_token(&lang))
+            .unwrap_or_else(|| ps.find_syntax_plain_text());
+
+        // let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+        let mut html_generator =
+            ClassedHTMLGenerator::new_with_class_style(syntax, &ps, ClassStyle::Spaced);
+
+        for line in LinesWithEndings::from(&self.value) {
+            html_generator
+                .parse_html_for_line_which_includes_newline(line)
+                .unwrap();
+        }
+        let css =
+            css_for_theme_with_class_style(&ts.themes["base16-ocean.dark"], ClassStyle::Spaced)
+                .unwrap();
         html! {
-          pre { code { (self.value) } }
+          style { (PreEscaped(css)) }
+          pre { code { (PreEscaped(html_generator.finalize())) } }
         }
     }
 }

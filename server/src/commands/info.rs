@@ -1,4 +1,5 @@
 use miette::Result;
+use syntect::parsing::SyntaxSet;
 
 use crate::blog::BlogPosts;
 
@@ -12,6 +13,14 @@ pub(crate) async fn print_info() -> Result<()> {
         let date = p.date();
 
         println!("{title} | {date}: {path:?}");
+    }
+
+    println!("\n\n");
+    println!("Recognized Syntax:");
+
+    let ps = SyntaxSet::load_defaults_newlines();
+    for syntax in ps.syntaxes() {
+        println!("{}", syntax.name);
     }
 
     Ok(())
