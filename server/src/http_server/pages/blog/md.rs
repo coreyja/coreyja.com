@@ -142,10 +142,6 @@ impl IntoHtml for Heading {
     fn into_html(self, context: &HtmlRenderContext) -> Markup {
         let content = self.children.into_html(context);
 
-        if !matches!(self.depth, 1..=6) {
-            unreachable!("Invalid heading depth")
-        }
-
         html! {
             @match self.depth {
                 1 => h1 { (content) },
@@ -154,9 +150,8 @@ impl IntoHtml for Heading {
                 4 => h4 { (content) },
                 5 => h5 { (content) },
                 6 => h6 { (content) },
-                _ => "If you see this, I have screwed up!
-                Unreachable becuase of the matches on line 145.
-                Can't add an unreachable! macro here likely because we are inside the HTML macro",
+                #[allow(unreachable_code)]
+                _ => (unreachable!("Invalid heading depth")),
             }
         }
     }
