@@ -64,7 +64,7 @@ pub(crate) async fn post_get(
 
     Ok(base(html! {
       h1 { (markdown.title) }
-      subtitle { (markdown.date) }
+      subtitle class="block" { (markdown.date) }
 
       (markdown.ast.into_html(&context))
     })
