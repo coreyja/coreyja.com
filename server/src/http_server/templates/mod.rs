@@ -18,7 +18,7 @@ pub fn head() -> Markup {
 pub fn header() -> Markup {
     html! {
       div class="flex" {
-        div class="max-w-lg min-w-[200px] py-4 flex-grow" {
+        div class="max-w-lg min-w-[200px] py-24 flex-grow" {
           a href="/" {
             (PreEscaped(LOGO_SVG))
           }
