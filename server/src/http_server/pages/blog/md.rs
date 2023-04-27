@@ -71,7 +71,7 @@ impl IntoHtml for Yaml {
 impl IntoHtml for Paragraph {
     fn into_html(self, context: &HtmlRenderContext) -> Markup {
         html! {
-            p class="my-4 max-w-prose" {
+            p class="my-4 max-w-prose leading-loose" {
                 (self.children.into_html(context))
             }
         }
@@ -205,7 +205,7 @@ impl IntoHtml for Emphasis {
 impl IntoHtml for Image {
     fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
-          img src=(self.url) alt=(self.alt) title=[self.title] {}
+          img src=(self.url) alt=(self.alt) title=[self.title] class="px-8 my-8" {}
         }
     }
 }
@@ -213,7 +213,7 @@ impl IntoHtml for Image {
 impl IntoHtml for Link {
     fn into_html(self, context: &HtmlRenderContext) -> Markup {
         html! {
-          a href=(self.url) title=[self.title] { (self.children.into_html(context)) }
+          a href=(self.url) title=[self.title] class="underline" { (self.children.into_html(context)) }
         }
     }
 }
