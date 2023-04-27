@@ -17,13 +17,21 @@ pub(crate) mod md;
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
     let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
-    let posts = posts.posts();
+    let mut posts: Vec<_> = posts.posts().to_vec();
+
+    posts.sort_by_key(|p| *p.date());
+    posts.reverse();
 
     Ok(base(html! {
       ul {
           @for post in posts {
-              li {
-                a href=(format!("/posts/{}", post.path().to_string_lossy())) { (post.title()) }
+              li class="my-4" {
+                    a href=(format!("/posts/{}", post.path().to_string_lossy())) {
+                    span class="text-subtitle text-sm inline-block w-[80px]" { (post.date()) }
+                    " "
+
+                    (post.title())
+                }
               }
           }
       }
@@ -63,10 +71,12 @@ pub(crate) async fn post_get(
     };
 
     Ok(base(html! {
-      h1 { (markdown.title) }
-      subtitle { (markdown.date) }
+      h1 class="text-2xl" { (markdown.title) }
+      subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
-      (markdown.ast.into_html(&context))
+      div class="" {
+        (markdown.ast.into_html(&context))
+      }
     })
     .into_response())
 }

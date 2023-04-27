@@ -13,6 +13,7 @@ module.exports = {
     },
     colors: {
       "background": "rgba(51, 41, 67, 1)",
+      "coding_background": "#231c2e",
       "text": "rgba(225, 212, 255, 1)",
       "subtitle": "rgba(200, 192, 215, 1)",
       "accent": "rgba(178, 132, 255, 1)",

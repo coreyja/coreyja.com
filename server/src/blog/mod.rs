@@ -13,6 +13,7 @@ pub(crate) struct BlogPosts {
     posts: Vec<BlogPost>,
 }
 
+#[derive(Debug, Clone)]
 pub struct BlogPost {
     path: PathBuf,
     title: String,
