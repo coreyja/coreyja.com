@@ -18,3 +18,14 @@
   width: 1024
   output: screenshots/ipad.png
   wait: 750
+
+- url: https://beta.coreyja.com/posts
+  height: 1080
+  width: 1920
+  output: screenshots/desktop/posts_index.png
+  wait: 750
+- url: https://beta.coreyja.com/posts/twitch-webhook-verification
+  height: 1080
+  width: 1920
+  output: screenshots/desktop/example_post.png
+  wait: 750
