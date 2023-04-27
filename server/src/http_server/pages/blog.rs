@@ -63,10 +63,12 @@ pub(crate) async fn post_get(
     };
 
     Ok(base(html! {
-      h1 { (markdown.title) }
-      subtitle class="block" { (markdown.date) }
+      h1 class="text-2xl" { (markdown.title) }
+      subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
-      (markdown.ast.into_html(&context))
+      div class="" {
+        (markdown.ast.into_html(&context))
+      }
     })
     .into_response())
 }

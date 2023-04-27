@@ -71,7 +71,7 @@ impl IntoHtml for Yaml {
 impl IntoHtml for Paragraph {
     fn into_html(self, context: &HtmlRenderContext) -> Markup {
         html! {
-            p {
+            p class="my-4 max-w-prose" {
                 (self.children.into_html(context))
             }
         }
@@ -133,7 +133,7 @@ impl IntoHtml for BlockQuote {
 impl IntoHtml for Text {
     fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
-          (self.value)
+            (self.value)
         }
     }
 }
@@ -144,12 +144,12 @@ impl IntoHtml for Heading {
 
         html! {
             @match self.depth {
-                1 => h1 { (content) },
-                2 => h2 { (content) },
-                3 => h3 { (content) },
-                4 => h4 { (content) },
-                5 => h5 { (content) },
-                6 => h6 { (content) },
+                1 => h1 class="max-w-prose text-2xl" { (content) },
+                2 => h2 class="max-w-prose text-xl" { (content) },
+                3 => h3 class="max-w-prose text-lg" { (content) },
+                4 => h4 class="max-w-prose text-lg text-subtitle" { (content) },
+                5 => h5 class="max-w-prose text-lg text-subtitle font-light" { (content) },
+                6 => h6 class="max-w-prose text-base text-subtitle" { (content) },
                 #[allow(unreachable_code)]
                 _ => (unreachable!("Invalid heading depth")),
             }
@@ -169,13 +169,10 @@ impl IntoHtml for Vec<Node> {
 
 impl IntoHtml for List {
     fn into_html(self, context: &HtmlRenderContext) -> Markup {
-        let tag = match self.ordered {
-            true => "ol",
-            false => "ul",
-        };
         html! {
-            (tag) {
-                (self.children.into_html(context))
+            @match self.ordered {
+                true => { ol class="max-w-prose" { (self.children.into_html(context)) } },
+                false => { ul class="max-w-prose" { (self.children.into_html(context)) } },
             }
         }
     }
@@ -254,7 +251,8 @@ impl IntoHtml for Code {
         let css = css_for_theme_with_class_style(&context.theme, ClassStyle::Spaced).unwrap();
         html! {
           style { (PreEscaped(css)) }
-          pre { code { (PreEscaped(html_generator.finalize())) } }
+
+          pre class="my-4 py-4 bg-coding_background px-8 overflow-x-scroll max-w-vw" { code { (PreEscaped(html_generator.finalize())) } }
         }
     }
 }
