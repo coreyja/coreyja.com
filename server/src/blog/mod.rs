@@ -178,3 +178,59 @@ struct FrontMatter {
     pub title: String,
     pub date: String,
 }
+
+pub trait ToCanonicalPath {
+    fn canonical_path(&self) -> String;
+}
+
+impl ToCanonicalPath for PathBuf {
+    fn canonical_path(&self) -> String {
+        let c = self.clone();
+
+        if c.file_name() == Some(std::ffi::OsStr::new("index.md")) {
+            return format!("/posts/{}/", c.parent().unwrap().to_string_lossy());
+        }
+
+        if c.extension() == Some(std::ffi::OsStr::new("md")) {
+            let mut c = c;
+
+            c.set_extension("");
+
+            return format!("/posts/{}/", c.to_string_lossy());
+        }
+
+        format!("/posts/{}", self.to_string_lossy())
+    }
+}
+
+impl ToCanonicalPath for BlogPost {
+    fn canonical_path(&self) -> String {
+        self.path.canonical_path()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_canonical_path_named_markdown() {
+        let path = PathBuf::from("2020-01-01-test.md");
+
+        assert_eq!(path.canonical_path(), "/posts/2020-01-01-test/");
+    }
+
+    #[test]
+    fn test_canonical_path_index_markdown() {
+        let path = PathBuf::from("2020-01-01-test/index.md");
+
+        assert_eq!(path.canonical_path(), "/posts/2020-01-01-test/");
+    }
+
+    #[test]
+    fn test_canonical_path_dir() {
+        let path = PathBuf::from("2020-01-01-test/");
+
+        assert_eq!(path.canonical_path(), "/posts/2020-01-01-test/");
+    }
+}
