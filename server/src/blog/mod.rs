@@ -1,4 +1,5 @@
 use miette::{Context, Result};
+use path_absolutize::Absolutize;
 use std::path::{Path, PathBuf};
 
 use chrono::NaiveDate;
@@ -79,6 +80,55 @@ impl BlogPost {
 
     pub fn date(&self) -> &NaiveDate {
         &self.date
+    }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        self.validate_images()?;
+
+        Ok(())
+    }
+
+    fn validate_images(&self) -> Result<()> {
+        let p = self.canonical_path();
+        let p = PathBuf::from(p);
+
+        let root_node = Node::Root(self.ast.clone());
+        root_node.validate_images(&p)?;
+
+        Ok(())
+    }
+}
+
+pub trait ValidateMarkdown {
+    fn validate_images(&self, path: &Path) -> Result<()>;
+}
+
+impl ValidateMarkdown for Node {
+    fn validate_images(&self, path: &Path) -> Result<()> {
+        if let Node::Image(image) = self {
+            let mut image_path = path.to_path_buf();
+            image_path.push(&image.url);
+
+            let cleaned = image_path.absolutize_virtually("/").into_diagnostic()?;
+            let cleaned = cleaned.to_string_lossy().to_string();
+            let cleaned = cleaned.strip_prefix('/').unwrap().to_string();
+
+            let post_path = BlogPostPath::new(cleaned.clone());
+
+            if !post_path.file_exists() {
+                return Err(miette::miette!("Image {} does not exist", cleaned));
+            }
+
+            Ok(())
+        } else {
+            if let Some(children) = self.children() {
+                for child in children {
+                    child.validate_images(path)?;
+                }
+            }
+
+            Ok(())
+        }
     }
 }
 
@@ -188,7 +238,7 @@ impl ToCanonicalPath for PathBuf {
         let c = self.clone();
 
         if c.file_name() == Some(std::ffi::OsStr::new("index.md")) {
-            return format!("/posts/{}/", c.parent().unwrap().to_string_lossy());
+            return format!("{}/", c.parent().unwrap().to_string_lossy());
         }
 
         if c.extension() == Some(std::ffi::OsStr::new("md")) {
@@ -196,10 +246,10 @@ impl ToCanonicalPath for PathBuf {
 
             c.set_extension("");
 
-            return format!("/posts/{}/", c.to_string_lossy());
+            return format!("{}/", c.to_string_lossy());
         }
 
-        format!("/posts/{}", self.to_string_lossy())
+        format!("{}", self.to_string_lossy())
     }
 }
 

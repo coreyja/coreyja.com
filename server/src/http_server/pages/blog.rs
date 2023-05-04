@@ -26,7 +26,7 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
       ul {
           @for post in posts {
               li class="my-4" {
-                a href=(post.canonical_path()) {
+                a href=(format!("/posts/{}", post.canonical_path())) {
                     span class="text-subtitle text-sm inline-block w-[80px]" { (post.date()) }
                     " "
 
