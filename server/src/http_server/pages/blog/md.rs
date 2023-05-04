@@ -1,6 +1,6 @@
 use markdown::mdast::*;
 use maud::{html, Markup, PreEscaped};
-use syntect::html::{css_for_theme_with_class_style, ClassStyle, ClassedHTMLGenerator};
+use syntect::html::{ClassStyle, ClassedHTMLGenerator};
 
 #[derive(Debug, Clone)]
 pub(crate) struct HtmlRenderContext {
@@ -236,7 +236,6 @@ impl IntoHtml for Code {
             .and_then(|lang| ps.find_syntax_by_token(&lang))
             .unwrap_or_else(|| ps.find_syntax_plain_text());
 
-        // let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
         let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
             syntax,
             &context.syntax_set,
@@ -248,10 +247,8 @@ impl IntoHtml for Code {
                 .parse_html_for_line_which_includes_newline(line)
                 .unwrap();
         }
-        let css = css_for_theme_with_class_style(&context.theme, ClassStyle::Spaced).unwrap();
-        html! {
-          style { (PreEscaped(css)) }
 
+        html! {
           pre class="my-4 py-4 bg-coding_background px-8 overflow-x-scroll max-w-vw" { code { (PreEscaped(html_generator.finalize())) } }
         }
     }

@@ -7,6 +7,7 @@ pub fn head() -> Markup {
       head {
         title { "coreyja.com" }
         link rel="stylesheet" href="/styles/tailwind.css" {}
+        link rel="stylesheet" href="/styles/syntax.css" {}
 
         link rel="preconnect" href="https://fonts.googleapis.com" {}
         link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}

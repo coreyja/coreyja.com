@@ -4,7 +4,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 
-use crate::Config;
+use crate::{Config};
 pub use config::*;
 use errors::*;
 
@@ -30,7 +30,14 @@ mod templates;
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 
 pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
+    let syntax_css = syntect::html::css_for_theme_with_class_style(
+        &config.markdown_to_html_context.theme,
+        syntect::html::ClassStyle::Spaced,
+    )
+    .unwrap();
+
     let app = Router::new()
+        .route("/styles/syntax.css", get(|| async move { syntax_css }))
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
         .route("/", get(pages::home::home_page))
         .route("/twitch_oauth", get(api::external::twitch_oauth::handler))

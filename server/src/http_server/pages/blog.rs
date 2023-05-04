@@ -7,7 +7,7 @@ use axum::{
 use maud::{html, Markup};
 
 use crate::{
-    blog::{BlogPostPath, BlogPosts},
+    blog::{BlogPostPath, BlogPosts, ToCanonicalPath},
     http_server::{pages::blog::md::IntoHtml, templates::base},
 };
 
@@ -26,7 +26,7 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
       ul {
           @for post in posts {
               li class="my-4" {
-                    a href=(format!("/posts/{}", post.path().to_string_lossy())) {
+                a href=(format!("/posts/{}", post.canonical_path())) {
                     span class="text-subtitle text-sm inline-block w-[80px]" { (post.date()) }
                     " "
 
@@ -62,7 +62,7 @@ pub(crate) async fn post_get(
         path = BlogPostPath::new(format!("{key}/index.md"));
     }
 
-    if !path.file_is_markdown() {
+    if path.file_exists() && !path.file_is_markdown() {
         return Ok(path.raw_bytes().into_response());
     }
 

@@ -175,11 +175,13 @@ mod commands {
     use miette::Result;
 
     pub(crate) mod info;
+    pub(crate) mod validate;
 
     #[derive(Subcommand)]
     pub(crate) enum Command {
         Serve,
         Print,
+        Validate,
     }
 
     impl Default for Command {
@@ -191,8 +193,9 @@ mod commands {
     impl Command {
         pub(crate) async fn run(&self) -> Result<()> {
             match &self {
-                Self::Serve => crate::http_server::cmd::serve().await,
-                Self::Print => info::print_info().await,
+                Command::Serve => crate::http_server::cmd::serve().await,
+                Command::Print => info::print_info().await,
+                Command::Validate => validate::validate().await,
             }
         }
     }
@@ -207,4 +210,13 @@ async fn main() -> Result<()> {
     let command = cli.command.unwrap_or_default();
 
     command.run().await
+}
+
+#[cfg(test)]
+mod test {
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn validate() -> miette::Result<()> {
+        crate::commands::validate::validate().await
+    }
 }
