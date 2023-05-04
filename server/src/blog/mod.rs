@@ -267,20 +267,20 @@ mod test {
     fn test_canonical_path_named_markdown() {
         let path = PathBuf::from("2020-01-01-test.md");
 
-        assert_eq!(path.canonical_path(), "/posts/2020-01-01-test/");
+        assert_eq!(path.canonical_path(), "2020-01-01-test/");
     }
 
     #[test]
     fn test_canonical_path_index_markdown() {
         let path = PathBuf::from("2020-01-01-test/index.md");
 
-        assert_eq!(path.canonical_path(), "/posts/2020-01-01-test/");
+        assert_eq!(path.canonical_path(), "2020-01-01-test/");
     }
 
     #[test]
     fn test_canonical_path_dir() {
         let path = PathBuf::from("2020-01-01-test/");
 
-        assert_eq!(path.canonical_path(), "/posts/2020-01-01-test/");
+        assert_eq!(path.canonical_path(), "2020-01-01-test/");
     }
 }
