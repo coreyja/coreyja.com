@@ -147,27 +147,35 @@ impl IntoHtml for Heading {
             .children
             .iter()
             .map(|x| match x {
-                Node::Text(t) => t.value.as_str(),
-                _ => unreachable!("We should only have text in headings"),
+                Node::Text(t) => Ok(t.value.as_str()),
+                _ => Err(miette::miette!("Heading should only contain text")),
             })
-            .collect::<String>()
-            .to_lowercase()
-            .replace(' ', "-");
+            .collect::<Result<String, _>>()
+            .ok()
+            .map(|x| x.to_lowercase().replace(' ', "-"));
+        let href_attr = id.as_ref().map(|x| format!("#{}", x));
 
         let content = self.children.into_html(context);
+        let inner = html! {
+            @match self.depth {
+                1 => h1 id=[id] class="max-w-prose text-2xl" { (content) },
+                2 => h2 id=[id] class="max-w-prose text-xl" { (content) },
+                3 => h3 id=[id] class="max-w-prose text-lg" { (content) },
+                4 => h4 id=[id] class="max-w-prose text-lg text-subtitle" { (content) },
+                5 => h5 id=[id] class="max-w-prose text-lg text-subtitle font-light" { (content) },
+                6 => h6 id=[id] class="max-w-prose text-base text-subtitle" { (content) },
+                #[allow(unreachable_code)]
+                _ => (unreachable!("Invalid heading depth")),
+            }
+        };
 
         html! {
-            a href=(format!("#{}", id)) {
-                @match self.depth {
-                    1 => h1 id=(id) class="max-w-prose text-2xl" { (content) },
-                    2 => h2 id=(id) class="max-w-prose text-xl" { (content) },
-                    3 => h3 id=(id) class="max-w-prose text-lg" { (content) },
-                    4 => h4 id=(id) class="max-w-prose text-lg text-subtitle" { (content) },
-                    5 => h5 id=(id) class="max-w-prose text-lg text-subtitle font-light" { (content) },
-                    6 => h6 id=(id) class="max-w-prose text-base text-subtitle" { (content) },
-                    #[allow(unreachable_code)]
-                    _ => (unreachable!("Invalid heading depth")),
+            @if let Some(href_attr) = href_attr {
+                a href=(href_attr) {
+                    (inner)
                 }
+            } @else {
+                (inner)
             }
         }
     }
