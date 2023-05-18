@@ -1,12 +1,17 @@
 use miette::{Context, Result};
 use path_absolutize::Absolutize;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::from_utf8,
+};
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::{mdast::*, to_mdast, ParseOptions};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
+
+use crate::AppConfig;
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
@@ -97,6 +102,74 @@ impl BlogPost {
 
         Ok(())
     }
+
+    pub fn matches_path(&self, path: &str) -> Option<MatchesPath> {
+        dbg!(&path, self.path());
+        let path = PathBuf::from(path);
+
+        let canonical = self.canonical_path();
+        let canonical = PathBuf::from(canonical);
+
+        if canonical == path {
+            Some(MatchesPath::CanonicalPath)
+        } else if canonical == PathBuf::from(path.canonical_path()) {
+            Some(MatchesPath::RedirectToCanonicalPath)
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn markdown(&self) -> PostMarkdown {
+        PostMarkdown {
+            title: self.title.clone(),
+            date: self.date.to_string(),
+            ast: self.ast.clone(),
+        }
+    }
+
+    pub(crate) fn to_rss_item(&self, config: &AppConfig) -> rss::Item {
+        let link = config.app_url(&self.canonical_path());
+
+        rss::ItemBuilder::default()
+            .title(Some(self.title.clone()))
+            .link(Some(link))
+            .description(self.short_description())
+            .build()
+    }
+
+    fn short_description(&self) -> Option<String> {
+        let file = BLOG_DIR.get_file(&self.path)?;
+
+        let contents = from_utf8(file.contents()).unwrap();
+
+        // Find the start of the frontmatter
+        let frontmatter_marks = contents.find("---");
+
+        let contents = if let Some(frontmatter_marks) = frontmatter_marks {
+            let (_, contents) = contents.split_at(frontmatter_marks + 3);
+            contents
+        } else {
+            contents
+        };
+
+        // Find the end of the frontmatter
+        let frontmatter_marks = contents.find("---");
+
+        let contents = if let Some(frontmatter_marks) = frontmatter_marks {
+            let (_, contents) = contents.split_at(frontmatter_marks + 3);
+            contents
+        } else {
+            contents
+        };
+
+        Some(contents.chars().take(100).collect())
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub enum MatchesPath {
+    CanonicalPath,
+    RedirectToCanonicalPath,
 }
 
 pub trait ValidateMarkdown {
@@ -282,5 +355,29 @@ mod test {
         let path = PathBuf::from("2020-01-01-test/");
 
         assert_eq!(path.canonical_path(), "2020-01-01-test/");
+    }
+
+    #[test]
+    fn test_path_matching() {
+        let path = PathBuf::from("2020-01-01-test/index.md");
+        let post = BlogPost {
+            path,
+            title: "Sample Post".to_string(),
+            ast: Root {
+                children: vec![],
+                position: None,
+            },
+            date: Default::default(),
+        };
+
+        use MatchesPath::*;
+
+        assert_eq!(post.matches_path("2020-01-01-test/"), Some(CanonicalPath));
+        assert_eq!(
+            post.matches_path("2020-01-01-test/index.md"),
+            Some(RedirectToCanonicalPath)
+        );
+        assert_eq!(post.matches_path("2020-01-01-test/anythingelse"), None);
+        assert_eq!(post.matches_path("anythingelse"), None);
     }
 }

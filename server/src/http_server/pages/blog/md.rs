@@ -1,3 +1,5 @@
+use std::unreachable;
+
 use markdown::mdast::*;
 use maud::{html, Markup, PreEscaped};
 use syntect::html::{ClassStyle, ClassedHTMLGenerator};
@@ -140,18 +142,39 @@ impl IntoHtml for Text {
 
 impl IntoHtml for Heading {
     fn into_html(self, context: &HtmlRenderContext) -> Markup {
-        let content = self.children.into_html(context);
+        let id = self
+            .children
+            .iter()
+            .map(|x| match x {
+                Node::Text(t) => Ok(t.value.as_str()),
+                _ => Err(miette::miette!("Heading should only contain text")),
+            })
+            .collect::<Result<String, _>>()
+            .ok()
+            .map(|x| x.to_lowercase().replace(' ', "-"));
+        let href_attr = id.as_ref().map(|x| format!("#{}", x));
 
-        html! {
+        let content = self.children.into_html(context);
+        let inner = html! {
             @match self.depth {
-                1 => h1 class="max-w-prose text-2xl" { (content) },
-                2 => h2 class="max-w-prose text-xl" { (content) },
-                3 => h3 class="max-w-prose text-lg" { (content) },
-                4 => h4 class="max-w-prose text-lg text-subtitle" { (content) },
-                5 => h5 class="max-w-prose text-lg text-subtitle font-light" { (content) },
-                6 => h6 class="max-w-prose text-base text-subtitle" { (content) },
+                1 => h1 id=[id] class="max-w-prose text-2xl" { (content) },
+                2 => h2 id=[id] class="max-w-prose text-xl" { (content) },
+                3 => h3 id=[id] class="max-w-prose text-lg" { (content) },
+                4 => h4 id=[id] class="max-w-prose text-lg text-subtitle" { (content) },
+                5 => h5 id=[id] class="max-w-prose text-lg text-subtitle font-light" { (content) },
+                6 => h6 id=[id] class="max-w-prose text-base text-subtitle" { (content) },
                 #[allow(unreachable_code)]
                 _ => (unreachable!("Invalid heading depth")),
+            }
+        };
+
+        html! {
+            @if let Some(href_attr) = href_attr {
+                a href=(href_attr) {
+                    (inner)
+                }
+            } @else {
+                (inner)
             }
         }
     }

@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Redirect, Response},
 };
 
 use maud::{html, Markup};
@@ -9,11 +9,52 @@ use maud::{html, Markup};
 use crate::{
     blog::{BlogPostPath, BlogPosts, ToCanonicalPath},
     http_server::{pages::blog::md::IntoHtml, templates::base},
+    AppConfig,
 };
 
 use self::md::HtmlRenderContext;
 
 pub(crate) mod md;
+
+struct MyChannel(rss::Channel);
+
+pub(crate) async fn rss_feed(
+    State(config): State<AppConfig>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let channel = generate_rss(config);
+    let channel = MyChannel(channel);
+
+    Ok(channel.into_response())
+}
+
+pub(crate) fn generate_rss(config: AppConfig) -> rss::Channel {
+    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
+
+    let mut posts = posts.posts().clone();
+    posts.sort_by_key(|p| *p.date());
+    posts.reverse();
+
+    let items: Vec<_> = posts.iter().map(|p| p.to_rss_item(&config)).collect();
+
+    use rss::ChannelBuilder;
+
+    let channel = ChannelBuilder::default()
+        .title("Coreyja Blog".to_string())
+        .link(config.home_page())
+        .items(items)
+        .build();
+    channel
+}
+
+impl IntoResponse for MyChannel {
+    fn into_response(self) -> Response {
+        Response::builder()
+            .header("Content-Type", "application/rss+xml")
+            .body(self.0.to_string())
+            .unwrap()
+            .into_response()
+    }
+}
 
 pub async fn posts_index() -> Result<Markup, StatusCode> {
     let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
@@ -40,41 +81,34 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
 
 pub(crate) async fn post_get(
     State(context): State<HtmlRenderContext>,
-    Path(mut key): Path<String>,
+    Path(key): Path<String>,
 ) -> Result<Response, StatusCode> {
-    // TODO: Eventually
-    //
-    // I think we can move away from the wildcard route and instead
-    // use the static-ness of BLOG_DIR to setup all the routes on server
-    // boot.
-    // Thay way we can static routes to route the different posts and avoid the wildcard
-    // This might make it easier to do something like generate a sitemap from the routes
-    key = key.strip_suffix('/').unwrap_or(&key).to_string();
-    key = key.strip_suffix("index.md").unwrap_or(&key).to_string();
-
-    let mut path = BlogPostPath::new(key.clone());
-
-    if !path.file_exists() {
-        path = BlogPostPath::new(format!("{key}.md"));
+    {
+        let path = BlogPostPath::new(key.clone());
+        if path.file_exists() && !path.file_is_markdown() {
+            return Ok(path.raw_bytes().into_response());
+        }
     }
 
-    if !path.file_exists() {
-        path = BlogPostPath::new(format!("{key}/index.md"));
+    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
+    let (post, m) = posts
+        .posts()
+        .iter()
+        .find_map(|p| p.matches_path(&key).map(|m| (p, m)))
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    if let crate::blog::MatchesPath::RedirectToCanonicalPath = m {
+        return Ok(
+            Redirect::permanent(&format!("/posts/{}", post.canonical_path())).into_response(),
+        );
     }
 
-    if path.file_exists() && !path.file_is_markdown() {
-        return Ok(path.raw_bytes().into_response());
-    }
-
-    let Some(markdown) = path.to_markdown() else {
-      return Err(StatusCode::NOT_FOUND);
-    };
-
+    let markdown = post.markdown();
     Ok(base(html! {
       h1 class="text-2xl" { (markdown.title) }
       subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
-      div class="" {
+      div {
         (markdown.ast.into_html(&context))
       }
     })
