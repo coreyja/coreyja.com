@@ -67,6 +67,10 @@ impl AppConfig {
             format!("{}/{}", self.base_url, path)
         }
     }
+
+    fn home_page(&self) -> String {
+        self.base_url.clone()
+    }
 }
 
 #[derive(Debug, Clone)]

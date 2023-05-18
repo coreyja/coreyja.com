@@ -1,12 +1,17 @@
 use miette::{Context, Result};
 use path_absolutize::Absolutize;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::from_utf8,
+};
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::{mdast::*, to_mdast, ParseOptions};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
+
+use crate::AppConfig;
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
@@ -120,6 +125,44 @@ impl BlogPost {
             date: self.date.to_string(),
             ast: self.ast.clone(),
         }
+    }
+
+    pub(crate) fn to_rss_item(&self, config: &AppConfig) -> rss::Item {
+        let link = config.app_url(&self.canonical_path());
+
+        rss::ItemBuilder::default()
+            .title(Some(self.title.clone()))
+            .link(Some(link))
+            .description(self.short_description())
+            .build()
+    }
+
+    fn short_description(&self) -> Option<String> {
+        let file = BLOG_DIR.get_file(&self.path)?;
+
+        let contents = from_utf8(file.contents()).unwrap();
+
+        // Find the start of the frontmatter
+        let frontmatter_marks = contents.find("---");
+
+        let contents = if let Some(frontmatter_marks) = frontmatter_marks {
+            let (_, contents) = contents.split_at(frontmatter_marks + 3);
+            contents
+        } else {
+            contents
+        };
+
+        // Find the end of the frontmatter
+        let frontmatter_marks = contents.find("---");
+
+        let contents = if let Some(frontmatter_marks) = frontmatter_marks {
+            let (_, contents) = contents.split_at(frontmatter_marks + 3);
+            contents
+        } else {
+            contents
+        };
+
+        Some(contents.chars().take(100).collect())
     }
 }
 

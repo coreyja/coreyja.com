@@ -4,7 +4,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 
-use crate::{Config};
+use crate::Config;
 pub use config::*;
 use errors::*;
 
@@ -50,6 +50,7 @@ pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
             "/admin/upwork/proposals/:id",
             post(pages::admin::upwork_proposal_post),
         )
+        .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/posts", get(pages::blog::posts_index))
         .route("/posts/*key", get(pages::blog::post_get))
         .with_state(config);

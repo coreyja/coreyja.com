@@ -2,7 +2,6 @@ use std::unreachable;
 
 use markdown::mdast::*;
 use maud::{html, Markup, PreEscaped};
-use poise::serenity_prelude::id;
 use syntect::html::{ClassStyle, ClassedHTMLGenerator};
 
 #[derive(Debug, Clone)]
