@@ -21,6 +21,13 @@ struct MyChannel(rss::Channel);
 pub(crate) async fn rss_feed(
     State(config): State<AppConfig>,
 ) -> Result<impl IntoResponse, StatusCode> {
+    let channel = generate_rss(config);
+    let channel = MyChannel(channel);
+
+    Ok(channel.into_response())
+}
+
+pub(crate) fn generate_rss(config: AppConfig) -> rss::Channel {
     let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
 
     let mut posts = posts.posts().clone();
@@ -36,9 +43,7 @@ pub(crate) async fn rss_feed(
         .link(config.home_page())
         .items(items)
         .build();
-    let channel = MyChannel(channel);
-
-    Ok(channel.into_response())
+    channel
 }
 
 impl IntoResponse for MyChannel {
