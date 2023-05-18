@@ -3,6 +3,7 @@ name: Rust Tests
 env:
   DATABASE_URL: "sqlite:/home/runner/work/coreyja.com/coreyja.com/server/db.sqlite3"
   SQLX_OFFLINE: true
+  APP_BASE_URL: https://ci.coreyja.com
 
 on:
   push:
