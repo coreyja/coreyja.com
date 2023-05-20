@@ -2,6 +2,7 @@
 
 use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
+use blog::BlogPosts;
 use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
@@ -82,6 +83,7 @@ struct AppState {
     rss: RssConfig,
     app: AppConfig,
     markdown_to_html_context: HtmlRenderContext,
+    blog_posts: Arc<BlogPosts>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

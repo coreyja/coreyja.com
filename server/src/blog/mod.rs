@@ -15,6 +15,7 @@ use crate::AppConfig;
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
+#[derive(Debug)]
 pub(crate) struct BlogPosts {
     posts: Vec<BlogPost>,
 }

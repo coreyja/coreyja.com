@@ -1,10 +1,11 @@
 use axum::{
+    extract::State,
     http::Uri,
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router, Server,
 };
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use crate::{
     blog::{BlogPosts, ToCanonicalPath},
@@ -77,14 +78,13 @@ async fn redirect_to_posts_index() -> impl IntoResponse {
     Redirect::permanent("/posts")
 }
 
-async fn fallback(uri: Uri) -> Response {
+async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Response {
     let path = uri.path();
     let decoded = urlencoding::decode(path).unwrap();
     let key = decoded.as_ref();
     let key = key.strip_prefix('/').unwrap_or(key);
     let key = key.strip_suffix('/').unwrap_or(key);
 
-    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
     let post = posts.posts().iter().find(|p| p.matches_path(key).is_some());
 
     match post {

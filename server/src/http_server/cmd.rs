@@ -1,6 +1,6 @@
 use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
 
-use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
+use crate::{blog::BlogPosts, http_server::pages::blog::md::HtmlRenderContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
@@ -36,7 +36,10 @@ pub(crate) async fn serve() -> Result<()> {
         theme: ts.themes.get("base16-ocean.dark").unwrap().clone(),
     };
 
-    let config = AppState {
+    let blog_posts = BlogPosts::from_static_dir()?;
+    let blog_posts = Arc::new(blog_posts);
+
+    let app_state = AppState {
         twitch: twitch_config,
         db_pool: pool,
         github: github_config,
@@ -44,21 +47,22 @@ pub(crate) async fn serve() -> Result<()> {
         rss: rss_config,
         open_ai: open_ai_config,
         markdown_to_html_context,
+        blog_posts,
     };
 
     info!("About to run migrations (if any to apply)");
     migrate!("./migrations/")
-        .run(&config.db_pool)
+        .run(&app_state.db_pool)
         .await
         .into_diagnostic()?;
 
-    let discord_bot = build_discord_bot(config.clone()).await?;
+    let discord_bot = build_discord_bot(app_state.clone()).await?;
 
     // let http_and_cache = discord_bot.client().cache_and_http.clone();
 
     info!("Spawning Tasks");
     let discord_future = tokio::spawn(discord_bot.start());
-    let axum_future = tokio::spawn(run_axum(config.clone()));
+    let axum_future = tokio::spawn(run_axum(app_state.clone()));
     info!("Tasks Spawned");
 
     let (discord_result, axum_result) = try_join!(discord_future, axum_future).into_diagnostic()?;

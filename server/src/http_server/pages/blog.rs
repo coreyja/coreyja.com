@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -20,16 +22,15 @@ struct MyChannel(rss::Channel);
 
 pub(crate) async fn rss_feed(
     State(config): State<AppConfig>,
+    State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = generate_rss(config);
+    let channel = generate_rss(config, &posts);
     let channel = MyChannel(channel);
 
     Ok(channel.into_response())
 }
 
-pub(crate) fn generate_rss(config: AppConfig) -> rss::Channel {
-    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
-
+pub(crate) fn generate_rss(config: AppConfig, posts: &BlogPosts) -> rss::Channel {
     let mut posts = posts.posts().clone();
     posts.sort_by_key(|p| *p.date());
     posts.reverse();
@@ -56,8 +57,7 @@ impl IntoResponse for MyChannel {
     }
 }
 
-pub async fn posts_index() -> Result<Markup, StatusCode> {
-    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
+pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
     let mut posts: Vec<_> = posts.posts().to_vec();
 
     posts.sort_by_key(|p| *p.date());
@@ -81,6 +81,7 @@ pub async fn posts_index() -> Result<Markup, StatusCode> {
 
 pub(crate) async fn post_get(
     State(context): State<HtmlRenderContext>,
+    State(posts): State<Arc<BlogPosts>>,
     Path(key): Path<String>,
 ) -> Result<Response, StatusCode> {
     {
@@ -90,7 +91,6 @@ pub(crate) async fn post_get(
         }
     }
 
-    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
     let (post, m) = posts
         .posts()
         .iter()

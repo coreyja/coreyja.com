@@ -17,7 +17,7 @@ pub(crate) async fn validate() -> Result<()> {
 
     println!("Validating RSS feed...");
     let config = AppConfig::from_env()?;
-    let rss = generate_rss(config);
+    let rss = generate_rss(config, &posts);
     rss.validate().into_diagnostic()?;
 
     println!("RSS Valid! ✅");
