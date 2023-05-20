@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 
 use crate::{
     blog::{BlogPosts, ToCanonicalPath},
-    Config,
+    AppState,
 };
 pub use config::*;
 use errors::*;
@@ -34,7 +34,7 @@ mod templates;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 
-pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
+pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
     let syntax_css = syntect::html::css_for_theme_with_class_style(
         &config.markdown_to_html_context.theme,
         syntect::html::ClassStyle::Spaced,

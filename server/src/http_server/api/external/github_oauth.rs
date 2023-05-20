@@ -33,7 +33,7 @@ struct GithubTokenResponse {
 
 pub(crate) async fn handler(
     Query(oauth): Query<GithubOauthRequest>,
-    State(config): State<Config>,
+    State(config): State<AppState>,
 ) -> Result<impl IntoResponse, MietteError> {
     let client = reqwest::Client::new();
     let github = &config.github;

@@ -24,7 +24,7 @@ impl GithubConfig {
     }
 }
 
-pub(crate) async fn generate_user_github_link(config: &Config, user_id: i64) -> Result<Uri> {
+pub(crate) async fn generate_user_github_link(config: &AppState, user_id: i64) -> Result<Uri> {
     let client_id = &config.github.client_id;
     let redirect_uri = github_redirect_uri(config);
 
@@ -45,6 +45,6 @@ pub(crate) async fn generate_user_github_link(config: &Config, user_id: i64) -> 
         .build().into_diagnostic()
 }
 
-pub(crate) fn github_redirect_uri(config: &Config) -> String {
+pub(crate) fn github_redirect_uri(config: &AppState) -> String {
     format!("{}/github_oauth", config.app.base_url)
 }

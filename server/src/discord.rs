@@ -10,7 +10,7 @@ use poise::{
 };
 
 type Error = miette::Report;
-type Context<'a> = poise::Context<'a, Config, Error>;
+type Context<'a> = poise::Context<'a, AppState, Error>;
 
 #[poise::command(prefix_command, owners_only)]
 async fn register(ctx: Context<'_>) -> Result<(), Error> {
@@ -38,7 +38,7 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
 
     async fn message_from_user(
         user: QueryOnRead<User>,
-        config: &Config,
+        config: &AppState,
         author_id: i64,
     ) -> Result<String> {
         let existing_twitch_link = user_twitch_link_from_user(&user, &config.db_pool)
@@ -149,8 +149,8 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 pub(crate) async fn build_discord_bot(
-    config: Config,
-) -> Result<Arc<Framework<Config, miette::Report>>> {
+    config: AppState,
+) -> Result<Arc<Framework<AppState, miette::Report>>> {
     let framework = poise::Framework::builder()
         .initialize_owners(true)
         .options(poise::FrameworkOptions {

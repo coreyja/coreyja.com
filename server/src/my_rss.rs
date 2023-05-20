@@ -23,7 +23,7 @@ impl RssConfig {
     }
 }
 
-pub(crate) async fn run_rss(config: Config, discord_client: Arc<CacheAndHttp>) -> Result<()> {
+pub(crate) async fn run_rss(config: AppState, discord_client: Arc<CacheAndHttp>) -> Result<()> {
     let sleep_duration = std::time::Duration::from_secs(60);
 
     let client = reqwest::Client::new();
@@ -37,7 +37,7 @@ pub(crate) async fn run_rss(config: Config, discord_client: Arc<CacheAndHttp>) -
 
 #[instrument(skip_all)]
 async fn run_upwork_rss(
-    config: &Config,
+    config: &AppState,
     discord_client: &CacheAndHttp,
     client: &Client,
 ) -> Result<()> {
@@ -60,7 +60,7 @@ async fn run_upwork_rss(
 
 #[instrument(skip_all)]
 async fn process_upwork_job_rss(
-    config: &Config,
+    config: &AppState,
     item: &rss::Item,
     discord_client: &CacheAndHttp,
 ) -> Result<()> {

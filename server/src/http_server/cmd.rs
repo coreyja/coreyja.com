@@ -36,7 +36,7 @@ pub(crate) async fn serve() -> Result<()> {
         theme: ts.themes.get("base16-ocean.dark").unwrap().clone(),
     };
 
-    let config = Config {
+    let config = AppState {
         twitch: twitch_config,
         db_pool: pool,
         github: github_config,

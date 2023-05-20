@@ -27,7 +27,7 @@ pub(crate) struct TwitchTokenResponse {
     pub token_type: String,
 }
 
-pub(crate) async fn generate_user_twitch_link(config: &Config, user_id: i64) -> Result<Uri> {
+pub(crate) async fn generate_user_twitch_link(config: &AppState, user_id: i64) -> Result<Uri> {
     let client_id = &config.twitch.client_id;
     let redirect_uri = format!("{}/twitch_oauth", config.app.base_url);
 

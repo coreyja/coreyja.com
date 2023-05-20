@@ -74,7 +74,7 @@ impl AppConfig {
 }
 
 #[derive(Debug, Clone)]
-struct Config {
+struct AppState {
     twitch: TwitchConfig,
     db_pool: SqlitePool,
     github: GithubConfig,

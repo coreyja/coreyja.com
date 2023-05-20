@@ -8,7 +8,7 @@ use crate::{http_server::errors::MietteError, *};
 
 pub(crate) async fn handler(
     Query(oauth): Query<TwitchOauthRequest>,
-    State(config): State<Config>,
+    State(config): State<AppState>,
 ) -> Result<impl IntoResponse, MietteError> {
     let twitch_config = config.twitch;
     let client = reqwest::Client::new();
