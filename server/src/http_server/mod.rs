@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Router, Server,
 };
-use std::{borrow::Borrow, net::SocketAddr};
+use std::net::SocketAddr;
 
 use crate::{
     blog::{BlogPosts, ToCanonicalPath},
@@ -83,7 +83,6 @@ async fn fallback(uri: Uri) -> Response {
     let key = decoded.as_ref();
     let key = key.strip_prefix('/').unwrap_or(key);
     let key = key.strip_suffix('/').unwrap_or(key);
-    dbg!(&key, &uri);
 
     let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
     let post = posts.posts().iter().find(|p| p.matches_path(key).is_some());

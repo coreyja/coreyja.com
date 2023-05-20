@@ -29,8 +29,6 @@ pub struct BlogPost {
 
 impl BlogPost {
     fn from_file(file: &File) -> Result<BlogPost> {
-        println!("We made it this far {:?}", file.path());
-
         let contents = file.contents();
         let contents = std::str::from_utf8(contents)
             .into_diagnostic()
