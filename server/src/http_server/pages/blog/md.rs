@@ -272,7 +272,7 @@ impl IntoHtml for Code {
         }
 
         html! {
-          pre class="my-4 py-4 bg-coding_background px-8 overflow-x-scroll max-w-vw" { code { (PreEscaped(html_generator.finalize())) } }
+          pre class="my-4 py-4 bg-coding_background px-8 overflow-x-auto max-w-vw" { code { (PreEscaped(html_generator.finalize())) } }
         }
     }
 }
