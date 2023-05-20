@@ -58,6 +58,8 @@ pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/posts", get(pages::blog::posts_index))
         .route("/posts/*key", get(pages::blog::post_get))
+        .route("/tags/*tag", get(redirect_to_posts_index))
+        .route("/year/*year", get(redirect_to_posts_index))
         .fallback(fallback)
         .with_state(config);
 
@@ -69,6 +71,10 @@ pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
         .map_err(|_| miette::miette!("Failed to run server"))?;
 
     Ok(())
+}
+
+async fn redirect_to_posts_index() -> impl IntoResponse {
+    Redirect::permanent("/posts")
 }
 
 async fn fallback(uri: Uri) -> Response {
