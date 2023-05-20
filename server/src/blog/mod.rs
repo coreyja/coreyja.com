@@ -104,7 +104,6 @@ impl BlogPost {
     }
 
     pub fn matches_path(&self, path: &str) -> Option<MatchesPath> {
-        dbg!(&path, self.path());
         let path = PathBuf::from(path);
 
         let canonical = self.canonical_path();

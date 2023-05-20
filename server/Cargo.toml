@@ -42,3 +42,4 @@ serde_yaml = "0.9"
 clap = { version = "4.2.1", features = ["derive"] }
 syntect = "5.0.0"
 path-absolutize = "3.0.14"
+urlencoding = "2.1.2"

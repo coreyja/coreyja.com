@@ -1,10 +1,15 @@
 use axum::{
+    http::Uri,
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router, Server,
 };
-use std::net::SocketAddr;
+use std::{borrow::Borrow, net::SocketAddr};
 
-use crate::Config;
+use crate::{
+    blog::{BlogPosts, ToCanonicalPath},
+    Config,
+};
 pub use config::*;
 use errors::*;
 
@@ -53,6 +58,7 @@ pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/posts", get(pages::blog::posts_index))
         .route("/posts/*key", get(pages::blog::post_get))
+        .fallback(fallback)
         .with_state(config);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -63,4 +69,23 @@ pub(crate) async fn run_axum(config: Config) -> miette::Result<()> {
         .map_err(|_| miette::miette!("Failed to run server"))?;
 
     Ok(())
+}
+
+async fn fallback(uri: Uri) -> Response {
+    let path = uri.path();
+    let decoded = urlencoding::decode(path).unwrap();
+    let key = decoded.as_ref();
+    let key = key.strip_prefix('/').unwrap_or(key);
+    let key = key.strip_suffix('/').unwrap_or(key);
+    dbg!(&key, &uri);
+
+    let posts = BlogPosts::from_static_dir().expect("Failed to load blog posts");
+    let post = posts.posts().iter().find(|p| p.matches_path(key).is_some());
+
+    match post {
+        Some(post) => {
+            Redirect::permanent(&format!("/posts/{}", post.canonical_path())).into_response()
+        }
+        None => axum::http::StatusCode::NOT_FOUND.into_response(),
+    }
 }
