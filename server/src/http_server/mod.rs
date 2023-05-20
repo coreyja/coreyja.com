@@ -6,6 +6,11 @@ use axum::{
     Router, Server,
 };
 use std::{net::SocketAddr, sync::Arc};
+use tower_http::{
+    trace::{DefaultOnRequest, DefaultOnResponse, TraceLayer},
+    LatencyUnit,
+};
+use tracing::Level;
 
 use crate::{
     blog::{BlogPosts, ToCanonicalPath},
@@ -62,7 +67,10 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .fallback(fallback)
-        .with_state(config);
+        .with_state(config)
+        .layer(
+            TraceLayer::new_for_http()
+        );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);

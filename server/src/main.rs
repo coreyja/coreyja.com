@@ -114,7 +114,13 @@ fn setup_sentry() -> Option<ClientInitGuard> {
 }
 
 fn setup_tracing() -> Result<()> {
-    let env_filter = EnvFilter::from_default_env();
+    let rust_log =
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,server=trace,tower_http=debug".into());
+
+    let env_filter = EnvFilter::builder()
+        .parse(&rust_log)
+        .into_diagnostic()
+        .wrap_err_with(|| miette::miette!("Couldn't create env filter from {}", rust_log))?;
 
     let opentelemetry_layer = if let Ok(honeycomb_key) = std::env::var("HONEYCOMB_API_KEY") {
         let mut map = HashMap::<String, String>::new();
@@ -156,7 +162,7 @@ fn setup_tracing() -> Result<()> {
 
         println!("Let's also log to stdout");
 
-        Some(heirarchical)
+        heirarchical
     };
 
     Registry::default()

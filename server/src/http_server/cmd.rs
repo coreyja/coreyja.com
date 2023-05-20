@@ -58,8 +58,6 @@ pub(crate) async fn serve() -> Result<()> {
 
     let discord_bot = build_discord_bot(app_state.clone()).await?;
 
-    // let http_and_cache = discord_bot.client().cache_and_http.clone();
-
     info!("Spawning Tasks");
     let discord_future = tokio::spawn(discord_bot.start());
     let axum_future = tokio::spawn(run_axum(app_state.clone()));
