@@ -1,4 +1,4 @@
-use maud::{html, Markup, PreEscaped};
+use maud::{html, Markup, PreEscaped, Render};
 
 const LOGO_SVG: &str = include_str!("../../../static/logo.svg");
 
@@ -16,6 +16,21 @@ pub fn head() -> Markup {
     }
 }
 
+struct HeaderLink {
+    href: &'static str,
+    text: &'static str,
+}
+
+impl Render for HeaderLink {
+    fn render(&self) -> Markup {
+        html! {
+          li ."mx-8" {
+            a href=(self.href) { (self.text) }
+          }
+        }
+    }
+}
+
 pub fn header() -> Markup {
     html! {
       div class="flex" {
@@ -26,26 +41,9 @@ pub fn header() -> Markup {
         }
 
         nav class="flex flex-grow justify-end w-full ml-16 max-w-[50%]" {
-          ul class="flex flex-row items-center justify-between flex-grow" {
-            li {
-              a href="/" { "Home" }
-            }
-
-            li {
-              a href="/posts" { "Posts" }
-            }
-
-            li {
-              a href="/projects" { "Projects" }
-            }
-
-            li {
-              a href="/streaming" { "Streaming" }
-            }
-
-            li {
-              a href="/contact" { "Contact" }
-            }
+          ul class="flex flex-row items-center flex-grow" {
+            (HeaderLink { href: "/", text: "Home" })
+            (HeaderLink { href: "/posts", text: "Posts" })
           }
         }
       }
