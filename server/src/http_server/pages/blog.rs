@@ -64,6 +64,7 @@ pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<M
     posts.reverse();
 
     Ok(base(html! {
+      h1 class="text-3xl" { "Blog Posts" }
       ul {
           @for post in posts {
               li class="my-4" {

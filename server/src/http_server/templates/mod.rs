@@ -44,6 +44,7 @@ pub fn header() -> Markup {
           ul class="flex flex-row items-center flex-grow" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
+            (HeaderLink { href: "/til", text: "TIL" })
           }
         }
       }

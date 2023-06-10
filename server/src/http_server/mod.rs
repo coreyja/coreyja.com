@@ -25,6 +25,7 @@ pub(crate) mod pages {
     pub mod admin;
     pub mod blog;
     pub mod home;
+    pub mod til;
 }
 
 mod api {
@@ -64,13 +65,12 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/posts", get(pages::blog::posts_index))
         .route("/posts/*key", get(pages::blog::post_get))
+        .route("/til", get(pages::til::til_index))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .fallback(fallback)
         .with_state(config)
-        .layer(
-            TraceLayer::new_for_http()
-        );
+        .layer(TraceLayer::new_for_http());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
