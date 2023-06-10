@@ -52,7 +52,7 @@ impl BlogPost {
 
         let metadata: FrontMatter = serde_yaml::from_str(yaml)
             .into_diagnostic()
-            .wrap_err("Frontmatter should be valid JSON")?;
+            .wrap_err("Frontmatter should be valid YAML")?;
 
         let title = metadata.title;
         let path = file.path().to_owned();

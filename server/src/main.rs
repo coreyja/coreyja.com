@@ -31,7 +31,10 @@ mod twitch;
 use twitch::*;
 
 mod http_server;
-use http_server::{pages::blog::md::HtmlRenderContext, *};
+use http_server::{
+    pages::{blog::md::HtmlRenderContext, til::TilPosts},
+    *,
+};
 
 mod github;
 use github::*;
@@ -46,6 +49,8 @@ mod open_ai;
 use open_ai::*;
 
 mod blog;
+
+mod til;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
@@ -84,6 +89,7 @@ struct AppState {
     app: AppConfig,
     markdown_to_html_context: HtmlRenderContext,
     blog_posts: Arc<BlogPosts>,
+    til_posts: Arc<TilPosts>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

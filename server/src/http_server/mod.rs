@@ -6,11 +6,7 @@ use axum::{
     Router, Server,
 };
 use std::{net::SocketAddr, sync::Arc};
-use tower_http::{
-    trace::{DefaultOnRequest, DefaultOnResponse, TraceLayer},
-    LatencyUnit,
-};
-use tracing::Level;
+use tower_http::trace::TraceLayer;
 
 use crate::{
     blog::{BlogPosts, ToCanonicalPath},

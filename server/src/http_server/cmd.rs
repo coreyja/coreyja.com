@@ -39,6 +39,10 @@ pub(crate) async fn serve() -> Result<()> {
     let blog_posts = BlogPosts::from_static_dir()?;
     let blog_posts = Arc::new(blog_posts);
 
+    let til_posts = BlogPosts::from_dir(&til::TIL_DIR)?;
+    let til_posts = TilPosts(til_posts);
+    let til_posts = Arc::new(til_posts);
+
     let app_state = AppState {
         twitch: twitch_config,
         db_pool: pool,
@@ -48,6 +52,7 @@ pub(crate) async fn serve() -> Result<()> {
         open_ai: open_ai_config,
         markdown_to_html_context,
         blog_posts,
+        til_posts,
     };
 
     info!("About to run migrations (if any to apply)");
