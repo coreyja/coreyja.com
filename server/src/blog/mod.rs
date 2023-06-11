@@ -20,12 +20,13 @@ pub(crate) struct BlogPosts {
     posts: Vec<BlogPost>,
 }
 
+type BlogPost = Post<BlogFrontMatter>;
+
 #[derive(Debug, Clone)]
-pub struct BlogPost {
-    path: PathBuf,
-    title: String,
-    ast: MarkdownAst,
-    date: NaiveDate,
+pub(crate) struct Post<FrontmatterType> {
+    pub(crate) frontmatter: FrontmatterType,
+    pub(crate) ast: MarkdownAst,
+    pub(crate) path: PathBuf,
 }
 
 #[derive(Clone, Debug)]
@@ -82,21 +83,14 @@ impl BlogPost {
     fn from_file(file: &File) -> Result<BlogPost> {
         let ast = MarkdownAst::from_file(file)?;
 
-        let metadata: FrontMatter = ast.frontmatter()?;
+        let metadata: BlogFrontMatter = ast.frontmatter()?;
 
-        let title = metadata.title;
         let path = file.path().to_owned();
-        let date = metadata
-            .date
-            .parse::<NaiveDate>()
-            .into_diagnostic()
-            .wrap_err_with(|| format!("Date should be valid: {}", metadata.date))?;
 
         Ok(BlogPost {
+            frontmatter: metadata,
             path,
-            title,
             ast,
-            date,
         })
     }
 
@@ -105,7 +99,7 @@ impl BlogPost {
     }
 
     pub fn title(&self) -> &str {
-        &self.title
+        &self.frontmatter.title
     }
 
     pub fn ast(&self) -> &MarkdownAst {
@@ -113,7 +107,7 @@ impl BlogPost {
     }
 
     pub fn date(&self) -> &NaiveDate {
-        &self.date
+        &self.frontmatter.date
     }
 
     pub(crate) fn validate(&self) -> Result<()> {
@@ -149,8 +143,8 @@ impl BlogPost {
 
     pub(crate) fn markdown(&self) -> PostMarkdown {
         PostMarkdown {
-            title: self.title.clone(),
-            date: self.date.to_string(),
+            title: self.frontmatter.title.clone(),
+            date: self.frontmatter.date.to_string(),
             ast: self.ast.clone(),
         }
     }
@@ -159,7 +153,7 @@ impl BlogPost {
         let link = config.app_url(&self.canonical_path());
 
         rss::ItemBuilder::default()
-            .title(Some(self.title.clone()))
+            .title(Some(self.frontmatter.title.clone()))
             .link(Some(link))
             .description(self.short_description())
             .build()
@@ -286,11 +280,11 @@ impl BlogPostPath {
         let file = BLOG_DIR.get_file(&self.path)?;
 
         let ast = MarkdownAst::from_file(file).expect("Should be able to parse markdown");
-        let metadata: FrontMatter = ast.frontmatter().unwrap();
+        let metadata: BlogFrontMatter = ast.frontmatter().unwrap();
 
         Some(PostMarkdown {
             title: metadata.title,
-            date: metadata.date,
+            date: metadata.date.to_string(),
             ast,
         })
     }
@@ -309,9 +303,9 @@ pub(crate) struct PostMarkdown {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-struct FrontMatter {
+pub(crate) struct BlogFrontMatter {
     pub title: String,
-    pub date: String,
+    pub date: NaiveDate,
 }
 
 pub trait ToCanonicalPath {
@@ -372,14 +366,17 @@ mod test {
     #[test]
     fn test_path_matching() {
         let path = PathBuf::from("2020-01-01-test/index.md");
+        let meta = BlogFrontMatter {
+            title: "Sample Post".to_string(),
+            date: Default::default(),
+        };
         let post = BlogPost {
             path,
-            title: "Sample Post".to_string(),
             ast: MarkdownAst(Root {
                 children: vec![],
                 position: None,
             }),
-            date: Default::default(),
+            frontmatter: meta,
         };
 
         use MatchesPath::*;

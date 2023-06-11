@@ -17,7 +17,7 @@ pub(crate) async fn til_index(
     State(til_posts): State<Arc<TilPosts>>,
 ) -> Result<Markup, StatusCode> {
     let mut posts: Vec<_> = til_posts.posts.to_vec();
-    posts.sort_by_key(|p| p.date);
+    posts.sort_by_key(|p| p.frontmatter.date.clone());
     posts.reverse();
 
     Ok(base(html! {
@@ -25,11 +25,11 @@ pub(crate) async fn til_index(
       ul {
         @for post in posts {
           li class="my-4" {
-            a href=(format!("/til/{}", post.slug)) {
-                span class="text-subtitle text-sm inline-block w-[80px]" { (post.date) }
+            a href=(format!("/til/{}", post.frontmatter.slug)) {
+                span class="text-subtitle text-sm inline-block w-[80px]" { (post.frontmatter.date) }
                 " "
 
-                (post.title)
+                (post.frontmatter.title)
             }
           }
         }
@@ -46,7 +46,7 @@ pub(crate) async fn til_get(
 
     let til = tils
         .iter()
-        .find(|p| p.slug == slug)
+        .find(|p| p.frontmatter.slug == slug)
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let markdown = til.markdown();

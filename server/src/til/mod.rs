@@ -1,12 +1,11 @@
 use std::path::PathBuf;
 
-use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::mdast::Node;
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::blog::{MarkdownAst, PostMarkdown, ValidateMarkdown};
+use crate::blog::{MarkdownAst, Post, PostMarkdown, ValidateMarkdown};
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
@@ -15,17 +14,10 @@ pub(crate) struct TilPosts {
     pub(crate) posts: Vec<TilPost>,
 }
 
-#[derive(Debug, Clone)]
-pub struct TilPost {
-    pub(crate) title: String,
-    pub(crate) date: NaiveDate,
-    pub(crate) slug: String,
-    pub(crate) ast: MarkdownAst,
-    pub(crate) path: PathBuf,
-}
+type TilPost = Post<FrontMatter>;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-struct FrontMatter {
+pub(crate) struct FrontMatter {
     pub title: String,
     pub date: String,
     pub slug: String,
@@ -35,21 +27,12 @@ impl TilPost {
     fn from_file(file: &File) -> Result<Self> {
         let ast = MarkdownAst::from_file(file)?;
         let metadata: FrontMatter = ast.frontmatter()?;
-
-        let title = metadata.title;
         let path = file.path().to_owned();
-        let date = metadata
-            .date
-            .parse::<NaiveDate>()
-            .into_diagnostic()
-            .wrap_err_with(|| format!("Date should be valid: {}", metadata.date))?;
 
         Ok(Self {
-            title,
             ast,
-            date,
-            slug: metadata.slug,
             path,
+            frontmatter: metadata,
         })
     }
 
@@ -60,7 +43,7 @@ impl TilPost {
     }
 
     fn validate_images(&self) -> Result<()> {
-        let p = &self.slug;
+        let p = &self.frontmatter.slug;
         let p = PathBuf::from(p);
 
         let root_node = Node::Root(self.ast.0.clone());
@@ -71,8 +54,8 @@ impl TilPost {
 
     pub(crate) fn markdown(&self) -> PostMarkdown {
         PostMarkdown {
-            title: self.title.clone(),
-            date: self.date.to_string(),
+            title: self.frontmatter.title.clone(),
+            date: self.frontmatter.date.to_string(),
             ast: self.ast.clone(),
         }
     }
@@ -97,8 +80,12 @@ impl TilPosts {
 
     pub fn validate(&self) -> Result<()> {
         println!("Validating Slug Uniqueness");
-        for slug in self.posts.iter().map(|til| &til.slug) {
-            let matches: Vec<_> = self.posts.iter().filter(|til| &til.slug == slug).collect();
+        for slug in self.posts.iter().map(|til| &til.frontmatter.slug) {
+            let matches: Vec<_> = self
+                .posts
+                .iter()
+                .filter(|til| &til.frontmatter.slug == slug)
+                .collect();
             if matches.len() > 1 {
                 let paths = matches
                     .iter()
@@ -115,7 +102,11 @@ impl TilPosts {
 
         println!("Validating {} TILs", self.posts.len());
         for til in &self.posts {
-            println!("Validating {} from {}...", til.slug, til.path.display());
+            println!(
+                "Validating {} from {}...",
+                til.frontmatter.slug,
+                til.path.display()
+            );
 
             til.validate()?;
         }
