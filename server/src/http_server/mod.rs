@@ -62,6 +62,7 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .route("/posts", get(pages::blog::posts_index))
         .route("/posts/*key", get(pages::blog::post_get))
         .route("/til", get(pages::til::til_index))
+        .route("/til/:slug", get(pages::til::til_get))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .fallback(fallback)

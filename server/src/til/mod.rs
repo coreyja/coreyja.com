@@ -9,7 +9,7 @@ use markdown::{
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::blog::ValidateMarkdown;
+use crate::blog::{PostMarkdown, ValidateMarkdown};
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
@@ -91,6 +91,14 @@ impl TilPost {
         root_node.validate_images(&p)?;
 
         Ok(())
+    }
+
+    pub(crate) fn markdown(&self) -> PostMarkdown {
+        PostMarkdown {
+            title: self.title.clone(),
+            date: self.date.to_string(),
+            ast: self.ast.clone(),
+        }
     }
 }
 

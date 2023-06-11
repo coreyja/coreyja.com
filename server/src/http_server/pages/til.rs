@@ -1,12 +1,17 @@
 use std::sync::Arc;
 
-use axum::extract::State;
+use axum::extract::{Path, State};
 
 use maud::{html, Markup};
 use miette::Result;
 use reqwest::StatusCode;
 
-use crate::{http_server::templates::base, til::TilPosts};
+use crate::{
+    http_server::{pages::blog::md::IntoHtml, templates::base},
+    til::TilPosts,
+};
+
+use super::blog::md::HtmlRenderContext;
 
 pub(crate) async fn til_index(
     State(til_posts): State<Arc<TilPosts>>,
@@ -28,6 +33,29 @@ pub(crate) async fn til_index(
             }
           }
         }
+      }
+    }))
+}
+
+pub(crate) async fn til_get(
+    State(til_posts): State<Arc<TilPosts>>,
+    State(context): State<HtmlRenderContext>,
+    Path(slug): Path<String>,
+) -> Result<Markup, StatusCode> {
+    let tils = &til_posts.posts;
+
+    let til = tils
+        .iter()
+        .find(|p| p.slug == slug)
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let markdown = til.markdown();
+    Ok(base(html! {
+      h1 class="text-2xl" { (markdown.title) }
+      subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
+
+      div {
+        (markdown.ast.into_html(&context))
       }
     }))
 }
