@@ -114,7 +114,7 @@ impl TilPosts {
             .filter_map(|e| e.as_file())
             .map(TilPost::from_file)
             .collect::<Result<Vec<_>>>()
-            .wrap_err("One of the TIL posts failed to parse")?;
+            .wrap_err("One of the TILs failed to parse")?;
 
         Ok(Self { posts })
     }
