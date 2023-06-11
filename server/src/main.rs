@@ -46,6 +46,8 @@ use my_rss::*;
 mod open_ai;
 use open_ai::*;
 
+mod posts;
+
 mod blog;
 
 mod til;

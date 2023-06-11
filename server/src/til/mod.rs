@@ -5,7 +5,10 @@ use markdown::mdast::Node;
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::blog::{MarkdownAst, Post, PostMarkdown, ValidateMarkdown};
+use crate::{
+    blog::{PostMarkdown, ValidateMarkdown},
+    posts::{MarkdownAst, Post},
+};
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
