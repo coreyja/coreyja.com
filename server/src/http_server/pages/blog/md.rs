@@ -228,7 +228,7 @@ impl IntoHtml for Emphasis {
 impl IntoHtml for Image {
     fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
-          img src=(self.url) alt=(self.alt) title=[self.title] class="px-8 my-8" {}
+          img src=(self.url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
         }
     }
 }
