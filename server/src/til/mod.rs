@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::{
@@ -6,6 +8,8 @@ use markdown::{
 };
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
+
+use crate::blog::ValidateMarkdown;
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
@@ -20,6 +24,7 @@ pub struct TilPost {
     pub(crate) date: NaiveDate,
     pub(crate) slug: String,
     pub(crate) ast: Root,
+    pub(crate) path: PathBuf,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -56,6 +61,7 @@ impl TilPost {
             .wrap_err("Frontmatter should be valid YAML")?;
 
         let title = metadata.title;
+        let path = file.path().to_owned();
         let date = metadata
             .date
             .parse::<NaiveDate>()
@@ -67,7 +73,24 @@ impl TilPost {
             ast,
             date,
             slug: metadata.slug,
+            path,
         })
+    }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        self.validate_images()?;
+
+        Ok(())
+    }
+
+    fn validate_images(&self) -> Result<()> {
+        let p = &self.slug;
+        let p = PathBuf::from(p);
+
+        let root_node = Node::Root(self.ast.clone());
+        root_node.validate_images(&p)?;
+
+        Ok(())
     }
 }
 
@@ -86,5 +109,34 @@ impl TilPosts {
             .wrap_err("One of the TIL posts failed to parse")?;
 
         Ok(Self { posts })
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        println!("Validating Slug Uniqueness");
+        for slug in self.posts.iter().map(|til| &til.slug) {
+            let matches: Vec<_> = self.posts.iter().filter(|til| &til.slug == slug).collect();
+            if matches.len() > 1 {
+                let paths = matches
+                    .iter()
+                    .map(|til| til.path.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(miette::miette!(
+                    "Slug {} is not unique. Found these paths {}",
+                    slug,
+                    paths
+                ));
+            }
+        }
+
+        println!("Validating {} TILs", self.posts.len());
+        for til in &self.posts {
+            println!("Validating {} from {}...", til.slug, til.path.display());
+
+            til.validate()?;
+        }
+        println!("TILs Valid! ✅");
+
+        Ok(())
     }
 }
