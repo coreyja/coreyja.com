@@ -2564,6 +2564,7 @@ dependencies = [
  "markdown",
  "maud",
  "miette",
+ "mime_guess",
  "opentelemetry",
  "opentelemetry-otlp",
  "path-absolutize",

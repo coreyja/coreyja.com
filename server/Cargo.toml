@@ -46,3 +46,4 @@ urlencoding = "2.1.2"
 
 tower-http = { version = "0.4.0", features = ["trace"] }
 tower = "0.4.13"
+mime_guess = "2.0.4"
