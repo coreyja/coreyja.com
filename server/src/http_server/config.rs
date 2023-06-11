@@ -2,7 +2,11 @@ use std::sync::Arc;
 
 use axum::extract::FromRef;
 
-use crate::{blog::BlogPosts, twitch::TwitchConfig, AppConfig, AppState};
+use crate::{
+    posts::{blog::BlogPosts, til::TilPosts},
+    twitch::TwitchConfig,
+    AppConfig, AppState,
+};
 
 use super::pages::blog::md::HtmlRenderContext;
 
@@ -27,5 +31,11 @@ impl FromRef<AppState> for HtmlRenderContext {
 impl FromRef<AppState> for Arc<BlogPosts> {
     fn from_ref(config: &AppState) -> Self {
         config.blog_posts.clone()
+    }
+}
+
+impl FromRef<AppState> for Arc<TilPosts> {
+    fn from_ref(config: &AppState) -> Self {
+        config.til_posts.clone()
     }
 }

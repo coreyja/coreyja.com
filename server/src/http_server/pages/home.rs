@@ -4,22 +4,24 @@ use crate::http_server::templates::{base, buttons::Button};
 
 pub async fn home_page() -> Markup {
     base(html! {
-        ."w-[60%]" {
-            h1 class="text-4xl font-medium leading-tight pt-16 pb-4" {
-                "Creating Educational & Entertaining Content for Developers of All Skill Levels"
-            }
+        ." bg-header-background bg-cover bg-left bg-no-repeat" {
+            ."w-[60%]" {
+                h1 class="text-4xl font-medium leading-tight pt-16 pb-4" {
+                    "Creating Educational & Entertaining Content for Developers of All Skill Levels"
+                }
 
-            h3 class="text-2xl text-subtitle leading-tight pb-8" {
-                "My goal is to make you feel at home and help you grow your skills through my streams and videos."
-            }
+                h3 class="text-2xl text-subtitle leading-tight pb-8" {
+                    "My goal is to make you feel at home and help you grow your skills through my streams and videos."
+                }
 
-            div class="text-xl" {
-                (
-                    Button::primary(html!("View Projects"))
-                    .with_classes("mr-8")
-                )
+                div class="text-xl" {
+                    (
+                        Button::primary(html!("View Projects"))
+                        .with_classes("mr-8")
+                    )
 
-                (Button::secondary(html!("Learn about Corey")))
+                    (Button::secondary(html!("Learn about Corey")))
+                }
             }
         }
 

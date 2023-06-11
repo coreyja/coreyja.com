@@ -22,6 +22,9 @@ module.exports = {
       fontFamily: {
         'sans': ['Quicksand', 'sans-serif'],
       },
+      backgroundImage: {
+        'header-background': 'url("/static/header_background.png")',
+      }
     },
   },
   plugins: [],

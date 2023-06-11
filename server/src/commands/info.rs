@@ -1,7 +1,7 @@
 use miette::Result;
 use syntect::parsing::SyntaxSet;
 
-use crate::blog::BlogPosts;
+use crate::posts::blog::BlogPosts;
 
 pub(crate) async fn print_info() -> Result<()> {
     println!("\n\n");

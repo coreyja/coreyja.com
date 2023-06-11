@@ -7,11 +7,14 @@ use std::{
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
-use markdown::{mdast::*, to_mdast, ParseOptions};
+use markdown::mdast::*;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
-use crate::AppConfig;
+use crate::{
+    posts::{MarkdownAst, Post},
+    AppConfig,
+};
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
@@ -20,53 +23,20 @@ pub(crate) struct BlogPosts {
     posts: Vec<BlogPost>,
 }
 
-#[derive(Debug, Clone)]
-pub struct BlogPost {
-    path: PathBuf,
-    title: String,
-    ast: Root,
-    date: NaiveDate,
-}
+type BlogPost = Post<BlogFrontMatter>;
 
 impl BlogPost {
     fn from_file(file: &File) -> Result<BlogPost> {
-        let contents = file.contents();
-        let contents = std::str::from_utf8(contents)
-            .into_diagnostic()
-            .wrap_err("File is not UTF8")?;
+        let ast = MarkdownAst::from_file(file)?;
 
-        let mut options: ParseOptions = Default::default();
-        options.constructs.gfm_footnote_definition = true;
-        options.constructs.frontmatter = true;
+        let metadata: BlogFrontMatter = ast.frontmatter()?;
 
-        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
-          return Err(miette::miette!("Should be a valid root node"));
-        };
-
-        let children = &ast.children;
-        let Some(Node::Yaml(frontmatter)) = children.get(0) else {
-          return Err(miette::miette!("Should have a child with YAML Frontmatter"))
-        };
-
-        let yaml = &frontmatter.value;
-
-        let metadata: FrontMatter = serde_yaml::from_str(yaml)
-            .into_diagnostic()
-            .wrap_err("Frontmatter should be valid JSON")?;
-
-        let title = metadata.title;
         let path = file.path().to_owned();
-        let date = metadata
-            .date
-            .parse::<NaiveDate>()
-            .into_diagnostic()
-            .wrap_err_with(|| format!("Date should be valid: {}", metadata.date))?;
 
         Ok(BlogPost {
+            frontmatter: metadata,
             path,
-            title,
             ast,
-            date,
         })
     }
 
@@ -75,15 +45,15 @@ impl BlogPost {
     }
 
     pub fn title(&self) -> &str {
-        &self.title
+        &self.frontmatter.title
     }
 
-    pub fn ast(&self) -> &Root {
+    pub fn ast(&self) -> &MarkdownAst {
         &self.ast
     }
 
     pub fn date(&self) -> &NaiveDate {
-        &self.date
+        &self.frontmatter.date
     }
 
     pub(crate) fn validate(&self) -> Result<()> {
@@ -96,7 +66,7 @@ impl BlogPost {
         let p = self.canonical_path();
         let p = PathBuf::from(p);
 
-        let root_node = Node::Root(self.ast.clone());
+        let root_node = Node::Root(self.ast.0.clone());
         root_node.validate_images(&p)?;
 
         Ok(())
@@ -119,8 +89,8 @@ impl BlogPost {
 
     pub(crate) fn markdown(&self) -> PostMarkdown {
         PostMarkdown {
-            title: self.title.clone(),
-            date: self.date.to_string(),
+            title: self.frontmatter.title.clone(),
+            date: self.frontmatter.date.to_string(),
             ast: self.ast.clone(),
         }
     }
@@ -129,7 +99,7 @@ impl BlogPost {
         let link = config.app_url(&self.canonical_path());
 
         rss::ItemBuilder::default()
-            .title(Some(self.title.clone()))
+            .title(Some(self.frontmatter.title.clone()))
             .link(Some(link))
             .description(self.short_description())
             .build()
@@ -255,28 +225,12 @@ impl BlogPostPath {
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
         let file = BLOG_DIR.get_file(&self.path)?;
 
-        let contents = file.contents_utf8().expect("All posts are UTF8");
-
-        let mut options: ParseOptions = Default::default();
-        options.constructs.gfm_footnote_definition = true;
-        options.constructs.frontmatter = true;
-
-        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
-          panic!("Should be a valid root node")
-        };
-
-        let children = &ast.children;
-        let Node::Yaml(frontmatter) = children.get(0).expect("Should have frontmatter") else {
-          panic!("Should have a YAML Frontmatter")
-        };
-
-        let yaml = &frontmatter.value;
-
-        let metadata: FrontMatter = serde_yaml::from_str(yaml).expect("Should be valid YAML");
+        let ast = MarkdownAst::from_file(file).expect("Should be able to parse markdown");
+        let metadata: BlogFrontMatter = ast.frontmatter().unwrap();
 
         Some(PostMarkdown {
             title: metadata.title,
-            date: metadata.date,
+            date: metadata.date.to_string(),
             ast,
         })
     }
@@ -291,13 +245,13 @@ impl BlogPostPath {
 pub(crate) struct PostMarkdown {
     pub title: String,
     pub date: String,
-    pub ast: Root,
+    pub ast: MarkdownAst,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-struct FrontMatter {
+pub(crate) struct BlogFrontMatter {
     pub title: String,
-    pub date: String,
+    pub date: NaiveDate,
 }
 
 pub trait ToCanonicalPath {
@@ -358,14 +312,17 @@ mod test {
     #[test]
     fn test_path_matching() {
         let path = PathBuf::from("2020-01-01-test/index.md");
+        let meta = BlogFrontMatter {
+            title: "Sample Post".to_string(),
+            date: Default::default(),
+        };
         let post = BlogPost {
             path,
-            title: "Sample Post".to_string(),
-            ast: Root {
+            ast: MarkdownAst(Root {
                 children: vec![],
                 position: None,
-            },
-            date: Default::default(),
+            }),
+            frontmatter: meta,
         };
 
         use MatchesPath::*;

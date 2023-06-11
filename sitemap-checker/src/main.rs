@@ -19,9 +19,10 @@ async fn main() -> Result<()> {
         }) = url
         {
             let mut new_url = url.clone();
-            new_url.set_scheme("http").unwrap();
-            new_url.set_host(Some("localhost")).into_diagnostic()?;
-            new_url.set_port(Some(3000)).unwrap();
+            new_url.set_scheme("https").unwrap();
+            new_url
+                .set_host(Some("beta.coreyja.com"))
+                .into_diagnostic()?;
 
             let response = reqwest::get(new_url.clone()).await.into_diagnostic()?;
 
