@@ -14,6 +14,7 @@ use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
 use sqlx::{migrate, SqlitePool};
+use til::TilPosts;
 use tokio::try_join;
 use tracing::info;
 use tracing_opentelemetry::OpenTelemetryLayer;
@@ -31,10 +32,7 @@ mod twitch;
 use twitch::*;
 
 mod http_server;
-use http_server::{
-    pages::{blog::md::HtmlRenderContext, til::TilPosts},
-    *,
-};
+use http_server::{pages::blog::md::HtmlRenderContext, *};
 
 mod github;
 use github::*;
@@ -166,7 +164,7 @@ fn setup_tracing() -> Result<()> {
             .with_verbose_entry(true)
             .with_targets(true);
 
-        println!("Let's also log to stdout");
+        println!("Let's also log to stdout.");
 
         heirarchical
     };

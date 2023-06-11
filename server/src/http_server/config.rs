@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use axum::extract::FromRef;
 
-use crate::{blog::BlogPosts, twitch::TwitchConfig, AppConfig, AppState};
+use crate::{blog::BlogPosts, til::TilPosts, twitch::TwitchConfig, AppConfig, AppState};
 
-use super::pages::{blog::md::HtmlRenderContext, til::TilPosts};
+use super::pages::blog::md::HtmlRenderContext;
 
 impl FromRef<AppState> for TwitchConfig {
     fn from_ref(config: &AppState) -> Self {
