@@ -9,8 +9,8 @@ use axum::{
 use maud::{html, Markup};
 
 use crate::{
-    blog::{BlogPostPath, BlogPosts, ToCanonicalPath},
     http_server::{pages::blog::md::IntoHtml, templates::base},
+    posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
     AppConfig,
 };
 
@@ -98,7 +98,7 @@ pub(crate) async fn post_get(
         .find_map(|p| p.matches_path(&key).map(|m| (p, m)))
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    if let crate::blog::MatchesPath::RedirectToCanonicalPath = m {
+    if let MatchesPath::RedirectToCanonicalPath = m {
         return Ok(
             Redirect::permanent(&format!("/posts/{}", post.canonical_path())).into_response(),
         );

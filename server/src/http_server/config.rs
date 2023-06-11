@@ -2,7 +2,11 @@ use std::sync::Arc;
 
 use axum::extract::FromRef;
 
-use crate::{blog::BlogPosts, til::TilPosts, twitch::TwitchConfig, AppConfig, AppState};
+use crate::{
+    posts::{blog::BlogPosts, til::TilPosts},
+    twitch::TwitchConfig,
+    AppConfig, AppState,
+};
 
 use super::pages::blog::md::HtmlRenderContext;
 

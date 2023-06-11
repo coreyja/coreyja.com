@@ -10,6 +10,9 @@ use serde::Deserialize;
 
 use crate::http_server::pages::blog::md::IntoHtml;
 
+pub(crate) mod blog;
+pub(crate) mod til;
+
 #[derive(Debug, Clone)]
 pub(crate) struct Post<FrontmatterType> {
     pub(crate) frontmatter: FrontmatterType,

@@ -1,6 +1,6 @@
 use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
 
-use crate::{blog::BlogPosts, http_server::pages::blog::md::HtmlRenderContext, *};
+use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;

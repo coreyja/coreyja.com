@@ -9,7 +9,7 @@ use std::{net::SocketAddr, sync::Arc};
 use tower_http::trace::TraceLayer;
 
 use crate::{
-    blog::{BlogPosts, ToCanonicalPath},
+    posts::blog::{BlogPosts, ToCanonicalPath},
     AppState,
 };
 pub use config::*;

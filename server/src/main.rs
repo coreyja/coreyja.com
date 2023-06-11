@@ -2,19 +2,18 @@
 
 use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
-use blog::BlogPosts;
 use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId, Color};
+use posts::{blog::BlogPosts, til::TilPosts};
 use reqwest::Client;
 use rss::Channel;
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
 use sqlx::{migrate, SqlitePool};
-use til::TilPosts;
 use tokio::try_join;
 use tracing::info;
 use tracing_opentelemetry::OpenTelemetryLayer;
@@ -47,10 +46,6 @@ mod open_ai;
 use open_ai::*;
 
 mod posts;
-
-mod blog;
-
-mod til;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {

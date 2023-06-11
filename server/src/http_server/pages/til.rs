@@ -8,7 +8,7 @@ use reqwest::StatusCode;
 
 use crate::{
     http_server::{pages::blog::md::IntoHtml, templates::base},
-    til::TilPosts,
+    posts::til::TilPosts,
 };
 
 use super::blog::md::HtmlRenderContext;

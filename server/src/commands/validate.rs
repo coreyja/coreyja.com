@@ -3,7 +3,7 @@ use std::println;
 use miette::{IntoDiagnostic, Result};
 use rss::validation::Validate;
 
-use crate::{blog::BlogPosts, http_server::pages::blog::generate_rss, til::TilPosts, AppConfig};
+use crate::{http_server::pages::blog::generate_rss, posts::{blog::BlogPosts, til::TilPosts}, AppConfig};
 
 pub(crate) async fn validate() -> Result<()> {
     let posts = BlogPosts::from_static_dir()?;
