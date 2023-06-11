@@ -2,14 +2,11 @@ use std::path::PathBuf;
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
-use markdown::{
-    mdast::{Node, Root},
-    to_mdast, ParseOptions,
-};
+use markdown::mdast::Node;
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::blog::{PostMarkdown, ValidateMarkdown};
+use crate::blog::{MarkdownAst, PostMarkdown, ValidateMarkdown};
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
@@ -23,7 +20,7 @@ pub struct TilPost {
     pub(crate) title: String,
     pub(crate) date: NaiveDate,
     pub(crate) slug: String,
-    pub(crate) ast: Root,
+    pub(crate) ast: MarkdownAst,
     pub(crate) path: PathBuf,
 }
 
@@ -36,29 +33,8 @@ struct FrontMatter {
 
 impl TilPost {
     fn from_file(file: &File) -> Result<Self> {
-        let contents = file.contents();
-        let contents = std::str::from_utf8(contents)
-            .into_diagnostic()
-            .wrap_err("File is not UTF8")?;
-
-        let mut options: ParseOptions = Default::default();
-        options.constructs.gfm_footnote_definition = true;
-        options.constructs.frontmatter = true;
-
-        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
-      return Err(miette::miette!("Should be a valid root node"));
-    };
-
-        let children = &ast.children;
-        let Some(Node::Yaml(frontmatter)) = children.get(0) else {
-      return Err(miette::miette!("Should have a child with YAML Frontmatter"))
-    };
-
-        let yaml = &frontmatter.value;
-
-        let metadata: FrontMatter = serde_yaml::from_str(yaml)
-            .into_diagnostic()
-            .wrap_err("Frontmatter should be valid YAML")?;
+        let ast = MarkdownAst::from_file(file)?;
+        let metadata: FrontMatter = ast.frontmatter()?;
 
         let title = metadata.title;
         let path = file.path().to_owned();
@@ -87,7 +63,7 @@ impl TilPost {
         let p = &self.slug;
         let p = PathBuf::from(p);
 
-        let root_node = Node::Root(self.ast.clone());
+        let root_node = Node::Root(self.ast.0.clone());
         root_node.validate_images(&p)?;
 
         Ok(())

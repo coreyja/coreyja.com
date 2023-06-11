@@ -11,7 +11,7 @@ use markdown::{mdast::*, to_mdast, ParseOptions};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
-use crate::AppConfig;
+use crate::{http_server::pages::blog::md::IntoHtml, AppConfig};
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
@@ -24,12 +24,15 @@ pub(crate) struct BlogPosts {
 pub struct BlogPost {
     path: PathBuf,
     title: String,
-    ast: Root,
+    ast: MarkdownAst,
     date: NaiveDate,
 }
 
-impl BlogPost {
-    fn from_file(file: &File) -> Result<BlogPost> {
+#[derive(Clone, Debug)]
+pub struct MarkdownAst(pub(crate) Root);
+
+impl MarkdownAst {
+    pub fn from_file(file: &File) -> Result<Self> {
         let contents = file.contents();
         let contents = std::str::from_utf8(contents)
             .into_diagnostic()
@@ -39,20 +42,47 @@ impl BlogPost {
         options.constructs.gfm_footnote_definition = true;
         options.constructs.frontmatter = true;
 
-        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
-          return Err(miette::miette!("Should be a valid root node"));
-        };
+        match to_mdast(contents, &options) {
+            Ok(Node::Root(ast)) => Ok(Self(ast)),
+            Ok(_) => Err(miette::miette!("Should be a root node")),
+            Err(e) => Err(miette::miette!("Could not make AST. Inner Error: {}", e)),
+        }
+    }
 
-        let children = &ast.children;
+    fn frontmatter_yml(&self) -> Result<&str> {
+        let children = &self.0.children;
         let Some(Node::Yaml(frontmatter)) = children.get(0) else {
-          return Err(miette::miette!("Should have a child with YAML Frontmatter"))
+          return Err(miette::miette!("Should have a first child with YAML Frontmatter"))
         };
 
-        let yaml = &frontmatter.value;
+        Ok(&frontmatter.value)
+    }
 
-        let metadata: FrontMatter = serde_yaml::from_str(yaml)
+    pub fn frontmatter<T>(&self) -> Result<T>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        let yaml = self.frontmatter_yml()?;
+        serde_yaml::from_str(yaml)
             .into_diagnostic()
-            .wrap_err("Frontmatter should be valid YAML")?;
+            .wrap_err("Frontmatter should be valid YAML")
+    }
+}
+
+impl IntoHtml for MarkdownAst {
+    fn into_html(
+        self,
+        context: &crate::http_server::pages::blog::md::HtmlRenderContext,
+    ) -> maud::Markup {
+        self.0.into_html(context)
+    }
+}
+
+impl BlogPost {
+    fn from_file(file: &File) -> Result<BlogPost> {
+        let ast = MarkdownAst::from_file(file)?;
+
+        let metadata: FrontMatter = ast.frontmatter()?;
 
         let title = metadata.title;
         let path = file.path().to_owned();
@@ -78,7 +108,7 @@ impl BlogPost {
         &self.title
     }
 
-    pub fn ast(&self) -> &Root {
+    pub fn ast(&self) -> &MarkdownAst {
         &self.ast
     }
 
@@ -96,7 +126,7 @@ impl BlogPost {
         let p = self.canonical_path();
         let p = PathBuf::from(p);
 
-        let root_node = Node::Root(self.ast.clone());
+        let root_node = Node::Root(self.ast.0.clone());
         root_node.validate_images(&p)?;
 
         Ok(())
@@ -255,24 +285,8 @@ impl BlogPostPath {
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
         let file = BLOG_DIR.get_file(&self.path)?;
 
-        let contents = file.contents_utf8().expect("All posts are UTF8");
-
-        let mut options: ParseOptions = Default::default();
-        options.constructs.gfm_footnote_definition = true;
-        options.constructs.frontmatter = true;
-
-        let Ok(Node::Root(ast)) = to_mdast(contents, &options) else {
-          panic!("Should be a valid root node")
-        };
-
-        let children = &ast.children;
-        let Node::Yaml(frontmatter) = children.get(0).expect("Should have frontmatter") else {
-          panic!("Should have a YAML Frontmatter")
-        };
-
-        let yaml = &frontmatter.value;
-
-        let metadata: FrontMatter = serde_yaml::from_str(yaml).expect("Should be valid YAML");
+        let ast = MarkdownAst::from_file(file).expect("Should be able to parse markdown");
+        let metadata: FrontMatter = ast.frontmatter().unwrap();
 
         Some(PostMarkdown {
             title: metadata.title,
@@ -291,7 +305,7 @@ impl BlogPostPath {
 pub(crate) struct PostMarkdown {
     pub title: String,
     pub date: String,
-    pub ast: Root,
+    pub ast: MarkdownAst,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -361,10 +375,10 @@ mod test {
         let post = BlogPost {
             path,
             title: "Sample Post".to_string(),
-            ast: Root {
+            ast: MarkdownAst(Root {
                 children: vec![],
                 position: None,
-            },
+            }),
             date: Default::default(),
         };
 
