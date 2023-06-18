@@ -7,7 +7,7 @@ use axum::{
 };
 use include_dir::*;
 use std::{net::SocketAddr, sync::Arc};
-use tower_http::trace::TraceLayer;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 
 use crate::{
     posts::blog::{BlogPosts, ToCanonicalPath},
@@ -71,7 +71,11 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .route("/year/*year", get(redirect_to_posts_index))
         .fallback(fallback)
         .with_state(config)
-        .layer(TraceLayer::new_for_http());
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                .on_response(DefaultOnResponse::new().include_headers(true)),
+        );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
