@@ -5,6 +5,7 @@ use axum::extract::{Path, State};
 use maud::{html, Markup};
 use miette::Result;
 use reqwest::StatusCode;
+use tracing::instrument;
 
 use crate::{
     http_server::{pages::blog::md::IntoHtml, templates::base},
@@ -13,6 +14,7 @@ use crate::{
 
 use super::blog::md::HtmlRenderContext;
 
+#[instrument(skip_all)]
 pub(crate) async fn til_index(
     State(til_posts): State<Arc<TilPosts>>,
 ) -> Result<Markup, StatusCode> {
@@ -37,6 +39,7 @@ pub(crate) async fn til_index(
     }))
 }
 
+#[instrument(skip(til_posts, context))]
 pub(crate) async fn til_get(
     State(til_posts): State<Arc<TilPosts>>,
     State(context): State<HtmlRenderContext>,

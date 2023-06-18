@@ -7,6 +7,7 @@ use axum::{
 };
 
 use maud::{html, Markup};
+use tracing::instrument;
 
 use crate::{
     http_server::{pages::blog::md::IntoHtml, templates::base},
@@ -20,6 +21,7 @@ pub(crate) mod md;
 
 struct MyChannel(rss::Channel);
 
+#[instrument(skip_all)]
 pub(crate) async fn rss_feed(
     State(config): State<AppConfig>,
     State(posts): State<Arc<BlogPosts>>,
@@ -30,6 +32,7 @@ pub(crate) async fn rss_feed(
     Ok(channel.into_response())
 }
 
+#[instrument(skip_all)]
 pub(crate) fn generate_rss(config: AppConfig, posts: &BlogPosts) -> rss::Channel {
     let mut posts = posts.posts().clone();
     posts.sort_by_key(|p| *p.date());
@@ -57,6 +60,7 @@ impl IntoResponse for MyChannel {
     }
 }
 
+#[instrument(skip_all)]
 pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
     let mut posts: Vec<_> = posts.posts().to_vec();
 
@@ -80,6 +84,7 @@ pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<M
     }))
 }
 
+#[instrument(skip(context, posts))]
 pub(crate) async fn post_get(
     State(context): State<HtmlRenderContext>,
     State(posts): State<Arc<BlogPosts>>,
