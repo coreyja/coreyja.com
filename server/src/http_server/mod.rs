@@ -5,8 +5,14 @@ use axum::{
     routing::{get, post},
     Router, Server,
 };
+use image::{io::Reader, ImageFormat};
 use include_dir::*;
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    io::{BufWriter, Cursor},
+    net::SocketAddr,
+    sync::Arc,
+};
+use tokio::task;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 
 use crate::{
@@ -132,13 +138,30 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
 
     let mime = mime_guess::from_path(path).first_or_octet_stream();
 
+    let image = task::spawn_blocking(|| {
+        let contents = entry.contents();
+        let reader = Reader::new(Cursor::new(contents))
+            .with_guessed_format()
+            .expect("Cursor io never fails");
+        assert_eq!(reader.format(), Some(ImageFormat::Png));
+        let image = reader.decode().unwrap();
+        // let image = image.resize_to_fill(1000, 600, image::imageops::FilterType::Triangle);
+
+        image
+    })
+    .await
+    .unwrap();
+
+    let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+    image.write_to(&mut buffer, ImageFormat::Png).unwrap();
+
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(
         axum::http::header::CONTENT_TYPE,
         mime.to_string().parse().unwrap(),
     );
 
-    Ok((headers, entry.contents()).into_response())
+    Ok((headers, buffer.into_inner().unwrap().into_inner()).into_response())
 }
 
 async fn newsletter_get() -> ResponseResult {
