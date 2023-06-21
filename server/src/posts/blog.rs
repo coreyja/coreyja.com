@@ -21,7 +21,7 @@ pub(crate) struct BlogPosts {
     posts: Vec<BlogPost>,
 }
 
-type BlogPost = Post<BlogFrontMatter>;
+pub(crate) type BlogPost = Post<BlogFrontMatter>;
 
 impl BlogPost {
     fn from_file(file: &File) -> Result<BlogPost> {
@@ -169,6 +169,14 @@ impl BlogPosts {
     pub fn posts(&self) -> &Vec<BlogPost> {
         &self.posts
     }
+
+    pub(crate) fn by_recency(&self) -> Vec<&BlogPost> {
+        let mut posts: Vec<_> = self.posts.iter().collect();
+
+        posts.sort_by_key(|p| *p.date());
+        posts.reverse();
+        posts
+    }
 }
 
 pub struct BlogFileEntry<'a> {
@@ -255,6 +263,12 @@ impl ToCanonicalPath for PathBuf {
 }
 
 impl ToCanonicalPath for BlogPost {
+    fn canonical_path(&self) -> String {
+        self.path.canonical_path()
+    }
+}
+
+impl ToCanonicalPath for &BlogPost {
     fn canonical_path(&self) -> String {
         self.path.canonical_path()
     }

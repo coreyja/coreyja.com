@@ -1,23 +1,26 @@
 use maud::{html, Markup, Render};
 
-pub struct Button {
+pub struct LinkButton {
     inner: Markup,
+    href: String,
     button_type: ButtonType,
     additional_classes: Option<String>,
 }
 
-impl Button {
-    pub fn primary(inner: Markup) -> Self {
+impl LinkButton {
+    pub fn primary(inner: Markup, href: impl Into<String>) -> Self {
         Self {
             inner,
+            href: href.into(),
             button_type: ButtonType::Primary,
             additional_classes: None,
         }
     }
 
-    pub fn secondary(inner: Markup) -> Self {
+    pub fn secondary(inner: Markup, href: impl Into<String>) -> Self {
         Self {
             inner,
+            href: href.into(),
             button_type: ButtonType::Secondary,
             additional_classes: None,
         }
@@ -42,15 +45,16 @@ impl ButtonType {
     }
 }
 
-impl Render for Button {
+impl Render for LinkButton {
     fn render(&self) -> Markup {
         let mut classes = vec![
             "text-text",
             "px-8",
-            "py-2",
+            "py-4",
             "rounded",
             "font-semibold",
             "my-2",
+            "inline-block",
             self.button_type.classes(),
         ];
 
@@ -60,7 +64,7 @@ impl Render for Button {
         let classes = classes.join(" ");
 
         html! {
-          button class=(classes) {
+          a href=(self.href) class=(classes) {
             (self.inner)
           }
         }

@@ -10,7 +10,10 @@ use maud::{html, Markup};
 use tracing::instrument;
 
 use crate::{
-    http_server::{pages::blog::md::IntoHtml, templates::base},
+    http_server::{
+        pages::blog::md::IntoHtml,
+        templates::{base, posts::BlogPostList},
+    },
     posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
     AppConfig,
 };
@@ -62,25 +65,9 @@ impl IntoResponse for MyChannel {
 
 #[instrument(skip_all)]
 pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
-    let mut posts: Vec<_> = posts.posts().to_vec();
-
-    posts.sort_by_key(|p| *p.date());
-    posts.reverse();
-
     Ok(base(html! {
       h1 class="text-3xl" { "Blog Posts" }
-      ul {
-          @for post in posts {
-              li class="my-4" {
-                a href=(format!("/posts/{}", post.canonical_path())) {
-                    span class="text-subtitle text-sm inline-block w-[80px]" { (post.date()) }
-                    " "
-
-                    (post.title())
-                }
-              }
-          }
-      }
+      (BlogPostList(posts.by_recency()))
     }))
 }
 
