@@ -1,9 +1,6 @@
 use miette::{Context, Result};
 use path_absolutize::Absolutize;
-use std::{
-    path::{Path, PathBuf},
-    str::from_utf8,
-};
+use std::path::{Path, PathBuf};
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
@@ -12,6 +9,7 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    http_server::pages::blog::md::IntoPlainText,
     posts::{MarkdownAst, Post},
     AppConfig,
 };
@@ -106,29 +104,7 @@ impl BlogPost {
     }
 
     fn short_description(&self) -> Option<String> {
-        let file = BLOG_DIR.get_file(&self.path)?;
-
-        let contents = from_utf8(file.contents()).unwrap();
-
-        // Find the start of the frontmatter
-        let frontmatter_marks = contents.find("---");
-
-        let contents = if let Some(frontmatter_marks) = frontmatter_marks {
-            let (_, contents) = contents.split_at(frontmatter_marks + 3);
-            contents
-        } else {
-            contents
-        };
-
-        // Find the end of the frontmatter
-        let frontmatter_marks = contents.find("---");
-
-        let contents = if let Some(frontmatter_marks) = frontmatter_marks {
-            let (_, contents) = contents.split_at(frontmatter_marks + 3);
-            contents
-        } else {
-            contents
-        };
+        let contents = self.ast.0.plain_text();
 
         Some(contents.chars().take(100).collect())
     }

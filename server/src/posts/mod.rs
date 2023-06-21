@@ -30,6 +30,10 @@ impl MarkdownAst {
             .into_diagnostic()
             .wrap_err("File is not UTF8")?;
 
+        Self::from_str(contents)
+    }
+
+    pub fn from_str(contents: &str) -> Result<Self> {
         let mut options: ParseOptions = Default::default();
         options.constructs.gfm_footnote_definition = true;
         options.constructs.frontmatter = true;
