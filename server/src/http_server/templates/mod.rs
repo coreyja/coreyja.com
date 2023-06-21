@@ -66,3 +66,5 @@ pub fn base(inner: Markup) -> Markup {
 }
 
 pub(crate) mod buttons;
+
+pub(crate) mod posts;

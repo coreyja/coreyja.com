@@ -8,7 +8,10 @@ use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{
-    http_server::{pages::blog::md::IntoHtml, templates::base},
+    http_server::{
+        pages::blog::md::IntoHtml,
+        templates::{base, posts::TilPostList},
+    },
     posts::til::TilPosts,
 };
 
@@ -18,24 +21,11 @@ use super::blog::md::HtmlRenderContext;
 pub(crate) async fn til_index(
     State(til_posts): State<Arc<TilPosts>>,
 ) -> Result<Markup, StatusCode> {
-    let mut posts: Vec<_> = til_posts.posts.to_vec();
-    posts.sort_by_key(|p| p.frontmatter.date.clone());
-    posts.reverse();
+    let posts = til_posts.by_recency();
 
     Ok(base(html! {
       h1 class="text-3xl" { "Today I Learned" }
-      ul {
-        @for post in posts {
-          li class="my-4" {
-            a href=(format!("/til/{}", post.frontmatter.slug)) {
-                span class="text-subtitle text-sm inline-block w-[80px]" { (post.frontmatter.date) }
-                " "
-
-                (post.frontmatter.title)
-            }
-          }
-        }
-      }
+      (TilPostList(posts))
     }))
 }
 
