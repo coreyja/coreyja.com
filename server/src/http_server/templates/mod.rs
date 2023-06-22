@@ -70,7 +70,7 @@ pub fn base(inner: Markup) -> Markup {
       flex
       flex-col
       " {
-        div class=(MAX_WIDTH_CONTAINER_CLASSES) {
+        div ."w-full ".(MAX_WIDTH_CONTAINER_CLASSES) {
           (header())
 
           (inner)
