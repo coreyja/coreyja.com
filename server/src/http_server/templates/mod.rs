@@ -14,6 +14,8 @@ pub fn head() -> Markup {
         link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}
         link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&&display=swap" rel="stylesheet" {}
 
+        link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous"
+
         meta name="viewport" content="width=device-width, initial-scale=1";
       }
     }
@@ -78,10 +80,22 @@ pub fn footer() -> Markup {
           }
         }
 
-        ul class="flex flex-row items-center text-background space-x-24" {
-          a href="/" { ("Home") }
-          a href="/posts" { ("Posts") }
-          a href="/til" { ("TILs") }
+        ul class="flex flex-row items-center text-background space-x-8 text-2xl" {
+          a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {
+            i class="fa-brands fa-github" {}
+          }
+
+          a href="https://twitch.tv/coreyja" target="_blank" rel="noopener noreferrer" {
+            i class="fa-brands fa-twitch" {}
+          }
+
+          a href="https://toot.cat/@coreyja" target="_blank" rel="noopener noreferrer" {
+            i class="fa-brands fa-mastodon" {}
+          }
+
+          a href="/posts/rss.xml" target="_blank" rel="noopener noreferrer" {
+            i class="fa-solid fa-rss" {}
+          }
         }
       }
     }
