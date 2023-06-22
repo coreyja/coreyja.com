@@ -3,6 +3,8 @@ use maud::{html, Markup, PreEscaped, Render};
 const LOGO_SVG: &str = include_str!("../../../static/logo.svg");
 const LOGO_MONOCHROME_SVG: &str = include_str!("../../../static/logo-monochrome.svg");
 
+const MAX_WIDTH_CONTAINER_CLASSES: &str = "max-w-5xl m-auto px-4";
+
 pub fn head() -> Markup {
     html! {
       head {
@@ -38,14 +40,14 @@ impl Render for HeaderLink {
 
 pub fn header() -> Markup {
     html! {
-      div class="flex" {
-        div class="max-w-lg min-w-[200px] py-24 flex-grow" {
+      div class="flex flex-col sm:flex-row" {
+        div class="max-w-lg min-w-[200px] py-8 sm:py-24 flex-grow" {
           a href="/" {
             (PreEscaped(LOGO_SVG))
           }
         }
 
-        nav class="flex flex-grow justify-end w-full ml-16 max-w-[50%]" {
+        nav class="flex flex-grow justify-end w-full sm:ml-16 sm:max-w-[50%]" {
           ul class="flex flex-row items-center flex-grow" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
@@ -60,10 +62,19 @@ pub fn base(inner: Markup) -> Markup {
     html! {
       (head())
 
-      body class="bg-background text-text px-4 max-w-5xl m-auto font-sans min-h-screen flex flex-col" {
-        (header())
+      body class="
+      bg-background
+      text-text
+      font-sans
+      min-h-screen
+      flex
+      flex-col
+      " {
+        div class=(MAX_WIDTH_CONTAINER_CLASSES) {
+          (header())
 
-        (inner)
+          (inner)
+        }
 
         (footer())
       }
@@ -73,32 +84,34 @@ pub fn base(inner: Markup) -> Markup {
 pub fn footer() -> Markup {
     html! {
       div ."flex-grow" {}
-      div ."min-h-[100px] bg-subtitle flex -mx-[100%] px-[100%] flex justify-between mt-24" {
-        div class="max-w-[15rem] min-w-[100px] py-8 flex-grow" {
-          a href="/" {
-            (PreEscaped(LOGO_MONOCHROME_SVG))
-          }
-        }
-
-        ul class="flex flex-row items-center text-background space-x-8 text-2xl" {
-          a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {
-            i class="fa-brands fa-github" {}
+      div ."min-h-[100px] bg-subtitle mt-24" {
+        div ."flex justify-between ".(MAX_WIDTH_CONTAINER_CLASSES) {
+          div class="max-w-[10rem] sm:max-w-[15rem] min-w-[100px] py-8 flex-grow" {
+            a href="/" {
+              (PreEscaped(LOGO_MONOCHROME_SVG))
+            }
           }
 
-          a href="https://twitch.tv/coreyja" target="_blank" rel="noopener noreferrer" {
-            i class="fa-brands fa-twitch" {}
-          }
+          ul class="flex flex-row items-center text-background space-x-4 sm:space-x-8 text-xl sm:text-2xl" {
+            a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {
+              i class="fa-brands fa-github" {}
+            }
 
-          a href="https://youtube.com/@coreyja" target="_blank" rel="noopener noreferrer" {
-            i class="fa-brands fa-youtube" {}
-          }
+            a href="https://twitch.tv/coreyja" target="_blank" rel="noopener noreferrer" {
+              i class="fa-brands fa-twitch" {}
+            }
 
-          a href="https://toot.cat/@coreyja" target="_blank" rel="noopener noreferrer" {
-            i class="fa-brands fa-mastodon" {}
-          }
+            a href="https://youtube.com/@coreyja" target="_blank" rel="noopener noreferrer" {
+              i class="fa-brands fa-youtube" {}
+            }
 
-          a href="/posts/rss.xml" target="_blank" rel="noopener noreferrer" {
-            i class="fa-solid fa-rss" {}
+            a href="https://toot.cat/@coreyja" target="_blank" rel="noopener noreferrer" {
+              i class="fa-brands fa-mastodon" {}
+            }
+
+            a href="/posts/rss.xml" target="_blank" rel="noopener noreferrer" {
+              i class="fa-solid fa-rss" {}
+            }
           }
         }
       }
