@@ -16,7 +16,7 @@ pub(crate) struct TilPosts {
     pub(crate) posts: Vec<TilPost>,
 }
 
-type TilPost = Post<FrontMatter>;
+pub(crate) type TilPost = Post<FrontMatter>;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub(crate) struct FrontMatter {
@@ -115,5 +115,12 @@ impl TilPosts {
         println!("TILs Valid! ✅");
 
         Ok(())
+    }
+
+    pub fn by_recency(&self) -> Vec<&TilPost> {
+        let mut posts = self.posts.iter().collect::<Vec<_>>();
+        posts.sort_by_key(|p| p.frontmatter.date.clone());
+        posts.reverse();
+        posts
     }
 }
