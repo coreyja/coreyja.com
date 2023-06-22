@@ -1,6 +1,7 @@
 use maud::{html, Markup, PreEscaped, Render};
 
 const LOGO_SVG: &str = include_str!("../../../static/logo.svg");
+const LOGO_MONOCHROME_SVG: &str = include_str!("../../../static/logo-monochrome.svg");
 
 pub fn head() -> Markup {
     html! {
@@ -57,10 +58,31 @@ pub fn base(inner: Markup) -> Markup {
     html! {
       (head())
 
-      body class="bg-background text-text px-4 max-w-5xl m-auto font-sans" {
+      body class="bg-background text-text px-4 max-w-5xl m-auto font-sans min-h-screen flex flex-col" {
         (header())
 
         (inner)
+
+        (footer())
+      }
+    }
+}
+
+pub fn footer() -> Markup {
+    html! {
+      div ."flex-grow" {}
+      div ."min-h-[100px] bg-subtitle flex -mx-[100%] px-[100%] flex justify-between mt-24" {
+        div class="max-w-[15rem] min-w-[100px] py-8 flex-grow" {
+          a href="/" {
+            (PreEscaped(LOGO_MONOCHROME_SVG))
+          }
+        }
+
+        ul class="flex flex-row items-center text-background space-x-24" {
+          a href="/" { ("Home") }
+          a href="/posts" { ("Posts") }
+          a href="/til" { ("TILs") }
+        }
       }
     }
 }
