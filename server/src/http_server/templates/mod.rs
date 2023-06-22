@@ -89,6 +89,10 @@ pub fn footer() -> Markup {
             i class="fa-brands fa-twitch" {}
           }
 
+          a href="https://youtube.com/@coreyja" target="_blank" rel="noopener noreferrer" {
+            i class="fa-brands fa-youtube" {}
+          }
+
           a href="https://toot.cat/@coreyja" target="_blank" rel="noopener noreferrer" {
             i class="fa-brands fa-mastodon" {}
           }
