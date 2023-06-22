@@ -30,14 +30,10 @@ pub(crate) async fn home_page(
                 }
 
                 h3 class="text-2xl text-subtitle leading-tight mb-8" {
-                    "My goal is to make you feel at home and help you grow your skills through my streams and videos."
+                    "My goal is to make you feel at home and help you grow your skills through my streams, videos and posts."
                 }
 
                 div class="text-xl flex flex-row space-x-8" {
-                    (
-                        LinkButton::secondary(html!("Learn about Corey"), "/about")
-                    )
-
                     (LinkButton::primary(html!("View Posts"), "/posts"))
                 }
             }
