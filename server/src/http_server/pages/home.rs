@@ -23,13 +23,13 @@ pub(crate) async fn home_page(
     recent_posts.truncate(3);
 
     base(html! {
-        ."bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
-            ."w-[60%]" {
-                h1 class="text-4xl font-medium leading-tight pt-16 pb-4" {
+        ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
+            ."md:w-[60%]" {
+                h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-16 pb-4" {
                     "Creating Educational & Entertaining Content for Developers of All Skill Levels"
                 }
 
-                h3 class="text-2xl text-subtitle leading-tight mb-8" {
+                h3 class="text-lg sm:text-2xl text-subtitle leading-tight mb-8" {
                     "My goal is to make you feel at home and help you grow your skills through my streams, videos and posts."
                 }
 

@@ -85,12 +85,14 @@ pub fn footer() -> Markup {
     html! {
       div ."flex-grow" {}
       div ."min-h-[100px] bg-subtitle mt-24" {
-        div ."flex justify-between ".(MAX_WIDTH_CONTAINER_CLASSES) {
+        div ."flex ".(MAX_WIDTH_CONTAINER_CLASSES) {
           div class="max-w-[10rem] sm:max-w-[15rem] min-w-[100px] py-8 flex-grow" {
             a href="/" {
               (PreEscaped(LOGO_MONOCHROME_SVG))
             }
           }
+
+          div ."flex-grow" {}
 
           ul class="flex flex-row items-center text-background space-x-4 sm:space-x-8 text-xl sm:text-2xl" {
             a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {
