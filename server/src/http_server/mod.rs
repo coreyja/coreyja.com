@@ -65,6 +65,10 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
             post(pages::admin::upwork_proposal_post),
         )
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
+        .route(
+            "/rss.xml",
+            get(|| async { Redirect::permanent("/posts/rss.xml") }),
+        )
         .route("/posts", get(pages::blog::posts_index))
         .route("/posts/*key", get(pages::blog::post_get))
         .route("/til", get(pages::til::til_index))
