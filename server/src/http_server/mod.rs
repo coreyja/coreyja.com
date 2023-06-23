@@ -40,6 +40,8 @@ const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 
 const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 
+type ResponseResult<T = Response> = Result<T, MietteError>;
+
 pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
     let syntax_css = syntect::html::css_for_theme_with_class_style(
         &config.markdown_to_html_context.theme,
@@ -108,13 +110,20 @@ async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Response {
     }
 }
 
-async fn static_assets(Path(p): Path<String>) -> Result<impl IntoResponse, MietteError> {
+async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     let path = p.strip_prefix('/').unwrap_or(&p);
     let path = path.strip_suffix('/').unwrap_or(path);
 
-    let entry = STATIC_ASSETS
-        .get_file(path)
-        .ok_or_else(|| miette::miette!("Static asset {} not found", path))?;
+    let entry = STATIC_ASSETS.get_file(path);
+
+    let Some(entry) = entry else {
+        return Ok(
+            (
+                axum::http::StatusCode::NOT_FOUND,
+                format!("Static asset {} not found", path)
+            )
+        .into_response());
+    };
 
     let mime = mime_guess::from_path(path).first_or_octet_stream();
 
@@ -124,5 +133,5 @@ async fn static_assets(Path(p): Path<String>) -> Result<impl IntoResponse, Miett
         mime.to_string().parse().unwrap(),
     );
 
-    Ok((headers, entry.contents()))
+    Ok((headers, entry.contents()).into_response())
 }

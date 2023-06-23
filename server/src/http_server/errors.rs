@@ -5,7 +5,7 @@ use thiserror::Error;
 
 #[derive(Debug, Diagnostic, Error)]
 #[error("MietteError")]
-pub struct MietteError(miette::Report);
+pub struct MietteError(pub(crate) miette::Report);
 
 impl IntoResponse for MietteError {
     fn into_response(self) -> axum::response::Response {

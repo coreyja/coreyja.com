@@ -4,12 +4,12 @@ use axum::{
 };
 use maud::{html, Markup, PreEscaped};
 
-use crate::*;
+use crate::{http_server::ResponseResult, *};
 
 pub(crate) async fn upwork_proposal_get(
     Path(id): Path<String>,
     State(config): State<AppState>,
-) -> Result<Markup, http_server::MietteError> {
+) -> ResponseResult<Markup> {
     let db_record = sqlx::query!("SELECT * FROM UpworkJobs where id = ?", id)
         .fetch_optional(&config.db_pool)
         .await
@@ -47,7 +47,7 @@ pub(crate) async fn upwork_proposal_post(
     Path(id): Path<String>,
     State(config): State<AppState>,
     Form(form): Form<ProposalForm>,
-) -> Result<Markup, http_server::MietteError> {
+) -> ResponseResult<Markup> {
     let db_record = sqlx::query!("SELECT * FROM UpworkJobs where id = ?", id)
         .fetch_optional(&config.db_pool)
         .await

@@ -4,12 +4,12 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 
-use crate::{http_server::errors::MietteError, *};
+use crate::{http_server::ResponseResult, *};
 
 pub(crate) async fn handler(
     Query(oauth): Query<TwitchOauthRequest>,
     State(config): State<AppState>,
-) -> Result<impl IntoResponse, MietteError> {
+) -> ResponseResult<impl IntoResponse> {
     let twitch_config = config.twitch;
     let client = reqwest::Client::new();
 

@@ -5,7 +5,7 @@ use axum::{
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{http_server::errors::MietteError, *};
+use crate::{http_server::ResponseResult, *};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct GithubOauthRequest {
@@ -34,7 +34,7 @@ struct GithubTokenResponse {
 pub(crate) async fn handler(
     Query(oauth): Query<GithubOauthRequest>,
     State(config): State<AppState>,
-) -> Result<impl IntoResponse, MietteError> {
+) -> ResponseResult<impl IntoResponse> {
     let client = reqwest::Client::new();
     let github = &config.github;
     let redirect_uri = github_redirect_uri(&config);
