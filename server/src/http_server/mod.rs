@@ -108,14 +108,13 @@ async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Response {
     }
 }
 
-async fn static_assets(Path(p): Path<String>) -> impl IntoResponse {
+async fn static_assets(Path(p): Path<String>) -> Result<impl IntoResponse, MietteError> {
     let path = p.strip_prefix('/').unwrap_or(&p);
     let path = path.strip_suffix('/').unwrap_or(path);
 
     let entry = STATIC_ASSETS
         .get_file(path)
-        .ok_or_else(|| miette::miette!("Static asset {} not found", path))
-        .unwrap();
+        .ok_or_else(|| miette::miette!("Static asset {} not found", path))?;
 
     let mime = mime_guess::from_path(path).first_or_octet_stream();
 
@@ -125,5 +124,5 @@ async fn static_assets(Path(p): Path<String>) -> impl IntoResponse {
         mime.to_string().parse().unwrap(),
     );
 
-    (headers, entry.contents())
+    Ok((headers, entry.contents()))
 }

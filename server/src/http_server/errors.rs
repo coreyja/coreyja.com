@@ -1,18 +1,22 @@
 use axum::response::IntoResponse;
+use miette::Diagnostic;
+use reqwest::StatusCode;
+use thiserror::Error;
 
+#[derive(Debug, Diagnostic, Error)]
+#[error("MietteError")]
 pub struct MietteError(miette::Report);
 
 impl IntoResponse for MietteError {
     fn into_response(self) -> axum::response::Response {
-        self.0.to_string().into_response()
+        sentry::capture_error(&self);
+
+        (StatusCode::INTERNAL_SERVER_ERROR, self.0.to_string()).into_response()
     }
 }
 
-impl<T> From<T> for MietteError
-where
-    T: Into<miette::Report>,
-{
-    fn from(err: T) -> Self {
-        MietteError(err.into())
+impl From<miette::Report> for MietteError {
+    fn from(err: miette::Report) -> Self {
+        MietteError(err)
     }
 }
