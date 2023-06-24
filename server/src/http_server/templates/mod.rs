@@ -16,7 +16,7 @@ pub fn head() -> Markup {
         link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}
         link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&&display=swap" rel="stylesheet" {}
 
-        link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous"
+        link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous";
 
         meta name="viewport" content="width=device-width, initial-scale=1";
       }
@@ -40,15 +40,17 @@ impl Render for HeaderLink {
 
 pub fn header() -> Markup {
     html! {
-      div class="flex flex-col sm:flex-row" {
-        div class="max-w-lg min-w-[200px] py-8 sm:py-24 flex-grow" {
-          a href="/" {
-            (PreEscaped(LOGO_SVG))
+      div class="flex flex-col sm:flex-row justify-center items-stretch" {
+        div class="flex flex-grow justify-center" {
+          div class="max-w-[85%] sm:max-w-lg min-w-[200px] py-8 sm:py-24 flex-grow" {
+            a href="/" {
+              (PreEscaped(LOGO_SVG))
+            }
           }
         }
 
-        nav class="flex flex-grow justify-end w-full sm:ml-16 sm:max-w-[50%]" {
-          ul class="flex flex-row items-center flex-grow" {
+        nav class="flex flex-grow w-full sm:ml-16 sm:max-w-[50%] pb-16 sm:pb-0" {
+          ul class="flex flex-row justify-center sm:justify-end items-center flex-grow" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
             (HeaderLink { href: "/til", text: "TILs" })
