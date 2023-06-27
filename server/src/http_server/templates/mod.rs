@@ -6,6 +6,13 @@ const LOGO_MONOCHROME_SVG: &str = include_str!("../../../static/logo-monochrome.
 const MAX_WIDTH_CONTAINER_CLASSES: &str = "max-w-5xl m-auto px-4";
 
 pub fn head() -> Markup {
+    let temporary_remove_service_worker_script = r#"
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+            registration.unregister();
+        } 
+      });
+      "#;
     html! {
       head {
         title { "coreyja.com" }
@@ -19,6 +26,10 @@ pub fn head() -> Markup {
         link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous";
 
         meta name="viewport" content="width=device-width, initial-scale=1";
+
+        script type="text/javascript" {
+          (PreEscaped(temporary_remove_service_worker_script))
+        }
       }
     }
 }
