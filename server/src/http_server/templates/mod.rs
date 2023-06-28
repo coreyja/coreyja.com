@@ -83,21 +83,61 @@ pub fn base(inner: Markup) -> Markup {
       flex
       flex-col
       " {
-        div ."w-full ".(MAX_WIDTH_CONTAINER_CLASSES) {
-          (header())
+        (constrained_width(header()))
 
-          (inner)
-        }
+        (inner)
 
         (footer())
       }
     }
 }
 
+pub fn base_constrained(inner: Markup) -> Markup {
+    base(constrained_width(inner))
+}
+
+pub fn constrained_width(inner: Markup) -> Markup {
+    html! {
+      div ."w-full ".(MAX_WIDTH_CONTAINER_CLASSES) {
+        (inner)
+      }
+    }
+}
+
+pub fn newsletter() -> Markup {
+    html! {
+      div ."bg-[rgba(178,132,255,0.1)] py-16 flex flex-col items-center space-y-8" {
+        h2 ."text-3xl" { "Newsletter" }
+        p ."max-x-prose" { "Tailored for developers who are eager to grow together in web development!" }
+
+        form
+          action="https://app.convertkit.com/forms/5312462/subscriptions"
+          method="post"
+          class="w-full max-w-md flex flex-row gap-4"
+          {
+            input
+              type="email"
+              name="email_address"
+              class="flex-grow py-2 px-2 rounded-md text-grey-999"
+              placeholder="Enter your email address"
+              required="required"
+              ;
+
+            input
+              type="submit"
+              value="Subscribe"
+              class="bg-secondary-400 rounded-lg px-8 py-2"
+              ;
+        }
+      }
+    }
+}
+
 pub fn footer() -> Markup {
     html! {
-      div ."flex-grow" {}
-      div ."min-h-[100px] bg-subtitle mt-24" {
+      div class="flex-grow mb-24" {}
+      (newsletter())
+      div ."min-h-[100px] bg-subtitle" {
         div ."flex ".(MAX_WIDTH_CONTAINER_CLASSES) {
           div class="max-w-[10rem] sm:max-w-[15rem] min-w-[100px] py-8 flex-grow" {
             a href="/" {

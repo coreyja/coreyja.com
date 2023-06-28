@@ -12,7 +12,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base, posts::BlogPostList},
+        templates::{base, base_constrained, posts::BlogPostList},
     },
     posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
     AppConfig,
@@ -65,7 +65,7 @@ impl IntoResponse for MyChannel {
 
 #[instrument(skip_all)]
 pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
-    Ok(base(html! {
+    Ok(base_constrained(html! {
       h1 class="text-3xl" { "Blog Posts" }
       (BlogPostList(posts.by_recency()))
     }))
@@ -97,7 +97,7 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
-    Ok(base(html! {
+    Ok(base_constrained(html! {
       h1 class="text-2xl" { (markdown.title) }
       subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 

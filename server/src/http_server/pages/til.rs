@@ -10,7 +10,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base, posts::TilPostList},
+        templates::{base, base_constrained, posts::TilPostList},
     },
     posts::til::TilPosts,
 };
@@ -23,7 +23,7 @@ pub(crate) async fn til_index(
 ) -> Result<Markup, StatusCode> {
     let posts = til_posts.by_recency();
 
-    Ok(base(html! {
+    Ok(base_constrained(html! {
       h1 class="text-3xl" { "Today I Learned" }
       (TilPostList(posts))
     }))
@@ -43,7 +43,7 @@ pub(crate) async fn til_get(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let markdown = til.markdown();
-    Ok(base(html! {
+    Ok(base_constrained(html! {
       h1 class="text-2xl" { (markdown.title) }
       subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 

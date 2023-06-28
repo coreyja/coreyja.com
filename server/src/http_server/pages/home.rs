@@ -7,7 +7,7 @@ use crate::{
     http_server::templates::{
         base,
         buttons::LinkButton,
-        posts::{BlogPostList, TilPostList},
+        posts::{BlogPostList, TilPostList}, constrained_width,
     },
     posts::{blog::BlogPosts, til::TilPosts},
 };
@@ -23,30 +23,33 @@ pub(crate) async fn home_page(
     recent_posts.truncate(3);
 
     base(html! {
-        ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
-            ."md:w-[60%]" {
-                h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-16 pb-4" {
-                    "Creating Educational & Entertaining Content for Developers of All Skill Levels"
-                }
+        (constrained_width(html! {
+            ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
+                ."md:w-[60%]" {
+                    h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-16 pb-4" {
+                        "Educational & entertaining content for developers of all skill levels"
+                    }
 
-                h3 class="text-lg sm:text-2xl text-subtitle leading-tight mb-8" {
-                    "My goal is to make you feel at home and help you grow your skills through my streams, videos and posts."
-                }
+                    h3 class="text-lg sm:text-2xl text-subtitle leading-tight mb-8" {
+                        "My goal is to make you feel at home and help you grow your skills through my streams, videos and posts."
+                    }
 
-                div class="text-xl flex flex-row space-x-8" {
-                    (LinkButton::primary(html!("View Posts"), "/posts"))
+                    div class="text-xl flex flex-row space-x-8" {
+                        (LinkButton::primary(html!("View Posts"), "/posts"))
+                    }
                 }
             }
-        }
 
-        div ."mb-16" {
-            h2 ."text-3xl" { "Recent TILs" }
-            (TilPostList(recent_tils))
-        }
+            div ."mb-16" {
+                h2 ."text-3xl" { "Recent TILs" }
+                (TilPostList(recent_tils))
+            }
 
-        div ."mb-16" {
-            h2 ."text-3xl" { "Recent Blog Posts" }
-            (BlogPostList(recent_posts))
-        }
+            div ."mb-16" {
+                h2 ."text-3xl" { "Recent Blog Posts" }
+                (BlogPostList(recent_posts))
+            }
+        }))
+
     })
 }
