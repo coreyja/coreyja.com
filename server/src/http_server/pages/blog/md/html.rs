@@ -45,7 +45,19 @@ impl IntoHtml for Node {
             Node::TableCell(c) => c.into_html(context),
             Node::ListItem(i) => i.into_html(context),
             Node::Paragraph(p) => p.into_html(context),
-            _ => todo!(),
+            Node::ThematicBreak(b) => b.into_html(context),
+            Node::MdxJsxFlowElement(_) => todo!(),
+            Node::MdxjsEsm(_) => todo!(),
+            Node::Toml(_) => todo!(),
+            Node::InlineMath(_) => todo!(),
+            Node::MdxTextExpression(_) => todo!(),
+            Node::FootnoteReference(_) => todo!(),
+            Node::ImageReference(_) => todo!(),
+            Node::MdxJsxTextElement(_) => todo!(),
+            Node::LinkReference(_) => todo!(),
+            Node::Math(_) => todo!(),
+            Node::MdxFlowExpression(_) => todo!(),
+            Node::Definition(_) => todo!(),
         }
     }
 }
@@ -273,6 +285,14 @@ impl IntoHtml for Code {
 
         html! {
           pre class="my-4 py-4 bg-coding_background px-8 overflow-x-auto max-w-vw" { code { (PreEscaped(html_generator.finalize())) } }
+        }
+    }
+}
+
+impl IntoHtml for ThematicBreak {
+    fn into_html(self, _context: &HtmlRenderContext) -> Markup {
+        html! {
+          hr class="my-8";
         }
     }
 }
