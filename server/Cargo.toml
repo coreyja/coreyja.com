@@ -12,7 +12,7 @@ default-run = "server"
 axum = "0.6.2"
 axum-macros = "0.3.1"
 miette = { version = "5.7.0", features = ["fancy"] }
-poise = "0.4.1"
+poise = "0.5.5"
 reqwest = { workspace = true }
 serde = "1.0.147"
 serde_json = "1.0.87"
@@ -23,17 +23,17 @@ tracing-tree = "0.2.2"
 sqlx = { version = "0.6.2", features = ["sqlite", "runtime-tokio-rustls", "chrono", "offline"] }
 uuid = { version = "1.2.2", features = ["v4"] }
 serde_urlencoded = "0.7.1"
-indoc = "1.0.8"
+indoc = "2.0.1"
 async-trait = "0.1.60"
 chrono = "0.4.23"
 rss = { version = "2.0.2", features = ["validation"] }
 
 sentry = { version ="0.29.1", default-features = false, features = ["rustls", "backtrace", "contexts", "panic", "tower", "reqwest"] }
-sentry-tower = { version = "0.29.1", features = ["http"] }
+sentry-tower = { version = "0.31.5", features = ["http"] }
 
-opentelemetry = { version = "0.18.0", features = ["rt-tokio"], default-features = false }
-opentelemetry-otlp = { version = "0.11.0", features = ["http-proto", "reqwest-rustls"], default-features = false }
-tracing-opentelemetry = "0.18.0"
+opentelemetry = { version = "0.19.0", features = ["rt-tokio"], default-features = false }
+opentelemetry-otlp = { version = "0.12.0", features = ["http-proto", "reqwest-rustls"], default-features = false }
+tracing-opentelemetry = "0.19.0"
 maud = { version = "0.25.0", features = ["axum"] }
 include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 

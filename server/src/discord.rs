@@ -87,13 +87,13 @@ async fn whoami(ctx: Context<'_>) -> Result<(), Error> {
         .message()
         .await
         .into_diagnostic()?
-        .await_component_interactions(ctx.discord())
+        .await_component_interactions(ctx)
         .author_id(ctx.author().id)
         .timeout(Duration::from_secs(60))
         .build();
 
     while let Some(m) = interations.next().await {
-        m.create_interaction_response(ctx.discord(), |ir| {
+        m.create_interaction_response(ctx, |ir| {
             ir.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
         })
         .await
@@ -169,7 +169,7 @@ pub(crate) async fn build_discord_bot(
         .intents(
             serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT,
         )
-        .user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
+        .setup(move |_ctx, _ready, _framework| Box::pin(async move { Ok(config) }));
 
     framework.build().await.into_diagnostic()
 }
