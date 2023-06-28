@@ -123,3 +123,13 @@ jobs:
           ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Test
         run: cargo test --all-targets
+  cargo-deny:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install cargo-binstall
+      run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    - name: Install cargo-deny
+      run: cargo binstall --no-confirm cargo-deny
+    - name: Cargo Deny
+      run: cargo-deny check
