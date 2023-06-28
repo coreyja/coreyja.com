@@ -35,7 +35,7 @@ opentelemetry = { version = "0.18.0", features = ["rt-tokio"], default-features 
 opentelemetry-otlp = { version = "0.11.0", features = ["http-proto", "reqwest-rustls", "reqwest-client"], default-features = false }
 tracing-opentelemetry = "0.18.0"
 maud = { version = "0.25.0", features = ["axum"] }
-include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
+include_dir = { version = "0.7.3", features = ["glob"] }
 
 markdown = "1.0.0-alpha.7"
 serde_yaml = "0.9"

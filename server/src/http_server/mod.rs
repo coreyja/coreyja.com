@@ -7,6 +7,7 @@ use axum::{
 };
 use image::{io::Reader, ImageFormat};
 use include_dir::*;
+use miette::IntoDiagnostic;
 use std::{
     io::{BufWriter, Cursor},
     net::SocketAddr,
@@ -138,18 +139,19 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
 
     let mime = mime_guess::from_path(path).first_or_octet_stream();
 
-    let image = task::spawn_blocking(|| {
+    let image = task::spawn_blocking(|| -> Result<image::DynamicImage, miette::Report> {
         let contents = entry.contents();
         let reader = Reader::new(Cursor::new(contents))
             .with_guessed_format()
             .expect("Cursor io never fails");
         assert_eq!(reader.format(), Some(ImageFormat::Png));
-        let image = reader.decode().unwrap();
-        // let image = image.resize_to_fill(1000, 600, image::imageops::FilterType::Triangle);
+        let image = reader.decode().into_diagnostic()?;
+        let image = image.resize_to_fill(1000, 600, image::imageops::FilterType::Triangle);
 
-        image
+        Ok(image)
     })
     .await
+    .unwrap()
     .unwrap();
 
     let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
