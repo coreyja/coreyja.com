@@ -136,8 +136,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: dtolnay/install@master
-      with:
-        crate: cargo-deny
+    - name: Install cargo-binstall
+      run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    - name: Install cargo-deny
+      run: cargo binstall cargo-deny
     - name: Cargo Deny
       run: cargo deny check ${{ matrix.checks }}
