@@ -136,6 +136,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: EmbarkStudios/cargo-deny-action@v1
+    - uses: dtolnay/install@master
       with:
-        command: check ${{ matrix.checks }}
+        crate: cargo-deny
+    - name: Cargo Deny
+      run: cargo deny check ${{ matrix.checks }}
