@@ -39,7 +39,7 @@ pub enum ButtonType {
 impl ButtonType {
     fn classes(&self) -> &str {
         match &self {
-            ButtonType::Primary => "bg-accent",
+            ButtonType::Primary => "bg-secondary-400",
             ButtonType::Secondary => "bg-background border",
         }
     }
