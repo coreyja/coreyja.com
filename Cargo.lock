@@ -1547,6 +1547,7 @@ dependencies = [
  "bytes",
  "http",
  "opentelemetry_api",
+ "reqwest",
 ]
 
 [[package]]
