@@ -143,7 +143,7 @@ async fn static_asset_route(
             let mut headers = axum::http::HeaderMap::new();
             headers.insert(
                 axum::http::header::CONTENT_TYPE,
-                "image/png".parse().unwrap(),
+                "image/webp".parse().unwrap(),
             );
 
             let image = cacache::read_hash(CACHE_DIR, &i.resized_hash)
@@ -174,7 +174,7 @@ async fn static_asset_route(
     //     mime.to_string().parse().unwrap(),
     // );
 
-    // (headers, buffer.into_inner().unwrap().into_inner()).into_response())
+    // (headers, buffer.into_inner().unwrap().into_inner())
 }
 
 async fn newsletter_get() -> ResponseResult {

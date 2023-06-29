@@ -42,12 +42,12 @@ impl<'dir> Asset<'dir> {
                 let reader = Reader::new(Cursor::new(contents))
                     .with_guessed_format()
                     .expect("Cursor io never fails");
-                assert_eq!(reader.format(), Some(ImageFormat::Png));
+
                 let image = reader.decode().into_diagnostic()?;
                 let image = image.resize(1000, 600, image::imageops::FilterType::Triangle);
 
                 let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
-                image.write_to(&mut buffer, ImageFormat::Png).unwrap();
+                image.write_to(&mut buffer, ImageFormat::WebP).unwrap();
 
                 let ssri = cacache::write(
                     CACHE_DIR,

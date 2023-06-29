@@ -50,6 +50,6 @@ tower = "0.4.13"
 mime_guess = "2.0.4"
 thiserror = "1.0.40"
 
-image = "0.24.6"
+image = { version = "0.24.6", features = ["webp-encoder"] }
 cacache = { version = "11.6.0", default-features = false, features = ["tokio-runtime"] }
 ssri = "9.0.0"
