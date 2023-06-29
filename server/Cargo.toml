@@ -51,3 +51,5 @@ mime_guess = "2.0.4"
 thiserror = "1.0.40"
 
 image = "0.24.6"
+cacache = { version = "11.6.0", default-features = false, features = ["tokio-runtime"] }
+ssri = "9.0.0"

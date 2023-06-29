@@ -31,7 +31,7 @@ mod twitch;
 use twitch::*;
 
 mod http_server;
-use http_server::{pages::blog::md::HtmlRenderContext, *};
+use http_server::{image_optimization::Assets, pages::blog::md::HtmlRenderContext, *};
 
 mod github;
 use github::*;
@@ -85,6 +85,7 @@ struct AppState {
     markdown_to_html_context: HtmlRenderContext,
     blog_posts: Arc<BlogPosts>,
     til_posts: Arc<TilPosts>,
+    static_assets: Arc<Assets<'static>>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {
