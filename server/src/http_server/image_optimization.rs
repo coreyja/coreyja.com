@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::Cursor};
+use std::{
+    collections::HashMap,
+    io::{BufWriter, Cursor},
+};
 
 use image::{io::Reader, ImageFormat};
 use include_dir::{Dir, File};
@@ -43,8 +46,15 @@ impl<'dir> Asset<'dir> {
                 let image = reader.decode().into_diagnostic()?;
                 let image = image.resize(1000, 600, image::imageops::FilterType::Triangle);
 
-                let ssri =
-                    cacache::write(CACHE_DIR, &path.to_string_lossy(), image.as_bytes()).await?;
+                let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+                image.write_to(&mut buffer, ImageFormat::Png).unwrap();
+
+                let ssri = cacache::write(
+                    CACHE_DIR,
+                    &path.to_string_lossy(),
+                    buffer.into_inner().into_diagnostic()?.into_inner(),
+                )
+                .await?;
 
                 info!(%ssri, %mime, "Wrote image to cache");
                 let i = Image {
