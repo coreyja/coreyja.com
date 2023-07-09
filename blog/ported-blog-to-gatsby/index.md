@@ -29,7 +29,7 @@ Gatsby makes it super simple to get setup with a `manifest.json` which is requir
 {
 	resolve: `gatsby-plugin-manifest`,
 	options: {
-		name: `Coreyja Blog`,
+		name: `coreyja Blog`,
 		short_name: `coreyja Blog`,
 		start_url: `/`,
 		background_color: `#aa66cc`,

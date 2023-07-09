@@ -47,3 +47,5 @@ pub fn constrained_width(inner: Markup) -> Markup {
 
 pub(crate) mod buttons;
 pub(crate) mod posts;
+
+pub(crate) mod newsletter;

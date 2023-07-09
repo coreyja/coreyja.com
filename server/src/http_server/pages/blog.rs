@@ -46,7 +46,7 @@ pub(crate) fn generate_rss(config: AppConfig, posts: &BlogPosts) -> rss::Channel
     use rss::ChannelBuilder;
 
     let channel = ChannelBuilder::default()
-        .title("Coreyja Blog".to_string())
+        .title("coreyja Blog".to_string())
         .link(config.home_page())
         .items(items)
         .build();
