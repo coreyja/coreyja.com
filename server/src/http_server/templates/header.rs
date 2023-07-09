@@ -40,7 +40,7 @@ struct HeaderLink {
 impl Render for HeaderLink {
     fn render(&self) -> Markup {
         html! {
-          li ."mx-8" {
+          li ."sm:mx-8" {
             a href=(self.href) { (self.text) }
           }
         }
@@ -58,8 +58,8 @@ pub fn header() -> Markup {
           }
         }
 
-        nav class="flex flex-grow w-full lg:ml-16 lg:max-w-[50%] pb-16 lg:pb-0" {
-          ul class="flex flex-row justify-center lg:justify-end items-center flex-grow" {
+        nav class="flex flex-grow w-full lg:ml-16 lg:max-w-[50%] pb-4 sm:pb-8" {
+          ul class="flex flex-col sm:flex-row justify-center lg:justify-end sm:items-center flex-grow space-y-4 sm:space-y-0" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
             (HeaderLink { href: "/til", text: "TILs" })

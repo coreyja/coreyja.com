@@ -4,7 +4,7 @@ use crate::http_server::templates::{LOGO_MONOCHROME_SVG, MAX_WIDTH_CONTAINER_CLA
 
 pub fn newsletter_signup_footer() -> Markup {
     html! {
-      div ."bg-[rgba(178,132,255,0.1)] py-16 flex flex-col items-center space-y-8" {
+      div ."bg-[rgba(178,132,255,0.1)] py-16 flex flex-col items-center space-y-8 px-4" {
         h2 ."text-3xl leading-none" { "coreyja weekly" }
         p ."max-x-prose leading-loose" {
           "My weekly newsletter tailored at developers who are eager to grow with me!"

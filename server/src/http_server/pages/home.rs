@@ -7,7 +7,8 @@ use crate::{
     http_server::templates::{
         base,
         buttons::LinkButton,
-        posts::{BlogPostList, TilPostList}, constrained_width,
+        constrained_width,
+        posts::{BlogPostList, TilPostList},
     },
     posts::{blog::BlogPosts, til::TilPosts},
 };
@@ -26,7 +27,7 @@ pub(crate) async fn home_page(
         (constrained_width(html! {
             ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
                 ."md:w-[60%]" {
-                    h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-16 pb-4" {
+                    h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-8 md:pt-16 pb-4" {
                         "Educational & entertaining content for developers of all skill levels"
                     }
 
