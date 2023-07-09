@@ -75,6 +75,7 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .route("/til/:slug", get(pages::til::til_get))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
+        .route("/newsletter", get(newsletter_get))
         .fallback(fallback)
         .with_state(config)
         .layer(
@@ -138,4 +139,12 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     );
 
     Ok((headers, entry.contents()).into_response())
+}
+
+async fn newsletter_get() -> ResponseResult {
+    Ok((
+        axum::http::StatusCode::OK,
+        templates::newsletter::newsletter_page(),
+    )
+        .into_response())
 }

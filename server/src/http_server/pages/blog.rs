@@ -12,7 +12,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base, posts::BlogPostList},
+        templates::{base_constrained, posts::BlogPostList},
     },
     posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
     AppConfig,
@@ -46,7 +46,7 @@ pub(crate) fn generate_rss(config: AppConfig, posts: &BlogPosts) -> rss::Channel
     use rss::ChannelBuilder;
 
     let channel = ChannelBuilder::default()
-        .title("Coreyja Blog".to_string())
+        .title("coreyja Blog".to_string())
         .link(config.home_page())
         .items(items)
         .build();
@@ -65,7 +65,7 @@ impl IntoResponse for MyChannel {
 
 #[instrument(skip_all)]
 pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
-    Ok(base(html! {
+    Ok(base_constrained(html! {
       h1 class="text-3xl" { "Blog Posts" }
       (BlogPostList(posts.by_recency()))
     }))
@@ -97,7 +97,7 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
-    Ok(base(html! {
+    Ok(base_constrained(html! {
       h1 class="text-2xl" { (markdown.title) }
       subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
