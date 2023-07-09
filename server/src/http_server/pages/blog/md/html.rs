@@ -292,7 +292,7 @@ impl IntoHtml for Code {
 impl IntoHtml for ThematicBreak {
     fn into_html(self, _context: &HtmlRenderContext) -> Markup {
         html! {
-          hr class="my-8";
+          hr class="my-8 opacity-20";
         }
     }
 }
