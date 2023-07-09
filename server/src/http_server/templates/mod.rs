@@ -107,7 +107,7 @@ pub fn constrained_width(inner: Markup) -> Markup {
 pub fn newsletter() -> Markup {
     html! {
       div ."bg-[rgba(178,132,255,0.1)] py-16 flex flex-col items-center space-y-8" {
-        h2 ."text-3xl" { "Newsletter" }
+        h2 ."text-3xl leading-none" { "Newsletter" }
         p ."max-x-prose" { "Tailored for developers who are eager to grow together in web development!" }
 
         form
