@@ -12,7 +12,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base, base_constrained, posts::BlogPostList},
+        templates::{base_constrained, posts::BlogPostList},
     },
     posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
     AppConfig,

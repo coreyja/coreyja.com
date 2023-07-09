@@ -27,16 +27,16 @@ Gatsby makes it super simple to get setup with a `manifest.json` which is requir
 
 ```js
 {
-	resolve: `gatsby-plugin-manifest`,
-	options: {
-		name: `coreyja Blog`,
-		short_name: `coreyja Blog`,
-		start_url: `/`,
-		background_color: `#aa66cc`,
-		theme_color: `#aa66cc`,
-		display: `minimal-ui`,
-		icon: `content/assets/favicon.svg`
-	}
+ resolve: `gatsby-plugin-manifest`,
+ options: {
+  name: `coreyja Blog`,
+  short_name: `coreyja Blog`,
+  start_url: `/`,
+  background_color: `#aa66cc`,
+  theme_color: `#aa66cc`,
+  display: `minimal-ui`,
+  icon: `content/assets/favicon.svg`
+ }
 }
 ```
 

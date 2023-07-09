@@ -10,7 +10,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base, base_constrained, posts::TilPostList},
+        templates::{base_constrained, posts::TilPostList},
     },
     posts::til::TilPosts,
 };
