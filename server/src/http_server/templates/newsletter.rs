@@ -14,13 +14,13 @@ pub(crate) fn newsletter_page() -> Markup {
           "Sign up below to read one day early!"
         }
 
-        p class="m-y-8 leading-loose" {
+        p class="my-8 leading-loose" {
           "The newsletter will contain a summary of the week's posts, as well as more ramblings from me.
           Each week will be different, some weeks I'll share status updates on the projects I'm working on,
           and others I'll share about something I learned or a new tool I've been trying out."
         }
 
-        p class="m-y-8 leading-loose"  {
+        p class="my-8 leading-loose"  {
           "If there is a specific topic you'd like me to write about, check out my Github Sponsors page information about how
           you can sponsor a post! You get to pick the topic, and I'll write about in an upcoming newsletter."
         }
