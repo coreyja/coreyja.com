@@ -1,13 +1,14 @@
 use axum::{
     extract::{Path, State},
-    http::Uri,
+    http::{Uri, uri::Port},
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router, Server,
 };
 use include_dir::*;
+use tracing::Level;
 use std::{net::SocketAddr, sync::Arc};
-use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer, MakeSpan, OnResponse};
 
 use crate::{
     posts::blog::{BlogPosts, ToCanonicalPath},
@@ -41,6 +42,7 @@ const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 
 type ResponseResult<T = Response> = Result<T, MietteError>;
+
 
 pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
     let syntax_css = syntect::html::css_for_theme_with_class_style(
@@ -80,8 +82,8 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .with_state(config)
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new().include_headers(true))
-                .on_response(DefaultOnResponse::new().include_headers(true)),
+                .make_span_with(MyMakeSpan)
+                .on_response(MyMakeSpan),
         );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -92,6 +94,54 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .map_err(|_| miette::miette!("Failed to run server"))?;
 
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MyMakeSpan;
+
+impl<Body> MakeSpan<Body> for MyMakeSpan {
+    fn make_span(&mut self, request: &axum::http::Request<Body>) -> tracing::Span {
+        tracing::span!(
+            Level::INFO,
+            "request",
+            kind = "server",
+            uri = %request.uri(),
+            ulr.path = %request.uri().path(),
+            url.query = request.uri().query(),
+            url.scheme = request.uri().scheme_str(),
+            server.address = request.uri().host(),
+            server.port = request.uri().port_u16(),
+            http_version = ?request.version(),
+            user_agent.original = request.headers().get("user-agent").and_then(|h| h.to_str().ok()),
+            http.request.method = %request.method(),
+            http.request.header.host = request.headers().get("host").and_then(|h| h.to_str().ok()),
+            http.request.header.forwarded_for = request.headers().get("x-forwarded-for").and_then(|h| h.to_str().ok()),
+            http.request.header.forwarded_proto = request.headers().get("x-forwarded-proto").and_then(|h| h.to_str().ok()),
+            http.request.header.host = request.headers().get("x-forwarded-ssl").and_then(|h| h.to_str().ok()),
+            http.request.header.referer = request.headers().get("referer").and_then(|h| h.to_str().ok()),
+            http.request.header.fly_forwarded_port = request.headers().get("fly-forwarded-port").and_then(|h| h.to_str().ok()),
+            http.request.header.fly_region = request.headers().get("fly-region").and_then(|h| h.to_str().ok()),
+            http.request.header.via = request.headers().get("via").and_then(|h| h.to_str().ok()),
+
+            http.response.status_code = tracing::field::Empty,
+            http.response.header.content_type = tracing::field::Empty,
+        )
+    }
+}
+
+impl<Body> OnResponse<Body> for MyMakeSpan {
+    fn on_response(self, response: &axum::http::Response<Body>, latency: std::time::Duration, span: &tracing::Span) {
+        let status_code = response.status().as_u16();
+        tracing::event!(
+            Level::INFO,
+            status = status_code,
+            latency =  format_args!("{} ms", latency.as_millis()),
+            "finished processing request"
+        );
+
+        span.record("http.response.status_code", status_code);
+        span.record("http.response.header.content_type", response.headers().get("content-type").and_then(|h| h.to_str().ok()));
+    }
 }
 
 async fn redirect_to_posts_index() -> impl IntoResponse {
