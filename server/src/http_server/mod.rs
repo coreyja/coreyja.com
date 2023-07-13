@@ -1,14 +1,14 @@
 use axum::{
     extract::{Path, State},
-    http::{Uri, uri::Port},
+    http::Uri,
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router, Server,
 };
 use include_dir::*;
-use tracing::Level;
 use std::{net::SocketAddr, sync::Arc};
-use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer, MakeSpan, OnResponse};
+use tower_http::trace::{MakeSpan, OnResponse, TraceLayer};
+use tracing::Level;
 
 use crate::{
     posts::blog::{BlogPosts, ToCanonicalPath},
@@ -42,7 +42,6 @@ const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 
 type ResponseResult<T = Response> = Result<T, MietteError>;
-
 
 pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
     let syntax_css = syntect::html::css_for_theme_with_class_style(
@@ -130,17 +129,28 @@ impl<Body> MakeSpan<Body> for MyMakeSpan {
 }
 
 impl<Body> OnResponse<Body> for MyMakeSpan {
-    fn on_response(self, response: &axum::http::Response<Body>, latency: std::time::Duration, span: &tracing::Span) {
+    fn on_response(
+        self,
+        response: &axum::http::Response<Body>,
+        latency: std::time::Duration,
+        span: &tracing::Span,
+    ) {
         let status_code = response.status().as_u16();
         tracing::event!(
             Level::INFO,
             status = status_code,
-            latency =  format_args!("{} ms", latency.as_millis()),
+            latency = format_args!("{} ms", latency.as_millis()),
             "finished processing request"
         );
 
         span.record("http.response.status_code", status_code);
-        span.record("http.response.header.content_type", response.headers().get("content-type").and_then(|h| h.to_str().ok()));
+        span.record(
+            "http.response.header.content_type",
+            response
+                .headers()
+                .get("content-type")
+                .and_then(|h| h.to_str().ok()),
+        );
     }
 }
 
