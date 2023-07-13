@@ -1,6 +1,17 @@
+use include_dir::{include_dir, Dir};
 use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
+use tracing::instrument;
 
-use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
+use crate::{
+    http_server::{image_optimization::Assets, pages::blog::md::HtmlRenderContext},
+    *,
+};
+
+#[instrument]
+async fn optimize_static_images() -> Result<Assets<'static>> {
+    const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
+    Assets::from_dir(STATIC_ASSETS).await
+}
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
@@ -42,6 +53,9 @@ pub(crate) async fn serve() -> Result<()> {
     let til_posts = TilPosts::from_static_dir()?;
     let til_posts = Arc::new(til_posts);
 
+    let static_assets = optimize_static_images().await?;
+    let static_assets = Arc::new(static_assets);
+
     let app_state = AppState {
         twitch: twitch_config,
         db_pool: pool,
@@ -52,6 +66,7 @@ pub(crate) async fn serve() -> Result<()> {
         markdown_to_html_context,
         blog_posts,
         til_posts,
+        static_assets,
     };
 
     info!("About to run migrations (if any to apply)");

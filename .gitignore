@@ -10,3 +10,5 @@ target/
 
 # No sqlite databases
 *.sqlite3
+
+.cache/

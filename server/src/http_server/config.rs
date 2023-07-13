@@ -8,7 +8,7 @@ use crate::{
     AppConfig, AppState,
 };
 
-use super::pages::blog::md::HtmlRenderContext;
+use super::{image_optimization::Assets, pages::blog::md::HtmlRenderContext};
 
 impl FromRef<AppState> for TwitchConfig {
     fn from_ref(config: &AppState) -> Self {
@@ -37,5 +37,11 @@ impl FromRef<AppState> for Arc<BlogPosts> {
 impl FromRef<AppState> for Arc<TilPosts> {
     fn from_ref(config: &AppState) -> Self {
         config.til_posts.clone()
+    }
+}
+
+impl FromRef<AppState> for Arc<Assets<'static>> {
+    fn from_ref(config: &AppState) -> Self {
+        config.static_assets.clone()
     }
 }

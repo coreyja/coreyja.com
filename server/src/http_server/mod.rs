@@ -5,17 +5,20 @@ use axum::{
     routing::{get, post},
     Router, Server,
 };
-use include_dir::*;
+
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::trace::{MakeSpan, OnResponse, TraceLayer};
 use tracing::Level;
 
 use crate::{
+    http_server::image_optimization::Assets,
     posts::blog::{BlogPosts, ToCanonicalPath},
     AppState,
 };
 pub use config::*;
 use errors::*;
+
+use self::image_optimization::CACHE_DIR;
 
 pub(crate) mod cmd;
 
@@ -37,9 +40,9 @@ mod config;
 pub mod errors;
 mod templates;
 
-const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
+pub(crate) mod image_optimization;
 
-const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
+const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 
 type ResponseResult<T = Response> = Result<T, MietteError>;
 
@@ -51,7 +54,7 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
     .unwrap();
 
     let app = Router::new()
-        .route("/static/*path", get(static_assets))
+        .route("/static/*path", get(static_asset_route))
         .route("/styles/syntax.css", get(|| async move { syntax_css }))
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
         .route("/", get(pages::home::home_page))
@@ -175,13 +178,18 @@ async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Response {
     }
 }
 
-async fn static_assets(Path(p): Path<String>) -> ResponseResult {
+async fn static_asset_route(
+    Path(p): Path<String>,
+    State(assets): State<Arc<Assets<'static>>>,
+) -> ResponseResult {
     let path = p.strip_prefix('/').unwrap_or(&p);
     let path = path.strip_suffix('/').unwrap_or(path);
 
-    let entry = STATIC_ASSETS.get_file(path);
+    let mime = mime_guess::from_path(path).first_or_octet_stream();
 
-    let Some(entry) = entry else {
+    let asset = assets.get(path);
+
+    let Some(asset) = asset else {
         return Ok(
             (
                 axum::http::StatusCode::NOT_FOUND,
@@ -190,15 +198,43 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
         .into_response());
     };
 
-    let mime = mime_guess::from_path(path).first_or_octet_stream();
+    match asset {
+        image_optimization::Asset::Image(i) => {
+            let mut headers = axum::http::HeaderMap::new();
+            headers.insert(
+                axum::http::header::CONTENT_TYPE,
+                "image/webp".parse().unwrap(),
+            );
 
-    let mut headers = axum::http::HeaderMap::new();
-    headers.insert(
-        axum::http::header::CONTENT_TYPE,
-        mime.to_string().parse().unwrap(),
-    );
+            let image = cacache::read_hash(CACHE_DIR, &i.resized_hash)
+                .await
+                .unwrap();
 
-    Ok((headers, entry.contents()).into_response())
+            Ok((headers, image).into_response())
+        },
+        image_optimization::Asset::Other(f) => {
+            let mut headers = axum::http::HeaderMap::new();
+            headers.insert(
+                axum::http::header::CONTENT_TYPE,
+                mime.to_string().parse().unwrap(),
+            );
+
+            Ok((headers, f.contents().to_vec()).into_response())
+        }
+    }
+
+    // let image = cacache::read_hash(CACHE_DIR, &asset.op).unwrap();
+
+    // let mut buffer = BufWriter::new(Cursor::new(Vec::new()));
+    // image.write_to(&mut buffer, ImageFormat::Png).unwrap();
+
+    // let mut headers = axum::http::HeaderMap::new();
+    // headers.insert(
+    //     axum::http::header::CONTENT_TYPE,
+    //     mime.to_string().parse().unwrap(),
+    // );
+
+    // (headers, buffer.into_inner().unwrap().into_inner())
 }
 
 async fn newsletter_get() -> ResponseResult {
