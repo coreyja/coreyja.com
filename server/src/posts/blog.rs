@@ -236,6 +236,12 @@ pub(crate) struct PostMarkdown {
 pub(crate) struct BlogFrontMatter {
     pub title: String,
     pub date: NaiveDate,
+    #[serde(default = "default_is_newsletter")]
+    pub is_newsletter: bool,
+}
+
+fn default_is_newsletter() -> bool {
+    false
 }
 
 pub trait ToCanonicalPath {

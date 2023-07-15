@@ -1,8 +1,16 @@
+use std::sync::Arc;
+
+use axum::extract::State;
 use maud::{html, Markup};
+
+use crate::{
+    http_server::templates::posts::BlogPostList,
+    posts::blog::{BlogPost, BlogPosts},
+};
 
 use super::base_constrained;
 
-pub(crate) fn newsletter_page() -> Markup {
+pub(crate) fn newsletter_page(newsletters: Vec<&BlogPost>) -> Markup {
     base_constrained(html! {
       div  class="max-w-prose"  {
         h1 class="text-3xl mb-8" { "coreyja weekly" }
@@ -27,11 +35,7 @@ pub(crate) fn newsletter_page() -> Markup {
 
         h2 class="text-2xl pt-16 pb-8" { "Past Newsletters" }
 
-        p."pb-4" { "Coming soon!" }
-        p class="leading-loose" {
-          "The first scheduled coreyja weekly is set to be released on July 16th 2023.
-          Sign up below to get it in your inbox on the 16th, or check back in on the 17th when its posted here."
-        }
+        (BlogPostList(newsletters))
       }
     })
 }

@@ -201,10 +201,16 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     Ok((headers, entry.contents()).into_response())
 }
 
-async fn newsletter_get() -> ResponseResult {
+async fn newsletter_get(State(posts): State<Arc<BlogPosts>>) -> ResponseResult {
+    let newsletters = posts
+        .by_recency()
+        .into_iter()
+        .filter(|p| p.frontmatter.is_newsletter)
+        .collect::<Vec<_>>();
+
     Ok((
         axum::http::StatusCode::OK,
-        templates::newsletter::newsletter_page(),
+        templates::newsletter::newsletter_page(newsletters),
     )
         .into_response())
 }
