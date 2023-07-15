@@ -311,6 +311,7 @@ mod test {
         let meta = BlogFrontMatter {
             title: "Sample Post".to_string(),
             date: Default::default(),
+            is_newsletter: false,
         };
         let post = BlogPost {
             path,

@@ -1,11 +1,11 @@
-use std::sync::Arc;
 
-use axum::extract::State;
+
+
 use maud::{html, Markup};
 
 use crate::{
     http_server::templates::posts::BlogPostList,
-    posts::blog::{BlogPost, BlogPosts},
+    posts::blog::{BlogPost},
 };
 
 use super::base_constrained;
