@@ -6,10 +6,8 @@ use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
-use poise::serenity_prelude::{self as serenity, CacheAndHttp, ChannelId, Color};
+use poise::serenity_prelude::{self as serenity};
 use posts::{blog::BlogPosts, til::TilPosts};
-use reqwest::Client;
-use rss::Channel;
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
@@ -38,9 +36,6 @@ use github::*;
 
 mod db;
 use db::*;
-
-mod my_rss;
-use my_rss::*;
 
 mod open_ai;
 use open_ai::*;
@@ -81,7 +76,6 @@ struct AppState {
     db_pool: SqlitePool,
     github: GithubConfig,
     open_ai: OpenAiConfig,
-    rss: RssConfig,
     app: AppConfig,
     markdown_to_html_context: HtmlRenderContext,
     blog_posts: Arc<BlogPosts>,

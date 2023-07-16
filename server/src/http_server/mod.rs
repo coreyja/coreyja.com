@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::Uri,
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
+    routing::*,
     Router, Server,
 };
 use include_dir::*;
@@ -20,7 +20,6 @@ use errors::*;
 pub(crate) mod cmd;
 
 pub(crate) mod pages {
-    pub mod admin;
     pub mod blog;
     pub mod home;
     pub mod til;

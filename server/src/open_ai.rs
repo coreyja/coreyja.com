@@ -2,6 +2,9 @@ use miette::Result;
 
 use crate::*;
 
+pub(crate) mod completion;
+pub(crate) mod edit;
+
 #[derive(Debug, Clone)]
 pub(crate) struct OpenAiConfig {
     pub api_key: String,
@@ -18,10 +21,3 @@ impl OpenAiConfig {
         })
     }
 }
-
-mod completion;
-pub(crate) use completion::*;
-
-mod edit;
-#[allow(unused_imports)]
-pub(crate) use edit::*;

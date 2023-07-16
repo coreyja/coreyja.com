@@ -6,7 +6,6 @@ pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
-    let rss_config = RssConfig::from_env()?;
     let open_ai_config = OpenAiConfig::from_env()?;
 
     let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
@@ -47,7 +46,6 @@ pub(crate) async fn serve() -> Result<()> {
         db_pool: pool,
         github: github_config,
         app: app_config,
-        rss: rss_config,
         open_ai: open_ai_config,
         markdown_to_html_context,
         blog_posts,

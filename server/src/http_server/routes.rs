@@ -8,14 +8,6 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/", get(pages::home::home_page))
         .route("/twitch_oauth", get(api::external::twitch_oauth::handler))
         .route("/github_oauth", get(api::external::github_oauth::handler))
-        .route(
-            "/admin/upwork/proposals/:id",
-            get(pages::admin::upwork_proposal_get),
-        )
-        .route(
-            "/admin/upwork/proposals/:id",
-            post(pages::admin::upwork_proposal_post),
-        )
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route(
             "/rss.xml",
