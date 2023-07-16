@@ -11,22 +11,22 @@ default-run = "server"
 [dependencies]
 axum = "0.6.2"
 axum-macros = "0.3.1"
-miette = { version = "5.7.0", features = ["fancy"] }
+miette = { version = "5.7", features = ["fancy"] }
 poise = "0.5.5"
 reqwest = { workspace = true }
-serde = "1.0.147"
-serde_json = "1.0.87"
-tokio = { version = "1.21.2", features = ["full"] }
+serde = "1.0"
+serde_json = "1.0"
+tokio = { version = "1.21", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.2.2"
 sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-rustls", "chrono"] }
-uuid = { version = "1.2.2", features = ["v4"] }
+uuid = { version = "1.2", features = ["v4"] }
 serde_urlencoded = "0.7.1"
-indoc = "2.0.1"
+indoc = "2.0"
 async-trait = "0.1.60"
 chrono = "0.4.23"
-rss = { version = "2.0.2", features = ["validation"] }
+rss = { version = "2.0", features = ["validation"] }
 
 sentry = { version ="0.31.5", default-features = false, features = ["rustls", "backtrace", "contexts", "panic", "tower", "reqwest"] }
 sentry-tower = { version = "0.31.5", features = ["http"] }
@@ -40,12 +40,12 @@ include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 markdown = "1.0.0-alpha"
 serde_yaml = "0.9"
 
-clap = { version = "4.2.1", features = ["derive"] }
-syntect = "5.0.0"
-path-absolutize = "3.0.14"
-urlencoding = "2.1.2"
+clap = { version = "4.2", features = ["derive"] }
+syntect = "5.0"
+path-absolutize = "3.0"
+urlencoding = "2.1"
 
 tower-http = { version = "0.4.0", features = ["trace"] }
 tower = "0.4.13"
-mime_guess = "2.0.4"
-thiserror = "1.0.40"
+mime_guess = "2.0"
+thiserror = "1.0"
