@@ -50,6 +50,10 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
     )
     .unwrap();
 
+    let tracer = Tracer;
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(tracer)
+        .on_response(tracer);
     let app = Router::new()
         .route("/static/*path", get(static_assets))
         .route("/styles/syntax.css", get(|| async move { syntax_css }))
@@ -86,11 +90,7 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .route("/newsletter", get(newsletter_get))
         .fallback(fallback)
         .with_state(config)
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(MyMakeSpan)
-                .on_response(MyMakeSpan),
-        );
+        .layer(trace_layer);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
@@ -103,9 +103,9 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct MyMakeSpan;
+struct Tracer;
 
-impl<Body> MakeSpan<Body> for MyMakeSpan {
+impl<Body> MakeSpan<Body> for Tracer {
     fn make_span(&mut self, request: &axum::http::Request<Body>) -> tracing::Span {
         tracing::span!(
             Level::INFO,
@@ -135,7 +135,7 @@ impl<Body> MakeSpan<Body> for MyMakeSpan {
     }
 }
 
-impl<Body> OnResponse<Body> for MyMakeSpan {
+impl<Body> OnResponse<Body> for Tracer {
     fn on_response(
         self,
         response: &axum::http::Response<Body>,

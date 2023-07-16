@@ -1,12 +1,6 @@
-
-
-
 use maud::{html, Markup};
 
-use crate::{
-    http_server::templates::posts::BlogPostList,
-    posts::blog::{BlogPost},
-};
+use crate::{http_server::templates::posts::BlogPostList, posts::blog::BlogPost};
 
 use super::base_constrained;
 
