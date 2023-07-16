@@ -386,15 +386,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chrono_utils"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f69ed74e2117892a1a4e05d31f6612178e8e827bfbd83bbf8ca8c1bcfbda710"
-dependencies = [
- "chrono",
-]
-
-[[package]]
 name = "clap"
 version = "4.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2592,28 +2583,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sitemap"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c697e1d88854f66d7d805e8b532e341661a4b8f49fab419be8e82b0cafdeb4d"
-dependencies = [
- "chrono",
- "chrono_utils",
- "url",
- "xml-rs",
-]
-
-[[package]]
-name = "sitemap-checker"
-version = "0.1.0"
-dependencies = [
- "miette",
- "reqwest",
- "sitemap",
- "tokio",
-]
-
-[[package]]
 name = "slab"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3784,12 +3753,6 @@ checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "winapi",
 ]
-
-[[package]]
-name = "xml-rs"
-version = "0.8.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52839dc911083a8ef63efa4d039d1f58b5e409f923e44c80828f206f66e5541c"
 
 [[package]]
 name = "yaml-rust"
