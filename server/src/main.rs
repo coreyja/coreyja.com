@@ -45,6 +45,7 @@ use my_rss::*;
 mod open_ai;
 use open_ai::*;
 
+mod commands;
 mod posts;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -181,37 +182,6 @@ fn setup_tracing() -> Result<()> {
 struct CliArgs {
     #[clap(subcommand)]
     command: Option<Command>,
-}
-
-mod commands {
-    use clap::Subcommand;
-    use miette::Result;
-
-    pub(crate) mod info;
-    pub(crate) mod validate;
-
-    #[derive(Subcommand)]
-    pub(crate) enum Command {
-        Serve,
-        Print,
-        Validate,
-    }
-
-    impl Default for Command {
-        fn default() -> Self {
-            Self::Serve
-        }
-    }
-
-    impl Command {
-        pub(crate) async fn run(&self) -> Result<()> {
-            match &self {
-                Command::Serve => crate::http_server::cmd::serve().await,
-                Command::Print => info::print_info().await,
-                Command::Validate => validate::validate().await,
-            }
-        }
-    }
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
