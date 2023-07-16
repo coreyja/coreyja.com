@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "bb0470c2b186de8a4e3608e84b05c27c8019be8fac87bf0b244f14a8ed9be923"
+}

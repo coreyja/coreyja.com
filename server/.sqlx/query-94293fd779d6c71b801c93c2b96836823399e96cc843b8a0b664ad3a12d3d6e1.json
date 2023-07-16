@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM UserGithubLinks WHERE user_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "external_github_username",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "access_token",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "refresh_token",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "access_token_expires_at",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "refresh_token_expires_at",
+        "ordinal": 6,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 8,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "94293fd779d6c71b801c93c2b96836823399e96cc843b8a0b664ad3a12d3d6e1"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT user_id\n            FROM UserTwitchLinkStates\n            WHERE  \n                state = $1 AND\n                status = 'pending'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1847425b83afb1c6b3402cbd3a26d93c086ed4407cad1f72bd4870c8a44af4ed"
+}

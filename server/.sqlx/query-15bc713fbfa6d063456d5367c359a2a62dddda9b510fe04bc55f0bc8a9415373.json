@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE UserGithubLinkStates\n            SET\n                status = 'used' AND\n                updated_at = CURRENT_TIMESTAMP\n            WHERE state = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "15bc713fbfa6d063456d5367c359a2a62dddda9b510fe04bc55f0bc8a9415373"
+}
