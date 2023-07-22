@@ -2,12 +2,28 @@ use std::unreachable;
 
 use markdown::mdast::*;
 use maud::{html, Markup, PreEscaped};
-use syntect::html::{ClassStyle, ClassedHTMLGenerator};
+use syntect::{
+    highlighting::ThemeSet,
+    html::{ClassStyle, ClassedHTMLGenerator},
+    parsing::SyntaxSet,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct HtmlRenderContext {
     pub(crate) theme: syntect::highlighting::Theme,
     pub(crate) syntax_set: syntect::parsing::SyntaxSet,
+}
+
+impl Default for HtmlRenderContext {
+    fn default() -> Self {
+        let ps = SyntaxSet::load_defaults_newlines();
+        let ts = ThemeSet::load_defaults();
+
+        HtmlRenderContext {
+            syntax_set: ps,
+            theme: ts.themes.get("base16-ocean.dark").unwrap().clone(),
+        }
+    }
 }
 pub(crate) trait IntoHtml {
     fn into_html(self, context: &HtmlRenderContext) -> Markup;

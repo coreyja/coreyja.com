@@ -8,6 +8,7 @@ use axum::{
 
 use maud::{html, Markup};
 use tracing::instrument;
+use uuid::timestamp::context;
 
 use crate::{
     http_server::{
@@ -15,7 +16,7 @@ use crate::{
         templates::{base_constrained, posts::BlogPostList},
     },
     posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
-    AppConfig,
+    AppConfig, AppState,
 };
 
 use self::md::HtmlRenderContext;
@@ -27,27 +28,37 @@ struct MyChannel(rss::Channel);
 #[instrument(skip_all)]
 pub(crate) async fn rss_feed(
     State(config): State<AppConfig>,
+    State(context): State<HtmlRenderContext>,
     State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = generate_rss(config, &posts);
+    let channel = generate_rss(config, context, &posts);
     let channel = MyChannel(channel);
 
     Ok(channel.into_response())
 }
 
 #[instrument(skip_all)]
-pub(crate) fn generate_rss(config: AppConfig, posts: &BlogPosts) -> rss::Channel {
+pub(crate) fn generate_rss(
+    config: AppConfig,
+    render_context: HtmlRenderContext,
+    posts: &BlogPosts,
+) -> rss::Channel {
     let mut posts = posts.posts().clone();
     posts.sort_by_key(|p| *p.date());
     posts.reverse();
 
-    let items: Vec<_> = posts.iter().map(|p| p.to_rss_item(&config)).collect();
+    let items: Vec<_> = posts
+        .iter()
+        .map(|p| p.to_rss_item(&config, &render_context))
+        .collect();
 
     use rss::ChannelBuilder;
 
     let channel = ChannelBuilder::default()
         .title("coreyja Blog".to_string())
         .link(config.home_page())
+        .copyright(Some("Copyright Corey Alexander".to_string()))
+        .language(Some("en-us".to_string()))
         .items(items)
         .build();
     channel
