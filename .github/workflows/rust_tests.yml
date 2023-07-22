@@ -22,14 +22,12 @@ jobs:
         with:
           packages: protobuf-compiler
           version: v0
-      - name: Setup | Rust
-        uses: ATiltedTree/setup-rust@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          rust-version: stable
-          components: clippy
+          components: rustfmt clippy
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: "v0-rust"
+          prefix-key: "v1-rust"
       - run: |
           curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
           chmod +x tailwindcss-linux-x64 && \
@@ -47,13 +45,10 @@ jobs:
         with:
           packages: protobuf-compiler
           version: v0
-      - name: Setup | Rust
-        uses: ATiltedTree/setup-rust@v1
-        with:
-          rust-version: stable
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: "v0-rust"
+          prefix-key: "v1-rust"
       - run: |
           curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
           chmod +x tailwindcss-linux-x64 && \
@@ -71,13 +66,10 @@ jobs:
         with:
           packages: protobuf-compiler
           version: v0
-      - name: Setup | Rust
-        uses: ATiltedTree/setup-rust@v1
-        with:
-          rust-version: stable
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: "v0-rust"
+          prefix-key: "v1-rust"
       - name: Install sqlx-cli
         uses: baptiste0928/cargo-install@v1
         with:
@@ -105,17 +97,16 @@ jobs:
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v2
-      - name: Setup | Rust
-        uses: ATiltedTree/setup-rust@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
-          rust-version: ${{ matrix.rust }}
+          toolchain: ${{ matrix.rust }}
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: protobuf-compiler
           version: v0
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: "v0-rust"
+          prefix-key: "v1-rust"
       - run: |
           curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
           chmod +x tailwindcss-linux-x64 && \
@@ -126,10 +117,10 @@ jobs:
   cargo-deny:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
-    - name: Install cargo-binstall
-      run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - name: Install cargo-deny
-      run: cargo binstall --no-confirm cargo-deny
-    - name: Cargo Deny
-      run: cargo-deny check
+      - uses: actions/checkout@v3
+      - name: Install cargo-binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+      - name: Install cargo-deny
+        run: cargo binstall --no-confirm cargo-deny
+      - name: Cargo Deny
+        run: cargo-deny check
