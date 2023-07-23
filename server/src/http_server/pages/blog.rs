@@ -17,6 +17,8 @@ use crate::{
     },
     posts::{
         blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
+        date::PostedOn,
+        til::TilPosts,
         Post, ToRssItem,
     },
     AppConfig,
@@ -43,6 +45,10 @@ impl MyChannel {
             .map(|p| p.to_rss_item(&config, &render_context))
             .collect();
 
+        Self::from_items(config, &items)
+    }
+
+    pub fn from_items(config: AppConfig, items: &[rss::Item]) -> Self {
         use rss::ChannelBuilder;
 
         let channel = ChannelBuilder::default()
@@ -68,6 +74,35 @@ pub(crate) async fn rss_feed(
     State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let channel = MyChannel::from_posts(config, context, &posts.by_recency());
+
+    Ok(channel.into_response())
+}
+
+#[instrument(skip_all)]
+pub(crate) async fn full_rss_feed(
+    State(config): State<AppConfig>,
+    State(context): State<HtmlRenderContext>,
+    State(blog_posts): State<Arc<BlogPosts>>,
+    State(til_posts): State<Arc<TilPosts>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let mut items_with_date: Vec<(chrono::NaiveDate, rss::Item)> = vec![];
+    items_with_date.extend(
+        blog_posts
+            .by_recency()
+            .into_iter()
+            .map(|p| (p.posted_on(), p.to_rss_item(&config, &context))),
+    );
+    items_with_date.extend(
+        til_posts
+            .by_recency()
+            .into_iter()
+            .map(|p| (p.posted_on(), p.to_rss_item(&config, &context))),
+    );
+    items_with_date.sort_by_key(|&(date, _)| std::cmp::Reverse(date));
+
+    let items: Vec<rss::Item> = items_with_date.into_iter().map(|(_, i)| i).collect();
+
+    let channel = MyChannel::from_items(config, &items);
 
     Ok(channel.into_response())
 }

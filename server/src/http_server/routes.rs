@@ -9,10 +9,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/twitch_oauth", get(api::external::twitch_oauth::handler))
         .route("/github_oauth", get(api::external::github_oauth::handler))
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
-        .route(
-            "/rss.xml",
-            get(|| async { Redirect::permanent("/posts/rss.xml") }),
-        )
+        .route("/rss.xml", get(pages::blog::full_rss_feed))
         .route("/posts", get(pages::blog::posts_index))
         .route(
             "/posts/weekly/",
