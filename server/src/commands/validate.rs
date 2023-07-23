@@ -18,13 +18,11 @@ pub(crate) async fn validate() -> Result<()> {
     }
     println!("Posts Valid! ✅");
 
-    {
-        let tils = TilPosts::from_static_dir()?;
+    let tils = TilPosts::from_static_dir()?;
 
-        tils.validate()?;
-    }
+    tils.validate()?;
 
-    println!("Validating RSS feed...");
+    println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
     let render_context = HtmlRenderContext::default();
 
@@ -32,7 +30,17 @@ pub(crate) async fn validate() -> Result<()> {
 
     rss.validate().into_diagnostic()?;
 
-    println!("RSS Valid! ✅");
+    println!("Blog RSS Valid! ✅");
+
+    println!("Validating TIL RSS feed...");
+    let config = AppConfig::from_env()?;
+    let render_context = HtmlRenderContext::default();
+
+    let rss = MyChannel::from_posts(config, render_context, &tils.by_recency());
+
+    rss.validate().into_diagnostic()?;
+
+    println!("TIL RSS Valid! ✅");
 
     Ok(())
 }
