@@ -8,10 +8,22 @@ use markdown::{
 use miette::{Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 
-use crate::http_server::pages::blog::md::IntoHtml;
+use crate::{
+    http_server::pages::blog::md::{HtmlRenderContext, IntoHtml, IntoPlainText},
+    AppConfig,
+};
+
+use self::{
+    blog::{PostMarkdown, ToCanonicalPath},
+    date::PostedOn,
+    title::Title,
+};
 
 pub(crate) mod blog;
 pub(crate) mod til;
+
+pub(crate) mod date;
+pub(crate) mod title;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Post<FrontmatterType> {
@@ -71,5 +83,55 @@ impl IntoHtml for MarkdownAst {
         context: &crate::http_server::pages::blog::md::HtmlRenderContext,
     ) -> maud::Markup {
         self.0.into_html(context)
+    }
+}
+
+impl<FrontMatter> Post<FrontMatter> {
+    fn short_description(&self) -> Option<String> {
+        let contents = self.ast.0.plain_text();
+
+        Some(contents.chars().take(100).collect())
+    }
+}
+
+pub(crate) trait ToRssItem {
+    fn to_rss_item(&self, config: &AppConfig, render_context: &HtmlRenderContext) -> rss::Item;
+}
+
+impl<FrontMatter> ToRssItem for Post<FrontMatter>
+where
+    FrontMatter: PostedOn + Title,
+{
+    fn to_rss_item(&self, config: &AppConfig, render_context: &HtmlRenderContext) -> rss::Item {
+        let link = config.app_url(&self.canonical_path());
+
+        let formatted_date = self.posted_on().to_string();
+
+        rss::ItemBuilder::default()
+            .title(Some(self.title().to_string()))
+            .link(Some(link))
+            .description(self.short_description())
+            .pub_date(Some(formatted_date))
+            .content(Some(
+                self.markdown()
+                    .ast
+                    .0
+                    .into_html(render_context)
+                    .into_string(),
+            ))
+            .build()
+    }
+}
+
+impl<FrontMatter> Post<FrontMatter>
+where
+    FrontMatter: PostedOn + Title,
+{
+    pub(crate) fn markdown(&self) -> PostMarkdown {
+        PostMarkdown {
+            title: self.title().to_string(),
+            date: self.posted_on().to_string(),
+            ast: self.ast.clone(),
+        }
     }
 }

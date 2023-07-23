@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::mdast::Node;
 use miette::{Context, IntoDiagnostic, Result};
@@ -7,7 +8,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::posts::{MarkdownAst, Post};
 
-use super::blog::{PostMarkdown, ValidateMarkdown};
+use super::{
+    blog::{PostMarkdown, ValidateMarkdown},
+    date::{ByRecency, PostedOn},
+    title::Title,
+};
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
@@ -21,8 +26,20 @@ pub(crate) type TilPost = Post<FrontMatter>;
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub(crate) struct FrontMatter {
     pub title: String,
-    pub date: String,
+    pub date: NaiveDate,
     pub slug: String,
+}
+
+impl PostedOn for FrontMatter {
+    fn posted_on(&self) -> chrono::NaiveDate {
+        self.date
+    }
+}
+
+impl Title for FrontMatter {
+    fn title(&self) -> &str {
+        &self.title
+    }
 }
 
 impl TilPost {
@@ -52,14 +69,6 @@ impl TilPost {
         root_node.validate_images(&p)?;
 
         Ok(())
-    }
-
-    pub(crate) fn markdown(&self) -> PostMarkdown {
-        PostMarkdown {
-            title: self.frontmatter.title.clone(),
-            date: self.frontmatter.date.to_string(),
-            ast: self.ast.clone(),
-        }
     }
 }
 
@@ -118,9 +127,6 @@ impl TilPosts {
     }
 
     pub fn by_recency(&self) -> Vec<&TilPost> {
-        let mut posts = self.posts.iter().collect::<Vec<_>>();
-        posts.sort_by_key(|p| p.frontmatter.date.clone());
-        posts.reverse();
-        posts
+        self.posts.by_recency()
     }
 }

@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+};
 
 use maud::{html, Markup};
 use miette::Result;
@@ -13,9 +16,10 @@ use crate::{
         templates::{base_constrained, posts::TilPostList},
     },
     posts::til::TilPosts,
+    AppConfig,
 };
 
-use super::blog::md::HtmlRenderContext;
+use super::blog::{md::HtmlRenderContext, MyChannel};
 
 #[instrument(skip_all)]
 pub(crate) async fn til_index(
@@ -27,6 +31,17 @@ pub(crate) async fn til_index(
       h1 class="text-3xl" { "Today I Learned" }
       (TilPostList(posts))
     }))
+}
+
+#[instrument(skip_all)]
+pub(crate) async fn rss_feed(
+    State(config): State<AppConfig>,
+    State(context): State<HtmlRenderContext>,
+    State(posts): State<Arc<TilPosts>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let channel = MyChannel::from_posts(config, context, &posts.by_recency());
+
+    Ok(channel.into_response())
 }
 
 #[instrument(skip(til_posts, context))]

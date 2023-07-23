@@ -14,6 +14,11 @@ use crate::{
     AppConfig,
 };
 
+use super::{
+    date::{ByRecency, PostedOn},
+    title::Title,
+};
+
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
 #[derive(Debug)]
@@ -85,14 +90,6 @@ impl BlogPost {
         }
     }
 
-    pub(crate) fn markdown(&self) -> PostMarkdown {
-        PostMarkdown {
-            title: self.frontmatter.title.clone(),
-            date: self.frontmatter.date.to_string(),
-            ast: self.ast.clone(),
-        }
-    }
-
     pub(crate) fn to_rss_item(
         &self,
         config: &AppConfig,
@@ -115,12 +112,6 @@ impl BlogPost {
                     .into_string(),
             ))
             .build()
-    }
-
-    fn short_description(&self) -> Option<String> {
-        let contents = self.ast.0.plain_text();
-
-        Some(contents.chars().take(100).collect())
     }
 }
 
@@ -185,11 +176,7 @@ impl BlogPosts {
     }
 
     pub(crate) fn by_recency(&self) -> Vec<&BlogPost> {
-        let mut posts: Vec<_> = self.posts.iter().collect();
-
-        posts.sort_by_key(|p| *p.date());
-        posts.reverse();
-        posts
+        self.posts.by_recency()
     }
 }
 
@@ -254,6 +241,18 @@ pub(crate) struct BlogFrontMatter {
     pub is_newsletter: bool,
 }
 
+impl PostedOn for BlogFrontMatter {
+    fn posted_on(&self) -> chrono::NaiveDate {
+        self.date
+    }
+}
+
+impl Title for BlogFrontMatter {
+    fn title(&self) -> &str {
+        &self.title
+    }
+}
+
 fn default_is_newsletter() -> bool {
     false
 }
@@ -282,13 +281,13 @@ impl ToCanonicalPath for PathBuf {
     }
 }
 
-impl ToCanonicalPath for BlogPost {
+impl<T> ToCanonicalPath for Post<T> {
     fn canonical_path(&self) -> String {
         self.path.canonical_path()
     }
 }
 
-impl ToCanonicalPath for &BlogPost {
+impl<T> ToCanonicalPath for &Post<T> {
     fn canonical_path(&self) -> String {
         self.path.canonical_path()
     }

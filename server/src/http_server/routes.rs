@@ -23,6 +23,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .route("/posts/*key", get(pages::blog::post_get))
         .route("/til", get(pages::til::til_index))
+        .route("/til/rss.xml", get(pages::til::rss_feed))
         .route("/til/:slug", get(pages::til::til_get))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))

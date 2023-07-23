@@ -28,7 +28,7 @@ pub(crate) async fn validate() -> Result<()> {
     let config = AppConfig::from_env()?;
     let render_context = HtmlRenderContext::default();
 
-    let rss = MyChannel::from_posts(config, render_context, &posts);
+    let rss = MyChannel::from_posts(config, render_context, &posts.by_recency());
 
     rss.validate().into_diagnostic()?;
 

@@ -10,13 +10,16 @@ use maud::{html, Markup};
 use rss::validation::Validate;
 use tracing::instrument;
 
-
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
         templates::{base_constrained, posts::BlogPostList},
     },
-    posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
+    posts::{
+        blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
+        date::PostedOn,
+        Post, ToRssItem,
+    },
     AppConfig,
 };
 
@@ -28,15 +31,14 @@ pub(crate) struct MyChannel(rss::Channel);
 
 impl MyChannel {
     #[instrument(skip_all)]
-    pub fn from_posts(
+    pub fn from_posts<T>(
         config: AppConfig,
         render_context: HtmlRenderContext,
-        posts: &BlogPosts,
-    ) -> Self {
-        let mut posts = posts.posts().clone();
-        posts.sort_by_key(|p| *p.date());
-        posts.reverse();
-
+        posts: &Vec<&Post<T>>,
+    ) -> Self
+    where
+        Post<T>: ToRssItem,
+    {
         let items: Vec<_> = posts
             .iter()
             .map(|p| p.to_rss_item(&config, &render_context))
@@ -66,7 +68,7 @@ pub(crate) async fn rss_feed(
     State(context): State<HtmlRenderContext>,
     State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = MyChannel::from_posts(config, context, &posts);
+    let channel = MyChannel::from_posts(config, context, &posts.by_recency());
 
     Ok(channel.into_response())
 }
