@@ -13,22 +13,18 @@ where
     }
 }
 
-pub trait ByRecency {
-    type Item;
-
-    fn by_recency(&self) -> Vec<&Self::Item>;
+pub trait ByRecency<Item> {
+    fn by_recency(&self) -> Vec<&Item>;
 }
 
-impl<T> ByRecency for Vec<T>
+impl<T> ByRecency<T> for Vec<T>
 where
     T: PostedOn,
 {
-    type Item = T;
-
-    fn by_recency(&self) -> Vec<&Self::Item> {
+    fn by_recency(&self) -> Vec<&T> {
         let mut v: Vec<_> = self.iter().collect();
 
-        v.sort_by(|a, b| b.posted_on().cmp(&a.posted_on()).reverse());
+        v.sort_by_key(|item| std::cmp::Reverse(item.posted_on()));
 
         v
     }
