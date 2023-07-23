@@ -59,5 +59,6 @@ tracing = "0.1.37"
 tracing-opentelemetry = "0.19.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.2.2"
+url = "2.4.0"
 urlencoding = "2.1"
 uuid = { version = "1.2", features = ["v4"] }

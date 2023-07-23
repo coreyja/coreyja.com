@@ -29,7 +29,7 @@ mod twitch;
 use twitch::*;
 
 mod http_server;
-use http_server::{pages::blog::md::HtmlRenderContext, *};
+use http_server::{pages::blog::md::SyntaxHighlightingContext, *};
 
 mod github;
 use github::*;
@@ -77,7 +77,7 @@ struct AppState {
     github: GithubConfig,
     open_ai: OpenAiConfig,
     app: AppConfig,
-    markdown_to_html_context: HtmlRenderContext,
+    markdown_to_html_context: SyntaxHighlightingContext,
     blog_posts: Arc<BlogPosts>,
     til_posts: Arc<TilPosts>,
 }

@@ -1,11 +1,11 @@
-use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
+use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
     let open_ai_config = OpenAiConfig::from_env()?;
-    let markdown_to_html_context = HtmlRenderContext::default();
+    let markdown_to_html_context = SyntaxHighlightingContext::default();
 
     let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
         let path = std::env::var("DATABASE_PATH");

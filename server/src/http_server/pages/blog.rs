@@ -24,7 +24,7 @@ use crate::{
     AppConfig,
 };
 
-use self::md::HtmlRenderContext;
+use self::md::SyntaxHighlightingContext;
 
 pub(crate) mod md;
 
@@ -34,7 +34,7 @@ impl MyChannel {
     #[instrument(skip_all)]
     pub fn from_posts<T>(
         config: AppConfig,
-        render_context: HtmlRenderContext,
+        render_context: SyntaxHighlightingContext,
         posts: &[&Post<T>],
     ) -> Self
     where
@@ -70,7 +70,7 @@ impl MyChannel {
 #[instrument(skip_all)]
 pub(crate) async fn rss_feed(
     State(config): State<AppConfig>,
-    State(context): State<HtmlRenderContext>,
+    State(context): State<SyntaxHighlightingContext>,
     State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let channel = MyChannel::from_posts(config, context, &posts.by_recency());
@@ -81,7 +81,7 @@ pub(crate) async fn rss_feed(
 #[instrument(skip_all)]
 pub(crate) async fn full_rss_feed(
     State(config): State<AppConfig>,
-    State(context): State<HtmlRenderContext>,
+    State(context): State<SyntaxHighlightingContext>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(til_posts): State<Arc<TilPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -127,7 +127,7 @@ pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<M
 
 #[instrument(skip(context, posts))]
 pub(crate) async fn post_get(
-    State(context): State<HtmlRenderContext>,
+    State(context): State<SyntaxHighlightingContext>,
     State(posts): State<Arc<BlogPosts>>,
     Path(key): Path<String>,
 ) -> Result<Response, StatusCode> {

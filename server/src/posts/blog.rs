@@ -9,7 +9,7 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    http_server::pages::blog::md::{HtmlRenderContext, IntoHtml},
+    http_server::pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
     posts::{MarkdownAst, Post},
     AppConfig,
 };
@@ -93,7 +93,7 @@ impl BlogPost {
     pub(crate) fn to_rss_item(
         &self,
         config: &AppConfig,
-        render_context: &HtmlRenderContext,
+        render_context: &SyntaxHighlightingContext,
     ) -> rss::Item {
         let link = config.app_url(&self.canonical_path());
 

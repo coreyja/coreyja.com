@@ -3,7 +3,7 @@ use std::println;
 use miette::{IntoDiagnostic, Result};
 
 use crate::{
-    http_server::pages::blog::{md::HtmlRenderContext, MyChannel},
+    http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
     posts::{blog::BlogPosts, til::TilPosts},
     AppConfig,
 };
@@ -24,7 +24,7 @@ pub(crate) async fn validate() -> Result<()> {
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
-    let render_context = HtmlRenderContext::default();
+    let render_context = SyntaxHighlightingContext::default();
 
     let rss = MyChannel::from_posts(config, render_context, &posts.by_recency());
 
@@ -34,7 +34,7 @@ pub(crate) async fn validate() -> Result<()> {
 
     println!("Validating TIL RSS feed...");
     let config = AppConfig::from_env()?;
-    let render_context = HtmlRenderContext::default();
+    let render_context = SyntaxHighlightingContext::default();
 
     let rss = MyChannel::from_posts(config, render_context, &tils.by_recency());
 

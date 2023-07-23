@@ -10,7 +10,7 @@ use miette::{Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 
 use crate::{
-    http_server::pages::blog::md::{HtmlRenderContext, IntoHtml, IntoPlainText},
+    http_server::pages::blog::md::{IntoHtml, IntoPlainText, SyntaxHighlightingContext},
     AppConfig,
 };
 
@@ -81,7 +81,7 @@ impl MarkdownAst {
 impl IntoHtml for MarkdownAst {
     fn into_html(
         self,
-        context: &crate::http_server::pages::blog::md::HtmlRenderContext,
+        context: &crate::http_server::pages::blog::md::SyntaxHighlightingContext,
     ) -> maud::Markup {
         self.0.into_html(context)
     }
@@ -96,14 +96,22 @@ impl<FrontMatter> Post<FrontMatter> {
 }
 
 pub(crate) trait ToRssItem {
-    fn to_rss_item(&self, config: &AppConfig, render_context: &HtmlRenderContext) -> rss::Item;
+    fn to_rss_item(
+        &self,
+        config: &AppConfig,
+        render_context: &SyntaxHighlightingContext,
+    ) -> rss::Item;
 }
 
 impl<FrontMatter> ToRssItem for Post<FrontMatter>
 where
     FrontMatter: PostedOn + Title,
 {
-    fn to_rss_item(&self, config: &AppConfig, render_context: &HtmlRenderContext) -> rss::Item {
+    fn to_rss_item(
+        &self,
+        config: &AppConfig,
+        render_context: &SyntaxHighlightingContext,
+    ) -> rss::Item {
         let link = config.app_url(&self.canonical_path());
 
         let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
