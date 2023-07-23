@@ -17,7 +17,6 @@ use crate::{
     },
     posts::{
         blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
-        date::PostedOn,
         Post, ToRssItem,
     },
     AppConfig,
@@ -34,7 +33,7 @@ impl MyChannel {
     pub fn from_posts<T>(
         config: AppConfig,
         render_context: HtmlRenderContext,
-        posts: &Vec<&Post<T>>,
+        posts: &[&Post<T>],
     ) -> Self
     where
         Post<T>: ToRssItem,

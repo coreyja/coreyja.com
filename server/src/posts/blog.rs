@@ -9,7 +9,7 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    http_server::pages::blog::md::{HtmlRenderContext, IntoHtml, IntoPlainText},
+    http_server::pages::blog::md::{HtmlRenderContext, IntoHtml},
     posts::{MarkdownAst, Post},
     AppConfig,
 };
