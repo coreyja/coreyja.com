@@ -100,10 +100,13 @@ impl BlogPost {
     ) -> rss::Item {
         let link = config.app_url(&self.canonical_path());
 
+        let formatted_date = self.frontmatter.date.to_string();
+
         rss::ItemBuilder::default()
             .title(Some(self.frontmatter.title.clone()))
             .link(Some(link))
             .description(self.short_description())
+            .pub_date(Some(formatted_date))
             .content(Some(
                 self.markdown()
                     .ast
