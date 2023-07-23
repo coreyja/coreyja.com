@@ -7,8 +7,9 @@ use axum::{
 };
 
 use maud::{html, Markup};
+use rss::validation::Validate;
 use tracing::instrument;
-use uuid::timestamp::context;
+
 
 use crate::{
     http_server::{
@@ -16,14 +17,48 @@ use crate::{
         templates::{base_constrained, posts::BlogPostList},
     },
     posts::blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
-    AppConfig, AppState,
+    AppConfig,
 };
 
 use self::md::HtmlRenderContext;
 
 pub(crate) mod md;
 
-struct MyChannel(rss::Channel);
+pub(crate) struct MyChannel(rss::Channel);
+
+impl MyChannel {
+    #[instrument(skip_all)]
+    pub fn from_posts(
+        config: AppConfig,
+        render_context: HtmlRenderContext,
+        posts: &BlogPosts,
+    ) -> Self {
+        let mut posts = posts.posts().clone();
+        posts.sort_by_key(|p| *p.date());
+        posts.reverse();
+
+        let items: Vec<_> = posts
+            .iter()
+            .map(|p| p.to_rss_item(&config, &render_context))
+            .collect();
+
+        use rss::ChannelBuilder;
+
+        let channel = ChannelBuilder::default()
+            .title("coreyja Blog".to_string())
+            .link(config.home_page())
+            .copyright(Some("Copyright Corey Alexander".to_string()))
+            .language(Some("en-us".to_string()))
+            .items(items)
+            .build();
+
+        Self(channel)
+    }
+
+    pub fn validate(&self) -> Result<(), rss::validation::ValidationError> {
+        self.0.validate()
+    }
+}
 
 #[instrument(skip_all)]
 pub(crate) async fn rss_feed(
@@ -31,37 +66,9 @@ pub(crate) async fn rss_feed(
     State(context): State<HtmlRenderContext>,
     State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = generate_rss(config, context, &posts);
-    let channel = MyChannel(channel);
+    let channel = MyChannel::from_posts(config, context, &posts);
 
     Ok(channel.into_response())
-}
-
-#[instrument(skip_all)]
-pub(crate) fn generate_rss(
-    config: AppConfig,
-    render_context: HtmlRenderContext,
-    posts: &BlogPosts,
-) -> rss::Channel {
-    let mut posts = posts.posts().clone();
-    posts.sort_by_key(|p| *p.date());
-    posts.reverse();
-
-    let items: Vec<_> = posts
-        .iter()
-        .map(|p| p.to_rss_item(&config, &render_context))
-        .collect();
-
-    use rss::ChannelBuilder;
-
-    let channel = ChannelBuilder::default()
-        .title("coreyja Blog".to_string())
-        .link(config.home_page())
-        .copyright(Some("Copyright Corey Alexander".to_string()))
-        .language(Some("en-us".to_string()))
-        .items(items)
-        .build();
-    channel
 }
 
 impl IntoResponse for MyChannel {

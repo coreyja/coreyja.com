@@ -1,12 +1,11 @@
 use std::println;
 
 use miette::{IntoDiagnostic, Result};
-use rss::validation::Validate;
 
 use crate::{
-    http_server::pages::blog::{generate_rss, md::HtmlRenderContext},
+    http_server::pages::blog::{md::HtmlRenderContext, MyChannel},
     posts::{blog::BlogPosts, til::TilPosts},
-    AppConfig, AppState,
+    AppConfig,
 };
 
 pub(crate) async fn validate() -> Result<()> {
@@ -29,7 +28,8 @@ pub(crate) async fn validate() -> Result<()> {
     let config = AppConfig::from_env()?;
     let render_context = HtmlRenderContext::default();
 
-    let rss = generate_rss(config, render_context, &posts);
+    let rss = MyChannel::from_posts(config, render_context, &posts);
+
     rss.validate().into_diagnostic()?;
 
     println!("RSS Valid! ✅");
