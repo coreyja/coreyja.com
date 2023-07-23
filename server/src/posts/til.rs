@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::posts::{MarkdownAst, Post};
 
 use super::{
-    blog::{ValidateMarkdown},
+    blog::ValidateMarkdown,
     date::{ByRecency, PostedOn},
     title::Title,
 };

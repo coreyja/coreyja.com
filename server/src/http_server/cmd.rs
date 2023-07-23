@@ -1,5 +1,3 @@
-
-
 use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
