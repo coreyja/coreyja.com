@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use chrono::{DateTime, NaiveTime, Utc};
 use include_dir::File;
 use markdown::{
     mdast::{Node, Root},
@@ -105,7 +106,8 @@ where
     fn to_rss_item(&self, config: &AppConfig, render_context: &HtmlRenderContext) -> rss::Item {
         let link = config.app_url(&self.canonical_path());
 
-        let formatted_date = self.posted_on().to_string();
+        let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
+        let formatted_date = posted_on.to_rfc2822();
 
         rss::ItemBuilder::default()
             .title(Some(self.title().to_string()))
