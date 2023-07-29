@@ -21,7 +21,7 @@ use crate::{
         til::TilPosts,
         Post, ToRssItem,
     },
-    AppConfig,
+    AppConfig, AppState,
 };
 
 use self::md::SyntaxHighlightingContext;
@@ -32,28 +32,21 @@ pub(crate) struct MyChannel(rss::Channel);
 
 impl MyChannel {
     #[instrument(skip_all)]
-    pub fn from_posts<T>(
-        config: AppConfig,
-        render_context: SyntaxHighlightingContext,
-        posts: &[&Post<T>],
-    ) -> Self
+    pub fn from_posts<T>(state: AppState, posts: &[&Post<T>]) -> Self
     where
         Post<T>: ToRssItem,
     {
-        let items: Vec<_> = posts
-            .iter()
-            .map(|p| p.to_rss_item(&config, &render_context))
-            .collect();
+        let items: Vec<_> = posts.iter().map(|p| p.to_rss_item(&state)).collect();
 
-        Self::from_items(config, &items)
+        Self::from_items(state, &items)
     }
 
-    pub fn from_items(config: AppConfig, items: &[rss::Item]) -> Self {
+    pub fn from_items(state: AppState, items: &[rss::Item]) -> Self {
         use rss::ChannelBuilder;
 
         let channel = ChannelBuilder::default()
             .title("coreyja Blog".to_string())
-            .link(config.home_page())
+            .link(state.app.home_page())
             .copyright(Some("Copyright Corey Alexander".to_string()))
             .language(Some("en-us".to_string()))
             .items(items)
@@ -69,19 +62,17 @@ impl MyChannel {
 
 #[instrument(skip_all)]
 pub(crate) async fn rss_feed(
-    State(config): State<AppConfig>,
-    State(context): State<SyntaxHighlightingContext>,
+    State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = MyChannel::from_posts(config, context, &posts.by_recency());
+    let channel = MyChannel::from_posts(state, &posts.by_recency());
 
     Ok(channel.into_response())
 }
 
 #[instrument(skip_all)]
 pub(crate) async fn full_rss_feed(
-    State(config): State<AppConfig>,
-    State(context): State<SyntaxHighlightingContext>,
+    State(state): State<AppState>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(til_posts): State<Arc<TilPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -90,19 +81,19 @@ pub(crate) async fn full_rss_feed(
         blog_posts
             .by_recency()
             .into_iter()
-            .map(|p| (p.posted_on(), p.to_rss_item(&config, &context))),
+            .map(|p| (p.posted_on(), p.to_rss_item(&state))),
     );
     items_with_date.extend(
         til_posts
             .by_recency()
             .into_iter()
-            .map(|p| (p.posted_on(), p.to_rss_item(&config, &context))),
+            .map(|p| (p.posted_on(), p.to_rss_item(&state))),
     );
     items_with_date.sort_by_key(|&(date, _)| std::cmp::Reverse(date));
 
     let items: Vec<rss::Item> = items_with_date.into_iter().map(|(_, i)| i).collect();
 
-    let channel = MyChannel::from_items(config, &items);
+    let channel = MyChannel::from_items(state, &items);
 
     Ok(channel.into_response())
 }
@@ -125,9 +116,9 @@ pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<M
     }))
 }
 
-#[instrument(skip(context, posts))]
+#[instrument(skip(state, posts))]
 pub(crate) async fn post_get(
-    State(context): State<SyntaxHighlightingContext>,
+    State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
     Path(key): Path<String>,
 ) -> Result<Response, StatusCode> {
@@ -156,7 +147,7 @@ pub(crate) async fn post_get(
       subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
       div {
-        (markdown.ast.into_html(&context))
+        (markdown.ast.into_html(&state))
       }
     })
     .into_response())

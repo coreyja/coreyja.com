@@ -9,6 +9,8 @@ use syntect::{
 };
 use url::Url;
 
+use crate::AppState;
+
 #[derive(Debug, Clone)]
 pub(crate) struct SyntaxHighlightingContext {
     pub(crate) theme: syntect::highlighting::Theme,
@@ -27,42 +29,42 @@ impl Default for SyntaxHighlightingContext {
     }
 }
 pub(crate) trait IntoHtml {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup;
+    fn into_html(self, state: &AppState) -> Markup;
 }
 
 impl IntoHtml for Root {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
-            (self.children.into_html(context))
+            (self.children.into_html(state))
         }
     }
 }
 
 impl IntoHtml for Node {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         match self {
-            Node::Root(r) => r.into_html(context),
-            Node::BlockQuote(x) => x.into_html(context),
+            Node::Root(r) => r.into_html(state),
+            Node::BlockQuote(x) => x.into_html(state),
             Node::FootnoteDefinition(_) => html! {}, // Skipping for now
-            Node::List(l) => l.into_html(context),
-            Node::Yaml(y) => y.into_html(context),
-            Node::Break(b) => b.into_html(context),
-            Node::InlineCode(c) => c.into_html(context),
-            Node::Delete(s) => s.into_html(context),
-            Node::Emphasis(e) => e.into_html(context),
-            Node::Html(h) => h.into_html(context),
-            Node::Image(i) => i.into_html(context),
-            Node::Link(l) => l.into_html(context),
-            Node::Strong(s) => s.into_html(context),
-            Node::Text(t) => t.into_html(context),
-            Node::Code(c) => c.into_html(context),
-            Node::Heading(h) => h.into_html(context),
-            Node::Table(t) => t.into_html(context),
-            Node::TableRow(r) => r.into_html(context),
-            Node::TableCell(c) => c.into_html(context),
-            Node::ListItem(i) => i.into_html(context),
-            Node::Paragraph(p) => p.into_html(context),
-            Node::ThematicBreak(b) => b.into_html(context),
+            Node::List(l) => l.into_html(state),
+            Node::Yaml(y) => y.into_html(state),
+            Node::Break(b) => b.into_html(state),
+            Node::InlineCode(c) => c.into_html(state),
+            Node::Delete(s) => s.into_html(state),
+            Node::Emphasis(e) => e.into_html(state),
+            Node::Html(h) => h.into_html(state),
+            Node::Image(i) => i.into_html(state),
+            Node::Link(l) => l.into_html(state),
+            Node::Strong(s) => s.into_html(state),
+            Node::Text(t) => t.into_html(state),
+            Node::Code(c) => c.into_html(state),
+            Node::Heading(h) => h.into_html(state),
+            Node::Table(t) => t.into_html(state),
+            Node::TableRow(r) => r.into_html(state),
+            Node::TableCell(c) => c.into_html(state),
+            Node::ListItem(i) => i.into_html(state),
+            Node::Paragraph(p) => p.into_html(state),
+            Node::ThematicBreak(b) => b.into_html(state),
             Node::MdxJsxFlowElement(_) => todo!(),
             Node::MdxjsEsm(_) => todo!(),
             Node::Toml(_) => todo!(),
@@ -80,19 +82,19 @@ impl IntoHtml for Node {
 }
 
 impl IntoHtml for Html {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         html! { (PreEscaped(self.value)) }
     }
 }
 
 impl IntoHtml for Break {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         html! { br; }
     }
 }
 
 impl IntoHtml for Yaml {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         // We get Yaml in the Frontmatter, so we don't want to render it
         // to our HTML
         html! {}
@@ -100,51 +102,51 @@ impl IntoHtml for Yaml {
 }
 
 impl IntoHtml for Paragraph {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
             p class="my-4 max-w-prose leading-loose" {
-                (self.children.into_html(context))
+                (self.children.into_html(state))
             }
         }
     }
 }
 
 impl IntoHtml for ListItem {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
             li {
-                (self.children.into_html(context))
+                (self.children.into_html(state))
             }
         }
     }
 }
 
 impl IntoHtml for TableCell {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
             td {
-                (self.children.into_html(context))
+                (self.children.into_html(state))
             }
         }
     }
 }
 
 impl IntoHtml for TableRow {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
             tr {
-                (self.children.into_html(context))
+                (self.children.into_html(state))
             }
         }
     }
 }
 
 impl IntoHtml for Table {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
             table {
                 tbody {
-                    (self.children.into_html(context))
+                    (self.children.into_html(state))
                 }
             }
         }
@@ -152,17 +154,17 @@ impl IntoHtml for Table {
 }
 
 impl IntoHtml for BlockQuote {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
           blockquote {
-            (self.children.into_html(context))
+            (self.children.into_html(state))
           }
         }
     }
 }
 
 impl IntoHtml for Text {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         html! {
             (self.value)
         }
@@ -170,7 +172,7 @@ impl IntoHtml for Text {
 }
 
 impl IntoHtml for Heading {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         let id = self
             .children
             .iter()
@@ -183,7 +185,7 @@ impl IntoHtml for Heading {
             .map(|x| x.to_lowercase().replace(' ', "-"));
         let href_attr = id.as_ref().map(|x| format!("#{}", x));
 
-        let content = self.children.into_html(context);
+        let content = self.children.into_html(state);
         let inner = html! {
             @match self.depth {
                 1 => h1 id=[id] class="max-w-prose text-2xl" { (content) },
@@ -210,28 +212,28 @@ impl IntoHtml for Heading {
 }
 
 impl IntoHtml for Vec<Node> {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
           @for node in self {
-            (node.into_html(context))
+            (node.into_html(state))
           }
         }
     }
 }
 
 impl IntoHtml for List {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
             @match self.ordered {
-                true => { ol class="max-w-prose" { (self.children.into_html(context)) } },
-                false => { ul class="max-w-prose" { (self.children.into_html(context)) } },
+                true => { ol class="max-w-prose" { (self.children.into_html(state)) } },
+                false => { ul class="max-w-prose" { (self.children.into_html(state)) } },
             }
         }
     }
 }
 
 impl IntoHtml for InlineCode {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         html! {
           code { (self.value) }
         }
@@ -239,23 +241,23 @@ impl IntoHtml for InlineCode {
 }
 
 impl IntoHtml for Delete {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
-          del { (self.children.into_html(context)) }
+          del { (self.children.into_html(state)) }
         }
     }
 }
 
 impl IntoHtml for Emphasis {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
-          em { (self.children.into_html(context)) }
+          em { (self.children.into_html(state)) }
         }
     }
 }
 
 impl IntoHtml for Image {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         html! {
           img src=(self.url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
         }
@@ -263,8 +265,8 @@ impl IntoHtml for Image {
 }
 
 impl IntoHtml for Link {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
-        let parsed_base = Url::parse(&context.app_config.base_url);
+    fn into_html(self, state: &AppState) -> Markup {
+        let parsed_base = Url::parse(&state.app.base_url);
         dbg!(&parsed_base);
 
         let replaced_url = if let Ok(parsed_base) = parsed_base {
@@ -282,24 +284,24 @@ impl IntoHtml for Link {
         };
 
         html! {
-          a href=(replaced_url) title=[self.title] class="underline" { (self.children.into_html(context)) }
+          a href=(replaced_url) title=[self.title] class="underline" { (self.children.into_html(state)) }
         }
     }
 }
 
 impl IntoHtml for Strong {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         html! {
-          strong { (self.children.into_html(context)) }
+          strong { (self.children.into_html(state)) }
         }
     }
 }
 
 impl IntoHtml for Code {
-    fn into_html(self, context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, state: &AppState) -> Markup {
         use syntect::util::LinesWithEndings;
 
-        let ps = &context.syntax_set;
+        let ps = &state.markdown_to_html_context.syntax_set;
         let syntax = self
             .lang
             .and_then(|lang| ps.find_syntax_by_token(&lang))
@@ -307,7 +309,7 @@ impl IntoHtml for Code {
 
         let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
             syntax,
-            &context.syntax_set,
+            &state.markdown_to_html_context.syntax_set,
             ClassStyle::Spaced,
         );
 
@@ -324,7 +326,7 @@ impl IntoHtml for Code {
 }
 
 impl IntoHtml for ThematicBreak {
-    fn into_html(self, _context: &SyntaxHighlightingContext) -> Markup {
+    fn into_html(self, _state: &AppState) -> Markup {
         html! {
           hr class="my-8 opacity-20";
         }

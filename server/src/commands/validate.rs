@@ -25,8 +25,9 @@ pub(crate) async fn validate() -> Result<()> {
     println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
     let render_context = SyntaxHighlightingContext::default();
+    let state = todo!();
 
-    let rss = MyChannel::from_posts(config, render_context, &posts.by_recency());
+    let rss = MyChannel::from_posts(state, &posts.by_recency());
 
     rss.validate().into_diagnostic()?;
 
@@ -35,8 +36,9 @@ pub(crate) async fn validate() -> Result<()> {
     println!("Validating TIL RSS feed...");
     let config = AppConfig::from_env()?;
     let render_context = SyntaxHighlightingContext::default();
+    let state = todo!();
 
-    let rss = MyChannel::from_posts(config, render_context, &tils.by_recency());
+    let rss = MyChannel::from_posts(state, &tils.by_recency());
 
     rss.validate().into_diagnostic()?;
 

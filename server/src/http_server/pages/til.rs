@@ -16,7 +16,7 @@ use crate::{
         templates::{base_constrained, posts::TilPostList},
     },
     posts::til::TilPosts,
-    AppConfig,
+    AppConfig, AppState,
 };
 
 use super::blog::{md::SyntaxHighlightingContext, MyChannel};
@@ -35,19 +35,18 @@ pub(crate) async fn til_index(
 
 #[instrument(skip_all)]
 pub(crate) async fn rss_feed(
-    State(config): State<AppConfig>,
-    State(context): State<SyntaxHighlightingContext>,
+    State(state): State<AppState>,
     State(posts): State<Arc<TilPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = MyChannel::from_posts(config, context, &posts.by_recency());
+    let channel = MyChannel::from_posts(state, &posts.by_recency());
 
     Ok(channel.into_response())
 }
 
-#[instrument(skip(til_posts, context))]
+#[instrument(skip(til_posts, state))]
 pub(crate) async fn til_get(
     State(til_posts): State<Arc<TilPosts>>,
-    State(context): State<SyntaxHighlightingContext>,
+    State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Markup, StatusCode> {
     let tils = &til_posts.posts;
@@ -63,7 +62,7 @@ pub(crate) async fn til_get(
       subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
       div {
-        (markdown.ast.into_html(&context))
+        (markdown.ast.into_html(&state))
       }
     }))
 }

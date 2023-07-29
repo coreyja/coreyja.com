@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     http_server::pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
     posts::{MarkdownAst, Post},
-    AppConfig,
+    AppConfig, AppState,
 };
 
 use super::{
@@ -92,10 +92,9 @@ impl BlogPost {
 
     pub(crate) fn to_rss_item(
         &self,
-        config: &AppConfig,
-        render_context: &SyntaxHighlightingContext,
+        state: &AppState,
     ) -> rss::Item {
-        let link = config.app_url(&self.canonical_path());
+        let link = state.app.app_url(&self.canonical_path());
 
         let formatted_date = self.frontmatter.date.to_string();
 
@@ -108,7 +107,7 @@ impl BlogPost {
                 self.markdown()
                     .ast
                     .0
-                    .into_html(render_context)
+                    .into_html(state)
                     .into_string(),
             ))
             .build()

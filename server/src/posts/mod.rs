@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::{
     http_server::pages::blog::md::{IntoHtml, IntoPlainText, SyntaxHighlightingContext},
-    AppConfig,
+    AppConfig, AppState,
 };
 
 use self::{
@@ -79,11 +79,8 @@ impl MarkdownAst {
 }
 
 impl IntoHtml for MarkdownAst {
-    fn into_html(
-        self,
-        context: &crate::http_server::pages::blog::md::SyntaxHighlightingContext,
-    ) -> maud::Markup {
-        self.0.into_html(context)
+    fn into_html(self, state: &AppState) -> maud::Markup {
+        self.0.into_html(state)
     }
 }
 
@@ -96,23 +93,15 @@ impl<FrontMatter> Post<FrontMatter> {
 }
 
 pub(crate) trait ToRssItem {
-    fn to_rss_item(
-        &self,
-        config: &AppConfig,
-        render_context: &SyntaxHighlightingContext,
-    ) -> rss::Item;
+    fn to_rss_item(&self, state: &AppState) -> rss::Item;
 }
 
 impl<FrontMatter> ToRssItem for Post<FrontMatter>
 where
     FrontMatter: PostedOn + Title,
 {
-    fn to_rss_item(
-        &self,
-        config: &AppConfig,
-        render_context: &SyntaxHighlightingContext,
-    ) -> rss::Item {
-        let link = config.app_url(&self.canonical_path());
+    fn to_rss_item(&self, state: &AppState) -> rss::Item {
+        let link = state.app.app_url(&self.canonical_path());
 
         let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
         let formatted_date = posted_on.to_rfc2822();
@@ -122,13 +111,7 @@ where
             .link(Some(link))
             .description(self.short_description())
             .pub_date(Some(formatted_date))
-            .content(Some(
-                self.markdown()
-                    .ast
-                    .0
-                    .into_html(render_context)
-                    .into_string(),
-            ))
+            .content(Some(self.markdown().ast.0.into_html(state).into_string()))
             .build()
     }
 }
