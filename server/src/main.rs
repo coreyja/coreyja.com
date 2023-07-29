@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use sqlx::{migrate, SqlitePool};
 use tokio::try_join;
-use tracing::info;
+use tracing::{info, instrument};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{prelude::*, util::SubscriberInitExt, EnvFilter, Registry};
 use tracing_tree::HierarchicalLayer;
@@ -49,6 +49,7 @@ struct AppConfig {
 }
 
 impl AppConfig {
+    #[instrument]
     fn from_env() -> Result<Self> {
         Ok(Self {
             base_url: std::env::var("APP_BASE_URL")
