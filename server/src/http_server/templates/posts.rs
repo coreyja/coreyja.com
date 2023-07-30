@@ -34,7 +34,7 @@ impl<'a> Render for BlogPostList<'a> {
           ul {
             @for post in &self.0 {
                 li class="my-4" {
-                  a href=(format!("/posts/{}", post.canonical_path())) {
+                  a href=(post.link()) {
                       span class="text-subtitle text-sm inline-block w-[80px]" { (post.date()) }
                       " "
 
