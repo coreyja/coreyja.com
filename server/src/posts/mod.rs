@@ -15,7 +15,7 @@ use crate::{
 };
 
 use self::{
-    blog::{PostMarkdown, ToCanonicalPath},
+    blog::{LinkTo, PostMarkdown, ToCanonicalPath},
     date::PostedOn,
     title::Title,
 };
@@ -99,9 +99,10 @@ pub(crate) trait ToRssItem {
 impl<FrontMatter> ToRssItem for Post<FrontMatter>
 where
     FrontMatter: PostedOn + Title,
+    Post<FrontMatter>: LinkTo,
 {
     fn to_rss_item(&self, state: &AppState) -> rss::Item {
-        let link = state.app.app_url(&self.canonical_path());
+        let link = state.app.app_url(&self.link());
 
         let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
         let formatted_date = posted_on.to_rfc2822();
