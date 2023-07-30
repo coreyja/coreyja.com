@@ -20,11 +20,10 @@ use crate::{
         date::PostedOn,
         til::TilPosts,
         Post, ToRssItem,
-    },
-    AppConfig, AppState,
+    }, AppState,
 };
 
-use self::md::SyntaxHighlightingContext;
+
 
 pub(crate) mod md;
 

@@ -10,8 +10,8 @@ use miette::{Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 
 use crate::{
-    http_server::pages::blog::md::{IntoHtml, IntoPlainText, SyntaxHighlightingContext},
-    AppConfig, AppState,
+    http_server::pages::blog::md::{IntoHtml, IntoPlainText},
+    AppState,
 };
 
 use self::{

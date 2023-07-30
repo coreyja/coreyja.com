@@ -15,11 +15,10 @@ use crate::{
         pages::blog::md::IntoHtml,
         templates::{base_constrained, posts::TilPostList},
     },
-    posts::til::TilPosts,
-    AppConfig, AppState,
+    posts::til::TilPosts, AppState,
 };
 
-use super::blog::{md::SyntaxHighlightingContext, MyChannel};
+use super::blog::MyChannel;
 
 #[instrument(skip_all)]
 pub(crate) async fn til_index(

@@ -16,7 +16,7 @@ use super::{
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct TilPosts {
     pub(crate) posts: Vec<TilPost>,
 }

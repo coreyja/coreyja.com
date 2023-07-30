@@ -9,9 +9,8 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    http_server::pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
-    posts::{MarkdownAst, Post},
-    AppConfig, AppState,
+    http_server::pages::blog::md::IntoHtml,
+    posts::{MarkdownAst, Post}, AppState,
 };
 
 use super::{
@@ -21,7 +20,7 @@ use super::{
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct BlogPosts {
     posts: Vec<BlogPost>,
 }
@@ -90,10 +89,7 @@ impl BlogPost {
         }
     }
 
-    pub(crate) fn to_rss_item(
-        &self,
-        state: &AppState,
-    ) -> rss::Item {
+    pub(crate) fn to_rss_item(&self, state: &AppState) -> rss::Item {
         let link = state.app.app_url(&self.canonical_path());
 
         let formatted_date = self.frontmatter.date.to_string();
@@ -103,13 +99,7 @@ impl BlogPost {
             .link(Some(link))
             .description(self.short_description())
             .pub_date(Some(formatted_date))
-            .content(Some(
-                self.markdown()
-                    .ast
-                    .0
-                    .into_html(state)
-                    .into_string(),
-            ))
+            .content(Some(self.markdown().ast.0.into_html(state).into_string()))
             .build()
     }
 }
