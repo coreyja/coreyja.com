@@ -42,12 +42,12 @@ pub(crate) async fn home_page(
             }
 
             div ."mb-16" {
-                h2 ."text-3xl" { "Recent TILs" }
+                h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
                 (TilPostList(recent_tils))
             }
 
             div ."mb-16" {
-                h2 ."text-3xl" { "Recent Blog Posts" }
+                h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
                 (BlogPostList(recent_posts))
             }
         }))

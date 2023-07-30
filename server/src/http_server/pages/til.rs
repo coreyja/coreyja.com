@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+};
 
 use maud::{html, Markup};
 use miette::Result;
@@ -12,10 +15,10 @@ use crate::{
         pages::blog::md::IntoHtml,
         templates::{base_constrained, posts::TilPostList},
     },
-    posts::til::TilPosts,
+    posts::til::TilPosts, AppState,
 };
 
-use super::blog::md::HtmlRenderContext;
+use super::blog::MyChannel;
 
 #[instrument(skip_all)]
 pub(crate) async fn til_index(
@@ -29,10 +32,20 @@ pub(crate) async fn til_index(
     }))
 }
 
-#[instrument(skip(til_posts, context))]
+#[instrument(skip_all)]
+pub(crate) async fn rss_feed(
+    State(state): State<AppState>,
+    State(posts): State<Arc<TilPosts>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let channel = MyChannel::from_posts(state, &posts.by_recency());
+
+    Ok(channel.into_response())
+}
+
+#[instrument(skip(til_posts, state))]
 pub(crate) async fn til_get(
     State(til_posts): State<Arc<TilPosts>>,
-    State(context): State<HtmlRenderContext>,
+    State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Markup, StatusCode> {
     let tils = &til_posts.posts;
@@ -48,7 +61,7 @@ pub(crate) async fn til_get(
       subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
       div {
-        (markdown.ast.into_html(&context))
+        (markdown.ast.into_html(&state))
       }
     }))
 }

@@ -1,12 +1,11 @@
-use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
-
-use crate::{http_server::pages::blog::md::HtmlRenderContext, *};
+use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
     let open_ai_config = OpenAiConfig::from_env()?;
+    let markdown_to_html_context = SyntaxHighlightingContext::default();
 
     let database_url: String = std::env::var("DATABASE_URL").or_else(|_| -> Result<String> {
         let path = std::env::var("DATABASE_PATH");
@@ -25,15 +24,6 @@ pub(crate) async fn serve() -> Result<()> {
     })?;
 
     let pool = SqlitePool::connect(&database_url).await.into_diagnostic()?;
-
-    // Load these once at the start of your program
-    let ps = SyntaxSet::load_defaults_newlines();
-    let ts = ThemeSet::load_defaults();
-
-    let markdown_to_html_context = HtmlRenderContext {
-        syntax_set: ps,
-        theme: ts.themes.get("base16-ocean.dark").unwrap().clone(),
-    };
 
     let blog_posts = BlogPosts::from_static_dir()?;
     let blog_posts = Arc::new(blog_posts);

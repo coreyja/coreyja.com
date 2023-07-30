@@ -1,12 +1,15 @@
-use std::println;
+use std::{println, sync::Arc};
 
 use miette::{IntoDiagnostic, Result};
-use rss::validation::Validate;
+use sqlx::SqlitePool;
 
 use crate::{
-    http_server::pages::blog::generate_rss,
+    github::GithubConfig,
+    http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
+    open_ai::OpenAiConfig,
     posts::{blog::BlogPosts, til::TilPosts},
-    AppConfig,
+    twitch::TwitchConfig,
+    AppConfig, AppState,
 };
 
 pub(crate) async fn validate() -> Result<()> {
@@ -19,18 +22,54 @@ pub(crate) async fn validate() -> Result<()> {
     }
     println!("Posts Valid! ✅");
 
-    {
-        let tils = TilPosts::from_static_dir()?;
+    let tils = TilPosts::from_static_dir()?;
 
-        tils.validate()?;
-    }
+    tils.validate()?;
 
-    println!("Validating RSS feed...");
+    println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
-    let rss = generate_rss(config, &posts);
+    let render_context = SyntaxHighlightingContext::default();
+    // TODO: This is a bit of a hack, but it's fine for now.
+    // I need a better way to either have default values for these
+    // or allow them to be a `None` value.
+    let state = AppState {
+        twitch: TwitchConfig {
+            client_id: "".to_string(),
+            client_secret: "".to_string(),
+            bot_access_token: None,
+            channel_user_id: "".to_string(),
+            bot_user_id: "".to_string(),
+        },
+        db_pool: SqlitePool::connect("sqlite::memory:")
+            .await
+            .into_diagnostic()?,
+        github: GithubConfig {
+            app_id: 0,
+            client_id: "".to_string(),
+            client_secret: "".to_string(),
+        },
+        open_ai: OpenAiConfig {
+            api_key: "".to_string(),
+        },
+        blog_posts: Arc::new(posts.clone()),
+        til_posts: Arc::new(tils.clone()),
+        app: config,
+        markdown_to_html_context: render_context,
+    };
+
+    let rss = MyChannel::from_posts(state.clone(), &posts.by_recency());
+
     rss.validate().into_diagnostic()?;
 
-    println!("RSS Valid! ✅");
+    println!("Blog RSS Valid! ✅");
+
+    println!("Validating TIL RSS feed...");
+
+    let rss = MyChannel::from_posts(state, &tils.by_recency());
+
+    rss.validate().into_diagnostic()?;
+
+    println!("TIL RSS Valid! ✅");
 
     Ok(())
 }

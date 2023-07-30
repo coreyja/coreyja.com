@@ -66,7 +66,7 @@ pub fn footer() -> Markup {
               i class="fa-brands fa-mastodon" {}
             }
 
-            a href="/posts/rss.xml" target="_blank" rel="noopener noreferrer" {
+            a href="/rss.xml" target="_blank" rel="noopener noreferrer" {
               i class="fa-solid fa-rss" {}
             }
           }
