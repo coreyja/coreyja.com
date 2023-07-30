@@ -15,7 +15,7 @@ use crate::{
 };
 
 use self::{
-    blog::{LinkTo, PostMarkdown, ToCanonicalPath},
+    blog::{LinkTo, PostMarkdown},
     date::PostedOn,
     title::Title,
 };
@@ -102,7 +102,7 @@ where
     Post<FrontMatter>: LinkTo,
 {
     fn to_rss_item(&self, state: &AppState) -> rss::Item {
-        let link = state.app.app_url(&self.link());
+        let link = self.absolute_link(&state.app);
 
         let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
         let formatted_date = posted_on.to_rfc2822();

@@ -136,7 +136,7 @@ pub(crate) async fn post_get(
 
     if let MatchesPath::RedirectToCanonicalPath = m {
         return Ok(
-            Redirect::permanent(&format!("/posts/{}", post.canonical_path())).into_response(),
+            Redirect::permanent(&format!("/posts/{}", post.path.canonical_path())).into_response(),
         );
     }
 

@@ -9,9 +9,8 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    http_server::pages::blog::md::IntoHtml,
     posts::{MarkdownAst, Post},
-    AppState,
+    AppConfig,
 };
 
 use super::{
@@ -67,7 +66,7 @@ impl BlogPost {
     }
 
     fn validate_images(&self) -> Result<()> {
-        let p = self.canonical_path();
+        let p = self.path.canonical_path();
         let p = PathBuf::from(p);
 
         let root_node = Node::Root(self.ast.0.clone());
@@ -79,7 +78,7 @@ impl BlogPost {
     pub fn matches_path(&self, path: &str) -> Option<MatchesPath> {
         let path = PathBuf::from(path);
 
-        let canonical = self.canonical_path();
+        let canonical = self.path.canonical_path();
         let canonical = PathBuf::from(canonical);
 
         if canonical == path {
@@ -91,19 +90,19 @@ impl BlogPost {
         }
     }
 
-    pub(crate) fn to_rss_item(&self, state: &AppState) -> rss::Item {
-        let link = state.app.app_url(&self.canonical_path());
+    // pub(crate) fn to_rss_item(&self, state: &AppState) -> rss::Item {
+    //     let link = state.app.app_url(&self.canonical_path());
 
-        let formatted_date = self.frontmatter.date.to_string();
+    //     let formatted_date = self.frontmatter.date.to_string();
 
-        rss::ItemBuilder::default()
-            .title(Some(self.frontmatter.title.clone()))
-            .link(Some(link))
-            .description(self.short_description())
-            .pub_date(Some(formatted_date))
-            .content(Some(self.markdown().ast.0.into_html(state).into_string()))
-            .build()
-    }
+    //     rss::ItemBuilder::default()
+    //         .title(Some(self.frontmatter.title.clone()))
+    //         .link(Some(link))
+    //         .description(self.short_description())
+    //         .pub_date(Some(formatted_date))
+    //         .content(Some(self.markdown().ast.0.into_html(state).into_string()))
+    //         .build()
+    // }
 }
 
 #[derive(PartialEq, Debug)]
@@ -273,30 +272,22 @@ impl ToCanonicalPath for PathBuf {
 }
 
 pub(crate) trait LinkTo {
-    fn link(&self) -> String;
+    fn relative_link(&self) -> String;
+
+    fn absolute_link(&self, config: &AppConfig) -> String {
+        config.app_url(&self.relative_link())
+    }
 }
 
 impl LinkTo for BlogPost {
-    fn link(&self) -> String {
-        format!("posts/{}", self.canonical_path())
+    fn relative_link(&self) -> String {
+        format!("/posts/{}", self.path.canonical_path())
     }
 }
 
 impl LinkTo for TilPost {
-    fn link(&self) -> String {
+    fn relative_link(&self) -> String {
         format!("/til/{}", self.frontmatter.slug)
-    }
-}
-
-impl<T> ToCanonicalPath for Post<T> {
-    fn canonical_path(&self) -> String {
-        self.path.canonical_path()
-    }
-}
-
-impl<T> ToCanonicalPath for &Post<T> {
-    fn canonical_path(&self) -> String {
-        self.path.canonical_path()
     }
 }
 

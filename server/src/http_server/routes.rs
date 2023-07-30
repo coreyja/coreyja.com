@@ -43,7 +43,7 @@ async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Response {
 
     match post {
         Some(post) => {
-            Redirect::permanent(&format!("/posts/{}", post.canonical_path())).into_response()
+            Redirect::permanent(&format!("/posts/{}", post.path.canonical_path())).into_response()
         }
         None => axum::http::StatusCode::NOT_FOUND.into_response(),
     }

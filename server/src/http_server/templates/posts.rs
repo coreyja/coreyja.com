@@ -1,7 +1,7 @@
 use maud::{html, Markup, Render};
 
 use crate::posts::{
-    blog::{BlogPost, LinkTo, ToCanonicalPath},
+    blog::{BlogPost, LinkTo},
     til::TilPost,
 };
 
@@ -13,7 +13,7 @@ impl<'a> Render for TilPostList<'a> {
           ul {
             @for post in &self.0 {
               li class="my-4" {
-                a href=(post.link()) {
+                a href=(post.relative_link()) {
                     span class="text-subtitle text-sm inline-block w-[80px]" { (post.frontmatter.date) }
                     " "
 
@@ -34,7 +34,7 @@ impl<'a> Render for BlogPostList<'a> {
           ul {
             @for post in &self.0 {
                 li class="my-4" {
-                  a href=(post.link()) {
+                  a href=(post.relative_link()) {
                       span class="text-subtitle text-sm inline-block w-[80px]" { (post.date()) }
                       " "
 
