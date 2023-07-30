@@ -10,11 +10,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     http_server::pages::blog::md::IntoHtml,
-    posts::{MarkdownAst, Post}, AppState,
+    posts::{MarkdownAst, Post},
+    AppState,
 };
 
 use super::{
     date::{ByRecency, PostedOn},
+    til::TilPost,
     title::Title,
 };
 
@@ -267,6 +269,22 @@ impl ToCanonicalPath for PathBuf {
         }
 
         format!("{}", self.to_string_lossy())
+    }
+}
+
+pub(crate) trait LinkTo {
+    fn link(&self) -> String;
+}
+
+impl LinkTo for BlogPost {
+    fn link(&self) -> String {
+        format!("posts/{}", self.canonical_path())
+    }
+}
+
+impl LinkTo for TilPost {
+    fn link(&self) -> String {
+        format!("/til/{}", self.frontmatter.slug)
     }
 }
 
