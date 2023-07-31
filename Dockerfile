@@ -49,7 +49,8 @@ COPY --from=builder /home/rust/target/release/server .
 COPY --from=builder /usr/local/bin/litestream /usr/local/bin/litestream
 
 COPY ./server/litestream.yaml /etc/litestream.yaml
+COPY ./server/litefs.yaml /etc/litefs.yaml
 
 EXPOSE 3000
 
-ENTRYPOINT ["litestream", "replicate", "--config", "/etc/litestream.yaml", "--exec", "./server"]
+ENTRYPOINT ["litefs", "mount"]
