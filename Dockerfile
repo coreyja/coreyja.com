@@ -47,6 +47,8 @@ RUN apt-get update && apt-get install -y \
 COPY --from=builder /home/rust/target/release/server .
 
 COPY --from=builder /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=flyio/litefs:0.5 /usr/local/bin/litefs /usr/local/bin/litefs
+
 
 COPY ./server/litestream.yaml /etc/litestream.yaml
 COPY ./server/litefs.yaml /etc/litefs.yaml
