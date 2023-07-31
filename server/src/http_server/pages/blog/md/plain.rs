@@ -145,7 +145,6 @@ let x = \"test\";
         let original = "- Hello, world!
 - This is a test.";
         let parsed = MarkdownAst::from_str(original).unwrap();
-        dbg!(&parsed);
         let plain = parsed.0.plain_text();
 
         assert_eq!(plain, original);

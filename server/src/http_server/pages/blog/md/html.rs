@@ -267,12 +267,10 @@ impl IntoHtml for Image {
 impl IntoHtml for Link {
     fn into_html(self, state: &AppState) -> Markup {
         let parsed_base = Url::parse(&state.app.base_url);
-        dbg!(&parsed_base);
 
         let replaced_url = if let Ok(parsed_base) = parsed_base {
             let parse_options = Url::options().base_url(Some(&parsed_base));
             let url = parse_options.parse(&self.url);
-            dbg!(&url);
 
             if let Ok(url) = url {
                 url.to_string()
