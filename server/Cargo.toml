@@ -65,3 +65,8 @@ tracing-tree = "0.2.2"
 url = "2.4.0"
 urlencoding = "2.1"
 uuid = { version = "1.2", features = ["v4"] }
+
+cacache = { version = "11.6.0", default-features = false, features = [
+  "tokio-runtime",
+] }
+ssri = "9.0.0"
