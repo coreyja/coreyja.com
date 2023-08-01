@@ -10,10 +10,13 @@ default-run = "server"
 
 [dependencies]
 async-trait = "0.1.60"
+aws-config = "0.55.3"
+aws-sdk-s3 = "0.28.0"
 axum = "0.6.2"
 axum-macros = "0.3.1"
 chrono = { version = "0.4.23", default-features = false }
 clap = { version = "4.2", features = ["derive"] }
+futures = "0.3.28"
 include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 indoc = "2.0"
 markdown = "1.0.0-alpha"
