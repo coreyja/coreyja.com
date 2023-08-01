@@ -70,3 +70,5 @@ cacache = { version = "11.6.0", default-features = false, features = [
   "tokio-runtime",
 ] }
 ssri = "9.0.0"
+whisper-rs = { version = "0.8.0" }
+hound = "3.5.0"

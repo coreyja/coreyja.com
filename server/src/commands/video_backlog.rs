@@ -1,8 +1,10 @@
 use aws_sdk_s3 as s3;
 use futures::{StreamExt, TryStreamExt};
 use miette::IntoDiagnostic;
+use s3::primitives::ByteStream;
 use tokio::{io::AsyncWriteExt, process::Command};
 use tracing::info;
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 const CACHE_DIR: &str = "./.cache";
 
@@ -41,6 +43,8 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
     let config = ::aws_config::load_from_env().await;
     let client = s3::Client::new(&config);
 
+    let ctx = WhisperContext::new("./models/ggml-base.en.bin").expect("failed to load model");
+
     let objects =
         get_all_objects_for_bucket(client, "coreyja-video-backups", "raw_recordings/2023").await?;
 
@@ -53,10 +57,12 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
         .map(Video::from_s3)
         .collect::<Result<Vec<_>, _>>()?;
 
-    let big_videos = videos
+    let mut big_videos = videos
         .iter()
         .filter(|obj| obj.size > 1_000_000_000)
         .collect::<Vec<_>>();
+
+    big_videos.sort_by_key(|x| x.size);
 
     dbg!(big_videos.len());
 
@@ -113,7 +119,6 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
             }
         };
 
-        dbg!(&metadata);
         info!("Transcribing video");
 
         info!("Converting video to audio");
@@ -125,14 +130,76 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
             .arg("./tmp/video.mkv")
             .arg("-ac")
             .arg("1")
-            .arg("./tmp/audio.wav")
-            .args(["-ar", "8000"])
+            .args(["-ar", "16000"])
             .args(["-acodec", "pcm_s16le"])
+            .arg("./tmp/audio.wav")
             .output()
             .await
             .into_diagnostic()?;
 
-        todo!("Transcribe audio")
+        info!("Transcribing audio");
+
+        // create a params object
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 5 });
+        params.set_n_threads(8);
+        let params = params;
+
+        let mut reader = hound::WavReader::open("./tmp/audio.wav").unwrap();
+        let audio_data = reader
+            .samples::<i16>()
+            .collect::<Result<Vec<_>, _>>()
+            .into_diagnostic()?;
+
+        // now we can run the model
+        let mut state = ctx.create_state().expect("failed to create state");
+        state
+            .full(
+                params,
+                &whisper_rs::convert_integer_to_float_audio(&audio_data),
+            )
+            .expect("failed to run model");
+
+        // fetch the results
+        let num_segments = state
+            .full_n_segments()
+            .expect("failed to get number of segments");
+        let mut buffer = String::new();
+        for i in 0..num_segments {
+            let segment = state
+                .full_get_segment_text(i)
+                .expect("failed to get segment");
+            let start_timestamp = state
+                .full_get_segment_t0(i)
+                .expect("failed to get segment start timestamp");
+            let end_timestamp = state
+                .full_get_segment_t1(i)
+                .expect("failed to get segment end timestamp");
+
+            buffer.push_str(&format!(
+                "[{} - {}]: {}\n",
+                start_timestamp, end_timestamp, segment
+            ));
+        }
+
+        // Write buffer to tmp/transcription.txt
+        std::fs::write("./tmp/transciption.txt", &buffer).into_diagnostic()?;
+        info!("Wrote Transcription to Disk");
+
+        let transcription_path = video.transcription_path().to_str().unwrap().to_string();
+        let bytes = buffer.as_bytes();
+        let client = s3::Client::new(&config);
+        client
+            .put_object()
+            .bucket("coreyja-video-backups")
+            .key(transcription_path)
+            .body(ByteStream::from(bytes.to_vec()))
+            .send()
+            .await
+            .into_diagnostic()?;
+        info!("Uploaded transcription to S3");
+
+        info!("Cleaning up tmp dir");
+        tokio::fs::remove_dir_all("./tmp").await.into_diagnostic()?;
     }
 
     Ok(())
@@ -157,11 +224,16 @@ impl Video {
     }
 
     fn has_transcription(&self, all_obects: &[s3::types::Object]) -> bool {
-        let path = std::path::PathBuf::from(&self.name);
-        let transcription_path = path.with_extension("srt");
+        let transcription_path = self.transcription_path();
 
         all_obects
             .iter()
             .any(|obj| obj.key == Some(transcription_path.to_str().unwrap().to_string()))
+    }
+
+    fn transcription_path(&self) -> std::path::PathBuf {
+        let path = std::path::PathBuf::from(&self.name);
+
+        path.with_extension("txt")
     }
 }
