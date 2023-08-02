@@ -1,12 +1,13 @@
-use miette::Result;
+use tracing::instrument;
 
-use crate::*;
+pub mod completion;
+pub mod edit;
 
-pub(crate) mod completion;
-pub(crate) mod edit;
+use miette::{Context, IntoDiagnostic, Result};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
-pub(crate) struct OpenAiConfig {
+pub struct OpenAiConfig {
     pub api_key: String,
 }
 

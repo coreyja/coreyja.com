@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use tracing_common::setup_tracing;
 use transcribe::TranscribeVideos;
 
+mod summarize;
 mod transcribe;
 
 #[derive(Parser, Debug)]

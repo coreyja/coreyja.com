@@ -2084,6 +2084,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "openai"
+version = "0.1.0"
+dependencies = [
+ "miette",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "openssl-probe"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3098,6 +3109,7 @@ dependencies = [
  "maud",
  "miette",
  "mime_guess",
+ "openai",
  "opentelemetry",
  "opentelemetry-otlp",
  "path-absolutize",

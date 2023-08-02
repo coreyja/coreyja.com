@@ -37,8 +37,7 @@ use github::*;
 mod db;
 use db::*;
 
-mod open_ai;
-use open_ai::*;
+use openai::*;
 
 mod commands;
 mod posts;

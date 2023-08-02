@@ -1,12 +1,12 @@
 use std::{println, sync::Arc};
 
 use miette::{IntoDiagnostic, Result};
+use openai::OpenAiConfig;
 use sqlx::SqlitePool;
 
 use crate::{
     github::GithubConfig,
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
-    open_ai::OpenAiConfig,
     posts::{blog::BlogPosts, til::TilPosts},
     twitch::TwitchConfig,
     AppConfig, AppState,
