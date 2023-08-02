@@ -1,6 +1,8 @@
 use clap::Subcommand;
 use miette::Result;
 
+use self::video_backlog::TranscribeVideos;
+
 pub(crate) mod info;
 pub(crate) mod validate;
 pub(crate) mod video_backlog;
@@ -10,7 +12,7 @@ pub(crate) enum Command {
     Serve,
     Print,
     Validate,
-    VideoBacklog,
+    TranscribeVideos(TranscribeVideos),
 }
 
 impl Default for Command {
@@ -25,7 +27,7 @@ impl Command {
             Command::Serve => crate::http_server::cmd::serve().await,
             Command::Print => info::print_info().await,
             Command::Validate => validate::validate().await,
-            Command::VideoBacklog => video_backlog::process_videos().await,
+            Command::TranscribeVideos(cmd) => cmd.transcribe_videos().await,
         }
     }
 }
