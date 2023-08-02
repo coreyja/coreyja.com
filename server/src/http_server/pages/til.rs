@@ -15,7 +15,8 @@ use crate::{
         pages::blog::md::IntoHtml,
         templates::{base_constrained, posts::TilPostList},
     },
-    posts::til::TilPosts, AppState,
+    posts::til::TilPosts,
+    AppState,
 };
 
 use super::blog::MyChannel;

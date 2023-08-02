@@ -6,4 +6,4 @@ v2: Using a prompt asking for a youtube video decription and title
 v3: Same as above but removed the empty transcript version
 v4: Strip timestamps and add back in empty prompt in a new spot
 v5: Add blurb about putting in any technologies used
-
+v6: Split into chunks of 500 lines

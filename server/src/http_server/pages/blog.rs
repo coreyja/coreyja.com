@@ -20,10 +20,9 @@ use crate::{
         date::PostedOn,
         til::TilPosts,
         Post, ToRssItem,
-    }, AppState,
+    },
+    AppState,
 };
-
-
 
 pub(crate) mod md;
 

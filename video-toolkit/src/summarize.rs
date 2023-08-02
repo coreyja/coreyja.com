@@ -45,7 +45,7 @@ impl Summarize {
 
             let key_path = transcript.key().unwrap();
             let key_path = key_path.strip_suffix(".txt").unwrap();
-            let summary_path = format!("{}.summary_v5.txt", key_path);
+            let summary_path = format!("{}.summary_v6.txt", key_path);
 
             if objects.iter().any(|x| x.key().unwrap() == summary_path) {
                 info!("Transcript already has summary");
@@ -69,41 +69,59 @@ impl Summarize {
             let data = String::from_utf8(data.to_vec()).expect("invalid utf8");
 
             let re = Regex::new(r"\[.*\]:(.*)").unwrap();
-            let data: String = data
+            let lines = data
                 .lines()
                 .map(|x| {
                     let m = re.captures(x).unwrap();
                     m.index(1).trim().to_string()
                 })
-                .collect::<Vec<_>>()
-                .join("\n");
+                .collect::<Vec<_>>();
 
-            let resp = complete_chat(
+            let mut summaries: Vec<String> = vec![];
+            for chunk in lines.chunks(500) {
+                let resp = complete_chat(
                 &openai_config,
                 vec![ChatMessage {
                     role: openai::chat::ChatRole::System,
                     content: format!(
                         "The following is a transcript of a recorded live stream.
                     Please summarize the content of the livestream.
-                    Do not respond with information about the timestamps.
 
-                    Format your summary as a Youtube Video description and title.
-                    On the first line title the video.
-                    The next line should be blank.
-                    On the third line, write the description.
                     The description should be a paragraph or two long and draw in the reader
-                    The title should also be attention grabbing
-
                     Include any details about the project we are working on and any technologies used or mentioned
                     
                     {}",
-                        data
+                        chunk.join("\n")
                     ),
                 }],
             )
             .await?;
 
-            let summary = resp.content;
+                let summary = resp.content;
+                summaries.push(summary);
+            }
+
+            let summary = if summaries.len() == 1 {
+                summaries[0].to_string()
+            } else {
+                let resp = complete_chat(
+                  &openai_config,
+                  vec![ChatMessage {
+                      role: openai::chat::ChatRole::System,
+                      content: format!(
+                          "The following is a series of summaries of parts of a transcript of a recorded live stream.
+                          Combine the summaries into a summary for the entire stream
+                      
+                      {}",
+                      summaries.join("\n")
+                      ),
+                  }],
+              )
+              .await?;
+
+                resp.content
+            };
+
             dbg!(&summary);
 
             let client = s3::Client::new(&config);
