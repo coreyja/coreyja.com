@@ -24,3 +24,4 @@ tracing-common = { path = "../tracing-common" }
 futures = "0.3.28"
 
 openai = { path = "../openai" }
+regex = "1.9.1"

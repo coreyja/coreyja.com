@@ -1,8 +1,11 @@
+use std::ops::Index;
+
 use clap::Args;
 use openai::{
     chat::{complete_chat, ChatMessage},
     OpenAiConfig,
 };
+use regex::Regex;
 use s3::primitives::ByteStream;
 use tracing::info;
 
@@ -42,7 +45,7 @@ impl Summarize {
 
             let key_path = transcript.key().unwrap();
             let key_path = key_path.strip_suffix(".txt").unwrap();
-            let summary_path = format!("{}.summary_v3.txt", key_path);
+            let summary_path = format!("{}.summary_v5.txt", key_path);
 
             if objects.iter().any(|x| x.key().unwrap() == summary_path) {
                 info!("Transcript already has summary");
@@ -65,6 +68,16 @@ impl Summarize {
                 .into_bytes();
             let data = String::from_utf8(data.to_vec()).expect("invalid utf8");
 
+            let re = Regex::new(r"\[.*\]:(.*)").unwrap();
+            let data: String = data
+                .lines()
+                .map(|x| {
+                    let m = re.captures(x).unwrap();
+                    m.index(1).trim().to_string()
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
             let resp = complete_chat(
                 &openai_config,
                 vec![ChatMessage {
@@ -80,6 +93,8 @@ impl Summarize {
                     On the third line, write the description.
                     The description should be a paragraph or two long and draw in the reader
                     The title should also be attention grabbing
+
+                    Include any details about the project we are working on and any technologies used or mentioned
                     
                     {}",
                         data
