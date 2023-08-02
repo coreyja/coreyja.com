@@ -102,7 +102,8 @@ impl Youtubize {
                         
                     
                     {}",
-                        data                    ),
+                        data
+                    ),
                 }],
             )
             .await?;
