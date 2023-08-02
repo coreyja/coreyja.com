@@ -3088,15 +3088,10 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "aws-config",
- "aws-sdk-s3",
  "axum",
  "axum-macros",
- "cacache",
  "chrono",
  "clap",
- "futures",
- "hound",
  "include_dir",
  "indoc",
  "markdown",
@@ -3116,7 +3111,6 @@ dependencies = [
  "serde_urlencoded",
  "serde_yaml",
  "sqlx",
- "ssri",
  "syntect",
  "thiserror",
  "tokio",
@@ -3129,7 +3123,6 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
- "whisper-rs",
 ]
 
 [[package]]
@@ -3888,6 +3881,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-common"
+version = "0.1.0"
+dependencies = [
+ "miette",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "tracing-tree",
+]
+
+[[package]]
 name = "tracing-core"
 version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4159,6 +4165,24 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "video-toolkit"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-s3",
+ "cacache",
+ "clap",
+ "futures",
+ "hound",
+ "miette",
+ "ssri",
+ "tokio",
+ "tracing",
+ "tracing-common",
+ "whisper-rs",
+]
 
 [[package]]
 name = "vsimd"
