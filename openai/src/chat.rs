@@ -49,12 +49,13 @@ pub(crate) struct CompletionResponse {
 
 pub async fn complete_chat(
     config: &OpenAiConfig,
+    model: &str,
     messages: Vec<ChatMessage>,
 ) -> Result<ChatMessage> {
     let client = reqwest::Client::new();
 
     let body = ChatCompletionBody {
-        model: "gpt-3.5-turbo-16k".to_string(),
+        model: model.to_string(),
         messages,
         temperature: None,
         max_tokens: None,

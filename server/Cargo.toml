@@ -12,7 +12,7 @@ default-run = "server"
 async-trait = "0.1.60"
 axum = "0.6.2"
 axum-macros = "0.3.1"
-chrono = { version = "0.4.23", default-features = false }
+chrono = { workspace = true }
 clap = { workspace = true }
 include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 indoc = "2.0"

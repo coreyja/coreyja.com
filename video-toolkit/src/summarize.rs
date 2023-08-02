@@ -81,6 +81,7 @@ impl Summarize {
             for chunk in lines.chunks(500) {
                 let resp = complete_chat(
                 &openai_config,
+                "gpt-3.5-turbo-16k",
                 vec![ChatMessage {
                     role: openai::chat::ChatRole::System,
                     content: format!(
@@ -106,6 +107,7 @@ impl Summarize {
             } else {
                 let resp = complete_chat(
                   &openai_config,
+                  "gpt-3.5-turbo-16k",
                   vec![ChatMessage {
                       role: openai::chat::ChatRole::System,
                       content: format!(

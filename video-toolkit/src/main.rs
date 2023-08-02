@@ -7,9 +7,11 @@ use transcribe::TranscribeVideos;
 
 use aws_sdk_s3 as s3;
 use miette::Result;
+use youtubize::Youtubize;
 
 mod summarize;
 mod transcribe;
+mod youtubize;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -22,6 +24,7 @@ struct CliArgs {
 enum Command {
     TranscribeVideos(TranscribeVideos),
     Summarize(Summarize),
+    Youtubize(Youtubize),
 }
 
 #[tokio::main]
@@ -36,6 +39,7 @@ async fn main() -> Result<()> {
             transcribe_videos.transcribe_videos().await?
         }
         Command::Summarize(s) => s.summarize().await?,
+        Command::Youtubize(y) => y.youtubize().await?,
     }
 
     Ok(())

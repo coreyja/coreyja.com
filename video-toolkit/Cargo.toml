@@ -14,14 +14,14 @@ aws-sdk-s3 = "0.28.0"
 cacache = { workspace = true }
 clap = { workspace = true }
 ssri = { workspace = true }
+chrono = { workspace = true }
 miette = { workspace = true }
-
 tokio = { workspace = true }
-
 tracing = { workspace = true }
+
 tracing-common = { path = "../tracing-common" }
+openai = { path = "../openai" }
 
 futures = "0.3.28"
 
-openai = { path = "../openai" }
 regex = "1.9.1"
