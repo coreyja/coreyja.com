@@ -46,7 +46,7 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
     let ctx = WhisperContext::new("./models/ggml-base.en.bin").expect("failed to load model");
 
     let objects =
-        get_all_objects_for_bucket(client, "coreyja-video-backups", "raw_recordings/2023").await?;
+        get_all_objects_for_bucket(client, "coreyja-video-backups", "raw_recordings").await?;
 
     let videos = objects
         .iter()
@@ -59,7 +59,7 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
 
     let mut big_videos = videos
         .iter()
-        .filter(|obj| obj.size > 1_000_000_000)
+        .filter(|obj| obj.size > 500_000_000)
         .collect::<Vec<_>>();
 
     big_videos.sort_by_key(|x| x.size);
@@ -141,7 +141,11 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
 
         // create a params object
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 5 });
-        params.set_n_threads(8);
+        params.set_n_threads(
+            std::thread::available_parallelism()
+                .into_diagnostic()?
+                .get() as i32,
+        );
         let params = params;
 
         let mut reader = hound::WavReader::open("./tmp/audio.wav").unwrap();
@@ -165,20 +169,21 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
             .expect("failed to get number of segments");
         let mut buffer = String::new();
         for i in 0..num_segments {
-            let segment = state
-                .full_get_segment_text(i)
-                .expect("failed to get segment");
-            let start_timestamp = state
-                .full_get_segment_t0(i)
-                .expect("failed to get segment start timestamp");
-            let end_timestamp = state
-                .full_get_segment_t1(i)
-                .expect("failed to get segment end timestamp");
+            if let Ok(segment) = state.full_get_segment_text(i) {
+                let start_timestamp = state
+                    .full_get_segment_t0(i)
+                    .expect("failed to get segment start timestamp");
+                let end_timestamp = state
+                    .full_get_segment_t1(i)
+                    .expect("failed to get segment end timestamp");
 
-            buffer.push_str(&format!(
-                "[{} - {}]: {}\n",
-                start_timestamp, end_timestamp, segment
-            ));
+                buffer.push_str(&format!(
+                    "[{} - {}]: {}\n",
+                    start_timestamp, end_timestamp, segment
+                ));
+            } else {
+                continue;
+            };
         }
 
         // Write buffer to tmp/transcription.txt
@@ -200,6 +205,9 @@ pub(crate) async fn process_videos() -> Result<(), miette::ErrReport> {
 
         info!("Cleaning up tmp dir");
         tokio::fs::remove_dir_all("./tmp").await.into_diagnostic()?;
+
+        info!("Removing video from cache");
+        cacache::remove(CACHE_DIR, &video.name).await?;
     }
 
     Ok(())
