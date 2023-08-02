@@ -7,10 +7,12 @@ use transcribe::TranscribeVideos;
 
 use aws_sdk_s3 as s3;
 use miette::Result;
+use upload::Upload;
 use youtubize::Youtubize;
 
 mod summarize;
 mod transcribe;
+mod upload;
 mod youtubize;
 
 #[derive(Parser, Debug)]
@@ -25,6 +27,7 @@ enum Command {
     TranscribeVideos(TranscribeVideos),
     Summarize(Summarize),
     Youtubize(Youtubize),
+    Upload(Upload),
 }
 
 #[tokio::main]
@@ -40,6 +43,7 @@ async fn main() -> Result<()> {
         }
         Command::Summarize(s) => s.summarize().await?,
         Command::Youtubize(y) => y.youtubize().await?,
+        Command::Upload(u) => u.upload().await?,
     }
 
     Ok(())
