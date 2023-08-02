@@ -4189,6 +4189,7 @@ dependencies = [
  "futures",
  "hound",
  "miette",
+ "openai",
  "ssri",
  "tokio",
  "tracing",

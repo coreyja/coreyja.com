@@ -22,3 +22,5 @@ tracing = { workspace = true }
 tracing-common = { path = "../tracing-common" }
 
 futures = "0.3.28"
+
+openai = { path = "../openai" }

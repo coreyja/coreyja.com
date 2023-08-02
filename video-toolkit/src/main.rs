@@ -1,6 +1,12 @@
 use clap::{Parser, Subcommand};
+use futures::StreamExt;
+use miette::IntoDiagnostic;
+use summarize::Summarize;
 use tracing_common::setup_tracing;
 use transcribe::TranscribeVideos;
+
+use aws_sdk_s3 as s3;
+use miette::Result;
 
 mod summarize;
 mod transcribe;
@@ -15,10 +21,11 @@ struct CliArgs {
 #[derive(Subcommand, Debug)]
 enum Command {
     TranscribeVideos(TranscribeVideos),
+    Summarize(Summarize),
 }
 
 #[tokio::main]
-async fn main() -> miette::Result<()> {
+async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "info");
 
     setup_tracing()?;
@@ -28,7 +35,39 @@ async fn main() -> miette::Result<()> {
         Command::TranscribeVideos(transcribe_videos) => {
             transcribe_videos.transcribe_videos().await?
         }
+        Command::Summarize(s) => s.summarize().await?,
     }
 
     Ok(())
+}
+
+async fn get_all_objects_for_bucket(
+    client: s3::Client,
+    bucket: &str,
+    prefix: &str,
+) -> Result<Vec<s3::types::Object>, miette::Report> {
+    let resp = client
+        .list_objects_v2()
+        .bucket(bucket)
+        .prefix(prefix)
+        .into_paginator()
+        .send()
+        .collect::<Vec<_>>()
+        .await;
+    let pages = resp
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+        .into_diagnostic()?;
+    let objects = pages
+        .into_iter()
+        .map(|page| {
+            page.contents
+                .ok_or_else(|| miette::miette!("No contents in page"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    Ok(objects)
 }

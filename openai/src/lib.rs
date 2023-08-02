@@ -1,5 +1,6 @@
 use tracing::instrument;
 
+pub mod chat;
 pub mod completion;
 pub mod edit;
 

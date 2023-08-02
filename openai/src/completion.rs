@@ -35,7 +35,7 @@ struct CompletionUsage {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CompletionResponse {
+pub(crate) struct CompletionResponse {
     choices: Vec<CompletionChoice>,
     created: i64,
     id: String,

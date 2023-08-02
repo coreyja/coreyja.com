@@ -1,11 +1,13 @@
 use aws_sdk_s3 as s3;
 use clap::Args;
-use futures::{StreamExt, TryStreamExt};
+use futures::TryStreamExt;
 use miette::IntoDiagnostic;
 use s3::primitives::ByteStream;
 use tokio::{io::AsyncWriteExt, process::Command};
 use tracing::info;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
+
+use crate::get_all_objects_for_bucket;
 
 const CACHE_DIR: &str = "./.cache";
 
@@ -190,37 +192,6 @@ impl TranscribeVideos {
 
         Ok(())
     }
-}
-
-async fn get_all_objects_for_bucket(
-    client: s3::Client,
-    bucket: &str,
-    prefix: &str,
-) -> Result<Vec<s3::types::Object>, miette::Report> {
-    let resp = client
-        .list_objects_v2()
-        .bucket(bucket)
-        .prefix(prefix)
-        .into_paginator()
-        .send()
-        .collect::<Vec<_>>()
-        .await;
-    let pages = resp
-        .into_iter()
-        .collect::<Result<Vec<_>, _>>()
-        .into_diagnostic()?;
-    let objects = pages
-        .into_iter()
-        .map(|page| {
-            page.contents
-                .ok_or_else(|| miette::miette!("No contents in page"))
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
-
-    Ok(objects)
 }
 
 #[derive(Debug, Clone)]
