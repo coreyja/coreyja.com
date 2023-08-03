@@ -29,7 +29,7 @@ pub(crate) struct BlogPosts {
 pub(crate) type BlogPost = Post<BlogFrontMatter>;
 
 impl BlogPost {
-    fn from_file(file: &File) -> Result<BlogPost> {
+    pub(crate) fn from_file(file: &File) -> Result<BlogPost> {
         let ast = MarkdownAst::from_file(file)?;
 
         let metadata: BlogFrontMatter = ast.frontmatter()?;

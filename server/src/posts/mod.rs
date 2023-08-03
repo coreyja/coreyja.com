@@ -26,6 +26,8 @@ pub(crate) mod til;
 pub(crate) mod date;
 pub(crate) mod title;
 
+pub(crate) mod past_streams;
+
 #[derive(Debug, Clone)]
 pub(crate) struct Post<FrontmatterType> {
     pub(crate) frontmatter: FrontmatterType,

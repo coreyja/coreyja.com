@@ -7,7 +7,7 @@ use sqlx::SqlitePool;
 use crate::{
     github::GithubConfig,
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
-    posts::{blog::BlogPosts, til::TilPosts},
+    posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts},
     twitch::TwitchConfig,
     AppConfig, AppState,
 };
@@ -25,6 +25,10 @@ pub(crate) async fn validate() -> Result<()> {
     let tils = TilPosts::from_static_dir()?;
 
     tils.validate()?;
+
+    println!("Validating Past Streams feed...");
+    let streams = PastStreams::from_static_dir()?;
+    streams.validate()?;
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
