@@ -1,16 +1,18 @@
 use std::sync::Arc;
 
-use axum::extract::State;
+use axum::extract::{Path, State};
+use chrono::NaiveDate;
 use maud::{html, Markup, Render};
 use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{
-    http_server::templates::base_constrained,
+    http_server::{pages::blog::md::IntoHtml, templates::base_constrained},
     posts::{
         blog::LinkTo,
         past_streams::{PastStream, PastStreams},
     },
+    AppState,
 };
 
 #[instrument(skip_all)]
@@ -44,4 +46,27 @@ impl<'a> Render for StreamPostList<'a> {
           }
         }
     }
+}
+
+#[instrument(skip(streams, state))]
+pub(crate) async fn stream_get(
+    State(streams): State<Arc<PastStreams>>,
+    State(state): State<AppState>,
+    Path(date): Path<NaiveDate>,
+) -> Result<Markup, StatusCode> {
+    let til = streams
+        .streams
+        .iter()
+        .find(|p| p.frontmatter.date == date)
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let markdown = til.markdown();
+    Ok(base_constrained(html! {
+      h1 class="text-2xl" { (markdown.title) }
+      subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
+
+      div {
+        (markdown.ast.into_html(&state))
+      }
+    }))
 }
