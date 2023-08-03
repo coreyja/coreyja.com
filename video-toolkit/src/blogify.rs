@@ -1,7 +1,8 @@
-use std::{fs::File, path::PathBuf, process::exit};
+use std::{fs::File, io::Write, path::PathBuf, process::exit};
 
 use clap::Args;
 use futures::TryStreamExt;
+use google_youtube3::hyper::header::STRICT_TRANSPORT_SECURITY;
 use s3::primitives::ByteStream;
 use tokio::io::AsyncWriteExt;
 use tracing::info;
@@ -59,9 +60,12 @@ impl Blogify {
             let youtube_info_data =
                 String::from_utf8(youtube_info_data.to_vec()).expect("invalid utf8");
 
-            let mut s = youtube_info_data.split("\n\n");
+            let mut s = youtube_info_data.split('\n');
             let title = s.next().unwrap();
-            let description = s.collect::<Vec<_>>().join("\n\n");
+            let description = s.collect::<Vec<_>>().join("\n");
+
+            let title = title.strip_prefix('"').unwrap_or(title);
+            let title = title.strip_suffix('"').unwrap_or(title);
 
             let upload_file_resp = s3::Client::new(&config)
                 .get_object()
@@ -101,6 +105,41 @@ impl Blogify {
             .filter(|x| x.youtube_url.is_some())
             .collect::<Vec<_>>();
         dbg!(&uploaded);
+
+        tokio::fs::create_dir_all("./past_streams")
+            .await
+            .into_diagnostic()?;
+
+        for stream in videos {
+            let mut file = tokio::fs::File::create(format!(
+                "./past_streams/{}.md",
+                stream.date.format("%Y-%m-%d")
+            ))
+            .await
+            .into_diagnostic()?;
+
+            let youtube_url = stream.youtube_url.as_deref().unwrap_or("").trim();
+
+            let frontmatter = format!(
+                r#"---
+title: "{}"
+date: {}
+s3_url: "{}"
+youtube_url: "{}"
+---
+"#,
+                stream.title,
+                stream.date.format("%Y-%m-%d"),
+                stream.s3_url,
+                youtube_url
+            );
+            let content = format!("{}\n{}\n", frontmatter, stream.description);
+
+            println!("{}", content);
+
+            file.write_all(content.as_bytes()).await.into_diagnostic()?;
+            file.flush().await.into_diagnostic()?;
+        }
 
         Ok(())
     }
