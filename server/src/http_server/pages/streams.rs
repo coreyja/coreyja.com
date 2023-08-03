@@ -61,9 +61,26 @@ pub(crate) async fn stream_get(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let markdown = til.markdown();
+
+    let youtube_embed_url = til.frontmatter.youtube_url.as_ref().map(|url| {
+        let parts = url.split('/').collect::<Vec<_>>();
+        let video_id = parts.last().unwrap();
+        format!("https://www.youtube.com/embed/{}", video_id)
+    });
     Ok(base_constrained(html! {
       h1 class="text-2xl" { (markdown.title) }
       subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
+
+      @if let Some(url) = youtube_embed_url {
+        iframe
+          id="ytplayer"
+          type="text/html"
+          width="640"
+          height="360"
+          src=(url)
+          frameborder="0"
+          {}
+      }
 
       div {
         (markdown.ast.into_html(&state))
