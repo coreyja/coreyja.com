@@ -1,3 +1,4 @@
+use blogify::Blogify;
 use clap::{Parser, Subcommand};
 use futures::StreamExt;
 use miette::IntoDiagnostic;
@@ -10,6 +11,7 @@ use miette::Result;
 use upload::Upload;
 use youtubize::Youtubize;
 
+mod blogify;
 mod summarize;
 mod transcribe;
 mod upload;
@@ -28,6 +30,7 @@ enum Command {
     Summarize(Summarize),
     Youtubize(Youtubize),
     Upload(Upload),
+    Blogify(Blogify),
 }
 
 #[tokio::main]
@@ -44,6 +47,7 @@ async fn main() -> Result<()> {
         Command::Summarize(s) => s.summarize().await?,
         Command::Youtubize(y) => y.youtubize().await?,
         Command::Upload(u) => u.upload().await?,
+        Command::Blogify(b) => b.blogify().await?,
     }
 
     Ok(())
