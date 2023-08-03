@@ -7,7 +7,7 @@ use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity};
-use posts::{blog::BlogPosts, til::TilPosts};
+use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
@@ -80,6 +80,7 @@ struct AppState {
     markdown_to_html_context: SyntaxHighlightingContext,
     blog_posts: Arc<BlogPosts>,
     til_posts: Arc<TilPosts>,
+    streams: Arc<PastStreams>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

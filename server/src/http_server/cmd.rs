@@ -31,6 +31,9 @@ pub(crate) async fn serve() -> Result<()> {
     let til_posts = TilPosts::from_static_dir()?;
     let til_posts = Arc::new(til_posts);
 
+    let streams = PastStreams::from_static_dir()?;
+    let streams = Arc::new(streams);
+
     let app_state = AppState {
         twitch: twitch_config,
         db_pool: pool,
@@ -40,6 +43,7 @@ pub(crate) async fn serve() -> Result<()> {
         markdown_to_html_context,
         blog_posts,
         til_posts,
+        streams,
     };
 
     info!("About to run migrations (if any to apply)");

@@ -1,11 +1,10 @@
-use std::{ops::Index, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::Args;
 use openai::{
     chat::{complete_chat, ChatMessage},
     OpenAiConfig,
 };
-use regex::Regex;
 use s3::primitives::ByteStream;
 use tracing::info;
 

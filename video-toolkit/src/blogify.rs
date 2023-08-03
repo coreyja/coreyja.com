@@ -1,11 +1,7 @@
-use std::{fs::File, io::Write, path::PathBuf, process::exit};
+use std::path::PathBuf;
 
 use clap::Args;
-use futures::TryStreamExt;
-use google_youtube3::hyper::header::STRICT_TRANSPORT_SECURITY;
-use s3::primitives::ByteStream;
 use tokio::io::AsyncWriteExt;
-use tracing::info;
 
 use crate::*;
 

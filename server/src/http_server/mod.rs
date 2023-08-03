@@ -23,6 +23,7 @@ pub(crate) mod pages {
     pub mod blog;
     pub mod home;
     pub mod til;
+    pub mod streams;
 }
 
 mod api {

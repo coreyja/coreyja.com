@@ -1,7 +1,5 @@
-use std::{fs::File, process::exit};
 
 use clap::Args;
-use futures::TryStreamExt;
 use s3::primitives::ByteStream;
 use tokio::io::AsyncWriteExt;
 use tracing::info;
@@ -16,26 +14,25 @@ pub(crate) struct Upload {
     prefix: String,
 }
 
-const CACHE_DIR: &str = "./.cache";
 
 impl Upload {
     pub async fn upload(&self) -> Result<()> {
         let config = ::aws_config::load_from_env().await;
         let client = s3::Client::new(&config);
 
-        let hub = google_youtube3::YouTube::new(
-            google_youtube3::hyper::Client::builder().build(
-                google_youtube3::hyper_rustls::HttpsConnectorBuilder::new()
-                    .with_native_roots()
-                    .https_or_http()
-                    .enable_http1()
-                    .enable_http2()
-                    .build(),
-            ),
-            std::env::var("COREYJA_YOUTUBE_ACCESS_TOKEN")
-                .unwrap()
-                .to_string(),
-        );
+        // let hub = google_youtube3::YouTube::new(
+        //     google_youtube3::hyper::Client::builder().build(
+        //         google_youtube3::hyper_rustls::HttpsConnectorBuilder::new()
+        //             .with_native_roots()
+        //             .https_or_http()
+        //             .enable_http1()
+        //             .enable_http2()
+        //             .build(),
+        //     ),
+        //     std::env::var("COREYJA_YOUTUBE_ACCESS_TOKEN")
+        //         .unwrap()
+        //         .to_string(),
+        // );
 
         let objects = get_all_objects_for_bucket(client, &self.bucket, &self.prefix).await?;
 
