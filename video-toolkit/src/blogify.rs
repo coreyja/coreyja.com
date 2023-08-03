@@ -64,8 +64,11 @@ impl Blogify {
             let title = s.next().unwrap();
             let description = s.collect::<Vec<_>>().join("\n");
 
-            let title = title.strip_prefix('"').unwrap_or(title);
-            let title = title.strip_suffix('"').unwrap_or(title);
+            // let title = title.strip_prefix('"').unwrap_or(title);
+            // let title = title.strip_suffix('"').unwrap_or(title);
+            let title = title.replace('"', "");
+            let title = title.replace("Title: ", "");
+            let title = title.trim();
 
             let upload_file_resp = s3::Client::new(&config)
                 .get_object()
@@ -118,21 +121,24 @@ impl Blogify {
             .await
             .into_diagnostic()?;
 
-            let youtube_url = stream.youtube_url.as_deref().unwrap_or("").trim();
+            let youtube_url = stream
+                .youtube_url
+                .as_deref()
+                .map(|url| format!("youtube_url: \"{}\"", url.trim()))
+                .unwrap_or_else(String::new);
 
             let frontmatter = format!(
-                r#"---
-title: "{}"
+                r#"title: "{}"
 date: {}
 s3_url: "{}"
-youtube_url: "{}"
----
+{}
 "#,
                 stream.title,
                 stream.date.format("%Y-%m-%d"),
                 stream.s3_url,
                 youtube_url
             );
+            let frontmatter = format!("---\n{}\n---", frontmatter.trim());
             let content = format!("{}\n{}\n", frontmatter, stream.description);
 
             println!("{}", content);
