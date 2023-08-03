@@ -31,12 +31,17 @@ impl Summarize {
         let mut transcripts = objects
             .iter()
             .filter(|x| match x.key() {
-                Some(k) => k.ends_with(".txt") && !k.contains("summary"),
+                Some(k) => {
+                    k.ends_with(".txt")
+                        && !k.contains("summary")
+                        && !k.contains("yt")
+                        && !k.contains("upload")
+                }
                 None => false,
             })
             .collect::<Vec<_>>();
 
-        transcripts.sort_by_key(|x| x.size);
+        transcripts.sort_by_key(|x| -x.size);
 
         dbg!(transcripts.len());
 
@@ -45,7 +50,7 @@ impl Summarize {
 
             let key_path = transcript.key().unwrap();
             let key_path = key_path.strip_suffix(".txt").unwrap();
-            let summary_path = format!("{}.summary_v6.txt", key_path);
+            let summary_path = format!("{}.summary_v14.txt", key_path);
 
             if objects.iter().any(|x| x.key().unwrap() == summary_path) {
                 info!("Transcript already has summary");
@@ -80,50 +85,58 @@ impl Summarize {
             let mut summaries: Vec<String> = vec![];
             for chunk in lines.chunks(500) {
                 let resp = complete_chat(
-                &openai_config,
-                "gpt-3.5-turbo-16k",
-                vec![ChatMessage {
-                    role: openai::chat::ChatRole::System,
-                    content: format!(
-                        "The following is a transcript of a recorded live stream.
-                    Please summarize the content of the livestream.
+                    &openai_config,
+                    "gpt-3.5-turbo-16k",
+                    vec![ChatMessage {
+                        role: openai::chat::ChatRole::System,
+                        content: format!(
+                            "The following is a portion of the transcript of a recorded live stream.
+Please summarize the transcript
 
-                    The description should be a paragraph or two long and draw in the reader
-                    Include any details about the project we are working on and any technologies used or mentioned
-                    
-                    {}",
-                        chunk.join("\n")
-                    ),
-                }],
-            )
-            .await?;
+The summary should be as detailed as possible.
+Include any details about the project we are working on and any technologies used or mentioned
+
+{}",
+                            chunk.join("\n")
+                        ),
+                    }],
+                )
+                .await?;
 
                 let summary = resp.content;
+                dbg!(&summary);
                 summaries.push(summary);
             }
 
-            let summary = if summaries.len() == 1 {
-                summaries[0].to_string()
-            } else {
-                let resp = complete_chat(
-                  &openai_config,
-                  "gpt-3.5-turbo-16k",
-                  vec![ChatMessage {
-                      role: openai::chat::ChatRole::System,
-                      content: format!(
-                          "The following is a series of summaries of parts of a transcript of a recorded live stream.
-                          Combine the summaries into a summary for the entire stream
-                      
-                      {}",
-                      summaries.join("\n")
-                      ),
-                  }],
-              )
-              .await?;
+            // let summary = if summaries.len() == 1 {
+            //     summaries[0].to_string()
+            // } else {
+            //     let combined = summaries.join("\n");
+            //     let resp = complete_chat(
+            //       &openai_config,
+            //       "gpt-3.5-turbo-16k",
+            //       vec![ChatMessage {
+            //           role: openai::chat::ChatRole::System,
+            //           content: format!(
+            //               "The following is a series of summaries of parts of a transcript of a recorded live stream.
+            //               Combine the summaries into a summary for the entire stream.
+            //               There should be a single summary for the entire stream.
 
-                resp.content
-            };
+            //               The summary should be as detailed as possible. Keep as many details from the original transcript as possible.
 
+            //           {}",
+            //           combined
+            //           ),
+            //       }],
+            //   )
+            //   .await?;
+
+            //     resp.content
+            // };
+
+            let summary = summaries.join("\n\n");
+
+            println!("\n\n");
             dbg!(&summary);
 
             let client = s3::Client::new(&config);

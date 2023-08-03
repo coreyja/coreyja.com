@@ -31,7 +31,7 @@ impl Youtubize {
         let mut summaries = objects
             .iter()
             .filter(|x| match x.key() {
-                Some(k) => k.ends_with(".summary_v6.txt"),
+                Some(k) => k.ends_with(".summary_v14.txt"),
                 None => false,
             })
             .collect::<Vec<_>>();
@@ -44,8 +44,8 @@ impl Youtubize {
             info!("Creating Youtube Info: {:?}", summary.key());
 
             let key_path = summary.key().unwrap();
-            let key_path = key_path.strip_suffix(".summary_v6.txt").unwrap();
-            let youtube_path = format!("{}.yt_v1.txt", key_path);
+            let key_path = key_path.strip_suffix(".summary_v14.txt").unwrap();
+            let youtube_path = format!("{}.yt_v2.txt", key_path);
 
             if objects.iter().any(|x| x.key().unwrap() == youtube_path) {
                 info!("Transcript already has youtube info");
@@ -84,24 +84,25 @@ impl Youtubize {
                 vec![ChatMessage {
                     role: openai::chat::ChatRole::System,
                     content: format!(
-                        "The following is a GPT created summary of a live stream video.
-                        The summary was generated from the audio transcript.
+                        "The following is a GPT created summary of a single live stream video.
+The summary was generated from the audio transcript,
+and may have been broken into multiple parts.
 
-                        The host's name is Corey.
-                        Corey uses he/him pronouns and goes by coreyja online
-                        Recording Date: {date}
+The host's name is Corey.
+Corey uses he/him pronouns and goes by coreyja online
+Recording Date: {date}
 
-                        Most of the coding is done in Rust.
+Most of the coding is done in Rust.
 
-                        Please create a Youtube Video Title and Description from each summary.
-                        Include the title on the first line, followed by a blank line, followed by the description.
-                        Each response should be a single title and description
+Please create a Youtube Video Title and Description from the entire input.
+Include the title on the first line, followed by a blank line, followed by the description.
+Each response should be a single title and description
 
-                        The titles and descriptions should be written in a way that would make people want to watch the video.
-                        Include the date of the recording in the description of the video
+The titles and descriptions should be written in a way that would make people want to watch the video.
+Include the date of the recording in the description of the video
                         
                     
-                    {}",
+{}",
                         data
                     ),
                 }],
