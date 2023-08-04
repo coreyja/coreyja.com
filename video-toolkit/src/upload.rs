@@ -43,7 +43,10 @@ impl Upload {
         );
 
         for stream in without_youtube {
-            info!("Uploading: {:?}", stream.frontmatter.title);
+            let title = stream.frontmatter.title.clone();
+            let description = stream.ast.0.plain_text();
+
+            info!("Uploading: {}", title);
 
             tokio::fs::create_dir_all("./tmp").await.into_diagnostic()?;
             let video_file = tokio::fs::File::open("./tmp/video.mkv").await;
@@ -96,8 +99,8 @@ impl Upload {
             // Values shown here are possibly random and not representative !
             let req = Video {
                 snippet: Some(VideoSnippet {
-                    title: Some(stream.frontmatter.title.to_string()),
-                    description: Some(stream.ast.0.plain_text()),
+                    title: Some(title),
+                    description: Some(description),
                     ..Default::default()
                 }),
                 status: Some(google_youtube3::api::VideoStatus {
