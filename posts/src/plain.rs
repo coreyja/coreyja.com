@@ -70,10 +70,7 @@ impl IntoPlainText for Root {
 
 #[cfg(test)]
 mod test {
-
-    use posts::MarkdownAst;
-
-    use super::*;
+    use crate::{plain::IntoPlainText, MarkdownAst};
 
     #[test]
     fn simple() {

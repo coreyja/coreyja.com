@@ -18,6 +18,8 @@ pub mod title;
 
 pub mod past_streams;
 
+pub mod plain;
+
 #[derive(Debug, Clone)]
 pub struct Post<FrontmatterType> {
     pub frontmatter: FrontmatterType,

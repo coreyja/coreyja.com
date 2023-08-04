@@ -18,6 +18,7 @@ chrono = { workspace = true }
 miette = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+markdown = { workspace = true }
 
 tracing-common = { path = "../tracing-common" }
 openai = { path = "../openai" }
@@ -28,3 +29,5 @@ regex = "1.9.1"
 dialoguer = "0.10.4"
 google-youtube3 = "5.0.2"
 tokio-util = { version = "0.7.8", features = ["io", "io-util"] }
+
+posts = { path = "../posts" }
