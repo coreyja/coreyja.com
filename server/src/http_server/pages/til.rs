@@ -7,15 +7,15 @@ use axum::{
 
 use maud::{html, Markup};
 use miette::Result;
+use posts::til::TilPosts;
 use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base_constrained, posts::TilPostList},
+        templates::{base_constrained, post_templates::TilPostList},
     },
-    posts::til::TilPosts,
     AppState,
 };
 

@@ -2,12 +2,12 @@
 
 use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
+use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity};
-use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +40,6 @@ use db::*;
 use openai::*;
 
 mod commands;
-mod posts;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {

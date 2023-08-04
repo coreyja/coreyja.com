@@ -14,18 +14,18 @@ axum = "0.6.2"
 axum-macros = "0.3.1"
 chrono = { workspace = true }
 clap = { workspace = true }
-include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
+include_dir = { workspace = true }
 indoc = "2.0"
-markdown = "1.0.0-alpha"
+markdown = { workspace = true }
 maud = { version = "0.25.0", features = ["axum"] }
 miette = { workspace = true }
 mime_guess = "2.0"
 opentelemetry = { workspace = true }
 opentelemetry-otlp = { workspace = true }
-path-absolutize = "3.0"
+path-absolutize = { workspace = true }
 poise = "0.5.5"
 reqwest = { workspace = true }
-rss = { version = "2.0", features = ["validation"] }
+rss = { workspace = "true" }
 sentry = { version = "0.31.5", default-features = false, features = [
   "rustls",
   "backtrace",
@@ -38,7 +38,6 @@ sentry-tower = { version = "0.31.5", features = ["http"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = "0.7.1"
-serde_yaml = "0.9"
 sqlx = { version = "0.7", features = [
   "sqlite",
   "runtime-tokio-rustls",
@@ -58,3 +57,4 @@ urlencoding = "2.1"
 uuid = { version = "1.2", features = ["v4"] }
 
 openai = { path = "../openai" }
+posts = { path = "../posts" }

@@ -3,15 +3,12 @@ use std::sync::Arc;
 use axum::extract::{Path, State};
 use chrono::NaiveDate;
 use maud::{html, Markup, Render};
+use posts::past_streams::{PastStream, PastStreams};
 use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{
-    http_server::{pages::blog::md::IntoHtml, templates::base_constrained},
-    posts::{
-        blog::LinkTo,
-        past_streams::{PastStream, PastStreams},
-    },
+    http_server::{pages::blog::md::IntoHtml, templates::base_constrained, LinkTo},
     AppState,
 };
 

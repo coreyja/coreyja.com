@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
+use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
-use crate::{
-    posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts},
-    twitch::TwitchConfig,
-    AppConfig, AppState,
-};
+use crate::{twitch::TwitchConfig, AppConfig, AppState};
 
 use super::pages::blog::md::SyntaxHighlightingContext;
 

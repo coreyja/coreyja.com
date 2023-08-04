@@ -1,3 +1,5 @@
+use posts::blog::BlogPosts;
+
 use super::*;
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {

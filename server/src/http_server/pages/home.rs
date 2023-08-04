@@ -2,15 +2,13 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
+use posts::{blog::BlogPosts, til::TilPosts};
 
-use crate::{
-    http_server::templates::{
-        base,
-        buttons::LinkButton,
-        constrained_width,
-        posts::{BlogPostList, TilPostList},
-    },
-    posts::{blog::BlogPosts, til::TilPosts},
+use crate::http_server::templates::{
+    base,
+    buttons::LinkButton,
+    constrained_width,
+    post_templates::{BlogPostList, TilPostList},
 };
 
 pub(crate) async fn home_page(

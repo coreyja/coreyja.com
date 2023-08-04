@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use chrono::{DateTime, NaiveTime, Utc};
 use include_dir::File;
 use markdown::{
     mdast::{Node, Root},
@@ -9,34 +8,25 @@ use markdown::{
 use miette::{Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 
-use crate::{
-    http_server::pages::blog::md::{IntoHtml, IntoPlainText},
-    AppState,
-};
+use self::{blog::PostMarkdown, date::PostedOn, title::Title};
 
-use self::{
-    blog::{LinkTo, PostMarkdown},
-    date::PostedOn,
-    title::Title,
-};
+pub mod blog;
+pub mod til;
 
-pub(crate) mod blog;
-pub(crate) mod til;
+pub mod date;
+pub mod title;
 
-pub(crate) mod date;
-pub(crate) mod title;
-
-pub(crate) mod past_streams;
+pub mod past_streams;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Post<FrontmatterType> {
-    pub(crate) frontmatter: FrontmatterType,
-    pub(crate) ast: MarkdownAst,
-    pub(crate) path: PathBuf,
+pub struct Post<FrontmatterType> {
+    pub frontmatter: FrontmatterType,
+    pub ast: MarkdownAst,
+    pub path: PathBuf,
 }
 
 #[derive(Clone, Debug)]
-pub struct MarkdownAst(pub(crate) Root);
+pub struct MarkdownAst(pub Root);
 
 impl MarkdownAst {
     pub fn from_file(file: &File) -> Result<Self> {
@@ -80,50 +70,11 @@ impl MarkdownAst {
     }
 }
 
-impl IntoHtml for MarkdownAst {
-    fn into_html(self, state: &AppState) -> maud::Markup {
-        self.0.into_html(state)
-    }
-}
-
-impl<FrontMatter> Post<FrontMatter> {
-    fn short_description(&self) -> Option<String> {
-        let contents = self.ast.0.plain_text();
-
-        Some(contents.chars().take(100).collect())
-    }
-}
-
-pub(crate) trait ToRssItem {
-    fn to_rss_item(&self, state: &AppState) -> rss::Item;
-}
-
-impl<FrontMatter> ToRssItem for Post<FrontMatter>
-where
-    FrontMatter: PostedOn + Title,
-    Post<FrontMatter>: LinkTo,
-{
-    fn to_rss_item(&self, state: &AppState) -> rss::Item {
-        let link = self.absolute_link(&state.app);
-
-        let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
-        let formatted_date = posted_on.to_rfc2822();
-
-        rss::ItemBuilder::default()
-            .title(Some(self.title().to_string()))
-            .link(Some(link))
-            .description(self.short_description())
-            .pub_date(Some(formatted_date))
-            .content(Some(self.markdown().ast.0.into_html(state).into_string()))
-            .build()
-    }
-}
-
 impl<FrontMatter> Post<FrontMatter>
 where
     FrontMatter: PostedOn + Title,
 {
-    pub(crate) fn markdown(&self) -> PostMarkdown {
+    pub fn markdown(&self) -> PostMarkdown {
         PostMarkdown {
             title: self.title().to_string(),
             date: self.posted_on().to_string(),

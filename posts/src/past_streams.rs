@@ -12,14 +12,14 @@ use super::{
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../past_streams");
 
 #[derive(Debug, Clone)]
-pub(crate) struct PastStreams {
-    pub(crate) streams: Vec<PastStream>,
+pub struct PastStreams {
+    pub streams: Vec<PastStream>,
 }
 
-pub(crate) type PastStream = Post<FrontMatter>;
+pub type PastStream = Post<FrontMatter>;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub(crate) struct FrontMatter {
+pub struct FrontMatter {
     pub title: String,
     pub date: NaiveDate,
     pub s3_url: String,
