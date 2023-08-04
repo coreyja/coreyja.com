@@ -2,7 +2,7 @@ use std::{fs::File, io::Read};
 
 use clap::Args;
 use posts::{past_streams::PastStreams, plain::IntoPlainText};
-use tokio::io::AsyncWriteExt;
+use tokio::{io::AsyncWriteExt, task::spawn_blocking};
 use tracing::info;
 
 use crate::*;
@@ -24,9 +24,9 @@ impl Upload {
             .iter()
             .filter(|x| x.frontmatter.youtube_url.is_none());
 
-        info!("Cleaning up tmp dir");
-        tokio::fs::create_dir_all("./tmp").await.into_diagnostic()?;
-        tokio::fs::remove_dir_all("./tmp").await.into_diagnostic()?;
+        // info!("Cleaning up tmp dir");
+        // tokio::fs::create_dir_all("./tmp").await.into_diagnostic()?;
+        // tokio::fs::remove_dir_all("./tmp").await.into_diagnostic()?;
 
         let hub = google_youtube3::YouTube::new(
             google_youtube3::hyper::Client::builder().build(
@@ -102,11 +102,25 @@ impl Upload {
                 }),
                 status: Some(google_youtube3::api::VideoStatus {
                     privacy_status: Some("private".to_string()),
+                    made_for_kids: Some(false),
+                    self_declared_made_for_kids: Some(false),
+                    embeddable: Some(true),
                     ..Default::default()
                 }),
                 ..Default::default()
             };
-            let video_id = req.id.unwrap();
+            println!("About to upload");
+            let result = hub
+                .videos()
+                .insert(req)
+                .notify_subscribers(false)
+                .upload_resumable(
+                    File::open("./tmp/video.mkv").into_diagnostic()?,
+                    "application/octet-stream".parse().unwrap(),
+                )
+                .await
+                .into_diagnostic()?;
+            let video_id = result.1.id.unwrap();
             let youtube_url = format!("https://youtu.be/{}", video_id);
 
             let path = format!("./past_streams/{}.md", stream.frontmatter.date);
@@ -125,6 +139,10 @@ impl Upload {
             tokio::fs::write(&path, new_content)
                 .await
                 .into_diagnostic()?;
+
+            info!("Cleaning up tmp dir");
+            tokio::fs::create_dir_all("./tmp").await.into_diagnostic()?;
+            tokio::fs::remove_dir_all("./tmp").await.into_diagnostic()?;
         }
 
         Ok(())
