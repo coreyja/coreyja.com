@@ -17,3 +17,4 @@ markdown = { workspace = true }
 include_dir = { workspace = true }
 
 path-absolutize = { workspace = true }
+thiserror = "1.0.44"

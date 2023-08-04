@@ -38,6 +38,16 @@ impl Title for FrontMatter {
     }
 }
 
+use miette::Diagnostic;
+use thiserror::Error;
+
+#[derive(Debug, Error, Diagnostic)]
+#[error("The were errors validating the posts")]
+struct ValidationError {
+    #[related]
+    others: Vec<miette::Report>,
+}
+
 impl PastStreams {
     pub fn from_static_dir() -> Result<Self> {
         Self::from_dir(&TIL_DIR)
@@ -57,6 +67,7 @@ impl PastStreams {
 
     pub fn validate(&self) -> Result<()> {
         println!("Validating {} Streams", self.streams.len());
+        let mut errs = vec![];
         for stream in &self.streams {
             println!(
                 "Validating {} from {}...",
@@ -64,8 +75,17 @@ impl PastStreams {
                 stream.path.display()
             );
 
-            stream.validate()?;
+            let validation_reslut = stream.validate();
+
+            if let Err(e) = validation_reslut {
+                errs.push(e);
+            }
         }
+
+        if !errs.is_empty() {
+            return Err(ValidationError { others: errs }.into());
+        }
+
         println!("Streams Valid! ✅");
 
         Ok(())
@@ -90,6 +110,13 @@ impl PastStream {
     }
 
     fn validate(&self) -> Result<()> {
+        if self.frontmatter.title.chars().count() >= 100 {
+            return Err(miette::miette!(
+                "Title is too long: {}",
+                self.frontmatter.title.clone(),
+            ));
+        }
+
         Ok(())
     }
 }
