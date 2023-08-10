@@ -31,3 +31,4 @@ google-youtube3 = "5.0.2"
 tokio-util = { version = "0.7.8", features = ["io", "io-util"] }
 
 posts = { path = "../posts" }
+srtlib = "0.1.7"

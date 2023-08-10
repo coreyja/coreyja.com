@@ -3669,6 +3669,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "srtlib"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f1e833468139c102e57293a0ac969aaea5750565e05e293a18f6acbb540b07c"
+dependencies = [
+ "encoding_rs",
+]
+
+[[package]]
 name = "ssri"
 version = "9.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4404,6 +4413,7 @@ dependencies = [
  "openai",
  "posts",
  "regex",
+ "srtlib",
  "ssri",
  "tokio",
  "tokio-util",

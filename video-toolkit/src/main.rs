@@ -12,6 +12,7 @@ use upload::Upload;
 use youtubize::Youtubize;
 
 mod blogify;
+mod single;
 mod summarize;
 mod transcribe;
 mod upload;
@@ -31,6 +32,7 @@ enum Command {
     Youtubize(Youtubize),
     Upload(Upload),
     Blogify(Blogify),
+    Single(single::Single),
 }
 
 #[tokio::main]
@@ -48,6 +50,7 @@ async fn main() -> Result<()> {
         Command::Youtubize(y) => y.youtubize().await?,
         Command::Upload(u) => u.upload().await?,
         Command::Blogify(b) => b.blogify().await?,
+        Command::Single(s) => s.process().await?,
     }
 
     Ok(())
