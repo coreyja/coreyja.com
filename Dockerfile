@@ -1,9 +1,9 @@
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR /home/rust/
 
-FROM chef AS planner
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+# FROM chef AS planner
+# COPY . .
+# RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef as builder
 
@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y \
   protobuf-compiler \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=planner /home/rust/recipe.json recipe.json
-# Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --recipe-path recipe.json
+# COPY --from=planner /home/rust/recipe.json recipe.json
+# # Build dependencies - this is the caching Docker layer!
+# RUN cargo chef cook --release --recipe-path recipe.json
 
 USER root
 
