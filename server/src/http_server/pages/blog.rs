@@ -7,23 +7,23 @@ use axum::{
 };
 
 use maud::{html, Markup};
+use posts::{
+    blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
+    date::PostedOn,
+    til::TilPosts,
+    Post,
+};
 use rss::validation::Validate;
 use tracing::instrument;
 
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base_constrained, posts::BlogPostList},
+        templates::{base_constrained, post_templates::BlogPostList},
+        ToRssItem,
     },
-    posts::{
-        blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
-        date::PostedOn,
-        til::TilPosts,
-        Post, ToRssItem,
-    }, AppState,
+    AppState,
 };
-
-
 
 pub(crate) mod md;
 

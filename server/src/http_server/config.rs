@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
+use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
-use crate::{
-    posts::{blog::BlogPosts, til::TilPosts},
-    twitch::TwitchConfig,
-    AppConfig, AppState,
-};
+use crate::{twitch::TwitchConfig, AppConfig, AppState};
 
 use super::pages::blog::md::SyntaxHighlightingContext;
 
@@ -37,5 +34,11 @@ impl FromRef<AppState> for Arc<BlogPosts> {
 impl FromRef<AppState> for Arc<TilPosts> {
     fn from_ref(config: &AppState) -> Self {
         config.til_posts.clone()
+    }
+}
+
+impl FromRef<AppState> for Arc<PastStreams> {
+    fn from_ref(config: &AppState) -> Self {
+        config.streams.clone()
     }
 }

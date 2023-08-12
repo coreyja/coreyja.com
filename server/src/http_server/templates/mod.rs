@@ -10,7 +10,13 @@ const LOGO_MONOCHROME_SVG: &str = include_str!("../../../static/logo-monochrome.
 const MAX_WIDTH_CONTAINER_CLASSES: &str = "max-w-5xl m-auto px-4";
 
 mod header;
+use ::posts::MarkdownAst;
 pub use header::{head, header};
+use posts::Post;
+
+use crate::AppState;
+
+use super::pages::blog::md::{IntoHtml, IntoPlainText};
 
 pub fn base(inner: Markup) -> Markup {
     html! {
@@ -46,6 +52,24 @@ pub fn constrained_width(inner: Markup) -> Markup {
 }
 
 pub(crate) mod buttons;
-pub(crate) mod posts;
+pub(crate) mod post_templates;
 
 pub(crate) mod newsletter;
+
+impl IntoHtml for MarkdownAst {
+    fn into_html(self, state: &AppState) -> maud::Markup {
+        self.0.into_html(state)
+    }
+}
+
+pub trait ShortDesc {
+    fn short_description(&self) -> Option<String>;
+}
+
+impl<FrontMatter> ShortDesc for Post<FrontMatter> {
+    fn short_description(&self) -> Option<String> {
+        let contents = self.ast.0.plain_text();
+
+        Some(contents.chars().take(100).collect())
+    }
+}

@@ -1,9 +1,7 @@
 use maud::{html, Markup, Render};
+use posts::{blog::BlogPost, til::TilPost};
 
-use crate::posts::{
-    blog::{BlogPost, LinkTo},
-    til::TilPost,
-};
+use crate::http_server::LinkTo;
 
 pub(crate) struct TilPostList<'a>(pub(crate) Vec<&'a TilPost>);
 

@@ -1,6 +1,6 @@
 use markdown::mdast::{Node, Root};
 
-pub(crate) trait IntoPlainText {
+pub trait IntoPlainText {
     fn plain_text(&self) -> String;
 }
 
@@ -70,7 +70,8 @@ impl IntoPlainText for Root {
 
 #[cfg(test)]
 mod test {
-    use crate::posts::MarkdownAst;
+
+    use posts::MarkdownAst;
 
     use super::*;
 

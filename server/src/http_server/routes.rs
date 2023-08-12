@@ -1,3 +1,5 @@
+use posts::blog::BlogPosts;
+
 use super::*;
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
@@ -22,6 +24,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/til", get(pages::til::til_index))
         .route("/til/rss.xml", get(pages::til::rss_feed))
         .route("/til/:slug", get(pages::til::til_get))
+        .route("/streams", get(pages::streams::streams_index))
+        .route("/streams/:date", get(pages::streams::stream_get))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .route("/newsletter", get(newsletter_get))

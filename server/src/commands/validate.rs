@@ -1,13 +1,13 @@
 use std::{println, sync::Arc};
 
 use miette::{IntoDiagnostic, Result};
+use openai::OpenAiConfig;
+use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use sqlx::SqlitePool;
 
 use crate::{
     github::GithubConfig,
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
-    open_ai::OpenAiConfig,
-    posts::{blog::BlogPosts, til::TilPosts},
     twitch::TwitchConfig,
     AppConfig, AppState,
 };
@@ -25,6 +25,10 @@ pub(crate) async fn validate() -> Result<()> {
     let tils = TilPosts::from_static_dir()?;
 
     tils.validate()?;
+
+    println!("Validating Past Streams feed...");
+    let streams = PastStreams::from_static_dir()?;
+    streams.validate()?;
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
@@ -53,6 +57,7 @@ pub(crate) async fn validate() -> Result<()> {
         },
         blog_posts: Arc::new(posts.clone()),
         til_posts: Arc::new(tils.clone()),
+        streams: Arc::new(streams.clone()),
         app: config,
         markdown_to_html_context: render_context,
     };

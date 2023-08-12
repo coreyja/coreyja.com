@@ -2,12 +2,12 @@
 
 use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
 
+use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use poise::serenity_prelude::{self as serenity};
-use posts::{blog::BlogPosts, til::TilPosts};
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
@@ -37,11 +37,9 @@ use github::*;
 mod db;
 use db::*;
 
-mod open_ai;
-use open_ai::*;
+use openai::*;
 
 mod commands;
-mod posts;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
@@ -81,6 +79,7 @@ struct AppState {
     markdown_to_html_context: SyntaxHighlightingContext,
     blog_posts: Arc<BlogPosts>,
     til_posts: Arc<TilPosts>,
+    streams: Arc<PastStreams>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

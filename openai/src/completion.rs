@@ -35,7 +35,7 @@ struct CompletionUsage {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CompletionResponse {
+pub(crate) struct CompletionResponse {
     choices: Vec<CompletionChoice>,
     created: i64,
     id: String,
@@ -44,10 +44,7 @@ struct CompletionResponse {
     usage: CompletionUsage,
 }
 
-pub(crate) async fn complete_prompt(
-    config: &OpenAiConfig,
-    prompt: impl Into<String>,
-) -> Result<String> {
+pub async fn complete_prompt(config: &OpenAiConfig, prompt: impl Into<String>) -> Result<String> {
     let client = reqwest::Client::new();
 
     let body = CompletionBody::new(prompt.into());

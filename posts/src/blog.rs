@@ -8,28 +8,24 @@ use markdown::mdast::*;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    posts::{MarkdownAst, Post},
-    AppConfig,
-};
+use crate::{MarkdownAst, Post};
 
 use super::{
     date::{ByRecency, PostedOn},
-    til::TilPost,
     title::Title,
 };
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
 #[derive(Debug, Clone)]
-pub(crate) struct BlogPosts {
+pub struct BlogPosts {
     posts: Vec<BlogPost>,
 }
 
-pub(crate) type BlogPost = Post<BlogFrontMatter>;
+pub type BlogPost = Post<BlogFrontMatter>;
 
 impl BlogPost {
-    fn from_file(file: &File) -> Result<BlogPost> {
+    pub(crate) fn from_file(file: &File) -> Result<BlogPost> {
         let ast = MarkdownAst::from_file(file)?;
 
         let metadata: BlogFrontMatter = ast.frontmatter()?;
@@ -59,7 +55,7 @@ impl BlogPost {
         &self.frontmatter.date
     }
 
-    pub(crate) fn validate(&self) -> Result<()> {
+    pub fn validate(&self) -> Result<()> {
         self.validate_images()?;
 
         Ok(())
@@ -165,7 +161,7 @@ impl BlogPosts {
         &self.posts
     }
 
-    pub(crate) fn by_recency(&self) -> Vec<&BlogPost> {
+    pub fn by_recency(&self) -> Vec<&BlogPost> {
         self.posts.by_recency()
     }
 }
@@ -180,7 +176,7 @@ impl<'a> BlogFileEntry<'a> {
     }
 }
 
-pub(crate) struct BlogPostPath {
+pub struct BlogPostPath {
     pub path: String,
 }
 
@@ -210,21 +206,21 @@ impl BlogPostPath {
         })
     }
 
-    pub(crate) fn raw_bytes(&self) -> &'static [u8] {
+    pub fn raw_bytes(&self) -> &'static [u8] {
         let file = BLOG_DIR.get_file(&self.path).unwrap();
 
         file.contents()
     }
 }
 
-pub(crate) struct PostMarkdown {
+pub struct PostMarkdown {
     pub title: String,
     pub date: String,
     pub ast: MarkdownAst,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub(crate) struct BlogFrontMatter {
+pub struct BlogFrontMatter {
     pub title: String,
     pub date: NaiveDate,
     #[serde(default = "default_is_newsletter")]
@@ -268,26 +264,6 @@ impl ToCanonicalPath for PathBuf {
         }
 
         format!("{}", self.to_string_lossy())
-    }
-}
-
-pub(crate) trait LinkTo {
-    fn relative_link(&self) -> String;
-
-    fn absolute_link(&self, config: &AppConfig) -> String {
-        config.app_url(&self.relative_link())
-    }
-}
-
-impl LinkTo for BlogPost {
-    fn relative_link(&self) -> String {
-        format!("/posts/{}", self.path.canonical_path())
-    }
-}
-
-impl LinkTo for TilPost {
-    fn relative_link(&self) -> String {
-        format!("/til/{}", self.frontmatter.slug)
     }
 }
 

@@ -1,8 +1,40 @@
 [workspace]
-members = ["server"]
+members = ["posts", "server", "video-toolkit", "tracing-common"]
 
 [workspace.dependencies]
+clap = { version = "4.2", features = ["derive"] }
 reqwest = { version = "0.11.12", features = [
   "json",
   "rustls-tls",
 ], default-features = false }
+miette = { version = "5.7", features = ["fancy"] }
+
+tokio = { version = "1.21", features = ["full"] }
+
+tracing = "0.1.37"
+tracing-opentelemetry = "0.19.0"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+tracing-tree = "0.2.2"
+opentelemetry = { version = "0.19.0", features = [
+  "rt-tokio",
+], default-features = false }
+opentelemetry-otlp = { version = "0.12.0", features = [
+  "http-proto",
+  "reqwest-rustls",
+  "reqwest-client",
+], default-features = false }
+
+cacache = { version = "11.6.0", default-features = false, features = [
+  "tokio-runtime",
+] }
+ssri = "9.0.0"
+
+serde = "1.0"
+serde_json = "1.0"
+
+chrono = { version = "0.4.23", default-features = false }
+
+rss = { version = "2.0", features = ["validation"] }
+markdown = "1.0.0-alpha"
+include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
+path-absolutize = "3.0"

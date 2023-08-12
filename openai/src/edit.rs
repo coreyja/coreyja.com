@@ -40,7 +40,7 @@ struct EditResponse {
     usage: EditUsage,
 }
 
-pub(crate) async fn edit_prompt(
+pub async fn edit_prompt(
     config: &OpenAiConfig,
     prompt: impl Into<String>,
     instructions: impl Into<String>,

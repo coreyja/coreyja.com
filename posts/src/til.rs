@@ -6,7 +6,7 @@ use markdown::mdast::Node;
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::posts::{MarkdownAst, Post};
+use crate::{MarkdownAst, Post};
 
 use super::{
     blog::ValidateMarkdown,
@@ -17,14 +17,14 @@ use super::{
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
 #[derive(Debug, Clone)]
-pub(crate) struct TilPosts {
-    pub(crate) posts: Vec<TilPost>,
+pub struct TilPosts {
+    pub posts: Vec<TilPost>,
 }
 
-pub(crate) type TilPost = Post<FrontMatter>;
+pub type TilPost = Post<FrontMatter>;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub(crate) struct FrontMatter {
+pub struct FrontMatter {
     pub title: String,
     pub date: NaiveDate,
     pub slug: String,
