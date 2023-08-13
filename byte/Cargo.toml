@@ -13,3 +13,5 @@ tracing = { workspace = true }
 
 tracing-common = { path = "../tracing-common" }
 openai = { path = "../openai" }
+cpal = "0.15.2"
+hound = "3.5.0"
