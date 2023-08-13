@@ -41,9 +41,11 @@ async fn main() -> Result<()> {
     println!("Default input config: {:?}", config);
 
     // The WAV file we're recording to.
-    const PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/recorded.wav");
+    const PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tmp/recorded.wav");
     let spec = wav_spec_from_config(&config);
-    let writer = hound::WavWriter::create(PATH, spec).into_diagnostic()?;
+    let writer = hound::WavWriter::create(PATH, spec)
+        .into_diagnostic()
+        .wrap_err("Could not make Hound writer")?;
     let writer = Arc::new(Mutex::new(Some(writer)));
 
     // A flag to indicate that recording is in progress.
