@@ -3,7 +3,7 @@ use std::{fs::File, io::Read};
 use clap::Args;
 use posts::{past_streams::PastStreams, plain::IntoPlainText};
 use tokio::{io::AsyncWriteExt, task::spawn_blocking};
-use tracing::info;
+use tracing::{error, info};
 
 use crate::*;
 
@@ -43,6 +43,10 @@ impl Upload {
         );
 
         for stream in without_youtube {
+            let Some(s3_url) = &stream.frontmatter.s3_url else {
+                error!("No s3_url for {}. Skipping", stream.frontmatter.title);
+                continue;
+            };
             let title = stream.frontmatter.title.clone();
             let description = stream.ast.0.plain_text();
 
@@ -64,7 +68,7 @@ impl Upload {
                     let resp = client
                         .get_object()
                         .bucket(&self.bucket)
-                        .key(&stream.frontmatter.s3_url)
+                        .key(s3_url)
                         .send()
                         .await
                         .into_diagnostic()?;
