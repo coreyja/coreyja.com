@@ -5,27 +5,25 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use candle_core::{Device, Tensor};
-use candle_nn::VarBuilder;
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     FromSample, Sample,
 };
-use hf_hub::{api::sync::Api, Repo, RepoType};
-use hound::{SampleFormat, WavReader, WavSpec};
+use hound::WavReader;
 pub use miette::Result;
 use miette::{miette, Context, IntoDiagnostic};
-use tokenizers::Tokenizer;
 use tracing_common::setup_tracing;
-
-use crate::whisper::{audio::pcm_to_mel, Config, Decoder, WhichModel, Whisper, DTYPE, N_MELS};
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 const PREFERRED_MIC_NAME: &str = "Samson G-Track Pro";
 
-mod whisper;
-
 #[tokio::main]
 async fn main() -> Result<()> {
+    let path_to_model = concat!(env!("CARGO_MANIFEST_DIR"), "/../models/ggml-large.bin");
+
+    // load a context and model
+    let ctx = WhisperContext::new(path_to_model).expect("failed to load model");
+
     setup_tracing()?;
 
     let host = cpal::default_host();
@@ -124,35 +122,10 @@ async fn main() -> Result<()> {
     drop(writer);
 
     {
-        let device = Device::Cpu;
-        let (model, revision) = WhichModel::TinyEn.model_and_revision();
-        let model = model.to_string();
-        let revision = revision.to_string();
+        let params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-        let api = Api::new().into_diagnostic()?;
-        let repo = api.repo(Repo::with_revision(model, RepoType::Model, revision));
-        let sample = std::path::PathBuf::from(PATH);
-
-        let tokenizer = Tokenizer::from_file(repo.get("tokenizer.json").into_diagnostic()?)
-            .map_err(|e| miette::miette!(e))?;
-        let mel_bytes = include_bytes!("whisper/melfilters.bytes");
-        let mut mel_filters = vec![0f32; mel_bytes.len() / 4];
-        <byteorder::LittleEndian as byteorder::ByteOrder>::read_f32_into(
-            mel_bytes,
-            &mut mel_filters,
-        );
-
-        // let mut input = std::fs::File::open(sample).into_diagnostic()?;
-        // let mut wav_reader = hound::WavReader::new(&mut input).into_diagnostic()?;
-        let data = parse_wav_file(&sample);
-
-        // let channel_count = wav_reader.spec().channels;
-        // let data = wav_reader
-        //     .samples()
-        //     .collect::<Result<Vec<f32>, _>>()
-        //     .into_diagnostic()
-        //     .wrap_err("Failed to extract WAV data")?;
-        // let data = convert_integer_to_float_audio(&data);
+        let path = std::path::PathBuf::from(PATH);
+        let data = parse_wav_file(&path);
         let resampled = samplerate::convert(
             48000,
             16000,
@@ -162,39 +135,27 @@ async fn main() -> Result<()> {
         )
         .unwrap();
         let pcm_data = convert_stereo_to_mono_audio(&resampled).map_err(|e| miette!(e))?;
-        // let pcm_data: Vec<_> = mono_data
-        //     .iter()
-        //     .cloned()
-        //     // .map(|v| *v as f32 / 32768.)
-        //     .collect();
-        println!("pcm data loaded {}", pcm_data.len());
 
-        let mel = pcm_to_mel(&pcm_data, &mel_filters)?;
-        let mel_len = mel.len();
-        let mel =
-            Tensor::from_vec(mel, (1, N_MELS, mel_len / N_MELS), &device).into_diagnostic()?;
-        println!("loaded mel: {:?}", mel.dims());
+        let mut state = ctx.create_state().expect("failed to create state");
+        state
+            .full(params, &pcm_data[..])
+            .expect("failed to run model");
 
-        let weights = unsafe {
-            candle_core::safetensors::MmapedFile::new(
-                repo.get("model.safetensors").into_diagnostic()?,
-            )
-            .into_diagnostic()?
-        };
-        let weights = weights.deserialize().into_diagnostic()?;
-        let vb = VarBuilder::from_safetensors(vec![weights], DTYPE, &device);
-        let config: Config = serde_json::from_str(
-            &std::fs::read_to_string(repo.get("config.json").into_diagnostic()?)
-                .into_diagnostic()?,
-        )
-        .into_diagnostic()?;
-
-        let model = Whisper::load(&vb, config).into_diagnostic()?;
-        let mut dc = Decoder::new(model, tokenizer, 299792458, &device, None)
-            .wrap_err("Could not create decoder")?;
-        let results = dc.run(&mel)?;
-
-        dbg!(results);
+        let num_segments = state
+            .full_n_segments()
+            .expect("failed to get number of segments");
+        for i in 0..num_segments {
+            let segment = state
+                .full_get_segment_text(i)
+                .expect("failed to get segment");
+            let start_timestamp = state
+                .full_get_segment_t0(i)
+                .expect("failed to get segment start timestamp");
+            let end_timestamp = state
+                .full_get_segment_t1(i)
+                .expect("failed to get segment end timestamp");
+            println!("[{} - {}]: {}", start_timestamp, end_timestamp, segment);
+        }
     }
 
     Ok(())

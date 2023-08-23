@@ -25,3 +25,4 @@ num-traits = "0.2.16"
 byteorder = "1.4.3"
 serde_json.workspace = true
 samplerate = "0.2.4"
+whisper-rs = { version = "0.8.0" }
