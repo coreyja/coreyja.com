@@ -10,7 +10,7 @@ use openai::{
 use tracing_common::setup_tracing;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
-const PREFERRED_MIC_NAME: &str = "Samson G-Track Pro";
+const PREFERRED_MIC_NAME: &str = "MacBook Pro Microphone";
 
 fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
     loop {
@@ -49,7 +49,7 @@ fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device
                 .build_input_stream(
-                    &config.into(),
+                    &config.clone().into(),
                     move |data, _: &_| sender.send(data.to_vec()).unwrap(),
                     err_fn,
                     None,
@@ -74,15 +74,30 @@ fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
             recorded_sample.append(&mut data);
 
             if recorded_sample.len() >= 480000 {
-                let resampled = samplerate::convert(
-                    48000,
-                    16000,
-                    2,
-                    samplerate::ConverterType::SincBestQuality,
-                    &recorded_sample,
-                )
-                .unwrap();
-                let pcm_data = convert_stereo_to_mono_audio(&resampled).map_err(|e| miette!(e))?;
+                let audio_data = &recorded_sample[..];
+                let audio_data = if config.sample_rate().0 != 16_000 {
+                    samplerate::convert(
+                        config.sample_rate().0,
+                        16000,
+                        config.channels().into(),
+                        samplerate::ConverterType::SincBestQuality,
+                        audio_data,
+                    )
+                    .into_diagnostic()
+                    .wrap_err("Failed to convert to 16kHz")?
+                } else {
+                    audio_data.to_vec()
+                };
+                let audio_data = match config.channels() {
+                    1 => audio_data,
+                    2 => convert_stereo_to_mono_audio(&audio_data).map_err(|e| miette!(e))?,
+                    _ => {
+                        return Err(miette::miette!(
+                            "Unsupported number of channels: {}",
+                            config.channels()
+                        ))
+                    }
+                };
                 let mut params = FullParams::new(SamplingStrategy::BeamSearch {
                     beam_size: 5,
                     patience: 0.1,
@@ -94,7 +109,7 @@ fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
 
                 let mut state = ctx.create_state().expect("failed to create state");
                 state
-                    .full(params, &pcm_data[..])
+                    .full(params, &audio_data[..])
                     .expect("failed to run model");
 
                 let num_segments = state
@@ -119,30 +134,21 @@ async fn main() -> Result<()> {
     let (sender, reciever) = std::sync::mpsc::channel::<String>();
 
     let _recording = tokio::task::spawn_blocking(move || {
-        let _ = recording_thread_main(sender);
+        recording_thread_main(sender).unwrap();
     });
 
     let (message_sender, message_reciever) = std::sync::mpsc::channel::<String>();
 
-    let _detecting = tokio::task::spawn_blocking(move || {
-        let mut buffer = vec![];
-        let mut buffering = false;
-        loop {
-            let text = reciever.recv().unwrap();
-            let text = text.to_lowercase();
-            // println!("{}", text);
+    let _detecting = tokio::task::spawn_blocking(move || loop {
+        let text = reciever.recv().unwrap();
+        let text = text.to_lowercase();
+        println!("{}", text);
 
-            if buffering {
-                buffer.push(text);
-                buffering = false;
+        if text.contains("bite") || text.contains("byte") {
+            println!("Bite detected!");
+            let next_text = reciever.recv().unwrap();
 
-                message_sender.send(buffer.join(" ")).unwrap();
-                buffer.clear();
-            } else if text.contains("bite") || text.contains("byte") {
-                println!("Bite detected!");
-                buffer.push(text);
-                buffering = true
-            }
+            message_sender.send(format!("{text} {next_text}")).unwrap();
         }
     });
 
