@@ -21,3 +21,4 @@ rand = "0.8.5"
 serde_json.workspace = true
 samplerate = "0.2.4"
 whisper-rs = { version = "0.8.0" }
+futures = "0.3.28"

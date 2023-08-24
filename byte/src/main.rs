@@ -1,4 +1,4 @@
-use std::{process::Command, sync::mpsc::Sender};
+use std::process::Command;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 pub use miette::Result;
@@ -12,7 +12,7 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 const PREFERRED_MIC_NAME: &str = "MacBook Pro Microphone";
 
-fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
+fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> Result<()> {
     loop {
         let host = cpal::default_host();
 
@@ -70,7 +70,8 @@ fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
         stream.play().into_diagnostic()?;
 
         let mut recorded_sample = vec![];
-        while let Ok(mut data) = receiver.recv() {
+        let recieved = receiver.recv();
+        while let Ok(mut data) = recieved.clone() {
             recorded_sample.append(&mut data);
 
             if recorded_sample.len() >= 480000 {
@@ -117,7 +118,7 @@ fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
                     .expect("failed to get number of segments");
                 for i in 0..num_segments {
                     if let Ok(segment) = state.full_get_segment_text(i) {
-                        string_sender.send(segment).unwrap();
+                        string_sender.blocking_send(segment).unwrap();
                     }
                 }
 
@@ -127,28 +128,28 @@ fn recording_thread_main(string_sender: Sender<String>) -> Result<()> {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    setup_tracing()?;
+async fn run_audio_loop() -> Result<()> {
+    let (sender, mut reciever) = tokio::sync::mpsc::channel::<String>(32);
 
-    let (sender, reciever) = std::sync::mpsc::channel::<String>();
+    let _recording = tokio::task::spawn_blocking(|| recording_thread_main(sender));
 
-    let _recording = tokio::task::spawn_blocking(move || {
-        recording_thread_main(sender).unwrap();
-    });
+    let (message_sender, mut message_reciever) = tokio::sync::mpsc::channel::<String>(32);
 
-    let (message_sender, message_reciever) = std::sync::mpsc::channel::<String>();
+    let _detecting = tokio::task::spawn(async move {
+        loop {
+            let text = reciever.recv().await.unwrap();
+            let text = text.to_lowercase();
+            println!("{}", text);
 
-    let _detecting = tokio::task::spawn_blocking(move || loop {
-        let text = reciever.recv().unwrap();
-        let text = text.to_lowercase();
-        println!("{}", text);
+            if text.contains("bite") || text.contains("byte") {
+                println!("Bite detected!");
+                let next_text = reciever.recv().await.unwrap();
 
-        if text.contains("bite") || text.contains("byte") {
-            println!("Bite detected!");
-            let next_text = reciever.recv().unwrap();
-
-            message_sender.send(format!("{text} {next_text}")).unwrap();
+                message_sender
+                    .send(format!("{text} {next_text}"))
+                    .await
+                    .unwrap();
+            }
         }
     });
 
@@ -187,6 +188,20 @@ async fn main() -> Result<()> {
                 .expect("failed to run say");
         }
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    setup_tracing()?;
+
+    let mut systems: Vec<tokio::task::JoinHandle<Result<()>>> = vec![];
+
+    let audio_loop = tokio::task::spawn(run_audio_loop());
+    systems.push(audio_loop);
+
+    futures::future::try_join_all(systems)
+        .await
+        .into_diagnostic()?;
 
     Ok(())
 }
