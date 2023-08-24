@@ -15,14 +15,9 @@ serde.workspace = true
 tracing-common = { path = "../tracing-common" }
 openai = { path = "../openai" }
 cpal = "0.15.2"
-hound = "3.5.0"
-candle-core = "0.1.0"
-candle-nn = "0.1.0"
-hf-hub = "0.2.0"
 rand = "0.8.5"
-tokenizers = "0.13.3"
-num-traits = "0.2.16"
-byteorder = "1.4.3"
+# num-traits = "0.2.16"
+# byteorder = "1.4.3"
 serde_json.workspace = true
 samplerate = "0.2.4"
 whisper-rs = { version = "0.8.0" }
