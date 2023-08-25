@@ -197,12 +197,10 @@ async fn run_audio_loop() -> Result<()> {
 async fn main() -> Result<()> {
     setup_tracing()?;
 
-    let mut systems: Vec<tokio::task::JoinHandle<Result<()>>> = vec![];
-
-    // let audio_loop = tokio::task::spawn(run_audio_loop());
-    // systems.push(audio_loop);
-
-    systems.push(tokio::task::spawn(run_twitch_bot()));
+    let systems = vec![
+        tokio::task::spawn(run_twitch_bot()),
+        tokio::task::spawn(run_audio_loop()),
+    ];
 
     futures::future::try_join_all(systems)
         .await
