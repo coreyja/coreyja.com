@@ -8,9 +8,12 @@ use openai::{
     OpenAiConfig,
 };
 use tracing_common::setup_tracing;
+use twitch::run_twitch_bot;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 const PREFERRED_MIC_NAME: &str = "MacBook Pro Microphone";
+
+mod twitch;
 
 fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> Result<()> {
     loop {
@@ -196,8 +199,10 @@ async fn main() -> Result<()> {
 
     let mut systems: Vec<tokio::task::JoinHandle<Result<()>>> = vec![];
 
-    let audio_loop = tokio::task::spawn(run_audio_loop());
-    systems.push(audio_loop);
+    // let audio_loop = tokio::task::spawn(run_audio_loop());
+    // systems.push(audio_loop);
+
+    systems.push(tokio::task::spawn(run_twitch_bot()));
 
     futures::future::try_join_all(systems)
         .await
