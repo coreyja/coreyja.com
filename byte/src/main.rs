@@ -13,36 +13,36 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 const PREFERRED_MIC_NAME: &str = "MacBook Pro Microphone";
 
-mod twitch;
+pub mod tts;
+pub mod twitch;
+pub mod personality;
 
 fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> Result<()> {
+    let host = cpal::default_host();
+
+    let device = host
+        .input_devices()
+        .into_diagnostic()?
+        .find(|device| match device.name() {
+            Ok(name) => name == PREFERRED_MIC_NAME,
+            Err(err) => {
+                eprintln!("Failed to get device name: {}", err);
+                false
+            }
+        })
+        .ok_or_else(|| miette::miette!("No input device found with name {}", PREFERRED_MIC_NAME))?;
+
+    println!("Input device: {}", device.name().into_diagnostic()?);
+
+    let config = device
+        .default_input_config()
+        .into_diagnostic()
+        .wrap_err("Failed to get default input config")?;
+    println!("Default input config: {:?}", config);
+
+    println!("Begin recording...");
+
     loop {
-        let host = cpal::default_host();
-
-        let device = host
-            .input_devices()
-            .into_diagnostic()?
-            .find(|device| match device.name() {
-                Ok(name) => name == PREFERRED_MIC_NAME,
-                Err(err) => {
-                    eprintln!("Failed to get device name: {}", err);
-                    false
-                }
-            })
-            .ok_or_else(|| {
-                miette::miette!("No input device found with name {}", PREFERRED_MIC_NAME)
-            })?;
-
-        println!("Input device: {}", device.name().into_diagnostic()?);
-
-        let config = device
-            .default_input_config()
-            .into_diagnostic()
-            .wrap_err("Failed to get default input config")?;
-        println!("Default input config: {:?}", config);
-
-        println!("Begin recording...");
-
         let err_fn = move |err| {
             eprintln!("an error occurred on stream: {}", err);
         };
@@ -134,7 +134,7 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> Re
 async fn run_audio_loop() -> Result<()> {
     let (sender, mut reciever) = tokio::sync::mpsc::channel::<String>(32);
 
-    let _recording = tokio::task::spawn_blocking(|| recording_thread_main(sender));
+    std::thread::spawn(|| recording_thread_main(sender));
 
     let (message_sender, mut message_reciever) = tokio::sync::mpsc::channel::<String>(32);
 
@@ -197,9 +197,12 @@ async fn run_audio_loop() -> Result<()> {
 async fn main() -> Result<()> {
     setup_tracing()?;
 
+    let (say_sender, say_reciever) = tokio::sync::mpsc::channel::<String>(32);
+
     let systems = vec![
-        tokio::task::spawn(run_twitch_bot()),
-        tokio::task::spawn(run_audio_loop()),
+        tokio::task::spawn(tts::say_loop(say_reciever)),
+        tokio::task::spawn(run_twitch_bot(say_sender.clone())),
+        // tokio::task::spawn(run_audio_loop()),
     ];
 
     futures::future::try_join_all(systems)

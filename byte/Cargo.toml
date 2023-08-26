@@ -23,3 +23,4 @@ samplerate = "0.2.4"
 whisper-rs = { version = "0.8.0" }
 futures = "0.3.28"
 irc = "0.15.0"
+indoc = "2.0.3"

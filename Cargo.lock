@@ -766,6 +766,7 @@ dependencies = [
  "chrono",
  "cpal",
  "futures",
+ "indoc",
  "irc",
  "miette",
  "openai",
