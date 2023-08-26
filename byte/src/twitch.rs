@@ -5,16 +5,11 @@ use irc::{
 };
 use miette::{IntoDiagnostic, Result};
 use openai::chat::{complete_chat, ChatMessage, ChatRole};
-use tokio::process::Command;
 
-use crate::{
-    personality::{base, respond_to_twitch_chat_prompt},
-    tts::say,
-};
+use crate::personality::{base, respond_to_twitch_chat_prompt};
 
-pub async fn run_twitch_bot(say_sender: tokio::sync::mpsc::Sender<String>) -> Result<()> {
-    let openai_config = openai::OpenAiConfig::from_env()?;
-    let config = Config {
+pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
+    let irc_config = Config {
         nickname: Some("coreyja_bot".to_owned()),
         password: Some(format!(
             "oauth:{}",
@@ -25,7 +20,7 @@ pub async fn run_twitch_bot(say_sender: tokio::sync::mpsc::Sender<String>) -> Re
         ..Config::default()
     };
 
-    let mut client = Client::from_config(config).await.into_diagnostic()?;
+    let mut client = Client::from_config(irc_config).await.into_diagnostic()?;
     client.identify().into_diagnostic()?;
 
     let mut stream = client.stream().into_diagnostic()?;
@@ -45,9 +40,9 @@ pub async fn run_twitch_bot(say_sender: tokio::sync::mpsc::Sender<String>) -> Re
                         content: format!("{}: {}", nickname, chat_msg),
                     },
                 ];
-                let resp = complete_chat(&openai_config, "gpt-3.5-turbo", messages).await?;
+                let resp = complete_chat(&config.openai, "gpt-3.5-turbo", messages).await?;
 
-                say_sender.send(resp.content).await.into_diagnostic()?;
+                config.say.send(resp.content).await.into_diagnostic()?;
             }
         };
     }

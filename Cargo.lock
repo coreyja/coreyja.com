@@ -774,6 +774,7 @@ dependencies = [
  "samplerate",
  "serde",
  "serde_json",
+ "sqlx",
  "tokio",
  "tracing",
  "tracing-common",

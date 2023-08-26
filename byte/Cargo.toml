@@ -24,3 +24,11 @@ whisper-rs = { version = "0.8.0" }
 futures = "0.3.28"
 irc = "0.15.0"
 indoc = "2.0.3"
+
+sqlx = { version = "0.7", features = [
+  "postgres",
+  "runtime-tokio-rustls",
+  "chrono",
+  "migrate",
+  "macros",
+] }
