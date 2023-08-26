@@ -28,7 +28,7 @@ COPY . .
 COPY tailwind.config.js .
 RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
 
-RUN cargo build --release --locked --bin server
+RUN cd server && cargo build --release --locked --bin server
 
 # Download the static build of Litestream directly into the path & make it executable.
 # This is done in the builder and copied as the chmod doubles the size.
