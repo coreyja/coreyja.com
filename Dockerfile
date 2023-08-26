@@ -1,11 +1,11 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+FROM rust/latest as base
 WORKDIR /home/rust/
 
 # FROM chef AS planner
 # COPY . .
 # RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef as builder
+FROM base as builder
 
 RUN rustc --version; cargo --version; rustup --version
 
