@@ -1,4 +1,4 @@
-FROM rust/latest as base
+FROM rust:latest as base
 WORKDIR /home/rust/
 
 # FROM chef AS planner
