@@ -123,4 +123,4 @@ jobs:
       - name: Install cargo-deny
         run: cargo binstall --no-confirm cargo-deny
       - name: Cargo Deny
-        run: cargo-deny check
+        run: cargo-deny check bans
