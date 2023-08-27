@@ -145,7 +145,7 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
         }
     });
 
-    while let Ok(message) = message_reciever.try_recv() {
+    while let Some(message) = message_reciever.recv().await {
         println!("{}", message);
 
         let messages = vec![

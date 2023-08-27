@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
 
     let tasks = vec![
         tokio::task::spawn(tts::say_loop(say_reciever)),
-        tokio::task::spawn(run_twitch_bot(config.clone())),
+        // tokio::task::spawn(run_twitch_bot(config.clone())),
         tokio::task::spawn(run_audio_loop(config.clone())),
     ];
 
