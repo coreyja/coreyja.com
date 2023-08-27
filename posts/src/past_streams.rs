@@ -22,7 +22,7 @@ pub type PastStream = Post<FrontMatter>;
 pub struct FrontMatter {
     pub title: String,
     pub date: NaiveDate,
-    pub s3_url: String,
+    pub s3_url: Option<String>,
     pub youtube_url: Option<String>,
 }
 
