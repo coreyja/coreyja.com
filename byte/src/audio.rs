@@ -5,7 +5,7 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 use crate::Config;
 
-const PREFERRED_MIC_NAME: &str = "MacBook Pro Microphone";
+const PREFERRED_MIC_NAME: &str = "Samson G-Track Pro";
 
 fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> miette::Result<()> {
     let host = cpal::default_host();
@@ -32,95 +32,93 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
 
     println!("Begin recording...");
 
-    loop {
-        let err_fn = move |err| {
-            eprintln!("an error occurred on stream: {}", err);
-        };
+    let err_fn = move |err| {
+        eprintln!("an error occurred on stream: {}", err);
+    };
 
-        let (sender, receiver) = std::sync::mpsc::channel::<Vec<f32>>();
+    let (sender, receiver) = std::sync::mpsc::channel::<Vec<f32>>();
 
-        let stream = match config.sample_format() {
-            cpal::SampleFormat::F32 => device
-                .build_input_stream(
-                    &config.clone().into(),
-                    move |data, _: &_| sender.send(data.to_vec()).unwrap(),
-                    err_fn,
-                    None,
+    let stream = match config.sample_format() {
+        cpal::SampleFormat::F32 => device
+            .build_input_stream(
+                &config.clone().into(),
+                move |data, _: &_| sender.send(data.to_vec()).unwrap(),
+                err_fn,
+                None,
+            )
+            .into_diagnostic()?,
+        sample_format => {
+            return Err(miette::miette!(
+                "Unsupported sample format '{sample_format}'"
+            ))
+        }
+    };
+
+    let path_to_model = concat!(env!("CARGO_MANIFEST_DIR"), "/../models/ggml-base.en.bin");
+
+    // load a context and model
+    let ctx = WhisperContext::new(path_to_model).expect("failed to load model");
+
+    stream.play().into_diagnostic()?;
+
+    let mut recorded_sample = vec![];
+    while let Ok(mut data) = receiver.recv() {
+        recorded_sample.append(&mut data);
+
+        if recorded_sample.len() >= 480000 {
+            let audio_data = &recorded_sample[..];
+            let audio_data = if config.sample_rate().0 != 16_000 {
+                samplerate::convert(
+                    config.sample_rate().0,
+                    16000,
+                    config.channels().into(),
+                    samplerate::ConverterType::SincBestQuality,
+                    audio_data,
                 )
-                .into_diagnostic()?,
-            sample_format => {
-                return Err(miette::miette!(
-                    "Unsupported sample format '{sample_format}'"
-                ))
-            }
-        };
-
-        let path_to_model = concat!(env!("CARGO_MANIFEST_DIR"), "/../models/ggml-base.en.bin");
-
-        // load a context and model
-        let ctx = WhisperContext::new(path_to_model).expect("failed to load model");
-
-        stream.play().into_diagnostic()?;
-
-        let mut recorded_sample = vec![];
-        let recieved = receiver.recv();
-        while let Ok(mut data) = recieved.clone() {
-            recorded_sample.append(&mut data);
-
-            if recorded_sample.len() >= 480000 {
-                let audio_data = &recorded_sample[..];
-                let audio_data = if config.sample_rate().0 != 16_000 {
-                    samplerate::convert(
-                        config.sample_rate().0,
-                        16000,
-                        config.channels().into(),
-                        samplerate::ConverterType::SincBestQuality,
-                        audio_data,
-                    )
-                    .into_diagnostic()
-                    .wrap_err("Failed to convert to 16kHz")?
-                } else {
-                    audio_data.to_vec()
-                };
-                let audio_data = match config.channels() {
-                    1 => audio_data,
-                    2 => {
-                        convert_stereo_to_mono_audio(&audio_data).map_err(|e| miette::miette!(e))?
-                    }
-                    _ => {
-                        return Err(miette::miette!(
-                            "Unsupported number of channels: {}",
-                            config.channels()
-                        ))
-                    }
-                };
-                let mut params = FullParams::new(SamplingStrategy::BeamSearch {
-                    beam_size: 5,
-                    patience: 0.1,
-                });
-                params.set_print_special(false);
-                params.set_print_progress(false);
-                params.set_print_realtime(false);
-                params.set_print_timestamps(false);
-
-                let mut state = ctx.create_state().expect("failed to create state");
-                state
-                    .full(params, &audio_data[..])
-                    .expect("failed to run model");
-
-                let num_segments = state
-                    .full_n_segments()
-                    .expect("failed to get number of segments");
-                for i in 0..num_segments {
-                    if let Ok(segment) = state.full_get_segment_text(i) {
-                        string_sender.blocking_send(segment).unwrap();
-                    }
+                .into_diagnostic()
+                .wrap_err("Failed to convert to 16kHz")?
+            } else {
+                audio_data.to_vec()
+            };
+            let audio_data = match config.channels() {
+                1 => audio_data,
+                2 => convert_stereo_to_mono_audio(&audio_data).map_err(|e| miette::miette!(e))?,
+                _ => {
+                    return Err(miette::miette!(
+                        "Unsupported number of channels: {}",
+                        config.channels()
+                    ))
                 }
+            };
+            let mut params = FullParams::new(SamplingStrategy::BeamSearch {
+                beam_size: 5,
+                patience: 0.1,
+            });
+            params.set_print_special(false);
+            params.set_print_progress(false);
+            params.set_print_realtime(false);
+            params.set_print_timestamps(false);
 
-                recorded_sample.clear();
+            let mut state = ctx.create_state().expect("failed to create state");
+            state
+                .full(params, &audio_data[..])
+                .expect("failed to run model");
+
+            let num_segments = state
+                .full_n_segments()
+                .expect("failed to get number of segments");
+            for i in 0..num_segments {
+                if let Ok(segment) = state.full_get_segment_text(i) {
+                    println!("Segment {}: {}", i, segment);
+                    string_sender.blocking_send(segment).unwrap();
+                }
             }
+
+            recorded_sample.clear();
         }
     }
+
+    unreachable!("The audio recording channel should never close");
 }
 
 pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
@@ -131,8 +129,7 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
     let (message_sender, mut message_reciever) = tokio::sync::mpsc::channel::<String>(32);
 
     let _detecting = tokio::task::spawn(async move {
-        loop {
-            let text = reciever.recv().await.unwrap();
+        while let Some(text) = reciever.recv().await {
             let text = text.to_lowercase();
             println!("{}", text);
 
@@ -148,14 +145,13 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
         }
     });
 
-    loop {
-        while let Ok(message) = message_reciever.try_recv() {
-            println!("{}", message);
+    while let Ok(message) = message_reciever.try_recv() {
+        println!("{}", message);
 
-            let messages = vec![
-                ChatMessage {
-                    role: ChatRole::System,
-                    content: r#"
+        let messages = vec![
+            ChatMessage {
+                role: ChatRole::System,
+                content: r#"
                 The following message was recorded and transcribed during a live chat.
                 I have a bot named Byte (or maybe Bite) that I might be trying to talk to.
                 Remeber this is a AI transcribed audio, so there may be errors in the transcription.
@@ -166,19 +162,20 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
 
                 If I didn't ask a question keep your answer short and consise
                 "#
-                    .to_string(),
-                },
-                ChatMessage {
-                    role: ChatRole::User,
-                    content: message,
-                },
-            ];
-            let resp = complete_chat(&config.openai, "gpt-3.5-turbo", messages).await?;
-            // println!("Response: {}", resp.content);
+                .to_string(),
+            },
+            ChatMessage {
+                role: ChatRole::User,
+                content: message,
+            },
+        ];
+        let resp = complete_chat(&config.openai, "gpt-3.5-turbo", messages).await?;
+        // println!("Response: {}", resp.content);
 
-            config.say.send(resp.content).await.into_diagnostic()?;
-        }
+        config.say.send(resp.content).await.into_diagnostic()?;
     }
+
+    unreachable!("The message channel should never close");
 }
 
 fn convert_stereo_to_mono_audio(samples: &[f32]) -> Result<Vec<f32>, &'static str> {
