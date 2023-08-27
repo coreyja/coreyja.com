@@ -12,6 +12,8 @@ pub mod personality;
 pub mod tts;
 pub mod twitch;
 
+pub mod db;
+
 async fn setup_db() -> Result<PgPool> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
@@ -48,7 +50,7 @@ async fn main() -> Result<()> {
 
     let tasks = vec![
         tokio::task::spawn(tts::say_loop(say_reciever)),
-        // tokio::task::spawn(run_twitch_bot(config.clone())),
+        tokio::task::spawn(run_twitch_bot(config.clone())),
         tokio::task::spawn(run_audio_loop(config.clone())),
     ];
 
