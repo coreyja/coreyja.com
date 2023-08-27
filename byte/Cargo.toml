@@ -18,12 +18,12 @@ cpal = "0.15.2"
 rand = "0.8.5"
 # num-traits = "0.2.16"
 # byteorder = "1.4.3"
+indoc = "2.0.3"
 serde_json.workspace = true
+irc = { version = "0.15.0", default-features = false, features = ["tls-rust"] }
 samplerate = "0.2.4"
 whisper-rs = { version = "0.8.0" }
 futures = "0.3.28"
-irc = "0.15.0"
-indoc = "2.0.3"
 
 sqlx = { version = "0.7", features = [
   "postgres",
