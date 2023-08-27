@@ -3,7 +3,9 @@ use miette::IntoDiagnostic;
 use tokio::process::Command;
 
 pub async fn say(message: &str) -> miette::Result<()> {
-    Command::new("say").arg(message).spawn().into_diagnostic()?;
+    let c = Command::new("say").arg(message).spawn().into_diagnostic()?;
+    c.wait_with_output().await.into_diagnostic()?;
+
     Ok(())
 }
 
