@@ -1,7 +1,7 @@
 ---
 title: Sept 1st Update - Lockfiles
 author: Corey Alexander
-date: 2023-08-25
+date: 2023-09-01
 is_newsletter: true
 ---
 
