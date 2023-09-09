@@ -47,7 +47,7 @@ pub(crate) async fn home_page(
             }
 
             div ."mb-16" {
-                h2 ."text-3xl" { a href="/til" { "Recent Streams" } }
+                h2 ."text-3xl" { a href="/streams" { "Recent Streams" } }
                 (StreamPostList(recent_streams))
             }
 
