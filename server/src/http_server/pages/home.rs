@@ -2,24 +2,31 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
-use posts::{blog::BlogPosts, til::TilPosts};
+use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
-use crate::http_server::templates::{
-    base,
-    buttons::LinkButton,
-    constrained_width,
-    post_templates::{BlogPostList, TilPostList},
+use crate::http_server::{
+    pages::streams::StreamPostList,
+    templates::{
+        base,
+        buttons::LinkButton,
+        constrained_width,
+        post_templates::{BlogPostList, TilPostList},
+    },
 };
 
 pub(crate) async fn home_page(
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
+    State(part_streams): State<Arc<PastStreams>>,
 ) -> Markup {
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 
     let mut recent_posts = blog_posts.by_recency();
     recent_posts.truncate(3);
+
+    let mut recent_streams = part_streams.by_recency();
+    recent_streams.truncate(3);
 
     base(html! {
         (constrained_width(html! {
@@ -37,6 +44,11 @@ pub(crate) async fn home_page(
                         (LinkButton::primary(html!("View Posts"), "/posts"))
                     }
                 }
+            }
+
+            div ."mb-16" {
+                h2 ."text-3xl" { a href="/til" { "Recent Streams" } }
+                (StreamPostList(recent_streams))
             }
 
             div ."mb-16" {
