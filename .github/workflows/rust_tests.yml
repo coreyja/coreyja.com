@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v2
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: protobuf-compiler
+          packages: protobuf-compiler libasound2-dev
           version: v0
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v2
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: protobuf-compiler
+          packages: protobuf-compiler libasound2-dev
           version: v0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@v2
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: protobuf-compiler
+          packages: protobuf-compiler libasound2-dev
           version: v0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -102,7 +102,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: protobuf-compiler
+          packages: protobuf-compiler libasound2-dev
           version: v0
       - uses: Swatinem/rust-cache@v2
         with:
