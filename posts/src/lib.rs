@@ -1,11 +1,11 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use include_dir::File;
 use markdown::{
     mdast::{Node, Root},
     to_mdast, ParseOptions,
 };
-use miette::{Context, IntoDiagnostic, Result};
+use miette::{Context, ErrReport, IntoDiagnostic, Result};
 use serde::Deserialize;
 
 use self::{blog::PostMarkdown, date::PostedOn, title::Title};
@@ -30,17 +30,10 @@ pub struct Post<FrontmatterType> {
 #[derive(Clone, Debug)]
 pub struct MarkdownAst(pub Root);
 
-impl MarkdownAst {
-    pub fn from_file(file: &File) -> Result<Self> {
-        let contents = file.contents();
-        let contents = std::str::from_utf8(contents)
-            .into_diagnostic()
-            .wrap_err("File is not UTF8")?;
+impl FromStr for MarkdownAst {
+    type Err = ErrReport;
 
-        Self::from_str(contents)
-    }
-
-    pub fn from_str(contents: &str) -> Result<Self> {
+    fn from_str(contents: &str) -> Result<Self> {
         let mut options: ParseOptions = Default::default();
         options.constructs.gfm_footnote_definition = true;
         options.constructs.frontmatter = true;
@@ -50,6 +43,17 @@ impl MarkdownAst {
             Ok(_) => Err(miette::miette!("Should be a root node")),
             Err(e) => Err(miette::miette!("Could not make AST. Inner Error: {}", e)),
         }
+    }
+}
+
+impl MarkdownAst {
+    pub fn from_file(file: &File) -> Result<Self> {
+        let contents = file.contents();
+        let contents = std::str::from_utf8(contents)
+            .into_diagnostic()
+            .wrap_err("File is not UTF8")?;
+
+        Self::from_str(contents)
     }
 
     fn frontmatter_yml(&self) -> Result<&str> {

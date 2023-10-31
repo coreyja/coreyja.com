@@ -34,13 +34,6 @@ pub(crate) mod pages {
     pub mod til;
 }
 
-mod api {
-    pub mod external {
-        pub mod github_oauth;
-        pub mod twitch_oauth;
-    }
-}
-
 mod config;
 pub mod errors;
 mod routes;

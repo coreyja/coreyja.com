@@ -1,8 +1,8 @@
-use std::{fs::File, io::Read};
+use std::fs::File;
 
 use clap::Args;
 use posts::{past_streams::PastStreams, plain::IntoPlainText};
-use tokio::{io::AsyncWriteExt, task::spawn_blocking};
+use tokio::io::AsyncWriteExt;
 use tracing::{error, info};
 
 use crate::*;

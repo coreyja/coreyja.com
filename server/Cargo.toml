@@ -38,11 +38,6 @@ sentry-tower = { version = "0.31.5", features = ["http"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = "0.7.1"
-sqlx = { version = "0.7", features = [
-  "sqlite",
-  "runtime-tokio-rustls",
-  "chrono",
-] }
 syntect = "5.0"
 thiserror = "1.0"
 tokio = { workspace = true }
