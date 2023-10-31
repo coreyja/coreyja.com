@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO TwitchChatters (twitch_username)\n            VALUES ($1)\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "twitch_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "preferred_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "ccb192f1c79ec0b4bcbe4c841b91e8e616b09f8dae3e39109c2a618bbd3071c7"
+}
