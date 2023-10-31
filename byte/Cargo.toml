@@ -31,4 +31,5 @@ sqlx = { version = "0.6", features = [
   "chrono",
   "migrate",
   "macros",
+  "offline",
 ] }
