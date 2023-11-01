@@ -2,7 +2,7 @@ use std::{println, sync::Arc};
 
 use miette::{IntoDiagnostic, Result};
 use openai::OpenAiConfig;
-use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
+use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
 
 use crate::{
     github::GithubConfig,
@@ -12,6 +12,13 @@ use crate::{
 };
 
 pub(crate) async fn validate() -> Result<()> {
+    let projects = Projects::from_static_dir()?;
+    println!("Validating {} projects", projects.projects.len());
+    for project in projects.projects {
+        println!("Validating {}...", project.frontmatter.title);
+        project.validate()?;
+    }
+
     let posts = BlogPosts::from_static_dir()?;
 
     println!("Validating {} posts", posts.posts().len());

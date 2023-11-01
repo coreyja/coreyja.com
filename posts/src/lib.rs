@@ -20,6 +20,8 @@ pub mod past_streams;
 
 pub mod plain;
 
+pub mod projects;
+
 #[derive(Debug, Clone)]
 pub struct Post<FrontmatterType> {
     pub frontmatter: FrontmatterType,
@@ -59,7 +61,9 @@ impl MarkdownAst {
     fn frontmatter_yml(&self) -> Result<&str> {
         let children = &self.0.children;
         let Some(Node::Yaml(frontmatter)) = children.get(0) else {
-          return Err(miette::miette!("Should have a first child with YAML Frontmatter"))
+            return Err(miette::miette!(
+                "Should have a first child with YAML Frontmatter"
+            ));
         };
 
         Ok(&frontmatter.value)
