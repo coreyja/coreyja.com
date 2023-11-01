@@ -1,5 +1,6 @@
 [workspace]
 members = ["byte", "posts", "server", "tracing-common", "video-toolkit"]
+resolver = "2"
 
 [workspace.dependencies]
 clap = { version = "4.2", features = ["derive"] }

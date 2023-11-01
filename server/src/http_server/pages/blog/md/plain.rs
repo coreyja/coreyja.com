@@ -71,6 +71,8 @@ impl IntoPlainText for Root {
 #[cfg(test)]
 mod test {
 
+    use std::str::FromStr;
+
     use posts::MarkdownAst;
 
     use super::*;
