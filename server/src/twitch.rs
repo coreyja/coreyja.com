@@ -1,8 +1,5 @@
 use crate::*;
 
-use axum::http::Uri;
-use uuid::Uuid;
-
 #[derive(Debug, Deserialize)]
 pub(crate) struct TwitchOauthRequest {
     pub code: String,
@@ -25,27 +22,6 @@ pub(crate) struct TwitchTokenResponse {
     pub refresh_token: String,
     pub scope: Option<Vec<String>>,
     pub token_type: String,
-}
-
-pub(crate) async fn generate_user_twitch_link(config: &AppState, user_id: i64) -> Result<Uri> {
-    let client_id = &config.twitch.client_id;
-    let redirect_uri = format!("{}/twitch_oauth", config.app.base_url);
-
-    let state = Uuid::new_v4().to_string();
-    sqlx::query!(
-        "INSERT INTO UserTwitchLinkStates (user_id, state) VALUES (?, ?)",
-        user_id,
-        state,
-    )
-    .execute(&config.db_pool)
-    .await
-    .into_diagnostic()?;
-
-    Uri::builder()
-        .scheme("https")
-        .authority("id.twitch.tv")
-        .path_and_query(format!("/oauth2/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=&state={state}"))
-        .build().into_diagnostic()
 }
 
 #[derive(Debug, Clone)]

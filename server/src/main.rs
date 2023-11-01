@@ -1,29 +1,21 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, fs::OpenOptions, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
-use poise::serenity_prelude::{self as serenity};
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
-use sqlx::{migrate, SqlitePool};
-use tokio::try_join;
 use tracing::{info, instrument};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{prelude::*, util::SubscriberInitExt, EnvFilter, Registry};
 use tracing_tree::HierarchicalLayer;
 
-use async_trait::async_trait;
-
 pub use miette::Result;
-
-mod discord;
-use discord::*;
 
 mod twitch;
 use twitch::*;
@@ -33,9 +25,6 @@ use http_server::{pages::blog::md::SyntaxHighlightingContext, *};
 
 mod github;
 use github::*;
-
-mod db;
-use db::*;
 
 use openai::*;
 
@@ -72,7 +61,6 @@ impl AppConfig {
 #[derive(Debug, Clone)]
 struct AppState {
     twitch: TwitchConfig,
-    db_pool: SqlitePool,
     github: GithubConfig,
     open_ai: OpenAiConfig,
     app: AppConfig,

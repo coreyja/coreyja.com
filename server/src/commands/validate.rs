@@ -3,7 +3,6 @@ use std::{println, sync::Arc};
 use miette::{IntoDiagnostic, Result};
 use openai::OpenAiConfig;
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
-use sqlx::SqlitePool;
 
 use crate::{
     github::GithubConfig,
@@ -44,9 +43,6 @@ pub(crate) async fn validate() -> Result<()> {
             channel_user_id: "".to_string(),
             bot_user_id: "".to_string(),
         },
-        db_pool: SqlitePool::connect("sqlite::memory:")
-            .await
-            .into_diagnostic()?,
         github: GithubConfig {
             app_id: 0,
             client_id: "".to_string(),

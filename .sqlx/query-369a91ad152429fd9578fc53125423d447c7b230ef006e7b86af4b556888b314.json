@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT *\n        FROM TwitchChatters\n        WHERE twitch_username = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "twitch_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "preferred_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "369a91ad152429fd9578fc53125423d447c7b230ef006e7b86af4b556888b314"
+}

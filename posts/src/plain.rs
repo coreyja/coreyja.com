@@ -70,6 +70,8 @@ impl IntoPlainText for Root {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use crate::{plain::IntoPlainText, MarkdownAst};
 
     #[test]

@@ -1,0 +1,34 @@
+[package]
+name = "byte"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = { workspace = true }
+miette = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+serde.workspace = true
+
+tracing-common = { path = "../tracing-common" }
+openai = { path = "../openai" }
+cpal = "0.15.2"
+rand = "0.8.5"
+# num-traits = "0.2.16"
+# byteorder = "1.4.3"
+indoc = "2.0.3"
+serde_json.workspace = true
+irc = { version = "0.15.0", default-features = false, features = ["tls-rust"] }
+samplerate = "0.2.4"
+whisper-rs = { version = "0.8.0" }
+futures = "0.3.28"
+
+sqlx = { version = "0.7", features = [
+  "postgres",
+  "runtime-tokio-rustls",
+  "chrono",
+  "migrate",
+  "macros",
+] }
