@@ -14,7 +14,7 @@ use crate::{
 pub(crate) async fn validate() -> Result<()> {
     let projects = Projects::from_static_dir()?;
     println!("Validating {} projects", projects.projects.len());
-    for project in projects.projects {
+    for project in &projects.projects {
         println!("Validating {}...", project.frontmatter.title);
         project.validate()?;
     }
@@ -34,7 +34,7 @@ pub(crate) async fn validate() -> Result<()> {
 
     println!("Validating Past Streams feed...");
     let streams = PastStreams::from_static_dir()?;
-    streams.validate()?;
+    streams.validate(&projects)?;
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;

@@ -3,6 +3,8 @@ use include_dir::{include_dir, Dir, File};
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
+use crate::projects::Projects;
+
 use super::{
     date::{ByRecency, PostedOn},
     title::Title,
@@ -66,7 +68,7 @@ impl PastStreams {
         Ok(Self { streams })
     }
 
-    pub fn validate(&self) -> Result<()> {
+    pub fn validate(&self, projects: &Projects) -> Result<()> {
         println!("Validating {} Streams", self.streams.len());
         let mut errs = vec![];
         for stream in &self.streams {
@@ -76,7 +78,7 @@ impl PastStreams {
                 stream.path.display()
             );
 
-            let validation_reslut = stream.validate();
+            let validation_reslut = stream.validate(projects);
 
             if let Err(e) = validation_reslut {
                 errs.push(e);
@@ -110,12 +112,25 @@ impl PastStream {
         })
     }
 
-    fn validate(&self) -> Result<()> {
+    fn validate(&self, projects: &Projects) -> Result<()> {
         if self.frontmatter.title.chars().count() >= 100 {
             return Err(miette::miette!(
                 "Title is too long: {}",
                 self.frontmatter.title.clone(),
             ));
+        }
+
+        if let Some(project) = &self.frontmatter.project {
+            if !projects
+                .projects
+                .iter()
+                .any(|p| p.slug().unwrap() == *project)
+            {
+                return Err(miette::miette!(
+                    "Project {} does not exist",
+                    self.frontmatter.project.clone().unwrap(),
+                ));
+            }
         }
 
         Ok(())

@@ -87,7 +87,26 @@ impl Project {
             ));
         }
 
+        if self.slug().is_err() {
+            return Err(miette::miette!(
+                "Could not get slug from path: {}",
+                self.path.display(),
+            ));
+        };
+
         Ok(())
+    }
+
+    pub fn slug(&self) -> Result<&str> {
+        let stem = self
+            .path
+            .file_stem()
+            .ok_or_else(|| miette::miette!("No file stem for {:?}", self.path))?;
+        let s = stem
+            .to_str()
+            .ok_or_else(|| miette::miette!("Couldn't create a String from {stem:?}"))?;
+
+        Ok(s)
     }
 }
 
