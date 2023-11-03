@@ -10,7 +10,13 @@ pub(crate) fn newsletter_page(newsletters: Vec<&BlogPost>) -> Markup {
       div  class="max-w-prose"  {
         h1 class="text-3xl mb-8" { "coreyja weekly" }
 
-        h3 class="text-2xl text-subtitle mb-4" { "New Posts in your inbox every Friday" }
+        h3 class="text-2xl text-subtitle mb-4" {
+          "New Posts in your inbox "
+          del {
+            "every Friday"
+          }
+          " on occasion"
+        }
         h3 class="text-xl text-subtitle mb-12" {
           "Added to the blog on Saturday"
           br;
