@@ -15,9 +15,10 @@ pub struct Projects {
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct FrontMatter {
     pub title: String,
-    pub subtitle: String,
+    pub subtitle: Option<String>,
     pub repo: String,
     pub youtube_playlist: Option<String>,
+    pub parent_project: Option<String>,
 }
 
 pub type Project = Post<FrontMatter>;
@@ -40,7 +41,7 @@ impl Projects {
     }
 
     pub fn validate(&self) -> Result<()> {
-        println!("Validating {} Streams", self.projects.len());
+        println!("Validating {} Projects", self.projects.len());
         let mut errs = vec![];
         for stream in &self.projects {
             println!(
@@ -49,7 +50,7 @@ impl Projects {
                 stream.path.display()
             );
 
-            let validation_reslut = stream.validate();
+            let validation_reslut = stream.validate(self);
 
             if let Err(e) = validation_reslut {
                 errs.push(e);
@@ -79,7 +80,7 @@ impl Project {
         })
     }
 
-    pub fn validate(&self) -> Result<()> {
+    pub fn validate(&self, projects: &Projects) -> Result<()> {
         if self.frontmatter.title.chars().count() >= 100 {
             return Err(miette::miette!(
                 "Title is too long: {}",
@@ -93,6 +94,16 @@ impl Project {
                 self.path.display(),
             ));
         };
+
+        if let Some(parent_slug) = &self.frontmatter.parent_project {
+            if !projects
+                .projects
+                .iter()
+                .any(|p| p.slug().unwrap() == parent_slug)
+            {
+                return Err(miette::miette!("Parent project not found: {}", parent_slug,));
+            }
+        }
 
         Ok(())
     }

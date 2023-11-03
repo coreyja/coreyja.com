@@ -13,14 +13,9 @@ use crate::{
 
 pub(crate) async fn validate() -> Result<()> {
     let projects = Projects::from_static_dir()?;
-    println!("Validating {} projects", projects.projects.len());
-    for project in &projects.projects {
-        println!("Validating {}...", project.frontmatter.title);
-        project.validate()?;
-    }
+    projects.validate()?;
 
     let posts = BlogPosts::from_static_dir()?;
-
     println!("Validating {} posts", posts.posts().len());
     for post in posts.posts() {
         println!("Validating {}...", post.path().display());
