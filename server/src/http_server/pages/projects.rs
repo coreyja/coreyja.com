@@ -53,12 +53,15 @@ pub(crate) async fn projects_get(
     Ok(base_constrained(html! {
       h1 class="text-3xl" { (project.frontmatter.title) }
       @if let Some(sub) = &project.frontmatter.subtitle {
-        h2 class="text-xl pb-8" { (sub) }
+        h2 class="text-xl mb-4" { (sub) }
+      }
+      a href=(&project.frontmatter.repo) target="_blank" rel="noopener noreferrer" {
+        i class="fa-brands fa-github pb-8" {}
       }
 
       (markdown)
 
-      h3 class="text-lg" { "Streams" }
+      h3 class="text-lg mt-8" { "Streams" }
       (pages::streams::StreamPostList(streams))
     }))
 }
