@@ -7,6 +7,7 @@ use clap::Parser;
 use commands::Command;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
+use posts::projects::Projects;
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
@@ -68,6 +69,7 @@ struct AppState {
     blog_posts: Arc<BlogPosts>,
     til_posts: Arc<TilPosts>,
     streams: Arc<PastStreams>,
+    projects: Arc<Projects>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

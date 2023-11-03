@@ -2,7 +2,7 @@ use std::{println, sync::Arc};
 
 use miette::{IntoDiagnostic, Result};
 use openai::OpenAiConfig;
-use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
+use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
 
 use crate::{
     github::GithubConfig,
@@ -12,8 +12,10 @@ use crate::{
 };
 
 pub(crate) async fn validate() -> Result<()> {
-    let posts = BlogPosts::from_static_dir()?;
+    let projects = Projects::from_static_dir()?;
+    projects.validate()?;
 
+    let posts = BlogPosts::from_static_dir()?;
     println!("Validating {} posts", posts.posts().len());
     for post in posts.posts() {
         println!("Validating {}...", post.path().display());
@@ -27,7 +29,7 @@ pub(crate) async fn validate() -> Result<()> {
 
     println!("Validating Past Streams feed...");
     let streams = PastStreams::from_static_dir()?;
-    streams.validate()?;
+    streams.validate(&projects)?;
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig::from_env()?;
@@ -54,6 +56,7 @@ pub(crate) async fn validate() -> Result<()> {
         blog_posts: Arc::new(posts.clone()),
         til_posts: Arc::new(tils.clone()),
         streams: Arc::new(streams.clone()),
+        projects: Arc::new(projects.clone()),
         app: config,
         markdown_to_html_context: render_context,
     };

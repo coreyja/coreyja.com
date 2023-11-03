@@ -49,21 +49,22 @@ impl Render for HeaderLink {
 
 pub fn header() -> Markup {
     html! {
-      div class="flex flex-col lg:flex-row justify-center items-stretch" {
+      div class="flex flex-col justify-center items-stretch" {
         div class="flex flex-grow justify-center" {
-          div class="max-w-md min-w-[200px] py-8 lg:py-24 flex-grow" {
+          div class="max-w-sm min-w-[200px] py-8 lg:py-12 flex-grow" {
             a href="/" {
               (PreEscaped(LOGO_SVG))
             }
           }
         }
 
-        nav class="flex flex-grow w-full lg:ml-16 lg:max-w-[50%] pb-4 sm:pb-8" {
-          ul class="flex flex-col sm:flex-row justify-center lg:justify-end sm:items-center flex-grow space-y-4 sm:space-y-0" {
+        nav class="flex flex-grow w-full pb-4 sm:pb-8" {
+          ul class="flex flex-col sm:flex-row justify-center sm:items-center flex-grow space-y-4 sm:space-y-0" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
             (HeaderLink { href: "/til", text: "TILs" })
             (HeaderLink { href: "/streams", text: "Streams" })
+            (HeaderLink { href: "/projects", text: "Projects" })
             (HeaderLink { href: "/newsletter", text: "Newsletter" })
           }
         }
