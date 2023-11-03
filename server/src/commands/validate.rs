@@ -56,6 +56,7 @@ pub(crate) async fn validate() -> Result<()> {
         blog_posts: Arc::new(posts.clone()),
         til_posts: Arc::new(tils.clone()),
         streams: Arc::new(streams.clone()),
+        projects: Arc::new(projects.clone()),
         app: config,
         markdown_to_html_context: render_context,
     };

@@ -24,6 +24,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/til/:slug", get(pages::til::til_get))
         .route("/streams", get(pages::streams::streams_index))
         .route("/streams/:date", get(pages::streams::stream_get))
+        .route("/projects", get(pages::projects::projects_index))
+        .route("/projects/:slug", get(pages::projects::projects_get))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .route("/newsletter", get(newsletter_get))
@@ -58,12 +60,11 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     let entry = STATIC_ASSETS.get_file(path);
 
     let Some(entry) = entry else {
-        return Ok(
-            (
-                axum::http::StatusCode::NOT_FOUND,
-                format!("Static asset {} not found", path)
-            )
-        .into_response());
+        return Ok((
+            axum::http::StatusCode::NOT_FOUND,
+            format!("Static asset {} not found", path),
+        )
+            .into_response());
     };
 
     let mime = mime_guess::from_path(path).first_or_octet_stream();

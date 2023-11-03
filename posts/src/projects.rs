@@ -3,7 +3,7 @@ use miette::{Context, Diagnostic, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{MarkdownAst, Post};
+use crate::{title::Title, MarkdownAst, Post};
 
 pub(crate) static PROJECTS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../projects");
 
@@ -65,6 +65,12 @@ impl Projects {
 
         Ok(())
     }
+
+    pub fn by_title(&self) -> Vec<Project> {
+        let mut projects = self.projects.clone();
+        projects.sort_by(|a, b| a.frontmatter.title.cmp(&b.frontmatter.title));
+        projects
+    }
 }
 
 impl Project {
@@ -119,6 +125,10 @@ impl Project {
 
         Ok(s)
     }
+
+    pub fn relative_link(&self) -> Result<String> {
+        Ok(format!("/projects/{}", self.slug()?))
+    }
 }
 
 #[derive(Debug, Error, Diagnostic)]
@@ -126,4 +136,10 @@ impl Project {
 struct ValidationError {
     #[related]
     others: Vec<miette::Report>,
+}
+
+impl Title for Project {
+    fn title(&self) -> &str {
+        &self.frontmatter.title
+    }
 }

@@ -30,6 +30,7 @@ pub(crate) mod cmd;
 pub(crate) mod pages {
     pub mod blog;
     pub mod home;
+    pub mod projects;
     pub mod streams;
     pub mod til;
 }

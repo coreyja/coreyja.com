@@ -1,4 +1,7 @@
-use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
+use crate::{
+    http_server::pages::{blog::md::SyntaxHighlightingContext, projects},
+    *,
+};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;
@@ -16,6 +19,9 @@ pub(crate) async fn serve() -> Result<()> {
     let streams = PastStreams::from_static_dir()?;
     let streams = Arc::new(streams);
 
+    let projects = Projects::from_static_dir()?;
+    let projects = Arc::new(projects);
+
     let app_state = AppState {
         twitch: twitch_config,
         github: github_config,
@@ -25,6 +31,7 @@ pub(crate) async fn serve() -> Result<()> {
         blog_posts,
         til_posts,
         streams,
+        projects,
     };
 
     info!("Spawning Tasks");
