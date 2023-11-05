@@ -14,7 +14,7 @@ pub struct Projects {
     pub projects: Vec<Project>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Copy)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Copy, Hash, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProjectStatus {
     Active,

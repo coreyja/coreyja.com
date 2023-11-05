@@ -1,6 +1,7 @@
 use axum::extract::{Path, State};
+use itertools::Itertools;
 use maud::{html, Markup, Render};
-use posts::projects::{ProjectStatus, Projects};
+use posts::projects::{Project, ProjectStatus, Projects};
 use reqwest::StatusCode;
 
 use crate::{http_server::templates::base_constrained, *};
@@ -13,14 +14,26 @@ pub(crate) async fn projects_index(
 ) -> Result<Markup, StatusCode> {
     let projects = projects.by_title();
 
-    Ok(base_constrained(html! {
-      h1 class="text-3xl" { "Projects" }
+    let mut grouped_projects: Vec<(ProjectStatus, Vec<Project>)> = projects
+        .into_iter()
+        .map(|p| (p.frontmatter.status, p))
+        .into_group_map()
+        .into_iter()
+        .collect::<Vec<_>>();
 
-      ul {
-        @for project in &projects {
-          li class="my-4" {
-            a href=(project.relative_link().unwrap()) {
-              (project.frontmatter.title)
+    grouped_projects.sort_by_key(|(status, _)| status.clone());
+
+    Ok(base_constrained(html! {
+      h1 class="text-3xl mb-8" { "Projects" }
+
+      @for (status, projects) in grouped_projects {
+        (StatusTag(status))
+        ul class="mb-8" {
+          @for project in &projects {
+            li class="my-4" {
+              a href=(project.relative_link().unwrap()) {
+                (project.frontmatter.title)
+              }
             }
           }
         }
