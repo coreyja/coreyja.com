@@ -75,8 +75,14 @@ jobs:
           - ubuntu-latest
         rust:
           - stable
-          - nightly
+        experimental:
+          - false
+        include:
+          - rust: nightly
+            os: ubuntu-latest
+            experimental: true
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v2
