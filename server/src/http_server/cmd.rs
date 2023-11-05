@@ -1,7 +1,4 @@
-use crate::{
-    http_server::pages::{blog::md::SyntaxHighlightingContext, projects},
-    *,
-};
+use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_config = AppConfig::from_env()?;

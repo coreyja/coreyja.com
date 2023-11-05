@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use include_dir::{include_dir, Dir};
 use miette::{Context, Diagnostic, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
@@ -12,6 +14,28 @@ pub struct Projects {
     pub projects: Vec<Project>,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Copy)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectStatus {
+    Active,
+    Maintenance,
+    OnIce,
+    Complete,
+    Archived,
+}
+
+impl Display for ProjectStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProjectStatus::Active => f.write_str("Active"),
+            ProjectStatus::Maintenance => f.write_str("Maintenance"),
+            ProjectStatus::OnIce => f.write_str("On Ice"),
+            ProjectStatus::Complete => f.write_str("Complete"),
+            ProjectStatus::Archived => f.write_str("Archived"),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct FrontMatter {
     pub title: String,
@@ -19,6 +43,7 @@ pub struct FrontMatter {
     pub repo: String,
     pub youtube_playlist: Option<String>,
     pub parent_project: Option<String>,
+    pub status: ProjectStatus,
 }
 
 pub type Project = Post<FrontMatter>;

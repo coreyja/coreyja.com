@@ -3,6 +3,7 @@ title: caje
 subtitle: caje is a caching reverse proxy developed live on stream
 repo: https://github.com/coreyja/caje
 youtube_playlist: https://www.youtube.com/playlist?list=PL0FtqJaYsqZ2v0FezJa15ynwBpo7KE8Xa
+status: active
 ---
 
 caje is a caching reverse proxy developed live on stream by me, coreyja

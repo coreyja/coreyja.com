@@ -1,6 +1,7 @@
 ---
 title: Snake GPT
 repo: https://github.com/coreyja/snake-gpt
+status: archived
 ---
 
 Chatbot for Battlesnake

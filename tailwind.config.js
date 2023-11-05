@@ -1,3 +1,5 @@
+const defaultColors = require('tailwindcss/colors')
+
 const colors = {
   grey: {
     100: '#EFEDF2',
@@ -62,6 +64,7 @@ module.exports = {
       '4xl': '3.052rem',
     },
     colors: {
+      ...defaultColors,
       "background": "rgba(51, 41, 67, 1)",
       "coding_background": "#231c2e",
       "text": colors.primary[400],

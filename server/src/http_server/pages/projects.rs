@@ -1,6 +1,6 @@
 use axum::extract::{Path, State};
-use maud::{html, Markup};
-use posts::projects::Projects;
+use maud::{html, Markup, Render};
+use posts::projects::{ProjectStatus, Projects};
 use reqwest::StatusCode;
 
 use crate::{http_server::templates::base_constrained, *};
@@ -26,6 +26,33 @@ pub(crate) async fn projects_index(
         }
       }
     }))
+}
+
+struct StatusTag(ProjectStatus);
+
+impl StatusTag {
+    fn color_class(&self) -> &'static str {
+        match self.0 {
+            ProjectStatus::Active => "fill-success-400",
+            ProjectStatus::Maintenance => "fill-warning-400",
+            ProjectStatus::OnIce => "fill-blue-400",
+            ProjectStatus::Complete => "fill-success-200",
+            ProjectStatus::Archived => "fill-grey-400",
+        }
+    }
+}
+
+impl Render for StatusTag {
+    fn render(&self) -> Markup {
+        html! {
+          span class="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-xs font-medium text-white ring-1 ring-inset ring-grey-800" {
+            svg class=(format!("h-1.5 w-1.5 {}", self.color_class())) viewBox="0 0 6 6" aria-hidden="true" {
+              circle cx="3" cy="3" r="3";
+            }
+            (self.0)
+          }
+        }
+    }
 }
 
 #[instrument(skip(streams, projects))]
@@ -55,8 +82,11 @@ pub(crate) async fn projects_get(
       @if let Some(sub) = &project.frontmatter.subtitle {
         h2 class="text-xl mb-4" { (sub) }
       }
-      a href=(&project.frontmatter.repo) target="_blank" rel="noopener noreferrer" {
-        i class="fa-brands fa-github pb-8" {}
+      div class="flex flex-row pb-8 align-middle" {
+        (StatusTag(project.frontmatter.status))
+        a href=(&project.frontmatter.repo) target="_blank" rel="noopener noreferrer" class="mx-2 py-3" {
+          i class="fa-brands fa-github" {}
+        }
       }
 
       (markdown)
