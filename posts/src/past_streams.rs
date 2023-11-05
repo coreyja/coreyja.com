@@ -63,7 +63,7 @@ impl PastStreams {
             .filter_map(|e| e.as_file())
             .map(PastStream::from_file)
             .collect::<Result<Vec<_>>>()
-            .wrap_err("One of the TILs failed to parse")?;
+            .wrap_err("One of the Streams failed to parse")?;
 
         Ok(Self { streams })
     }

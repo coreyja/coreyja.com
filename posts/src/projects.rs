@@ -35,7 +35,7 @@ impl Projects {
             .filter_map(|e| e.as_file())
             .map(Project::from_file)
             .collect::<Result<Vec<_>>>()
-            .wrap_err("One of the TILs failed to parse")?;
+            .wrap_err("One of the Projects failed to parse")?;
 
         Ok(Self { projects })
     }
