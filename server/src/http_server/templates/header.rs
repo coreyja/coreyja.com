@@ -15,7 +15,7 @@ impl Default for OpenGraph {
         Self {
             title: "coreyja".to_owned(),
             r#type: "website".to_owned(),
-            image: None,
+            image: Some("https://coreyja.com/static/opengraph.png".to_owned()),
             url: "coreyja.com".to_owned(),
             description: Some(
                 "Corey's personal site that contains all his projects and streams".to_owned(),
