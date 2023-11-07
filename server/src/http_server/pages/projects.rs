@@ -116,6 +116,7 @@ pub(crate) async fn projects_get(
         },
         OpenGraph {
             title: project.frontmatter.title.clone(),
+            description: project.frontmatter.subtitle.clone(),
             ..Default::default()
         },
     ))
