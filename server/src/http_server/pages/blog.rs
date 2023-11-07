@@ -156,7 +156,6 @@ pub(crate) async fn post_get(
         OpenGraph {
             title: markdown.title,
             r#type: "article".to_string(),
-            image: None,
             description: post.short_description(),
             ..Default::default()
         },

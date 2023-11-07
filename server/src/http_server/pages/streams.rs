@@ -8,7 +8,11 @@ use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{
-    http_server::{pages::blog::md::IntoHtml, templates::base_constrained, LinkTo},
+    http_server::{
+        pages::blog::md::IntoHtml,
+        templates::{base_constrained, header::OpenGraph},
+        LinkTo,
+    },
     AppState,
 };
 
@@ -72,7 +76,7 @@ pub(crate) async fn stream_get(
           h1 class="text-2xl" { (markdown.title) }
           subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
-          @if let Some(url) = youtube_embed_url {
+          @if let Some(url) = youtube_embed_url.clone() {
             iframe
               id="ytplayer"
               type="text/html"
@@ -87,6 +91,10 @@ pub(crate) async fn stream_get(
             (markdown.ast.into_html(&state))
           }
         },
-        Default::default(),
+        OpenGraph {
+            title: markdown.title.clone(),
+            video: youtube_embed_url,
+            ..Default::default()
+        },
     ))
 }

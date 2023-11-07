@@ -6,6 +6,7 @@ pub struct OpenGraph {
     pub title: String,
     pub r#type: String,
     pub image: Option<String>,
+    pub video: Option<String>,
     pub url: String,
     pub description: Option<String>,
 }
@@ -16,6 +17,7 @@ impl Default for OpenGraph {
             title: "coreyja".to_owned(),
             r#type: "website".to_owned(),
             image: Some("https://coreyja.com/static/opengraph.png".to_owned()),
+            video: None,
             url: "coreyja.com".to_owned(),
             description: Some(
                 "Corey's personal site that contains all his projects and streams".to_owned(),
