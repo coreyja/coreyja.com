@@ -9,38 +9,42 @@ const LOGO_MONOCHROME_SVG: &str = include_str!("../../../static/logo-monochrome.
 
 const MAX_WIDTH_CONTAINER_CLASSES: &str = "max-w-5xl m-auto px-4";
 
-mod header;
+pub mod header;
 use ::posts::MarkdownAst;
 pub use header::{head, header};
 use posts::Post;
 
 use crate::AppState;
 
+use self::header::OpenGraph;
+
 use super::pages::blog::md::{IntoHtml, IntoPlainText};
 
-pub fn base(inner: Markup) -> Markup {
+pub fn base(inner: Markup, og: header::OpenGraph) -> Markup {
     html! {
-      (head())
+      html prefix="og: https://ogp.me/ns#" {
+        (head(og))
 
-      body class="
-      bg-background
-      text-text
-      font-sans
-      min-h-screen
-      flex
-      flex-col
-      " {
-        (constrained_width(header()))
+        body class="
+        bg-background
+        text-text
+        font-sans
+        min-h-screen
+        flex
+        flex-col
+        " {
+          (constrained_width(header()))
 
-        (inner)
+          (inner)
 
-        (footer())
+          (footer())
+        }
       }
     }
 }
 
-pub fn base_constrained(inner: Markup) -> Markup {
-    base(constrained_width(inner))
+pub fn base_constrained(inner: Markup, og: OpenGraph) -> Markup {
+    base(constrained_width(inner), og)
 }
 
 pub fn constrained_width(inner: Markup) -> Markup {

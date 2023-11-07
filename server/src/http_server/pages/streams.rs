@@ -18,11 +18,14 @@ pub(crate) async fn streams_index(
 ) -> Result<Markup, StatusCode> {
     let posts = steams.by_recency();
 
-    Ok(base_constrained(html! {
-      h1 class="text-3xl" { "Past Streams" }
+    Ok(base_constrained(
+        html! {
+          h1 class="text-3xl" { "Past Streams" }
 
-      (StreamPostList(posts))
-    }))
+          (StreamPostList(posts))
+        },
+        Default::default(),
+    ))
 }
 pub(crate) struct StreamPostList<'a>(pub(crate) Vec<&'a PastStream>);
 
@@ -64,23 +67,26 @@ pub(crate) async fn stream_get(
         let video_id = parts.last().unwrap();
         format!("https://www.youtube.com/embed/{}", video_id)
     });
-    Ok(base_constrained(html! {
-      h1 class="text-2xl" { (markdown.title) }
-      subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
+    Ok(base_constrained(
+        html! {
+          h1 class="text-2xl" { (markdown.title) }
+          subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
-      @if let Some(url) = youtube_embed_url {
-        iframe
-          id="ytplayer"
-          type="text/html"
-          width="640"
-          height="360"
-          src=(url)
-          frameborder="0"
-          {}
-      }
+          @if let Some(url) = youtube_embed_url {
+            iframe
+              id="ytplayer"
+              type="text/html"
+              width="640"
+              height="360"
+              src=(url)
+              frameborder="0"
+              {}
+          }
 
-      div {
-        (markdown.ast.into_html(&state))
-      }
-    }))
+          div {
+            (markdown.ast.into_html(&state))
+          }
+        },
+        Default::default(),
+    ))
 }

@@ -2,7 +2,45 @@ use maud::{html, Markup, PreEscaped, Render};
 
 use crate::http_server::templates::LOGO_SVG;
 
-pub fn head() -> Markup {
+pub struct OpenGraph {
+    pub title: String,
+    pub r#type: String,
+    pub image: Option<String>,
+    pub url: String,
+    pub description: Option<String>,
+}
+
+impl Default for OpenGraph {
+    fn default() -> Self {
+        Self {
+            title: "coreyja".to_owned(),
+            r#type: "website".to_owned(),
+            image: None,
+            url: "coreyja.com".to_owned(),
+            description: Some(
+                "Corey's personal site that contains all his projects and streams".to_owned(),
+            ),
+        }
+    }
+}
+
+impl Render for OpenGraph {
+    fn render(&self) -> Markup {
+        html! {
+          meta property="og:title" content=(self.title) {}
+          meta property="og:type" content=(self.r#type) {}
+          meta property="og:url" content=(self.url) {}
+          @if let Some(description) = &self.description {
+            meta property="og:description" content=(description) {}
+          }
+          @if let Some(image) = &self.image {
+            meta property="og:image" content=(image) {}
+          }
+        }
+    }
+}
+
+pub fn head(og: OpenGraph) -> Markup {
     let temporary_remove_service_worker_script = r#"
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(let registration of registrations) {
@@ -24,6 +62,8 @@ pub fn head() -> Markup {
         link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous";
 
         meta name="viewport" content="width=device-width, initial-scale=1";
+
+        (og)
 
         script type="text/javascript" {
           (PreEscaped(temporary_remove_service_worker_script))

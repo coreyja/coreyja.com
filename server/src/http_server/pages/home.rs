@@ -28,39 +28,42 @@ pub(crate) async fn home_page(
     let mut recent_streams = part_streams.by_recency();
     recent_streams.truncate(3);
 
-    base(html! {
-        (constrained_width(html! {
-            ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
-                ."md:w-[60%]" {
-                    h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-8 md:pt-16 pb-4" {
-                        "Educational & entertaining content for developers of all skill levels"
-                    }
+    base(
+        html! {
+            (constrained_width(html! {
+                ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
+                    ."md:w-[60%]" {
+                        h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-8 md:pt-16 pb-4" {
+                            "Educational & entertaining content for developers of all skill levels"
+                        }
 
-                    h3 class="text-lg sm:text-2xl text-subtitle leading-tight mb-8" {
-                        "My goal is to make you feel at home and help you grow your skills through my streams, videos and posts."
-                    }
+                        h3 class="text-lg sm:text-2xl text-subtitle leading-tight mb-8" {
+                            "My goal is to make you feel at home and help you grow your skills through my streams, videos and posts."
+                        }
 
-                    div class="text-xl flex flex-row space-x-8" {
-                        (LinkButton::primary(html!("View Posts"), "/posts"))
+                        div class="text-xl flex flex-row space-x-8" {
+                            (LinkButton::primary(html!("View Posts"), "/posts"))
+                        }
                     }
                 }
-            }
 
-            div ."mb-16" {
-                h2 ."text-3xl" { a href="/streams" { "Recent Streams" } }
-                (StreamPostList(recent_streams))
-            }
+                div ."mb-16" {
+                    h2 ."text-3xl" { a href="/streams" { "Recent Streams" } }
+                    (StreamPostList(recent_streams))
+                }
 
-            div ."mb-16" {
-                h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
-                (TilPostList(recent_tils))
-            }
+                div ."mb-16" {
+                    h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
+                    (TilPostList(recent_tils))
+                }
 
-            div ."mb-16" {
-                h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
-                (BlogPostList(recent_posts))
-            }
-        }))
+                div ."mb-16" {
+                    h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
+                    (BlogPostList(recent_posts))
+                }
+            }))
 
-    })
+        },
+        Default::default(),
+    )
 }

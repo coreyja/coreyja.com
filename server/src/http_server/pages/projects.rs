@@ -4,7 +4,10 @@ use maud::{html, Markup, Render};
 use posts::projects::{Project, ProjectStatus, Projects};
 use reqwest::StatusCode;
 
-use crate::{http_server::templates::base_constrained, *};
+use crate::{
+    http_server::templates::{base_constrained, header::OpenGraph},
+    *,
+};
 
 use super::blog::md::IntoHtml;
 
@@ -21,24 +24,27 @@ pub(crate) async fn projects_index(
         .into_iter()
         .collect::<Vec<_>>();
 
-    grouped_projects.sort_by_key(|(status, _)| status.clone());
+    grouped_projects.sort_by_key(|(status, _)| *status);
 
-    Ok(base_constrained(html! {
-      h1 class="text-3xl mb-8" { "Projects" }
+    Ok(base_constrained(
+        html! {
+          h1 class="text-3xl mb-8" { "Projects" }
 
-      @for (status, projects) in grouped_projects {
-        (StatusTag(status))
-        ul class="mb-8" {
-          @for project in &projects {
-            li class="my-4" {
-              a href=(project.relative_link().unwrap()) {
-                (project.frontmatter.title)
+          @for (status, projects) in grouped_projects {
+            (StatusTag(status))
+            ul class="mb-8" {
+              @for project in &projects {
+                li class="my-4" {
+                  a href=(project.relative_link().unwrap()) {
+                    (project.frontmatter.title)
+                  }
+                }
               }
             }
           }
-        }
-      }
-    }))
+        },
+        Default::default(),
+    ))
 }
 
 struct StatusTag(ProjectStatus);
@@ -90,21 +96,27 @@ pub(crate) async fn projects_get(
 
     let markdown = project.ast.0.clone().into_html(&state);
 
-    Ok(base_constrained(html! {
-      h1 class="text-3xl" { (project.frontmatter.title) }
-      @if let Some(sub) = &project.frontmatter.subtitle {
-        h2 class="text-xl mb-4" { (sub) }
-      }
-      div class="flex flex-row pb-8 align-middle" {
-        (StatusTag(project.frontmatter.status))
-        a href=(&project.frontmatter.repo) target="_blank" rel="noopener noreferrer" class="mx-2 py-3" {
-          i class="fa-brands fa-github" {}
-        }
-      }
+    Ok(base_constrained(
+        html! {
+          h1 class="text-3xl" { (project.frontmatter.title) }
+          @if let Some(sub) = &project.frontmatter.subtitle {
+            h2 class="text-xl mb-4" { (sub) }
+          }
+          div class="flex flex-row pb-8 align-middle" {
+            (StatusTag(project.frontmatter.status))
+            a href=(&project.frontmatter.repo) target="_blank" rel="noopener noreferrer" class="mx-2 py-3" {
+              i class="fa-brands fa-github" {}
+            }
+          }
 
-      (markdown)
+          (markdown)
 
-      h3 class="text-lg mt-8" { "Streams" }
-      (pages::streams::StreamPostList(streams))
-    }))
+          h3 class="text-lg mt-8" { "Streams" }
+          (pages::streams::StreamPostList(streams))
+        },
+        OpenGraph {
+            title: project.frontmatter.title.clone(),
+            ..Default::default()
+        },
+    ))
 }

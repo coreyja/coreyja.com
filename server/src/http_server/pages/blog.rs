@@ -19,7 +19,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base_constrained, post_templates::BlogPostList},
+        templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
         ToRssItem,
     },
     AppState,
@@ -109,10 +109,13 @@ impl IntoResponse for MyChannel {
 
 #[instrument(skip_all)]
 pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
-    Ok(base_constrained(html! {
-      h1 class="text-3xl" { "Blog Posts" }
-      (BlogPostList(posts.by_recency()))
-    }))
+    Ok(base_constrained(
+        html! {
+          h1 class="text-3xl" { "Blog Posts" }
+          (BlogPostList(posts.by_recency()))
+        },
+        Default::default(),
+    ))
 }
 
 #[instrument(skip(state, posts))]
@@ -141,13 +144,22 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
-    Ok(base_constrained(html! {
-      h1 class="text-2xl" { (markdown.title) }
-      subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
+    Ok(base_constrained(
+        html! {
+          h1 class="text-2xl" { (markdown.title) }
+          subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
-      div {
-        (markdown.ast.into_html(&state))
-      }
-    })
+          div {
+            (markdown.ast.into_html(&state))
+          }
+        },
+        OpenGraph {
+            title: markdown.title,
+            r#type: "article".to_string(),
+            image: None,
+            description: post.short_description(),
+            ..Default::default()
+        },
+    )
     .into_response())
 }

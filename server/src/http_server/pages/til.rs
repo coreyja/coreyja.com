@@ -14,7 +14,7 @@ use tracing::instrument;
 use crate::{
     http_server::{
         pages::blog::md::IntoHtml,
-        templates::{base_constrained, post_templates::TilPostList},
+        templates::{base_constrained, header::OpenGraph, post_templates::TilPostList},
     },
     AppState,
 };
@@ -27,10 +27,13 @@ pub(crate) async fn til_index(
 ) -> Result<Markup, StatusCode> {
     let posts = til_posts.by_recency();
 
-    Ok(base_constrained(html! {
-      h1 class="text-3xl" { "Today I Learned" }
-      (TilPostList(posts))
-    }))
+    Ok(base_constrained(
+        html! {
+          h1 class="text-3xl" { "Today I Learned" }
+          (TilPostList(posts))
+        },
+        Default::default(),
+    ))
 }
 
 #[instrument(skip_all)]
@@ -57,12 +60,18 @@ pub(crate) async fn til_get(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let markdown = til.markdown();
-    Ok(base_constrained(html! {
-      h1 class="text-2xl" { (markdown.title) }
-      subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
+    Ok(base_constrained(
+        html! {
+          h1 class="text-2xl" { (markdown.title) }
+          subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
-      div {
-        (markdown.ast.into_html(&state))
-      }
-    }))
+          div {
+            (markdown.ast.into_html(&state))
+          }
+        },
+        OpenGraph {
+            title: markdown.title.clone(),
+            ..Default::default()
+        },
+    ))
 }
