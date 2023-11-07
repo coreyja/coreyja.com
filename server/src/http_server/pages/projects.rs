@@ -14,8 +14,10 @@ use super::blog::md::IntoHtml;
 #[instrument(skip_all)]
 pub(crate) async fn projects_index(
     State(projects): State<Arc<Projects>>,
+    State(streams): State<Arc<PastStreams>>,
 ) -> Result<Markup, StatusCode> {
     let projects = projects.by_title();
+    let streams = streams.by_recency();
 
     let mut grouped_projects: Vec<(ProjectStatus, Vec<Project>)> = projects
         .into_iter()
@@ -37,6 +39,13 @@ pub(crate) async fn projects_index(
                 li class="my-4" {
                   a href=(project.relative_link().unwrap()) {
                     (project.frontmatter.title)
+
+                    @let most_recent_stream = streams.iter().find(|s| s.frontmatter.project.as_deref() == Some(project.slug().unwrap()));
+                    @if let Some(stream) = most_recent_stream {
+                      span class="text-subtitle text-sm inline-block pl-4" {
+                        "Last Streamed: " (stream.frontmatter.date)
+                      }
+                    }
                   }
                 }
               }
