@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=builder /app/target/release/server .
 
+ENV GIT_COMMIT=$GIT_COMMIT
 RUN echo $GIT_COMMIT > REVISION
 
 EXPOSE 3000
