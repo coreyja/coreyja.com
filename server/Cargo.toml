@@ -54,3 +54,4 @@ uuid = { version = "1.2", features = ["v4"] }
 openai = { path = "../openai" }
 posts = { path = "../posts" }
 itertools = "0.11.0"
+sentry-tracing = "0.31.8"

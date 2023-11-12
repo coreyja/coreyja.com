@@ -155,6 +155,7 @@ fn setup_tracing() -> Result<()> {
         .with(heirarchical)
         .with(opentelemetry_layer)
         .with(env_filter)
+        .with(sentry_tracing::layer())
         .try_init()
         .into_diagnostic()?;
 
@@ -168,11 +169,20 @@ struct CliArgs {
     command: Option<Command>,
 }
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let _sentry_guard = setup_sentry();
     setup_tracing()?;
 
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(4)
+        .enable_all()
+        .build()
+        .into_diagnostic()?
+        .block_on(async { _main().await })
+}
+
+// #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
+async fn _main() -> Result<()> {
     let cli = CliArgs::parse();
     let command = cli.command.unwrap_or_default();
 
