@@ -174,7 +174,6 @@ fn main() -> Result<()> {
     let git_commit = Box::new(git_commit);
     let git_commit = Box::leak(git_commit);
     let _sentry_guard = setup_sentry(git_commit.as_deref());
-    setup_tracing()?;
 
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
@@ -185,6 +184,8 @@ fn main() -> Result<()> {
 }
 
 async fn _main() -> Result<()> {
+    setup_tracing()?;
+
     let cli = CliArgs::parse();
     let command = cli.command.unwrap_or_default();
 
