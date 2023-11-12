@@ -1,3 +1,5 @@
+ARG GIT_COMMIT
+
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR /app
 
@@ -37,7 +39,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=builder /app/target/release/server .
 
-RUN echo $GIT_REVISION > REVISION
+RUN echo $GIT_COMMIT > REVISION
 
 EXPOSE 3000
 

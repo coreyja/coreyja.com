@@ -28,6 +28,7 @@ use self::{pages::blog::md::IntoHtml, templates::ShortDesc};
 pub(crate) mod cmd;
 
 pub(crate) mod pages {
+    pub mod admin;
     pub mod blog;
     pub mod home;
     pub mod projects;

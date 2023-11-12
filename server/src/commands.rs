@@ -18,9 +18,9 @@ impl Default for Command {
 }
 
 impl Command {
-    pub(crate) async fn run(&self) -> Result<()> {
+    pub(crate) async fn run(&self, git_commit: &'static Option<String>) -> Result<()> {
         match &self {
-            Command::Serve => crate::http_server::cmd::serve().await,
+            Command::Serve => crate::http_server::cmd::serve(git_commit).await,
             Command::Print => info::print_info().await,
             Command::Validate => validate::validate().await,
         }

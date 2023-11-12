@@ -1,6 +1,6 @@
 use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
 
-pub(crate) async fn serve() -> Result<()> {
+pub(crate) async fn serve(git_commit: &'static Option<String>) -> Result<()> {
     let app_config = AppConfig::from_env()?;
     let twitch_config = TwitchConfig::from_env()?;
     let github_config = GithubConfig::from_env()?;
@@ -29,6 +29,7 @@ pub(crate) async fn serve() -> Result<()> {
         til_posts,
         streams,
         projects,
+        git_commit,
     };
 
     info!("Spawning Tasks");

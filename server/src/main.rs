@@ -70,6 +70,7 @@ struct AppState {
     til_posts: Arc<TilPosts>,
     streams: Arc<PastStreams>,
     projects: Arc<Projects>,
+    git_commit: &'static Option<String>,
 }
 
 fn setup_sentry(git_commit: Option<&'static str>) -> Option<ClientInitGuard> {
@@ -180,16 +181,16 @@ fn main() -> Result<()> {
         .enable_all()
         .build()
         .into_diagnostic()?
-        .block_on(async { _main().await })
+        .block_on(async { _main(git_commit).await })
 }
 
-async fn _main() -> Result<()> {
+async fn _main(git_commit: &'static Option<String>) -> Result<()> {
     setup_tracing()?;
 
     let cli = CliArgs::parse();
     let command = cli.command.unwrap_or_default();
 
-    command.run().await
+    command.run(git_commit).await
 }
 
 #[cfg(test)]
