@@ -1,7 +1,0 @@
-dbs:
- -  path: $DATABASE_PATH
-    replicas:
-      - type: s3
-        bucket: coreyja-backups
-        path:   main-db
-        region: us-east-1

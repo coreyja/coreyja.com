@@ -194,7 +194,7 @@ async fn _main() -> Result<()> {
 #[cfg(test)]
 mod test {
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    #[tokio::test]
     async fn validate() -> miette::Result<()> {
         crate::commands::validate::validate().await
     }
