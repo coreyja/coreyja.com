@@ -72,14 +72,10 @@ struct AppState {
     projects: Arc<Projects>,
 }
 
-fn setup_sentry() -> Option<ClientInitGuard> {
-    let git_commit = std::option_env!("CIRCLE_SHA1");
-    let release_name = sentry::release_name!().unwrap_or_else(|| "dev".into());
-    let release_name = if let Some(git_commit) = git_commit {
-        git_commit.into()
-    } else {
-        release_name
-    };
+fn setup_sentry(git_commit: Option<&'static str>) -> Option<ClientInitGuard> {
+    let git_commit: Option<std::borrow::Cow<_>> = git_commit.map(Into::into);
+    let release_name =
+        git_commit.unwrap_or_else(|| sentry::release_name!().unwrap_or_else(|| "dev".into()));
 
     if let Ok(sentry_dsn) = std::env::var("SENTRY_DSN") {
         println!("Sentry enabled");
@@ -87,7 +83,7 @@ fn setup_sentry() -> Option<ClientInitGuard> {
         Some(sentry::init((
             sentry_dsn,
             sentry::ClientOptions {
-                traces_sample_rate: 0.0,
+                traces_sample_rate: 0.5,
                 release: Some(release_name),
                 ..Default::default()
             },
@@ -170,7 +166,14 @@ struct CliArgs {
 }
 
 fn main() -> Result<()> {
-    let _sentry_guard = setup_sentry();
+    let git_commit = if std::path::Path::new("REVISION").exists() {
+        Some(std::fs::read_to_string("REVISION").into_diagnostic()?)
+    } else {
+        None
+    };
+    let git_commit = Box::new(git_commit);
+    let git_commit = Box::leak(git_commit);
+    let _sentry_guard = setup_sentry(git_commit.as_deref());
     setup_tracing()?;
 
     tokio::runtime::Builder::new_multi_thread()
@@ -181,7 +184,6 @@ fn main() -> Result<()> {
         .block_on(async { _main().await })
 }
 
-// #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
 async fn _main() -> Result<()> {
     let cli = CliArgs::parse();
     let command = cli.command.unwrap_or_default();
