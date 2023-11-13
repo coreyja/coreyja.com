@@ -167,7 +167,11 @@ struct CliArgs {
 }
 
 fn main() -> Result<()> {
-    let git_commit = std::env::var("GIT_COMMIT").ok();
+    let git_commit = if std::path::Path::new("/app/git_commit").exists() {
+        Some(std::fs::read_to_string("/app/git_commit").into_diagnostic()?)
+    } else {
+        None
+    };
     let git_commit = Box::new(git_commit);
     let git_commit = Box::leak(git_commit);
     let _sentry_guard = setup_sentry(git_commit.as_deref());
