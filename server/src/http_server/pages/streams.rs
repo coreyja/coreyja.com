@@ -3,7 +3,10 @@ use std::sync::Arc;
 use axum::extract::{Path, State};
 use chrono::NaiveDate;
 use maud::{html, Markup, Render};
-use posts::past_streams::{PastStream, PastStreams};
+use posts::{
+    past_streams::{PastStream, PastStreams},
+    projects::Projects,
+};
 use reqwest::StatusCode;
 use tracing::instrument;
 
@@ -55,6 +58,7 @@ impl<'a> Render for StreamPostList<'a> {
 #[instrument(skip(streams, state))]
 pub(crate) async fn stream_get(
     State(streams): State<Arc<PastStreams>>,
+    State(projects): State<Arc<Projects>>,
     State(state): State<AppState>,
     Path(date): Path<NaiveDate>,
 ) -> Result<Markup, StatusCode> {
@@ -63,6 +67,12 @@ pub(crate) async fn stream_get(
         .iter()
         .find(|p| p.frontmatter.date == date)
         .ok_or(StatusCode::NOT_FOUND)?;
+
+    let project = til
+        .frontmatter
+        .project
+        .as_ref()
+        .and_then(|slug| projects.projects.iter().find(|p| p.slug().unwrap() == slug));
 
     let markdown = til.markdown();
 
@@ -75,6 +85,13 @@ pub(crate) async fn stream_get(
         html! {
           h1 class="text-2xl" { (markdown.title) }
           subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
+
+          @if let Some(project) = project {
+            div class="mb-8" {
+              "Project: "
+              a href=(project.relative_link().unwrap()) { (project.frontmatter.title) }
+            }
+          }
 
           @if let Some(url) = youtube_embed_url.clone() {
             iframe
