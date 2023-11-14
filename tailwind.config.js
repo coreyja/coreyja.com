@@ -74,6 +74,7 @@ module.exports = {
     extend: {
       fontFamily: {
         'sans': ['Quicksand', 'sans-serif'],
+        'mono': ['ComicCode', 'monospace'],
       },
       backgroundImage: {
         'header-background': 'url("/static/header_background.png")',

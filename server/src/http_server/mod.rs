@@ -43,6 +43,7 @@ mod server_tracing;
 mod templates;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
+const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");
 
 const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 

@@ -56,6 +56,7 @@ pub fn head(og: OpenGraph) -> Markup {
         title { "coreyja.com" }
         link rel="stylesheet" href="/styles/tailwind.css" {}
         link rel="stylesheet" href="/styles/syntax.css" {}
+        link rel="stylesheet" href="/styles/comic_code.css" {}
 
         link rel="preconnect" href="https://fonts.googleapis.com" {}
         link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}

@@ -1,0 +1,43 @@
+@font-face {
+  font-family: "ComicCode";
+  src: url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Regular.woff2") format('woff2'), url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Regular.woff") format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "ComicCode";
+  src: url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Bold.woff2") format('woff2'), url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Bold.woff") format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "ComicCode";
+  src: url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-BoldItalic.woff2") format('woff2'), url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-BoldItalic.woff") format('woff');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "ComicCode";
+  src: url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Italic.woff2") format('woff2'), url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Italic.woff") format('woff');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "ComicCode";
+  src: url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Medium.woff2") format('woff2'), url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-Medium.woff") format('woff');
+  font-weight: semi-bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "ComicCode";
+  src: url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-MediumItalic.woff2") format('woff2'), url("https://s3.amazonaws.com/coreyja.com/fonts/ComicCode/ComicCodeLigatures-MediumItalic.woff") format('woff');
+  font-weight: semi-bold;
+  font-style: italic;
+}
+
+

@@ -8,6 +8,10 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/static/*path", get(static_assets))
         .route("/styles/syntax.css", get(|| async move { syntax_css }))
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
+        .route(
+            "/styles/comic_code.css",
+            get(|| async { COMIC_CODE_STYLES }),
+        )
         .route("/", get(pages::home::home_page))
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/rss.xml", get(pages::blog::full_rss_feed))
