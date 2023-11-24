@@ -36,7 +36,7 @@ jobs:
     resource_class: xlarge
     environment:
       DATABASE_URL: "sqlite:/root/project/server/db.sqlite3"
-      SQLX_OFFLINE: true
+      SQLX_OFFLINE: "true"
     steps:
       - checkout
       - with-rust-setup:
