@@ -2627,6 +2627,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25db6b064527c5d482d0423354fcd07a89a2dfe07b67892e62411946db7f07b0"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3902,16 +3911,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustc_version_runtime"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dd18cd2bae1820af0b6ad5e54f4a51d0f3fcc53b05f845675074efcc7af071d"
-dependencies = [
- "rustc_version",
- "semver",
-]
-
-[[package]]
 name = "rustix"
 version = "0.38.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4357,7 +4356,7 @@ dependencies = [
  "clap",
  "include_dir",
  "indoc",
- "itertools 0.11.0",
+ "itertools 0.12.0",
  "markdown",
  "maud",
  "miette",
@@ -4370,7 +4369,6 @@ dependencies = [
  "posts",
  "reqwest",
  "rss",
- "rustc_version_runtime",
  "sentry",
  "sentry-tower",
  "sentry-tracing",

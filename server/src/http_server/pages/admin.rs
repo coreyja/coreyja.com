@@ -8,6 +8,6 @@ pub(crate) async fn versions(State(app): State<AppState>) -> impl IntoResponse {
     html! {
       p { "coreyja.com " }
       p { "Git Commit: " (app.versions.git_commit) }
-      p { "Rust Version: " (rustc_version_runtime::version()) }
+      p { "Rust Version: " (app.versions.rustc_version) }
     }
 }
