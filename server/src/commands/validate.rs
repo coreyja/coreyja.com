@@ -8,7 +8,7 @@ use crate::{
     github::GithubConfig,
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
     twitch::TwitchConfig,
-    AppConfig, AppState,
+    AppConfig, AppState, VersionInfo,
 };
 
 pub(crate) async fn validate() -> Result<()> {
@@ -59,7 +59,7 @@ pub(crate) async fn validate() -> Result<()> {
         projects: Arc::new(projects.clone()),
         app: config,
         markdown_to_html_context: render_context,
-        git_commit: &None,
+        versions: VersionInfo::from_env(),
     };
 
     let rss = MyChannel::from_posts(state.clone(), &posts.by_recency());

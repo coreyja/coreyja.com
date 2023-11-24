@@ -1,12 +1,6 @@
 use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
 
-pub(crate) async fn serve(git_commit: &'static Option<String>) -> Result<()> {
-    let app_config = AppConfig::from_env()?;
-    let twitch_config = TwitchConfig::from_env()?;
-    let github_config = GithubConfig::from_env()?;
-    let open_ai_config = OpenAiConfig::from_env()?;
-    let markdown_to_html_context = SyntaxHighlightingContext::default();
-
+pub(crate) async fn serve() -> Result<()> {
     let blog_posts = BlogPosts::from_static_dir()?;
     let blog_posts = Arc::new(blog_posts);
 
@@ -20,25 +14,22 @@ pub(crate) async fn serve(git_commit: &'static Option<String>) -> Result<()> {
     let projects = Arc::new(projects);
 
     let app_state = AppState {
-        twitch: twitch_config,
-        github: github_config,
-        app: app_config,
-        open_ai: open_ai_config,
-        markdown_to_html_context,
+        twitch: TwitchConfig::from_env()?,
+        github: GithubConfig::from_env()?,
+        app: AppConfig::from_env()?,
+        open_ai: OpenAiConfig::from_env()?,
+        markdown_to_html_context: SyntaxHighlightingContext::default(),
+        versions: VersionInfo::from_env(),
         blog_posts,
         til_posts,
         streams,
         projects,
-        git_commit,
     };
 
     info!("Spawning Tasks");
     let axum_future = tokio::spawn(run_axum(app_state.clone()));
     info!("Tasks Spawned");
 
-    // let (discord_result, axum_result) = try_join!(discord_future, axum_future).into_diagnostic()?;
-
-    // discord_result.into_diagnostic()?;
     axum_future.await.into_diagnostic()??;
 
     info!("Main Returning");

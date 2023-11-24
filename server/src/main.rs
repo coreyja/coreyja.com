@@ -60,6 +60,19 @@ impl AppConfig {
 }
 
 #[derive(Debug, Clone)]
+struct VersionInfo {
+    git_commit: Option<&'static str>,
+}
+
+impl VersionInfo {
+    fn from_env() -> Self {
+        Self {
+            git_commit: option_env!("VERGEN_GIT_SHA"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 struct AppState {
     twitch: TwitchConfig,
     github: GithubConfig,
@@ -70,11 +83,11 @@ struct AppState {
     til_posts: Arc<TilPosts>,
     streams: Arc<PastStreams>,
     projects: Arc<Projects>,
-    git_commit: &'static Option<String>,
+    versions: VersionInfo,
 }
 
-fn setup_sentry(git_commit: Option<&'static str>) -> Option<ClientInitGuard> {
-    let git_commit: Option<std::borrow::Cow<_>> = git_commit.map(Into::into);
+fn setup_sentry() -> Option<ClientInitGuard> {
+    let git_commit: Option<std::borrow::Cow<_>> = option_env!("VERGEN_GIT_SHA").map(|x| x.into());
     let release_name =
         git_commit.unwrap_or_else(|| sentry::release_name!().unwrap_or_else(|| "dev".into()));
 
@@ -167,30 +180,23 @@ struct CliArgs {
 }
 
 fn main() -> Result<()> {
-    let git_commit = if std::path::Path::new("/app/git_commit").exists() {
-        Some(std::fs::read_to_string("/app/git_commit").into_diagnostic()?)
-    } else {
-        None
-    };
-    let git_commit = Box::new(git_commit);
-    let git_commit = Box::leak(git_commit);
-    let _sentry_guard = setup_sentry(git_commit.as_deref());
+    let _sentry_guard = setup_sentry();
 
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .enable_all()
         .build()
         .into_diagnostic()?
-        .block_on(async { _main(git_commit).await })
+        .block_on(async { _main().await })
 }
 
-async fn _main(git_commit: &'static Option<String>) -> Result<()> {
+async fn _main() -> Result<()> {
     setup_tracing()?;
 
     let cli = CliArgs::parse();
     let command = cli.command.unwrap_or_default();
 
-    command.run(git_commit).await
+    command.run().await
 }
 
 #[cfg(test)]

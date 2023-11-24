@@ -56,3 +56,6 @@ posts = { path = "../posts" }
 itertools = "0.11.0"
 sentry-tracing = "0.31.8"
 rustc_version_runtime = "0.3.0"
+
+[build-dependencies]
+vergen = { version = "8.0.0", features = ["git", "gitoxide"] }
