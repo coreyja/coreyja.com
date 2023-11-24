@@ -61,13 +61,15 @@ impl AppConfig {
 
 #[derive(Debug, Clone)]
 struct VersionInfo {
-    git_commit: Option<&'static str>,
+    git_commit: &'static str,
+    rustc_version: &'static str,
 }
 
 impl VersionInfo {
     fn from_env() -> Self {
         Self {
-            git_commit: option_env!("VERGEN_GIT_SHA"),
+            git_commit: env!("VERGEN_GIT_SHA"),
+            rustc_version: env!("VERGEN_RUSTC_SEMVER"),
         }
     }
 }

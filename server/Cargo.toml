@@ -58,4 +58,4 @@ sentry-tracing = "0.31.8"
 rustc_version_runtime = "0.3.0"
 
 [build-dependencies]
-vergen = { version = "8.0.0", features = ["git", "gitoxide"] }
+vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }

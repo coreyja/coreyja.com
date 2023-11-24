@@ -5557,6 +5557,7 @@ checksum = "1290fd64cc4e7d3c9b07d7f333ce0ce0007253e32870e632624835cc80b83939"
 dependencies = [
  "anyhow",
  "gix",
+ "rustc_version",
  "rustversion",
  "time",
 ]

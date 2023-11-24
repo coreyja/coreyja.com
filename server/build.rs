@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // trigger recompilation when a new migration is added
     println!("cargo:rerun-if-changed=migrations");
 
-    EmitBuilder::builder().all_git().emit()?;
+    EmitBuilder::builder().all_git().all_rustc().emit()?;
 
     Ok(())
 }
