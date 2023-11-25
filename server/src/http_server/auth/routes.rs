@@ -189,6 +189,7 @@ pub(crate) async fn github_oauth(
         .path("/")
         .http_only(true)
         .secure(true)
+        .expires(None)
         .finish();
     private.add(session_cookie);
 
