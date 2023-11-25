@@ -51,6 +51,7 @@ pub(crate) async fn validate() -> Result<()> {
             client_id: "".to_string(),
             client_secret: "".to_string(),
             pat: "".to_string(),
+            app_private_key: "".to_string(),
         },
         open_ai: OpenAiConfig {
             api_key: "".to_string(),

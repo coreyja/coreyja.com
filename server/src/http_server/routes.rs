@@ -38,7 +38,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route(
             "/login",
             get(|State(app_state): State<AppState>| async move {
-                Redirect::permanent(&format!(
+                Redirect::temporary(&format!(
                     "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}",
                     app_state.github.client_id,
                     app_state.app.app_url("/auth/github_oauth")

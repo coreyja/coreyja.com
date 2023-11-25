@@ -4,7 +4,7 @@ use axum::{
     http,
     response::{IntoResponse, Redirect},
 };
-use db::{sqlx, users::User};
+use db::{sqlx, users::UserFromDB};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -71,7 +71,7 @@ pub(crate) async fn github_oauth(
 
     let user_info: GithubUser = serde_json::from_value(user_info).unwrap();
 
-    let local_user: User = {
+    let local_user: UserFromDB = {
         let pool = &state.db;
         let github_user = &user_info;
         let user = db::sqlx::query!(
@@ -114,14 +114,14 @@ pub(crate) async fn github_oauth(
             .into_diagnostic()
             .unwrap();
 
-            db::users::User {
+            db::users::UserFromDB {
                 user_id: user.user_id,
                 created_at: user.created_at,
                 updated_at: user.updated_at,
             }
         } else {
             let user = db::sqlx::query_as!(
-                db::users::User,
+                db::users::UserFromDB,
                 r#"
             INSERT INTO Users (user_id)
             VALUES ($1)
@@ -191,15 +191,15 @@ pub(crate) async fn github_oauth(
         .finish();
     private.add(session_cookie);
 
-    format!("Logged in as {}", local_user.user_id)
+    Redirect::temporary("/")
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct DBSession {
-    session_id: uuid::Uuid,
-    user_id: uuid::Uuid,
-    updated_at: chrono::DateTime<chrono::Utc>,
-    created_at: chrono::DateTime<chrono::Utc>,
+pub struct DBSession {
+    pub session_id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[async_trait]
@@ -217,7 +217,7 @@ impl FromRequestParts<AppState> for DBSession {
         let session_cookie = private.get("session_id");
 
         let Some(session_cookie) = session_cookie else {
-            Err(Redirect::temporary("/_caje/auth"))?
+            Err(Redirect::temporary("/login"))?
         };
         let session_id = session_cookie.value().to_string();
 
