@@ -26,7 +26,7 @@ impl GithubConfig {
                 .into_diagnostic()?,
             client_id: std::env::var("GITHUB_APP_CLIENT_ID").into_diagnostic()?,
             client_secret: std::env::var("GITHUB_APP_CLIENT_SECRET").into_diagnostic()?,
-            pat: std::env::var("GITHUB_APP_PERSONAL_ACCESS_TOKEN").into_diagnostic()?,
+            pat: std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN").into_diagnostic()?,
             app_private_key: std::env::var("GITHUB_APP_PRIVATE_KEY").into_diagnostic()?,
         })
     }
