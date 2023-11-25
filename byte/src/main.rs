@@ -1,6 +1,6 @@
 use audio::run_audio_loop;
 
-use db::{setup_db_pool, sqlx::PgPool};
+use db::{setup_db_pool, PgPool};
 use miette::IntoDiagnostic;
 pub use miette::Result;
 use openai::OpenAiConfig;

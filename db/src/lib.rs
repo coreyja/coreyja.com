@@ -1,9 +1,9 @@
 use miette::{IntoDiagnostic, Result};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::postgres::PgPoolOptions;
 
 pub mod twitch_chatters;
 
-pub use sqlx;
+pub use sqlx::PgPool;
 
 pub async fn setup_db_pool() -> Result<PgPool> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
