@@ -42,6 +42,10 @@ mod routes;
 mod server_tracing;
 mod templates;
 
+pub(crate) mod auth {
+    pub(crate) mod routes;
+}
+
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");
 

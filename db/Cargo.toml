@@ -6,11 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono.workspace = true
 miette = { workspace = true }
-sqlx = { version = "0.7", features = [
-  "postgres",
-  "runtime-tokio-rustls",
-  "chrono",
-  "migrate",
-  "macros",
-] }
+sqlx = { workspace = true }

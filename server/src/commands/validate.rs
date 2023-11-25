@@ -1,5 +1,6 @@
-use std::{println, sync::Arc};
+use std::{env, println, sync::Arc};
 
+use db::sqlx;
 use miette::{IntoDiagnostic, Result};
 use openai::OpenAiConfig;
 use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
@@ -60,6 +61,9 @@ pub(crate) async fn validate() -> Result<()> {
         app: config,
         markdown_to_html_context: render_context,
         versions: VersionInfo::from_env(),
+        db: sqlx::PgPool::connect(env::var("DATABASE_URL").unwrap().as_str())
+            .await
+            .into_diagnostic()?,
     };
 
     let rss = MyChannel::from_posts(state.clone(), &posts.by_recency());

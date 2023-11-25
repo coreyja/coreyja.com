@@ -1,3 +1,5 @@
+use db::setup_db_pool;
+
 use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
 
 pub(crate) async fn serve() -> Result<()> {
@@ -24,6 +26,7 @@ pub(crate) async fn serve() -> Result<()> {
         til_posts,
         streams,
         projects,
+        db: setup_db_pool().await?,
     };
 
     info!("Spawning Tasks");

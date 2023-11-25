@@ -22,7 +22,3 @@ impl GithubConfig {
         })
     }
 }
-
-pub(crate) fn github_redirect_uri(config: &AppState) -> String {
-    format!("{}/github_oauth", config.app.base_url)
-}

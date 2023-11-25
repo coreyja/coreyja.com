@@ -5,6 +5,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use clap::Parser;
 use commands::Command;
+use db::PgPool;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use posts::projects::Projects;
@@ -86,6 +87,7 @@ struct AppState {
     streams: Arc<PastStreams>,
     projects: Arc<Projects>,
     versions: VersionInfo,
+    db: PgPool,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {
