@@ -1,5 +1,4 @@
-use miette::IntoDiagnostic;
-use sqlx::{types::Uuid, PgPool};
+use sqlx::types::Uuid;
 
 pub struct User {
     pub user_id: Uuid,

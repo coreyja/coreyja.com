@@ -1,12 +1,10 @@
-use std::{borrow::Cow, sync::Arc};
-
 use async_trait::async_trait;
 use axum::{
     extract::{FromRequestParts, Query, State},
     http,
     response::{IntoResponse, Redirect},
 };
-use db::{sqlx, PgPool};
+use db::{sqlx, users::User};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -73,13 +71,12 @@ pub(crate) async fn github_oauth(
 
     let user_info: GithubUser = serde_json::from_value(user_info).unwrap();
 
-    let local_user = {
+    let local_user: User = {
         let pool = &state.db;
         let github_user = &user_info;
-        let user = db::sqlx::query_as!(
-            db::users::User,
+        let user = db::sqlx::query!(
             r#"
-        SELECT Users.*
+        SELECT Users.*, GithubLinks.github_link_id
         FROM Users
         JOIN GithubLinks USING (user_id)
         WHERE GithubLinks.external_github_username = $1
@@ -92,7 +89,36 @@ pub(crate) async fn github_oauth(
         .unwrap();
 
         if let Some(user) = user {
-            user
+            sqlx::query!(
+                r#"
+            UPDATE GithubLinks
+            SET
+                access_token = $1,
+                refresh_token = $2,
+                access_token_expires_at = $3,
+                refresh_token_expires_at = $4
+            WHERE github_link_id = $5
+            "#,
+                oauth_response.access_token,
+                oauth_response.refresh_token,
+                chrono::Utc::now()
+                    + chrono::Duration::seconds(oauth_response.expires_in.try_into().unwrap()),
+                chrono::Utc::now()
+                    + chrono::Duration::seconds(
+                        oauth_response.refresh_token_expires_in.try_into().unwrap()
+                    ),
+                user.github_link_id
+            )
+            .execute(pool)
+            .await
+            .into_diagnostic()
+            .unwrap();
+
+            db::users::User {
+                user_id: user.user_id,
+                created_at: user.created_at,
+                updated_at: user.updated_at,
+            }
         } else {
             let user = db::sqlx::query_as!(
                 db::users::User,
