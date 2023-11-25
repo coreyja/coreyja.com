@@ -27,14 +27,6 @@ struct GitHubOAuthResponse {
     token_type: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct OauthRequest<'a> {
-    client_id: &'a str,
-    client_secret: &'a str,
-    code: &'a str,
-    redirect_uri: &'a str,
-}
-
 pub(crate) async fn github_oauth(
     State(state): State<AppState>,
     Query(code): Query<GitHubOAuthCode>,
@@ -43,12 +35,12 @@ pub(crate) async fn github_oauth(
 
     let oauth_response: Value = client
         .post("https://github.com/login/oauth/access_token")
-        .query(&OauthRequest {
-            client_id: &state.github.client_id,
-            client_secret: &state.github.client_secret,
-            code: &code.code,
-            redirect_uri: &state.app.app_url("/auth/github_oauth"),
-        })
+        .query(&[
+            ("client_id", &state.github.client_id),
+            ("client_secret", &state.github.client_secret),
+            ("code", &code.code),
+            ("redirect_uri", &state.app.app_url("/auth/github_oauth")),
+        ])
         .header("Accept", "application/json")
         .send()
         .await
