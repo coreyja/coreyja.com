@@ -6,12 +6,14 @@ use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use clap::Parser;
 use commands::Command;
 use db::PgPool;
+use debug_ignore::DebugIgnore;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use posts::projects::Projects;
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
+use tower_cookies::Key;
 use tracing::{info, instrument};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{prelude::*, util::SubscriberInitExt, EnvFilter, Registry};
@@ -88,6 +90,7 @@ struct AppState {
     projects: Arc<Projects>,
     versions: VersionInfo,
     db: PgPool,
+    cookie_key: DebugIgnore<Key>,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

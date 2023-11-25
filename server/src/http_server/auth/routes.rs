@@ -1,13 +1,16 @@
 use std::{borrow::Cow, sync::Arc};
 
+use async_trait::async_trait;
 use axum::{
-    extract::{Query, State},
-    response::IntoResponse,
+    extract::{FromRequestParts, Query, State},
+    http,
+    response::{IntoResponse, Redirect},
 };
 use db::{sqlx, PgPool};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tower_cookies::Cookies;
 use typify::import_types;
 
 use crate::AppState;
@@ -30,6 +33,7 @@ struct GitHubOAuthResponse {
 pub(crate) async fn github_oauth(
     State(state): State<AppState>,
     Query(code): Query<GitHubOAuthCode>,
+    cookies: Cookies,
 ) -> impl IntoResponse {
     let client = reqwest::Client::new();
 
@@ -138,7 +142,74 @@ pub(crate) async fn github_oauth(
         }
     };
 
+    let session = sqlx::query!(
+        r#"
+    INSERT INTO Sessions (session_id, user_id)
+    VALUES ($1, $2)
+    RETURNING *
+    "#,
+        uuid::Uuid::new_v4(),
+        local_user.user_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .unwrap();
+    // let cookies = Cookies::from_request_parts(parts, state).await.unwrap();
+
+    let private = cookies.private(&state.cookie_key.0);
+
+    let session_cookie = tower_cookies::Cookie::build("session_id", session.session_id.to_string())
+        .path("/")
+        .http_only(true)
+        .secure(true)
+        .finish();
+    private.add(session_cookie);
+
     format!("Logged in as {}", local_user.user_id)
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct DBSession {
+    session_id: uuid::Uuid,
+    user_id: uuid::Uuid,
+    updated_at: chrono::DateTime<chrono::Utc>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[async_trait]
+impl FromRequestParts<AppState> for DBSession {
+    type Rejection = axum::response::Redirect;
+
+    async fn from_request_parts(
+        parts: &mut http::request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let cookies = Cookies::from_request_parts(parts, state).await.unwrap();
+
+        let private = cookies.private(&state.cookie_key.0);
+
+        let session_cookie = private.get("session_id");
+
+        let Some(session_cookie) = session_cookie else {
+            Err(Redirect::temporary("/_caje/auth"))?
+        };
+        let session_id = session_cookie.value().to_string();
+
+        let session = sqlx::query_as!(
+            DBSession,
+            r#"
+        SELECT *
+        FROM Sessions
+        WHERE session_id = $1
+        "#,
+            uuid::Uuid::parse_str(&session_id).unwrap()
+        )
+        .fetch_one(&state.db)
+        .await
+        .unwrap();
+
+        Ok(session)
+    }
 }
 
 import_types!("src/http_server/auth/github_token_response.schema.json");

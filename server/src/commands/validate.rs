@@ -64,6 +64,7 @@ pub(crate) async fn validate() -> Result<()> {
         db: sqlx::PgPool::connect(env::var("DATABASE_URL").unwrap().as_str())
             .await
             .into_diagnostic()?,
+        cookie_key: tower_cookies::Key::generate().into(),
     };
 
     let rss = MyChannel::from_posts(state.clone(), &posts.by_recency());

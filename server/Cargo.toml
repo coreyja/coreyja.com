@@ -58,6 +58,9 @@ sqlx = { workspace = true }
 itertools = "0.12.0"
 sentry-tracing = "0.31.8"
 typify = "0.0.14"
+tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
+debug-ignore = "1.0.5"
+base64 = "0.21.5"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }

@@ -1,3 +1,4 @@
+use base64::Engine;
 use db::setup_db_pool;
 
 use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
@@ -15,6 +16,19 @@ pub(crate) async fn serve() -> Result<()> {
     let projects = Projects::from_static_dir()?;
     let projects = Arc::new(projects);
 
+    let cookie_key = std::env::var("COOKIE_KEY");
+    let cookie_key = if let Ok(cookie_key) = cookie_key {
+        let cookie_key = base64::engine::general_purpose::STANDARD
+            .decode(cookie_key.as_bytes())
+            .into_diagnostic()?;
+
+        Key::derive_from(&cookie_key)
+    } else {
+        info!("Generating new cookie key");
+        Key::generate()
+    };
+    let cookie_key = DebugIgnore(cookie_key);
+
     let app_state = AppState {
         twitch: TwitchConfig::from_env()?,
         github: GithubConfig::from_env()?,
@@ -27,6 +41,7 @@ pub(crate) async fn serve() -> Result<()> {
         streams,
         projects,
         db: setup_db_pool().await?,
+        cookie_key,
     };
 
     info!("Spawning Tasks");

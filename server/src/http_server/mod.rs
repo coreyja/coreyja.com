@@ -17,6 +17,7 @@ use posts::{
     Post,
 };
 use std::{net::SocketAddr, sync::Arc};
+use tower_cookies::CookieManagerLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::{AppConfig, AppState};
@@ -67,7 +68,8 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
 
     let app = routes::make_router(syntax_css)
         .with_state(config)
-        .layer(trace_layer);
+        .layer(trace_layer)
+        .layer(CookieManagerLayer::new());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
