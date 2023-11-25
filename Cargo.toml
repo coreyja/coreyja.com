@@ -1,5 +1,5 @@
 [workspace]
-members = ["byte", "posts", "server", "tracing-common", "video-toolkit"]
+members = ["byte", "posts", "server", "tracing-common", "video-toolkit", "db"]
 resolver = "2"
 
 [workspace.dependencies]
