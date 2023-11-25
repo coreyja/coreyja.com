@@ -79,7 +79,7 @@ pub(crate) async fn github_oauth(
         SELECT Users.*, GithubLinks.github_link_id
         FROM Users
         JOIN GithubLinks USING (user_id)
-        WHERE GithubLinks.external_github_username = $1
+        WHERE GithubLinks.external_github_login = $1
         "#,
             github_user.login()
         )
@@ -139,16 +139,18 @@ pub(crate) async fn github_oauth(
             INSERT INTO GithubLinks (
                 github_link_id,
                 user_id,
-                external_github_username,
+                external_github_id,
+                external_github_login,
                 access_token,
                 refresh_token,
                 access_token_expires_at,
                 refresh_token_expires_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             "#,
                 uuid::Uuid::new_v4(),
                 user.user_id,
+                github_user.id().to_string(),
                 github_user.login(),
                 oauth_response.access_token,
                 oauth_response.refresh_token,
@@ -180,7 +182,6 @@ pub(crate) async fn github_oauth(
     .fetch_one(&state.db)
     .await
     .unwrap();
-    // let cookies = Cookies::from_request_parts(parts, state).await.unwrap();
 
     let private = cookies.private(&state.cookie_key.0);
 
@@ -245,6 +246,13 @@ impl GithubUser {
         match &self {
             GithubUser::PrivateUser { login, .. } => login,
             GithubUser::PublicUser { login, .. } => login,
+        }
+    }
+
+    fn id(&self) -> i64 {
+        match &self {
+            GithubUser::PrivateUser { id, .. } => *id,
+            GithubUser::PublicUser { id, .. } => *id,
         }
     }
 }
