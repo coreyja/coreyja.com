@@ -13,6 +13,10 @@ name = "server"
 path = "src/main.rs"
 
 [[bin]]
+name = "gen_app_keys"
+path = "src/generate_app_keys.rs"
+
+[[bin]]
 name = "local"
 path = "src/local.rs"
 required-features = ["local"]
@@ -79,6 +83,8 @@ debug-ignore = "1.0.5"
 base64 = "0.21.5"
 gql_client = "1.0.7"
 jsonwebtoken = "9.1.0"
+rsa = "0.9.4"
+rand = "0.8.5"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
