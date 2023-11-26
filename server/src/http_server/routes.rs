@@ -89,10 +89,23 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             ),
         )
         .route(
-            "/login/claim/:github_login_state_id",
+            "/login/:project_slug/claim",
             post(
-                |State(app_state): State<AppState>, Path(github_login_state_id): Path<String>| async move {
-                    let github_login_state_id = github_login_state_id.parse::<uuid::Uuid>().into_diagnostic()?;
+                |State(app_state): State<AppState>, Path(project_slug): Path<String>, Json(body): Json<ClaimBody>| async move {
+                    let projects = app_state.projects.clone();
+                    let project = projects.projects.iter().find(|p| p.slug().unwrap() == project_slug).unwrap();
+                    let auth_public_key = project.frontmatter.auth_public_key.as_ref().unwrap();
+
+                    let jwt = body.jwt;
+                    let jwt = jsonwebtoken::decode::<JWTClaim>(
+                        &jwt,
+                        &jsonwebtoken::DecodingKey::from_rsa_pem(
+                            auth_public_key.as_bytes(),
+                        ).unwrap(),
+                        &Validation::new(Algorithm::RS256),
+                    ).unwrap();
+
+                    let github_login_state_id = jwt.claims.sub.parse::<uuid::Uuid>().unwrap();
                     let state = sqlx::query!(
                         r#"
                         SELECT state, Users.user_id
@@ -128,6 +141,16 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/jobs/refresh_youtube", post(admin::job_routes::refresh_youtube))
         .route("/admin", get(admin::dashboard))
         .fallback(fallback)
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ClaimBody {
+    jwt: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct JWTClaim {
+    sub: String,
 }
 
 async fn redirect_to_posts_index() -> impl IntoResponse {
