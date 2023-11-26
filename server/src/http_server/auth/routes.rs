@@ -96,8 +96,9 @@ pub(crate) async fn github_oauth(
                 access_token = $1,
                 refresh_token = $2,
                 access_token_expires_at = $3,
-                refresh_token_expires_at = $4
-            WHERE github_link_id = $5
+                refresh_token_expires_at = $4,
+                external_github_login = $5
+            WHERE github_link_id = $6
             "#,
                 oauth_response.access_token,
                 oauth_response.refresh_token,
@@ -107,6 +108,7 @@ pub(crate) async fn github_oauth(
                     + chrono::Duration::seconds(
                         oauth_response.refresh_token_expires_in.try_into().unwrap()
                     ),
+                github_user.login(),
                 user.github_link_id
             )
             .execute(pool)
