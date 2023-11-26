@@ -1,4 +1,6 @@
+use axum::Json;
 use posts::blog::BlogPosts;
+use serde_json::json;
 
 use super::*;
 
@@ -44,6 +46,65 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                     app_state.app.app_url("/auth/github_oauth")
                 ))
             }),
+        )
+        .route(
+            "/login/:from_app",
+            get(
+                |State(app_state): State<AppState>, Path(from_app): Path<String>| async move {
+                    let state = sqlx::query!(
+                        r#"
+                        INSERT INTO GithubLoginStates (github_login_state_id, app, state)
+                        VALUES ($1, $2, $3)
+                        RETURNING *
+                        "#,
+                        uuid::Uuid::new_v4(),
+                        from_app,
+                        "created"
+                    ).fetch_one(&app_state.db).await.unwrap();
+
+                    Redirect::temporary(&format!(
+                        "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
+                        app_state.github.client_id,
+                        app_state.app.app_url("/auth/github_oauth"),
+                        state.github_login_state_id
+                    ))
+                },
+            ),
+        )
+        .route(
+            "/login/claim/:github_login_state_id",
+            post(
+                |State(app_state): State<AppState>, Path(github_login_state_id): Path<String>| async move {
+                    let github_login_state_id = github_login_state_id.parse::<uuid::Uuid>().unwrap();
+                    let state = sqlx::query!(
+                        r#"
+                        SELECT state, Users.user_id
+                        FROM GithubLoginStates
+                        JOIN GithubLinks using (github_link_id)
+                        JOIN Users using (user_id)
+                        WHERE github_login_state_id = $1 and state = 'github_completed'
+                        "#,
+                        github_login_state_id
+                    ).fetch_one(&app_state.db).await.unwrap();
+
+                    assert_eq!(state.state, "github_completed");
+
+                    sqlx::query!(
+                        r#"
+                        UPDATE GithubLoginStates
+                        SET state = $1
+                        WHERE github_login_state_id = $2
+                        RETURNING *
+                        "#,
+                        "claimed",
+                        github_login_state_id
+                    ).fetch_one(&app_state.db).await.unwrap();
+
+                    Json(json!({
+                        "user_id": state.user_id,
+                    }))
+                },
+            ),
         )
         .fallback(fallback)
 }

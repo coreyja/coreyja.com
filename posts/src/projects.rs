@@ -44,6 +44,7 @@ pub struct FrontMatter {
     pub youtube_playlist: Option<String>,
     pub parent_project: Option<String>,
     pub status: ProjectStatus,
+    pub login_callback: Option<String>,
 }
 
 pub type Project = Post<FrontMatter>;

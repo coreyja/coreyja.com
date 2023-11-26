@@ -10,12 +10,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tower_cookies::Cookies;
 use typify::import_types;
+use uuid::Uuid;
 
 use crate::AppState;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GitHubOAuthCode {
     code: String,
+    state: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -29,8 +31,8 @@ struct GitHubOAuthResponse {
 }
 
 pub(crate) async fn github_oauth(
-    State(state): State<AppState>,
-    Query(code): Query<GitHubOAuthCode>,
+    State(app_state): State<AppState>,
+    Query(query): Query<GitHubOAuthCode>,
     cookies: Cookies,
 ) -> impl IntoResponse {
     let client = reqwest::Client::new();
@@ -38,10 +40,10 @@ pub(crate) async fn github_oauth(
     let oauth_response: Value = client
         .post("https://github.com/login/oauth/access_token")
         .query(&[
-            ("client_id", &state.github.client_id),
-            ("client_secret", &state.github.client_secret),
-            ("code", &code.code),
-            ("redirect_uri", &state.app.app_url("/auth/github_oauth")),
+            ("client_id", &app_state.github.client_id),
+            ("client_secret", &app_state.github.client_secret),
+            ("code", &query.code),
+            ("redirect_uri", &app_state.app.app_url("/auth/github_oauth")),
         ])
         .header("Accept", "application/json")
         .send()
@@ -70,9 +72,9 @@ pub(crate) async fn github_oauth(
         .unwrap();
 
     let user_info: GithubUser = serde_json::from_value(user_info).unwrap();
+    let pool = &app_state.db;
 
-    let local_user: UserFromDB = {
-        let pool = &state.db;
+    let (local_user, github_link_id): (UserFromDB, Uuid) = {
         let github_user = &user_info;
         let user = db::sqlx::query!(
             r#"
@@ -116,11 +118,14 @@ pub(crate) async fn github_oauth(
             .into_diagnostic()
             .unwrap();
 
-            db::users::UserFromDB {
-                user_id: user.user_id,
-                created_at: user.created_at,
-                updated_at: user.updated_at,
-            }
+            (
+                db::users::UserFromDB {
+                    user_id: user.user_id,
+                    created_at: user.created_at,
+                    updated_at: user.updated_at,
+                },
+                user.github_link_id,
+            )
         } else {
             let user = db::sqlx::query_as!(
                 db::users::UserFromDB,
@@ -136,7 +141,7 @@ pub(crate) async fn github_oauth(
             .into_diagnostic()
             .unwrap();
 
-            db::sqlx::query!(
+            let link = db::sqlx::query!(
                 r#"
             INSERT INTO GithubLinks (
                 github_link_id,
@@ -149,6 +154,7 @@ pub(crate) async fn github_oauth(
                 refresh_token_expires_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING github_link_id
             "#,
                 uuid::Uuid::new_v4(),
                 user.user_id,
@@ -163,12 +169,12 @@ pub(crate) async fn github_oauth(
                         oauth_response.refresh_token_expires_in.try_into().unwrap()
                     ),
             )
-            .execute(pool)
+            .fetch_one(pool)
             .await
             .into_diagnostic()
             .unwrap();
 
-            user
+            (user, link.github_link_id)
         }
     };
 
@@ -181,11 +187,11 @@ pub(crate) async fn github_oauth(
         uuid::Uuid::new_v4(),
         local_user.user_id
     )
-    .fetch_one(&state.db)
+    .fetch_one(&app_state.db)
     .await
     .unwrap();
 
-    let private = cookies.private(&state.cookie_key.0);
+    let private = cookies.private(&app_state.cookie_key.0);
 
     let session_cookie = tower_cookies::Cookie::build("session_id", session.session_id.to_string())
         .path("/")
@@ -195,6 +201,37 @@ pub(crate) async fn github_oauth(
         .finish();
     private.add(session_cookie);
 
+    if let Some(state) = query.state {
+        let state = sqlx::query!(
+            r#"
+        UPDATE GithubLoginStates
+        SET state = $1, github_link_id = $2
+        WHERE github_login_state_id = $3
+        RETURNING *
+        "#,
+            "github_completed",
+            github_link_id,
+            &state
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        let projects = app_state.projects.clone();
+        let project = projects
+            .projects
+            .iter()
+            .find(|p| p.slug().unwrap() == state.app);
+
+        if let Some(project) = project {
+            if let Some(login_callback) = &project.frontmatter.login_callback {
+                return Redirect::temporary(&format!(
+                    "{}?state={}",
+                    login_callback, state.github_login_state_id
+                ));
+            }
+        }
+    }
     Redirect::temporary("/")
 }
 
