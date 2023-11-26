@@ -250,10 +250,10 @@ impl GithubUser {
         }
     }
 
-    fn id(&self) -> i64 {
+    fn id(&self) -> &str {
         match &self {
-            GithubUser::PrivateUser { id, .. } => *id,
-            GithubUser::PublicUser { id, .. } => *id,
+            GithubUser::PrivateUser { node_id, .. } => node_id,
+            GithubUser::PublicUser { node_id, .. } => node_id,
         }
     }
 }
