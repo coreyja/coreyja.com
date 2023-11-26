@@ -45,6 +45,7 @@ pub struct FrontMatter {
     pub parent_project: Option<String>,
     pub status: ProjectStatus,
     pub login_callback: Option<String>,
+    pub fly_app_name: Option<String>,
 }
 
 pub type Project = Post<FrontMatter>;

@@ -71,7 +71,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                     let state = sqlx::query!(
                         r#"
                         INSERT INTO GithubLoginStates (github_login_state_id, app, state)
-                        VALUES ($1, $2, $3)
+                        VALUES ($1, $2, 'created')
                         RETURNING *
                         "#,
                         uuid::Uuid::new_v4(),

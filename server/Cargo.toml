@@ -12,6 +12,19 @@ default-run = "server"
 name = "server"
 path = "src/main.rs"
 
+[[bin]]
+name = "gen_app_keys"
+path = "src/generate_app_keys.rs"
+
+[[bin]]
+name = "local"
+path = "src/local.rs"
+required-features = ["local"]
+
+[[bin]]
+name = "local_template"
+path = "src/local_TEMPLATE.rs"
+
 [features]
 local = []
 
@@ -76,6 +89,8 @@ graphql_client = { version = "0.13.0", features = ["reqwest-rustls"] }
 google-youtube3 = "5.0.3"
 futures = "0.3.29"
 chrono-humanize = "0.2.3"
+rsa = "0.9.4"
+rand = "0.8.5"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }

@@ -120,9 +120,9 @@ pub(crate) async fn github_oauth(
         SELECT Users.*, GithubLinks.github_link_id
         FROM Users
         JOIN GithubLinks USING (user_id)
-        WHERE GithubLinks.external_github_login = $1
+        WHERE GithubLinks.external_github_id = $1
         "#,
-            github_user.login()
+            github_user.id()
         )
         .fetch_optional(pool)
         .await
@@ -250,7 +250,7 @@ pub(crate) async fn github_oauth(
         r#"
         UPDATE GithubLoginStates
         SET state = $1, github_link_id = $2
-        WHERE github_login_state_id = $3
+        WHERE github_login_state_id = $3 AND state = 'created'
         RETURNING *
         "#,
         "github_completed",
