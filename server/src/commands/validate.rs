@@ -33,7 +33,9 @@ pub(crate) async fn validate() -> Result<()> {
     streams.validate(&projects)?;
 
     println!("Validating Blog RSS feed...");
-    let config = AppConfig::from_env()?;
+    let config = AppConfig {
+        base_url: "http://localhost:3000".to_string(),
+    };
     let render_context = SyntaxHighlightingContext::default();
     // TODO: This is a bit of a hack, but it's fine for now.
     // I need a better way to either have default values for these
