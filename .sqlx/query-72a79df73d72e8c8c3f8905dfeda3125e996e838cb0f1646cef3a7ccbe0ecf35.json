@@ -1,34 +1,41 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT Users.*\n        FROM Users\n        JOIN GithubLinks USING (user_id)\n        WHERE GithubLinks.external_github_username = $1\n        ",
+  "query": "\n    INSERT INTO Sessions (session_id, user_id)\n    VALUES ($1, $2)\n    RETURNING *\n    ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "user_id",
+        "name": "session_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Uuid",
+        "Uuid"
       ]
     },
     "nullable": [
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "1a968401c46127e1e80dd08725fe7e08ac497d841d4a922d43c3f72f57de75d4"
+  "hash": "72a79df73d72e8c8c3f8905dfeda3125e996e838cb0f1646cef3a7ccbe0ecf35"
 }
