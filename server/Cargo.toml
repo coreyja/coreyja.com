@@ -77,7 +77,7 @@ typify = "0.0.14"
 tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
 debug-ignore = "1.0.5"
 base64 = "0.21.5"
-gql_client = "1.0.7"
+gql_client = { git = "https://github.com/coreyja/gql-client-rs", rev = "d3bcd33" }
 jsonwebtoken = "9.1.0"
 
 [build-dependencies]
