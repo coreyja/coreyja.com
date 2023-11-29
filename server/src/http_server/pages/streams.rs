@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Response},
+};
 use chrono::NaiveDate;
 use maud::{html, Markup, Render};
 use miette::Result;
@@ -63,12 +66,12 @@ pub(crate) async fn stream_get(
     State(projects): State<Arc<Projects>>,
     State(state): State<AppState>,
     Path(date): Path<NaiveDate>,
-) -> Result<Markup, MietteError> {
+) -> Result<Markup, Response> {
     let til = streams
         .streams
         .iter()
         .find(|p| p.frontmatter.date == date)
-        .ok_or_else(|| MietteError(miette::miette!("Stream not found"), StatusCode::NOT_FOUND))?;
+        .ok_or_else(|| StatusCode::NOT_FOUND.into_response())?;
 
     let project = til
         .frontmatter
@@ -87,7 +90,10 @@ pub(crate) async fn stream_get(
             Ok(format!("https://www.youtube.com/embed/{}", video_id))
         });
 
-    let youtube_embed_url = youtube_embed_url.transpose()?;
+    let youtube_embed_url = youtube_embed_url
+        .transpose()
+        .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(|e| e.into_response())?;
     Ok(base_constrained(
         html! {
           h1 class="text-2xl" { (markdown.title) }
@@ -96,7 +102,7 @@ pub(crate) async fn stream_get(
           @if let Some(project) = project {
             div class="mb-8" {
               "Project: "
-              a href=(project.relative_link()?) { (project.frontmatter.title) }
+              a href=(project.relative_link().map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR)).map_err(|e| e.into_response())?) { (project.frontmatter.title) }
             }
           }
 
@@ -112,7 +118,8 @@ pub(crate) async fn stream_get(
           }
 
           div {
-            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context)?)
+            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context).map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+            .map_err(|e| e.into_response())?)
           }
         },
         OpenGraph {

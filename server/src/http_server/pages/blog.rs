@@ -147,7 +147,7 @@ pub(crate) async fn post_get(
     State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
     Path(key): Path<String>,
-) -> ResponseResult {
+) -> Result<Response, StatusCode> {
     {
         let path = BlogPostPath::new(key.clone());
         if path.file_exists() && !path.file_is_markdown() {
@@ -159,7 +159,7 @@ pub(crate) async fn post_get(
         .posts()
         .iter()
         .find_map(|p| p.matches_path(&key).map(|m| (p, m)))
-        .ok_or_else(|| MietteError(miette::miette!("No Post found"), StatusCode::NOT_FOUND))?;
+        .ok_or(StatusCode::NOT_FOUND)?;
 
     if let MatchesPath::RedirectToCanonicalPath = m {
         return Ok(
@@ -168,13 +168,26 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
+    let html = match markdown
+        .ast
+        .into_html(&state.app, &state.markdown_to_html_context)
+    {
+        Ok(html) => html,
+        Err(e) => {
+            let miette_error = MietteError(e, StatusCode::INTERNAL_SERVER_ERROR);
+            sentry::capture_error(&miette_error);
+
+            return Err(miette_error.1);
+        }
+    };
+
     Ok(base_constrained(
         html! {
           h1 class="text-2xl" { (markdown.title) }
           subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context)?)
+            (html)
           }
         },
         OpenGraph {

@@ -1,4 +1,7 @@
-use axum::extract::{Path, State};
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Response},
+};
 use itertools::Itertools;
 use maud::{html, Markup, Render};
 use posts::projects::{Project, ProjectStatus, Projects};
@@ -94,12 +97,12 @@ pub(crate) async fn projects_get(
     State(streams): State<Arc<PastStreams>>,
     State(state): State<AppState>,
     Path(slug): Path<String>,
-) -> ResponseResult<Markup> {
+) -> Result<Markup, Response> {
     let project = projects
         .projects
         .iter()
         .find(|p| p.slug().unwrap() == slug)
-        .ok_or_else(|| MietteError(miette::miette!("Project not found"), StatusCode::NOT_FOUND))?;
+        .ok_or_else(|| StatusCode::NOT_FOUND.into_response())?;
 
     let streams: Vec<_> = streams
         .by_recency()
@@ -111,7 +114,9 @@ pub(crate) async fn projects_get(
         .ast
         .0
         .clone()
-        .into_html(&state.app, &state.markdown_to_html_context)?;
+        .into_html(&state.app, &state.markdown_to_html_context)
+        .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(|e| e.into_response())?;
 
     Ok(base_constrained(
         html! {
