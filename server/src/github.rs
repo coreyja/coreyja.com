@@ -67,20 +67,27 @@ pub async fn get_sponsorships(access_token: &str) -> Result<Vec<Sponsor>> {
         .await
         .map_err(|e| miette::miette!("Failed to query github : {:#?}", e))?;
 
-    let sponsors = data.unwrap();
+    let sponsors = data.ok_or_else(|| miette::miette!("There were no sponsors"))?;
+
     let edges = &sponsors["viewer"]["sponsorshipsAsMaintainer"]["edges"];
     dbg!(&edges);
     let sponsors = edges
         .as_array()
-        .unwrap()
+        .ok_or_else(|| miette::miette!("The edges wasn't an array"))?
         .iter()
         .map(|edge| {
             let node = edge["node"]["sponsorEntity"].clone();
-            let login = node["login"].as_str().unwrap().to_string();
-            let id = node["id"].as_str().unwrap().to_string();
-            Sponsor { login, id }
+            let login = node["login"]
+                .as_str()
+                .ok_or_else(|| miette::miette!("Login was not a string"))?
+                .to_string();
+            let id = node["id"]
+                .as_str()
+                .ok_or_else(|| miette::miette!("Id was not a string"))?
+                .to_string();
+            Ok(Sponsor { login, id })
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()?;
 
     Ok(sponsors)
 }
@@ -119,14 +126,22 @@ pub(crate) async fn generate_server_token(
     dbg!(&url);
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
-    headers.insert("Accept", "application/vnd.github+json".parse().unwrap());
-    headers.insert("Authorization", format!("Bearer {jwt}").parse().unwrap());
-    headers.insert("X-GitHub-Api-Version", "2022-11-28".parse().unwrap());
+    headers.insert(
+        "Accept",
+        "application/vnd.github+json".parse().into_diagnostic()?,
+    );
+    headers.insert(
+        "Authorization",
+        format!("Bearer {jwt}").parse().into_diagnostic()?,
+    );
+    headers.insert(
+        "X-GitHub-Api-Version",
+        "2022-11-28".parse().into_diagnostic()?,
+    );
     headers.insert(
         "User-Agent",
-        "github.com/coreyja/coreyja.com".parse().unwrap(),
+        "github.com/coreyja/coreyja.com".parse().into_diagnostic()?,
     );
-    dbg!(&headers);
 
     let token_response = client
         .post(&url)
@@ -143,7 +158,9 @@ pub(crate) async fn generate_server_token(
 
     dbg!(&token_response);
 
-    let token = token_response["token"].as_str().unwrap();
+    let token = token_response["token"]
+        .as_str()
+        .ok_or_else(|| miette::miette!("Token was not a string"))?;
 
     Ok(token.to_string())
 }

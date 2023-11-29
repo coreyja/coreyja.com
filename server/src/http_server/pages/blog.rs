@@ -18,9 +18,10 @@ use tracing::instrument;
 
 use crate::{
     http_server::{
+        errors::MietteError,
         pages::blog::md::IntoHtml,
         templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
-        ToRssItem,
+        ResponseResult, ToRssItem,
     },
     AppConfig, AppState,
 };
@@ -37,16 +38,16 @@ impl MyChannel {
         config: &AppConfig,
         context: &SyntaxHighlightingContext,
         posts: &[&Post<T>],
-    ) -> Self
+    ) -> miette::Result<Self>
     where
         Post<T>: ToRssItem,
     {
-        let items: Vec<_> = posts
+        let items: miette::Result<Vec<rss::Item>> = posts
             .iter()
             .map(|p| p.to_rss_item(config, context))
             .collect();
 
-        Self::from_items(config, context, &items)
+        Ok(Self::from_items(config, context, &items?))
     }
 
     pub fn from_items(
@@ -76,12 +77,12 @@ impl MyChannel {
 pub(crate) async fn rss_feed(
     State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, MietteError> {
     let channel = MyChannel::from_posts(
         &state.app,
         &state.markdown_to_html_context,
         &posts.by_recency(),
-    );
+    )?;
 
     Ok(channel.into_response())
 }
@@ -91,20 +92,21 @@ pub(crate) async fn full_rss_feed(
     State(state): State<AppState>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(til_posts): State<Arc<TilPosts>>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, MietteError> {
     let mut items_with_date: Vec<(chrono::NaiveDate, rss::Item)> = vec![];
-    items_with_date.extend(blog_posts.by_recency().into_iter().map(|p| {
-        (
+    for p in blog_posts.by_recency() {
+        items_with_date.push((
             p.posted_on(),
-            p.to_rss_item(&state.app, &state.markdown_to_html_context),
-        )
-    }));
-    items_with_date.extend(til_posts.by_recency().into_iter().map(|p| {
-        (
+            p.to_rss_item(&state.app, &state.markdown_to_html_context)?,
+        ));
+    }
+    for p in til_posts.by_recency() {
+        items_with_date.push((
             p.posted_on(),
-            p.to_rss_item(&state.app, &state.markdown_to_html_context),
-        )
-    }));
+            p.to_rss_item(&state.app, &state.markdown_to_html_context)?,
+        ));
+    }
+
     items_with_date.sort_by_key(|&(date, _)| std::cmp::Reverse(date));
 
     let items: Vec<rss::Item> = items_with_date.into_iter().map(|(_, i)| i).collect();
@@ -116,11 +118,16 @@ pub(crate) async fn full_rss_feed(
 
 impl IntoResponse for MyChannel {
     fn into_response(self) -> Response {
-        Response::builder()
+        let r = Response::builder()
             .header("Content-Type", "application/rss+xml")
-            .body(self.0.to_string())
-            .unwrap()
-            .into_response()
+            .body(self.0.to_string());
+
+        if let Ok(r) = r {
+            r.into_response()
+        } else {
+            let e: MietteError = miette::miette!("Failed to build RSS Feed response").into();
+            e.into_response()
+        }
     }
 }
 
@@ -140,7 +147,7 @@ pub(crate) async fn post_get(
     State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
     Path(key): Path<String>,
-) -> Result<Response, StatusCode> {
+) -> ResponseResult {
     {
         let path = BlogPostPath::new(key.clone());
         if path.file_exists() && !path.file_is_markdown() {
@@ -152,7 +159,7 @@ pub(crate) async fn post_get(
         .posts()
         .iter()
         .find_map(|p| p.matches_path(&key).map(|m| (p, m)))
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .ok_or_else(|| MietteError(miette::miette!("No Post found"), StatusCode::NOT_FOUND))?;
 
     if let MatchesPath::RedirectToCanonicalPath = m {
         return Ok(
@@ -167,7 +174,7 @@ pub(crate) async fn post_get(
           subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context))
+            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context)?)
           }
         },
         OpenGraph {

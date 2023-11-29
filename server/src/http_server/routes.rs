@@ -60,14 +60,14 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                         uuid::Uuid::new_v4(),
                         from_app,
                         "created"
-                    ).fetch_one(&app_state.db).await.unwrap();
+                    ).fetch_one(&app_state.db).await.into_diagnostic()?;
 
-                    Redirect::temporary(&format!(
+                    ResponseResult::Ok(Redirect::temporary(&format!(
                         "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
                         app_state.github.client_id,
                         app_state.app.app_url("/auth/github_oauth"),
                         state.github_login_state_id
-                    ))
+                    )))
                 },
             ),
         )
@@ -75,7 +75,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             "/login/claim/:github_login_state_id",
             post(
                 |State(app_state): State<AppState>, Path(github_login_state_id): Path<String>| async move {
-                    let github_login_state_id = github_login_state_id.parse::<uuid::Uuid>().unwrap();
+                    let github_login_state_id = github_login_state_id.parse::<uuid::Uuid>().into_diagnostic()?;
                     let state = sqlx::query!(
                         r#"
                         SELECT state, Users.user_id
@@ -85,7 +85,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                         WHERE github_login_state_id = $1 and state = 'github_completed'
                         "#,
                         github_login_state_id
-                    ).fetch_one(&app_state.db).await.unwrap();
+                    ).fetch_one(&app_state.db).await.into_diagnostic()?;
 
                     assert_eq!(state.state, "github_completed");
 
@@ -98,11 +98,11 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                         "#,
                         "claimed",
                         github_login_state_id
-                    ).fetch_one(&app_state.db).await.unwrap();
+                    ).fetch_one(&app_state.db).await.into_diagnostic()?;
 
-                    Json(json!({
+                    ResponseResult::Ok(Json(json!({
                         "user_id": state.user_id,
-                    }))
+                    })))
                 },
             ),
         )
@@ -113,21 +113,23 @@ async fn redirect_to_posts_index() -> impl IntoResponse {
     Redirect::permanent("/posts")
 }
 
-async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Response {
+async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Result<Response, MietteError> {
     let path = uri.path();
-    let decoded = urlencoding::decode(path).unwrap();
+    let decoded = urlencoding::decode(path).into_diagnostic()?;
     let key = decoded.as_ref();
     let key = key.strip_prefix('/').unwrap_or(key);
     let key = key.strip_suffix('/').unwrap_or(key);
 
     let post = posts.posts().iter().find(|p| p.matches_path(key).is_some());
 
-    match post {
+    let resp = match post {
         Some(post) => {
             Redirect::permanent(&format!("/posts/{}", post.path.canonical_path())).into_response()
         }
         None => axum::http::StatusCode::NOT_FOUND.into_response(),
-    }
+    };
+
+    Ok(resp)
 }
 
 async fn static_assets(Path(p): Path<String>) -> ResponseResult {
@@ -149,7 +151,7 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(
         axum::http::header::CONTENT_TYPE,
-        mime.to_string().parse().unwrap(),
+        mime.to_string().parse().into_diagnostic()?,
     );
 
     Ok((headers, entry.contents()).into_response())

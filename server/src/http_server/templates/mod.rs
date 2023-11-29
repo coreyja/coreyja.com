@@ -61,7 +61,11 @@ pub(crate) mod post_templates;
 pub(crate) mod newsletter;
 
 impl IntoHtml for MarkdownAst {
-    fn into_html(self, config: &AppConfig, context: &SyntaxHighlightingContext) -> maud::Markup {
+    fn into_html(
+        self,
+        config: &AppConfig,
+        context: &SyntaxHighlightingContext,
+    ) -> miette::Result<maud::Markup> {
         self.0.into_html(config, context)
     }
 }

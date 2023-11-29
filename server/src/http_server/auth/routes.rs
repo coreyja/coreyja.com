@@ -12,7 +12,7 @@ use tower_cookies::Cookies;
 use typify::import_types;
 use uuid::Uuid;
 
-use crate::AppState;
+use crate::{http_server::ResponseResult, AppState};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GitHubOAuthCode {
@@ -48,12 +48,13 @@ pub(crate) async fn github_oauth(
         .header("Accept", "application/json")
         .send()
         .await
-        .unwrap()
+        .into_diagnostic()?
         .json()
         .await
-        .unwrap();
+        .into_diagnostic()?;
 
-    let oauth_response: GitHubOAuthResponse = serde_json::from_value(oauth_response).unwrap();
+    let oauth_response: GitHubOAuthResponse =
+        serde_json::from_value(oauth_response).into_diagnostic()?;
 
     let user_info = client
         .get("https://api.github.com/user")
@@ -66,12 +67,12 @@ pub(crate) async fn github_oauth(
         )
         .send()
         .await
-        .unwrap()
+        .into_diagnostic()?
         .json::<Value>()
         .await
-        .unwrap();
+        .into_diagnostic()?;
 
-    let user_info: GithubUser = serde_json::from_value(user_info).unwrap();
+    let user_info: GithubUser = serde_json::from_value(user_info).into_diagnostic()?;
     let pool = &app_state.db;
 
     let (local_user, github_link_id): (UserFromDB, Uuid) = {
@@ -87,8 +88,7 @@ pub(crate) async fn github_oauth(
         )
         .fetch_optional(pool)
         .await
-        .into_diagnostic()
-        .unwrap();
+        .into_diagnostic()?;
 
         if let Some(user) = user {
             sqlx::query!(
@@ -105,18 +105,22 @@ pub(crate) async fn github_oauth(
                 oauth_response.access_token,
                 oauth_response.refresh_token,
                 chrono::Utc::now()
-                    + chrono::Duration::seconds(oauth_response.expires_in.try_into().unwrap()),
+                    + chrono::Duration::seconds(
+                        oauth_response.expires_in.try_into().into_diagnostic()?
+                    ),
                 chrono::Utc::now()
                     + chrono::Duration::seconds(
-                        oauth_response.refresh_token_expires_in.try_into().unwrap()
+                        oauth_response
+                            .refresh_token_expires_in
+                            .try_into()
+                            .into_diagnostic()?
                     ),
                 github_user.login(),
                 user.github_link_id
             )
             .execute(pool)
             .await
-            .into_diagnostic()
-            .unwrap();
+            .into_diagnostic()?;
 
             (
                 db::users::UserFromDB {
@@ -138,8 +142,7 @@ pub(crate) async fn github_oauth(
             )
             .fetch_one(pool)
             .await
-            .into_diagnostic()
-            .unwrap();
+            .into_diagnostic()?;
 
             let link = db::sqlx::query!(
                 r#"
@@ -163,16 +166,20 @@ pub(crate) async fn github_oauth(
                 oauth_response.access_token,
                 oauth_response.refresh_token,
                 chrono::Utc::now()
-                    + chrono::Duration::seconds(oauth_response.expires_in.try_into().unwrap()),
+                    + chrono::Duration::seconds(
+                        oauth_response.expires_in.try_into().into_diagnostic()?
+                    ),
                 chrono::Utc::now()
                     + chrono::Duration::seconds(
-                        oauth_response.refresh_token_expires_in.try_into().unwrap()
+                        oauth_response
+                            .refresh_token_expires_in
+                            .try_into()
+                            .into_diagnostic()?
                     ),
             )
             .fetch_one(pool)
             .await
-            .into_diagnostic()
-            .unwrap();
+            .into_diagnostic()?;
 
             (user, link.github_link_id)
         }
@@ -189,7 +196,7 @@ pub(crate) async fn github_oauth(
     )
     .fetch_one(&app_state.db)
     .await
-    .unwrap();
+    .into_diagnostic()?;
 
     let private = cookies.private(&app_state.cookie_key.0);
 
@@ -215,7 +222,7 @@ pub(crate) async fn github_oauth(
         )
         .fetch_one(pool)
         .await
-        .unwrap();
+        .into_diagnostic()?;
 
         let projects = app_state.projects.clone();
         let project = projects
@@ -225,14 +232,15 @@ pub(crate) async fn github_oauth(
 
         if let Some(project) = project {
             if let Some(login_callback) = &project.frontmatter.login_callback {
-                return Redirect::temporary(&format!(
+                return ResponseResult::Ok(Redirect::temporary(&format!(
                     "{}?state={}",
                     login_callback, state.github_login_state_id
-                ));
+                )));
             }
         }
     }
-    Redirect::temporary("/")
+
+    ResponseResult::Ok(Redirect::temporary("/"))
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -251,7 +259,16 @@ impl FromRequestParts<AppState> for DBSession {
         parts: &mut http::request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let cookies = Cookies::from_request_parts(parts, state).await.unwrap();
+        let cookies = Cookies::from_request_parts(parts, state)
+            .await
+            .map_err(|(_, msg)| {
+                sentry::capture_message(
+                    &format!("Failed to get cookies: {msg}"),
+                    sentry::Level::Error,
+                );
+
+                Redirect::temporary("/login")
+            })?;
 
         let private = cookies.private(&state.cookie_key.0);
 
@@ -261,6 +278,13 @@ impl FromRequestParts<AppState> for DBSession {
             Err(Redirect::temporary("/login"))?
         };
         let session_id = session_cookie.value().to_string();
+        let Ok(session_id) = uuid::Uuid::parse_str(&session_id) else {
+            sentry::capture_message(
+                &format!("Failed to parse session id: {session_id}"),
+                sentry::Level::Error,
+            );
+            Err(Redirect::temporary("/login"))?
+        };
 
         let session = sqlx::query_as!(
             DBSession,
@@ -269,11 +293,15 @@ impl FromRequestParts<AppState> for DBSession {
         FROM Sessions
         WHERE session_id = $1
         "#,
-            uuid::Uuid::parse_str(&session_id).unwrap()
+            &session_id
         )
         .fetch_one(&state.db)
         .await
-        .unwrap();
+        .map_err(|e| {
+            sentry::capture_error(&e);
+
+            Redirect::temporary("/login")
+        })?;
 
         Ok(session)
     }

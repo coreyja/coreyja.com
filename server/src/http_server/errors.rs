@@ -4,19 +4,19 @@ use reqwest::StatusCode;
 use thiserror::Error;
 
 #[derive(Debug, Diagnostic, Error)]
-#[error("MietteError")]
-pub struct MietteError(pub(crate) miette::Report);
+#[error("MietteError: ${0}")]
+pub struct MietteError(pub(crate) miette::Report, pub(crate) StatusCode);
 
 impl IntoResponse for MietteError {
     fn into_response(self) -> axum::response::Response {
         sentry::capture_error(&self);
 
-        (StatusCode::INTERNAL_SERVER_ERROR, self.0.to_string()).into_response()
+        (self.1, self.0.to_string()).into_response()
     }
 }
 
 impl From<miette::Report> for MietteError {
     fn from(err: miette::Report) -> Self {
-        MietteError(err)
+        MietteError(err, StatusCode::INTERNAL_SERVER_ERROR)
     }
 }

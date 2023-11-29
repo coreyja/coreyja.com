@@ -5,7 +5,11 @@ use posts::projects::{Project, ProjectStatus, Projects};
 use reqwest::StatusCode;
 
 use crate::{
-    http_server::templates::{base_constrained, header::OpenGraph},
+    http_server::{
+        errors::MietteError,
+        templates::{base_constrained, header::OpenGraph},
+        ResponseResult,
+    },
     *,
 };
 
@@ -15,7 +19,7 @@ use super::blog::md::IntoHtml;
 pub(crate) async fn projects_index(
     State(projects): State<Arc<Projects>>,
     State(streams): State<Arc<PastStreams>>,
-) -> Result<Markup, StatusCode> {
+) -> ResponseResult<Markup> {
     let projects = projects.by_title();
     let streams = streams.by_recency();
 
@@ -37,7 +41,7 @@ pub(crate) async fn projects_index(
             ul class="mb-8" {
               @for project in &projects {
                 li class="my-4" {
-                  a href=(project.relative_link().unwrap()) {
+                  a href=(project.relative_link()?) {
                     (project.frontmatter.title)
 
                     @let most_recent_stream = streams.iter().find(|s| s.frontmatter.project.as_deref() == Some(project.slug().unwrap()));
@@ -90,12 +94,12 @@ pub(crate) async fn projects_get(
     State(streams): State<Arc<PastStreams>>,
     State(state): State<AppState>,
     Path(slug): Path<String>,
-) -> Result<Markup, StatusCode> {
+) -> ResponseResult<Markup> {
     let project = projects
         .projects
         .iter()
         .find(|p| p.slug().unwrap() == slug)
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .ok_or_else(|| MietteError(miette::miette!("Project not found"), StatusCode::NOT_FOUND))?;
 
     let streams: Vec<_> = streams
         .by_recency()
@@ -107,7 +111,7 @@ pub(crate) async fn projects_get(
         .ast
         .0
         .clone()
-        .into_html(&state.app, &state.markdown_to_html_context);
+        .into_html(&state.app, &state.markdown_to_html_context)?;
 
     Ok(base_constrained(
         html! {

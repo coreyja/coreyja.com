@@ -13,8 +13,10 @@ use tracing::instrument;
 
 use crate::{
     http_server::{
+        errors::MietteError,
         pages::blog::md::IntoHtml,
         templates::{base_constrained, header::OpenGraph, post_templates::TilPostList},
+        ResponseResult,
     },
     AppState,
 };
@@ -40,12 +42,12 @@ pub(crate) async fn til_index(
 pub(crate) async fn rss_feed(
     State(state): State<AppState>,
     State(posts): State<Arc<TilPosts>>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> ResponseResult {
     let channel = MyChannel::from_posts(
         &state.app,
         &state.markdown_to_html_context,
         &posts.by_recency(),
-    );
+    )?;
 
     Ok(channel.into_response())
 }
@@ -55,13 +57,18 @@ pub(crate) async fn til_get(
     State(til_posts): State<Arc<TilPosts>>,
     State(state): State<AppState>,
     Path(slug): Path<String>,
-) -> Result<Markup, StatusCode> {
+) -> ResponseResult<Markup> {
     let tils = &til_posts.posts;
 
     let til = tils
         .iter()
         .find(|p| p.frontmatter.slug == slug)
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .ok_or_else(|| {
+            MietteError(
+                miette::miette!("No such post found"),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+        })?;
 
     let markdown = til.markdown();
     Ok(base_constrained(
@@ -70,7 +77,7 @@ pub(crate) async fn til_get(
           subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context))
+            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context)?)
           }
         },
         OpenGraph {
