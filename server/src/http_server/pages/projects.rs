@@ -103,7 +103,11 @@ pub(crate) async fn projects_get(
         .filter(|s| s.frontmatter.project.as_ref() == Some(&slug))
         .collect();
 
-    let markdown = project.ast.0.clone().into_html(&state);
+    let markdown = project
+        .ast
+        .0
+        .clone()
+        .into_html(&state.app, &state.markdown_to_html_context);
 
     Ok(base_constrained(
         html! {

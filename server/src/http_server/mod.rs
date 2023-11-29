@@ -24,7 +24,10 @@ use crate::{AppConfig, AppState};
 pub use config::*;
 use errors::*;
 
-use self::{pages::blog::md::IntoHtml, templates::ShortDesc};
+use self::{
+    pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
+    templates::ShortDesc,
+};
 
 pub(crate) mod cmd;
 
@@ -108,7 +111,7 @@ impl LinkTo for PastStream {
 }
 
 pub(crate) trait ToRssItem {
-    fn to_rss_item(&self, state: &AppState) -> rss::Item;
+    fn to_rss_item(&self, config: &AppConfig, context: &SyntaxHighlightingContext) -> rss::Item;
 }
 
 impl<FrontMatter> ToRssItem for Post<FrontMatter>
@@ -116,8 +119,8 @@ where
     FrontMatter: PostedOn + Title,
     Post<FrontMatter>: LinkTo,
 {
-    fn to_rss_item(&self, state: &AppState) -> rss::Item {
-        let link = self.absolute_link(&state.app);
+    fn to_rss_item(&self, config: &AppConfig, context: &SyntaxHighlightingContext) -> rss::Item {
+        let link = self.absolute_link(config);
 
         let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
         let formatted_date = posted_on.to_rfc2822();
@@ -127,7 +130,13 @@ where
             .link(Some(link))
             .description(self.short_description())
             .pub_date(Some(formatted_date))
-            .content(Some(self.markdown().ast.0.into_html(state).into_string()))
+            .content(Some(
+                self.markdown()
+                    .ast
+                    .0
+                    .into_html(config, context)
+                    .into_string(),
+            ))
             .build()
     }
 }

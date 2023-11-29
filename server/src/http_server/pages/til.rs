@@ -41,7 +41,11 @@ pub(crate) async fn rss_feed(
     State(state): State<AppState>,
     State(posts): State<Arc<TilPosts>>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let channel = MyChannel::from_posts(state, &posts.by_recency());
+    let channel = MyChannel::from_posts(
+        &state.app,
+        &state.markdown_to_html_context,
+        &posts.by_recency(),
+    );
 
     Ok(channel.into_response())
 }
@@ -66,7 +70,7 @@ pub(crate) async fn til_get(
           subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state))
+            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context))
           }
         },
         OpenGraph {

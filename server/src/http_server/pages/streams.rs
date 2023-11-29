@@ -105,7 +105,7 @@ pub(crate) async fn stream_get(
           }
 
           div {
-            (markdown.ast.into_html(&state))
+            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context))
           }
         },
         OpenGraph {
