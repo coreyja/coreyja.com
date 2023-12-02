@@ -44,6 +44,7 @@ pub(crate) async fn serve() -> Result<()> {
         cookie_key,
     };
 
+
     info!("Spawning Tasks");
     let axum_future = tokio::spawn(run_axum(app_state.clone()));
     info!("Tasks Spawned");

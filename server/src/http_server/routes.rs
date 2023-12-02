@@ -36,7 +36,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .route("/newsletter", get(newsletter_get))
-        .route("/auth/github_oauth", get(auth::routes::github_oauth))
+        .route("/auth/github_oauth", get(auth::github_oauth::github_oauth))
         .route(
             "/login",
             get(|State(app_state): State<AppState>| async move {

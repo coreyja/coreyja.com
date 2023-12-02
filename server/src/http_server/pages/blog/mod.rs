@@ -21,7 +21,7 @@ use crate::{
         errors::MietteError,
         pages::blog::md::IntoHtml,
         templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
-        ResponseResult, ToRssItem,
+        ToRssItem,
     },
     AppConfig, AppState,
 };

@@ -31,14 +31,7 @@ use self::{
 
 pub(crate) mod cmd;
 
-pub(crate) mod pages {
-    pub mod admin;
-    pub mod blog;
-    pub mod home;
-    pub mod projects;
-    pub mod streams;
-    pub mod til;
-}
+pub(crate) mod pages;
 
 mod config;
 pub mod errors;
@@ -46,9 +39,7 @@ mod routes;
 mod server_tracing;
 mod templates;
 
-pub(crate) mod auth {
-    pub(crate) mod routes;
-}
+pub(crate) mod auth;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");
