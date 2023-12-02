@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::IntoResponse,
 };
 
 use maud::{html, Markup};
 use miette::Result;
 use posts::til::TilPosts;
-use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{

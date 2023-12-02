@@ -1,6 +1,6 @@
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use miette::Diagnostic;
-use reqwest::StatusCode;
 use thiserror::Error;
 
 #[derive(Debug, Diagnostic, Error)]

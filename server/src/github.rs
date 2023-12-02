@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::*;
 
-use axum::http::HeaderMap;
 use miette::{IntoDiagnostic, Result};
 use tracing::instrument;
 
@@ -125,7 +124,7 @@ pub(crate) async fn generate_server_token(
     let url = format!("https://api.github.com/app/installations/{installation_id}/access_tokens");
     dbg!(&url);
     let client = reqwest::Client::new();
-    let mut headers = HeaderMap::new();
+    let mut headers = reqwest::header::HeaderMap::new();
     headers.insert(
         "Accept",
         "application/vnd.github+json".parse().into_diagnostic()?,

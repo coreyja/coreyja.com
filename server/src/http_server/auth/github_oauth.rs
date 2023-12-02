@@ -215,13 +215,13 @@ pub(crate) async fn github_oauth(
 
     let private = cookies.private(&app_state.cookie_key.0);
 
-    let session_cookie = tower_cookies::Cookie::build("session_id", session.session_id.to_string())
-        .path("/")
-        .http_only(true)
-        .secure(true)
-        .expires(None)
-        .finish();
-    private.add(session_cookie);
+    let session_cookie =
+        tower_cookies::Cookie::build(("session_id", session.session_id.to_string()))
+            .path("/")
+            .http_only(true)
+            .secure(true)
+            .expires(None);
+    private.add(session_cookie.into());
 
     if let Some(state) = query.state {
         let state = sqlx::query!(

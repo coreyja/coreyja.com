@@ -1,11 +1,11 @@
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 use itertools::Itertools;
 use maud::{html, Markup, Render};
 use posts::projects::{Project, ProjectStatus, Projects};
-use reqwest::StatusCode;
 
 use crate::{
     http_server::{

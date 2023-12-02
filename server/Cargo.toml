@@ -26,14 +26,16 @@ local = []
 
 [dependencies]
 async-trait = "0.1.60"
-axum = "0.6.2"
-axum-macros = "0.3.1"
+axum = "0.7.1"
+axum-macros = "0.4.0"
 chrono = { workspace = true }
 clap = { workspace = true }
 include_dir = { workspace = true }
 indoc = "2.0"
 markdown = { workspace = true }
-maud = { version = "0.25.0", features = ["axum"] }
+maud = { version = "0.25.0", features = [
+  "axum",
+], git = "https://github.com/vidhanio/maud", rev = "fb77d399d001a345f3a369eb2c7a12da243376a6" }
 miette = { workspace = true }
 mime_guess = "2.0"
 opentelemetry = { workspace = true }
@@ -57,7 +59,7 @@ syntect = "5.0"
 thiserror = "1.0"
 tokio = { workspace = true }
 tower = "0.4.13"
-tower-http = { version = "0.4.0", features = ["trace"] }
+tower-http = { version = "0.5.0", features = ["trace"] }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -73,7 +75,7 @@ sqlx = { workspace = true }
 itertools = "0.12.0"
 sentry-tracing = "0.31.8"
 typify = "0.0.14"
-tower-cookies = { version = "0.9.0", features = ["private", "signed"] }
+tower-cookies = { version = "0.10.0", features = ["private", "signed"] }
 debug-ignore = "1.0.5"
 base64 = "0.21.5"
 gql_client = { git = "https://github.com/coreyja/gql-client-rs", rev = "d3bcd33" }

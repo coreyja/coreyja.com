@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 use chrono::NaiveDate;
@@ -11,7 +12,6 @@ use posts::{
     past_streams::{PastStream, PastStreams},
     projects::Projects,
 };
-use reqwest::StatusCode;
 use tracing::instrument;
 
 use crate::{

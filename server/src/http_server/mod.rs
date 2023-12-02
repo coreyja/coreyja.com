@@ -3,7 +3,7 @@ use axum::{
     http::Uri,
     response::{IntoResponse, Redirect, Response},
     routing::*,
-    Router, Server,
+    Router,
 };
 use chrono::{DateTime, NaiveTime, Utc};
 use include_dir::*;
@@ -17,6 +17,7 @@ use posts::{
     Post,
 };
 use std::{net::SocketAddr, sync::Arc};
+use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
 use tower_http::trace::TraceLayer;
 
@@ -66,10 +67,10 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         .layer(CookieManagerLayer::new());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::debug!("listening on {}", addr);
 
-    Server::bind(&addr)
-        .serve(app.into_make_service())
+    axum::serve(listener, app)
         .await
         .into_diagnostic()
         .wrap_err("Failed to run server")
