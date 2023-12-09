@@ -42,8 +42,8 @@ pub(crate) async fn serve() -> Result<()> {
         projects,
         db: setup_db_pool().await?,
         cookie_key,
+        encrypt_config: encrypt::Config::from_env()?,
     };
-
 
     info!("Spawning Tasks");
     let axum_future = tokio::spawn(run_axum(app_state.clone()));

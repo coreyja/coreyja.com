@@ -80,6 +80,7 @@ debug-ignore = "1.0.5"
 base64 = "0.21.5"
 gql_client = { git = "https://github.com/coreyja/gql-client-rs", rev = "d3bcd33" }
 jsonwebtoken = "9.1.0"
+age = { version = "0.9.2", features = ["async"] }
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }

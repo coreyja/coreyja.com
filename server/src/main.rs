@@ -34,6 +34,8 @@ use openai::*;
 
 mod commands;
 
+mod encrypt;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
     base_url: String,
@@ -91,6 +93,7 @@ struct AppState {
     versions: VersionInfo,
     db: PgPool,
     cookie_key: DebugIgnore<Key>,
+    encrypt_config: encrypt::Config,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {

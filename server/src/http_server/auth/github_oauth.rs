@@ -9,7 +9,7 @@ use serde_json::Value;
 use tower_cookies::Cookies;
 use uuid::Uuid;
 
-use crate::{http_server::ResponseResult, AppState};
+use crate::{encrypt::encrypt, http_server::ResponseResult, AppState};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GitHubOAuthCode {
@@ -110,15 +110,15 @@ pub(crate) async fn github_oauth(
                 r#"
             UPDATE GithubLinks
             SET
-                access_token = $1,
-                refresh_token = $2,
+                encrypted_access_token = $1,
+                encrypted_refresh_token = $2,
                 access_token_expires_at = $3,
                 refresh_token_expires_at = $4,
                 external_github_login = $5
             WHERE github_link_id = $6
             "#,
-                oauth_response.access_token,
-                oauth_response.refresh_token,
+                encrypt(&oauth_response.access_token, &app_state.encrypt_config)?,
+                encrypt(&oauth_response.refresh_token, &app_state.encrypt_config)?,
                 chrono::Utc::now()
                     + chrono::Duration::seconds(
                         oauth_response.expires_in.try_into().into_diagnostic()?
@@ -166,8 +166,8 @@ pub(crate) async fn github_oauth(
                 user_id,
                 external_github_id,
                 external_github_login,
-                access_token,
-                refresh_token,
+                encrypted_access_token,
+                encrypted_refresh_token,
                 access_token_expires_at,
                 refresh_token_expires_at
             )
@@ -178,8 +178,8 @@ pub(crate) async fn github_oauth(
                 user.user_id,
                 github_user.id().to_string(),
                 github_user.login(),
-                oauth_response.access_token,
-                oauth_response.refresh_token,
+                encrypt(&oauth_response.access_token, &app_state.encrypt_config)?,
+                encrypt(&oauth_response.refresh_token, &app_state.encrypt_config)?,
                 chrono::Utc::now()
                     + chrono::Duration::seconds(
                         oauth_response.expires_in.try_into().into_diagnostic()?
