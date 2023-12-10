@@ -2,6 +2,8 @@ use chrono::DateTime as ChronoDateTime;
 use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 use miette::{IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
+use sqlx::{Pool, Postgres, QueryBuilder};
+use uuid::Uuid;
 
 use self::get_sponsors::Variables;
 
@@ -106,4 +108,56 @@ pub struct Tier {
 pub enum SponsorType {
     User,
     Organization,
+}
+
+impl SponsorType {
+    fn as_db(&self) -> &'static str {
+        match &self {
+            SponsorType::User => "user",
+            SponsorType::Organization => "organization",
+        }
+    }
+}
+
+async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<()> {
+    let mut query_builder = QueryBuilder::new("INSERT INTO GithubSponsors
+  (github_sponsor_id, sponsor_type, github_id, github_login, sponsored_at, is_active, is_one_time_payment, tier_name, amount_cents, privacy_level)");
+
+    query_builder.push_values(sponsors, |mut b, sponsor| {
+        b.push_bind(Uuid::new_v4())
+            .push_bind(sponsor.sponsor_type.as_db())
+            .push_bind(sponsor.id.clone())
+            .push_bind(sponsor.login.clone())
+            .push_bind(sponsor.created_at)
+            .push_bind(sponsor.is_active)
+            .push_bind(sponsor.is_one_time_payment)
+            .push_bind(sponsor.tier.as_ref().map(|t| t.name.to_owned()))
+            .push_bind(sponsor.tier.as_ref().map(|t| t.monthly_price_in_cents))
+            .push_bind(sponsor.privacy_level.to_owned());
+    });
+
+    let query = query_builder.build();
+
+    query.execute(pool).await.into_diagnostic()?;
+
+    Ok(())
+}
+
+pub async fn refresh_db(app_state: &AppState) -> Result<()> {
+    let sponsors = get_sponsors(&app_state.github.pat).await?;
+
+    insert_sponsors(&sponsors, &app_state.db).await?;
+
+    // sqlx::query!(
+    //     r#"
+    //     DELETE FROM GithubSponsors
+    //     WHERE github_id != ANY($1)
+    //     "#,
+    //     &sponsors.iter().map(|s| s.id.clone()).collect::<Vec<_>>()
+    // )
+    // .execute(&app_state.db)
+    // .await
+    // .into_diagnostic()?;
+
+    Ok(())
 }
