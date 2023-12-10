@@ -148,6 +148,7 @@ pub async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
 
     insert_sponsors(&sponsors, &app_state.db).await?;
 
+    // TODO: Delete orphaned sponsors
     // sqlx::query!(
     //     r#"
     //     DELETE FROM GithubSponsors

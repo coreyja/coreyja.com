@@ -5,7 +5,7 @@ use crate::github::sponsors::refresh_db;
 use super::Job;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct RefreshSponsors;
+pub struct RefreshSponsors;
 
 #[async_trait::async_trait]
 impl Job for RefreshSponsors {

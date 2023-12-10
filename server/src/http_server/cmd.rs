@@ -1,7 +1,7 @@
 use base64::Engine;
 use db::setup_db_pool;
 
-use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, *};
+use crate::{http_server::pages::blog::md::SyntaxHighlightingContext, jobs::meta::job_worker, *};
 
 pub(crate) async fn serve() -> Result<()> {
     let blog_posts = BlogPosts::from_static_dir()?;
@@ -47,9 +47,11 @@ pub(crate) async fn serve() -> Result<()> {
 
     info!("Spawning Tasks");
     let axum_future = tokio::spawn(run_axum(app_state.clone()));
+    let worker_future = tokio::spawn(job_worker(app_state.clone()));
     info!("Tasks Spawned");
 
     axum_future.await.into_diagnostic()??;
+    worker_future.await.into_diagnostic()??;
 
     info!("Main Returning");
 

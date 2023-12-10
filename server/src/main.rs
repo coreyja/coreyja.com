@@ -35,8 +35,8 @@ use openai::*;
 mod commands;
 
 mod encrypt;
- 
-mod jobs;
+
+pub mod jobs;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
@@ -82,7 +82,7 @@ impl VersionInfo {
 }
 
 #[derive(Debug, Clone)]
-struct AppState {
+pub struct AppState {
     twitch: TwitchConfig,
     github: GithubConfig,
     open_ai: OpenAiConfig,
