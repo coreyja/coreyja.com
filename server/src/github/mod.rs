@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-
-use crate::*;
-
 use miette::{IntoDiagnostic, Result};
 use tracing::instrument;
 
+pub mod sponsors;
+
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(crate) struct GithubConfig {
     pub(crate) app_id: u64,
     pub(crate) client_id: String,
@@ -29,82 +26,6 @@ impl GithubConfig {
             app_private_key: std::env::var("GITHUB_APP_PRIVATE_KEY").into_diagnostic()?,
         })
     }
-}
-
-pub async fn get_sponsorships(access_token: &str) -> Result<Vec<Sponsor>> {
-    let endpoint = "https://api.github.com/graphql";
-    let query = r#"
-    {
-        viewer {
-          sponsorshipsAsMaintainer(first: 100) {
-            edges {
-              node {
-                sponsorEntity {
-                  ... on User {
-                    login
-                    name
-                    id
-                  }
-                  ... on Organization {
-                    login
-                    name
-                    id
-                  }
-                }
-                createdAt
-                isActive
-                isOneTimePayment
-                tier {
-                  name
-                  monthlyPriceInCents
-                }
-                privacyLevel
-              }
-            }
-          }
-        }
-      }
-   "#;
-    let mut headers = HashMap::new();
-    headers.insert("Authorization", format!("Bearer {}", access_token));
-    headers.insert("User-Agent", "github.com/coreyja/coreyja.com".to_string());
-    headers.insert("Accept", "application/vnd.github.v3+json".to_string());
-
-    let client = gql_client::Client::new_with_headers(endpoint, headers);
-    let data = client
-        .query::<serde_json::Value>(query)
-        .await
-        .map_err(|e| miette::miette!("Failed to query github : {:#?}", e))?;
-
-    let sponsors = data.ok_or_else(|| miette::miette!("There were no sponsors"))?;
-
-    let edges = &sponsors["viewer"]["sponsorshipsAsMaintainer"]["edges"];
-    dbg!(&edges);
-    let sponsors = edges
-        .as_array()
-        .ok_or_else(|| miette::miette!("The edges wasn't an array"))?
-        .iter()
-        .map(|edge| {
-            let node = edge["node"]["sponsorEntity"].clone();
-            let login = node["login"]
-                .as_str()
-                .ok_or_else(|| miette::miette!("Login was not a string"))?
-                .to_string();
-            let id = node["id"]
-                .as_str()
-                .ok_or_else(|| miette::miette!("Id was not a string"))?
-                .to_string();
-            Ok(Sponsor { login, id })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(sponsors)
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Sponsor {
-    id: String,
-    login: String,
 }
 
 pub(crate) async fn generate_server_token(
