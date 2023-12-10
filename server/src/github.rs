@@ -34,7 +34,7 @@ impl GithubConfig {
 pub async fn get_sponsorships(access_token: &str) -> Result<Vec<Sponsor>> {
     let endpoint = "https://api.github.com/graphql";
     let query = r#"
-    query {
+    {
         viewer {
           sponsorshipsAsMaintainer(first: 100) {
             edges {
@@ -42,13 +42,23 @@ pub async fn get_sponsorships(access_token: &str) -> Result<Vec<Sponsor>> {
                 sponsorEntity {
                   ... on User {
                     login
+                    name
                     id
                   }
                   ... on Organization {
                     login
+                    name
                     id
                   }
                 }
+                createdAt
+                isActive
+                isOneTimePayment
+                tier {
+                  name
+                  monthlyPriceInCents
+                }
+                privacyLevel
               }
             }
           }
