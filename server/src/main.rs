@@ -35,6 +35,8 @@ use openai::*;
 mod commands;
 
 mod encrypt;
+ 
+mod jobs;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
