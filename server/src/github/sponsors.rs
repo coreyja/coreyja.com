@@ -143,7 +143,7 @@ async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<
     Ok(())
 }
 
-pub async fn refresh_db(app_state: &AppState) -> Result<()> {
+pub async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
     let sponsors = get_sponsors(&app_state.github.pat).await?;
 
     insert_sponsors(&sponsors, &app_state.db).await?;

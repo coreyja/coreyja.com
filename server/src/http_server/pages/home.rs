@@ -4,21 +4,17 @@ use axum::extract::State;
 use maud::{html, Markup};
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
-use crate::{
-    http_server::{
-        pages::streams::StreamPostList,
-        templates::{
-            base,
-            buttons::LinkButton,
-            constrained_width,
-            post_templates::{BlogPostList, TilPostList},
-        },
+use crate::http_server::{
+    pages::streams::StreamPostList,
+    templates::{
+        base,
+        buttons::LinkButton,
+        constrained_width,
+        post_templates::{BlogPostList, TilPostList},
     },
-    AppState,
 };
 
 pub(crate) async fn home_page(
-    State(app_state): State<AppState>,
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(part_streams): State<Arc<PastStreams>>,
