@@ -1,5 +1,3 @@
-ARG git_commit
-
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR /app
 
@@ -38,8 +36,6 @@ RUN apt-get update && apt-get install -y \
   && update-ca-certificates
 
 COPY --from=builder /app/target/release/server .
-
-RUN echo $git_commit > /app/git_commit
 
 EXPOSE 3000
 

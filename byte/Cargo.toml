@@ -11,6 +11,7 @@ miette = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 serde.workspace = true
+db = { path = "../db" }
 
 tracing-common = { path = "../tracing-common" }
 openai = { path = "../openai" }
@@ -24,11 +25,3 @@ irc = { version = "0.15.0", default-features = false, features = ["tls-rust"] }
 samplerate = "0.2.4"
 whisper-rs = { version = "0.8.0" }
 futures = "0.3.28"
-
-sqlx = { version = "0.7", features = [
-  "postgres",
-  "runtime-tokio-rustls",
-  "chrono",
-  "migrate",
-  "macros",
-] }

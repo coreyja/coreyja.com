@@ -2,23 +2,31 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
+use miette::IntoDiagnostic;
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
-use crate::http_server::{
-    pages::streams::StreamPostList,
-    templates::{
-        base,
-        buttons::LinkButton,
-        constrained_width,
-        post_templates::{BlogPostList, TilPostList},
+use crate::{
+    http_server::{
+        pages::streams::StreamPostList,
+        templates::{
+            base,
+            buttons::LinkButton,
+            constrained_width,
+            post_templates::{BlogPostList, TilPostList},
+        },
     },
+    jobs::{sponsors::RefreshSponsors, Job},
+    AppState,
 };
 
 pub(crate) async fn home_page(
+    State(_app_state): State<AppState>,
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(part_streams): State<Arc<PastStreams>>,
 ) -> Markup {
+    // (RefreshSponsors {}).enqueue(app_state).await.unwrap();
+
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 

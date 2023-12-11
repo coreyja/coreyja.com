@@ -14,11 +14,11 @@ use ::posts::MarkdownAst;
 pub use header::{head, header};
 use posts::Post;
 
-use crate::AppState;
+use crate::AppConfig;
 
 use self::header::OpenGraph;
 
-use super::pages::blog::md::{IntoHtml, IntoPlainText};
+use super::pages::blog::md::{IntoHtml, IntoPlainText, SyntaxHighlightingContext};
 
 pub fn base(inner: Markup, og: header::OpenGraph) -> Markup {
     html! {
@@ -61,8 +61,12 @@ pub(crate) mod post_templates;
 pub(crate) mod newsletter;
 
 impl IntoHtml for MarkdownAst {
-    fn into_html(self, state: &AppState) -> maud::Markup {
-        self.0.into_html(state)
+    fn into_html(
+        self,
+        config: &AppConfig,
+        context: &SyntaxHighlightingContext,
+    ) -> miette::Result<maud::Markup> {
+        self.0.into_html(config, context)
     }
 }
 

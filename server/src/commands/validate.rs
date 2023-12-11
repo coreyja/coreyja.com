@@ -1,14 +1,11 @@
-use std::{println, sync::Arc};
+use std::println;
 
 use miette::{IntoDiagnostic, Result};
-use openai::OpenAiConfig;
 use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
 
 use crate::{
-    github::GithubConfig,
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
-    twitch::TwitchConfig,
-    AppConfig, AppState, VersionInfo,
+    AppConfig,
 };
 
 pub(crate) async fn validate() -> Result<()> {
@@ -32,37 +29,11 @@ pub(crate) async fn validate() -> Result<()> {
     streams.validate(&projects)?;
 
     println!("Validating Blog RSS feed...");
-    let config = AppConfig::from_env()?;
-    let render_context = SyntaxHighlightingContext::default();
-    // TODO: This is a bit of a hack, but it's fine for now.
-    // I need a better way to either have default values for these
-    // or allow them to be a `None` value.
-    let state = AppState {
-        twitch: TwitchConfig {
-            client_id: "".to_string(),
-            client_secret: "".to_string(),
-            bot_access_token: None,
-            channel_user_id: "".to_string(),
-            bot_user_id: "".to_string(),
-        },
-        github: GithubConfig {
-            app_id: 0,
-            client_id: "".to_string(),
-            client_secret: "".to_string(),
-        },
-        open_ai: OpenAiConfig {
-            api_key: "".to_string(),
-        },
-        blog_posts: Arc::new(posts.clone()),
-        til_posts: Arc::new(tils.clone()),
-        streams: Arc::new(streams.clone()),
-        projects: Arc::new(projects.clone()),
-        app: config,
-        markdown_to_html_context: render_context,
-        versions: VersionInfo::from_env(),
+    let config = AppConfig {
+        base_url: "http://localhost:3000".to_string(),
     };
-
-    let rss = MyChannel::from_posts(state.clone(), &posts.by_recency());
+    let render_context = SyntaxHighlightingContext::default();
+    let rss = MyChannel::from_posts(&config, &render_context, &posts.by_recency())?;
 
     rss.validate().into_diagnostic()?;
 
@@ -70,7 +41,7 @@ pub(crate) async fn validate() -> Result<()> {
 
     println!("Validating TIL RSS feed...");
 
-    let rss = MyChannel::from_posts(state, &tils.by_recency());
+    let rss = MyChannel::from_posts(&config, &render_context, &tils.by_recency())?;
 
     rss.validate().into_diagnostic()?;
 

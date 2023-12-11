@@ -18,12 +18,15 @@ use tracing::instrument;
 
 use crate::{
     http_server::{
+        errors::MietteError,
         pages::blog::md::IntoHtml,
         templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
         ToRssItem,
     },
-    AppState,
+    AppConfig, AppState,
 };
+
+use self::md::SyntaxHighlightingContext;
 
 pub(crate) mod md;
 
@@ -31,21 +34,32 @@ pub(crate) struct MyChannel(rss::Channel);
 
 impl MyChannel {
     #[instrument(skip_all)]
-    pub fn from_posts<T>(state: AppState, posts: &[&Post<T>]) -> Self
+    pub fn from_posts<T>(
+        config: &AppConfig,
+        context: &SyntaxHighlightingContext,
+        posts: &[&Post<T>],
+    ) -> miette::Result<Self>
     where
         Post<T>: ToRssItem,
     {
-        let items: Vec<_> = posts.iter().map(|p| p.to_rss_item(&state)).collect();
+        let items: miette::Result<Vec<rss::Item>> = posts
+            .iter()
+            .map(|p| p.to_rss_item(config, context))
+            .collect();
 
-        Self::from_items(state, &items)
+        Ok(Self::from_items(config, context, &items?))
     }
 
-    pub fn from_items(state: AppState, items: &[rss::Item]) -> Self {
+    pub fn from_items(
+        config: &AppConfig,
+        _context: &SyntaxHighlightingContext,
+        items: &[rss::Item],
+    ) -> Self {
         use rss::ChannelBuilder;
 
         let channel = ChannelBuilder::default()
             .title("coreyja Blog".to_string())
-            .link(state.app.home_page())
+            .link(config.home_page())
             .copyright(Some("Copyright Corey Alexander".to_string()))
             .language(Some("en-us".to_string()))
             .items(items)
@@ -63,8 +77,12 @@ impl MyChannel {
 pub(crate) async fn rss_feed(
     State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let channel = MyChannel::from_posts(state, &posts.by_recency());
+) -> Result<impl IntoResponse, MietteError> {
+    let channel = MyChannel::from_posts(
+        &state.app,
+        &state.markdown_to_html_context,
+        &posts.by_recency(),
+    )?;
 
     Ok(channel.into_response())
 }
@@ -74,36 +92,42 @@ pub(crate) async fn full_rss_feed(
     State(state): State<AppState>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(til_posts): State<Arc<TilPosts>>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> Result<impl IntoResponse, MietteError> {
     let mut items_with_date: Vec<(chrono::NaiveDate, rss::Item)> = vec![];
-    items_with_date.extend(
-        blog_posts
-            .by_recency()
-            .into_iter()
-            .map(|p| (p.posted_on(), p.to_rss_item(&state))),
-    );
-    items_with_date.extend(
-        til_posts
-            .by_recency()
-            .into_iter()
-            .map(|p| (p.posted_on(), p.to_rss_item(&state))),
-    );
+    for p in blog_posts.by_recency() {
+        items_with_date.push((
+            p.posted_on(),
+            p.to_rss_item(&state.app, &state.markdown_to_html_context)?,
+        ));
+    }
+    for p in til_posts.by_recency() {
+        items_with_date.push((
+            p.posted_on(),
+            p.to_rss_item(&state.app, &state.markdown_to_html_context)?,
+        ));
+    }
+
     items_with_date.sort_by_key(|&(date, _)| std::cmp::Reverse(date));
 
     let items: Vec<rss::Item> = items_with_date.into_iter().map(|(_, i)| i).collect();
 
-    let channel = MyChannel::from_items(state, &items);
+    let channel = MyChannel::from_items(&state.app, &state.markdown_to_html_context, &items);
 
     Ok(channel.into_response())
 }
 
 impl IntoResponse for MyChannel {
     fn into_response(self) -> Response {
-        Response::builder()
+        let r = Response::builder()
             .header("Content-Type", "application/rss+xml")
-            .body(self.0.to_string())
-            .unwrap()
-            .into_response()
+            .body(self.0.to_string());
+
+        if let Ok(r) = r {
+            r.into_response()
+        } else {
+            let e: MietteError = miette::miette!("Failed to build RSS Feed response").into();
+            e.into_response()
+        }
     }
 }
 
@@ -144,13 +168,26 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
+    let html = match markdown
+        .ast
+        .into_html(&state.app, &state.markdown_to_html_context)
+    {
+        Ok(html) => html,
+        Err(e) => {
+            let miette_error = MietteError(e, StatusCode::INTERNAL_SERVER_ERROR);
+            sentry::capture_error(&miette_error);
+
+            return Err(miette_error.1);
+        }
+    };
+
     Ok(base_constrained(
         html! {
           h1 class="text-2xl" { (markdown.title) }
           subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state))
+            (html)
           }
         },
         OpenGraph {

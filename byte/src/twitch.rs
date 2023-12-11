@@ -1,3 +1,6 @@
+use db::twitch_chatters::{
+    get_or_create_twitch_chatter, preferred_twitch_name, update_twitch_chatter_nickname,
+};
 use futures::StreamExt;
 use irc::{
     client::{prelude::Config, Client},
@@ -6,10 +9,7 @@ use irc::{
 use miette::{IntoDiagnostic, Result};
 use openai::chat::{complete_chat, ChatMessage, ChatRole};
 
-use crate::{
-    db::{get_or_create_twitch_chatter, preferred_twitch_name, update_twitch_chatter_nickname},
-    personality::{base, respond_to_twitch_chat_prompt},
-};
+use crate::personality::{base, respond_to_twitch_chat_prompt};
 
 pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
     let irc_config = Config {

@@ -3,11 +3,11 @@ use axum::{
     http::Uri,
     response::{IntoResponse, Redirect, Response},
     routing::*,
-    Router, Server,
+    Router,
 };
 use chrono::{DateTime, NaiveTime, Utc};
 use include_dir::*;
-use miette::{Context, IntoDiagnostic};
+use miette::{Context, IntoDiagnostic, Result};
 use posts::{
     blog::{BlogPost, ToCanonicalPath},
     date::PostedOn,
@@ -17,30 +17,30 @@ use posts::{
     Post,
 };
 use std::{net::SocketAddr, sync::Arc};
+use tokio::net::TcpListener;
+use tower_cookies::CookieManagerLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::{AppConfig, AppState};
 pub use config::*;
 use errors::*;
 
-use self::{pages::blog::md::IntoHtml, templates::ShortDesc};
+use self::{
+    pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
+    templates::ShortDesc,
+};
 
 pub(crate) mod cmd;
 
-pub(crate) mod pages {
-    pub mod admin;
-    pub mod blog;
-    pub mod home;
-    pub mod projects;
-    pub mod streams;
-    pub mod til;
-}
+pub(crate) mod pages;
 
 mod config;
 pub mod errors;
 mod routes;
 mod server_tracing;
 mod templates;
+
+pub(crate) mod auth;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");
@@ -54,7 +54,7 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
         &config.markdown_to_html_context.theme,
         syntect::html::ClassStyle::Spaced,
     )
-    .unwrap();
+    .into_diagnostic()?;
 
     let tracer = server_tracing::Tracer;
     let trace_layer = TraceLayer::new_for_http()
@@ -63,13 +63,14 @@ pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
 
     let app = routes::make_router(syntax_css)
         .with_state(config)
-        .layer(trace_layer);
+        .layer(trace_layer)
+        .layer(CookieManagerLayer::new());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::debug!("listening on {}", addr);
 
-    Server::bind(&addr)
-        .serve(app.into_make_service())
+    axum::serve(listener, app)
         .await
         .into_diagnostic()
         .wrap_err("Failed to run server")
@@ -102,7 +103,11 @@ impl LinkTo for PastStream {
 }
 
 pub(crate) trait ToRssItem {
-    fn to_rss_item(&self, state: &AppState) -> rss::Item;
+    fn to_rss_item(
+        &self,
+        config: &AppConfig,
+        context: &SyntaxHighlightingContext,
+    ) -> Result<rss::Item>;
 }
 
 impl<FrontMatter> ToRssItem for Post<FrontMatter>
@@ -110,18 +115,28 @@ where
     FrontMatter: PostedOn + Title,
     Post<FrontMatter>: LinkTo,
 {
-    fn to_rss_item(&self, state: &AppState) -> rss::Item {
-        let link = self.absolute_link(&state.app);
+    fn to_rss_item(
+        &self,
+        config: &AppConfig,
+        context: &SyntaxHighlightingContext,
+    ) -> Result<rss::Item> {
+        let link = self.absolute_link(config);
 
         let posted_on: DateTime<Utc> = self.posted_on().and_time(NaiveTime::MIN).and_utc();
         let formatted_date = posted_on.to_rfc2822();
 
-        rss::ItemBuilder::default()
+        Ok(rss::ItemBuilder::default()
             .title(Some(self.title().to_string()))
             .link(Some(link))
             .description(self.short_description())
             .pub_date(Some(formatted_date))
-            .content(Some(self.markdown().ast.0.into_html(state).into_string()))
-            .build()
+            .content(Some(
+                self.markdown()
+                    .ast
+                    .0
+                    .into_html(config, context)?
+                    .into_string(),
+            ))
+            .build())
     }
 }

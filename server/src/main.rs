@@ -5,12 +5,15 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use clap::Parser;
 use commands::Command;
+use db::PgPool;
+use debug_ignore::DebugIgnore;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
 use posts::projects::Projects;
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
+use tower_cookies::Key;
 use tracing::{info, instrument};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{prelude::*, util::SubscriberInitExt, EnvFilter, Registry};
@@ -30,6 +33,11 @@ use github::*;
 use openai::*;
 
 mod commands;
+
+mod encrypt;
+
+pub mod cron;
+pub mod jobs;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AppConfig {
@@ -75,7 +83,7 @@ impl VersionInfo {
 }
 
 #[derive(Debug, Clone)]
-struct AppState {
+pub struct AppState {
     twitch: TwitchConfig,
     github: GithubConfig,
     open_ai: OpenAiConfig,
@@ -86,6 +94,9 @@ struct AppState {
     streams: Arc<PastStreams>,
     projects: Arc<Projects>,
     versions: VersionInfo,
+    db: PgPool,
+    cookie_key: DebugIgnore<Key>,
+    encrypt_config: encrypt::Config,
 }
 
 fn setup_sentry() -> Option<ClientInitGuard> {
