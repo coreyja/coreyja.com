@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        SELECT state, Users.user_id\n                        FROM GithubLoginStates\n                        JOIN GithubLinks using (github_link_id)\n                        JOIN Users using (user_id)\n                        WHERE github_login_state_id = $1 and state = 'github_completed'\n                        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "51f01a9ea35367953ad504260a0455ed7fb680fd7b126a0139cf45266f57ab60"
+}
