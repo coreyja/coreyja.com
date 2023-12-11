@@ -36,6 +36,7 @@ mod commands;
 
 mod encrypt;
 
+pub mod cron;
 pub mod jobs;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

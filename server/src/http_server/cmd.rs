@@ -48,10 +48,12 @@ pub(crate) async fn serve() -> Result<()> {
     info!("Spawning Tasks");
     let axum_future = tokio::spawn(run_axum(app_state.clone()));
     let worker_future = tokio::spawn(job_worker(app_state.clone()));
+    let cron_future = tokio::spawn(cron::run_cron(app_state.clone()));
     info!("Tasks Spawned");
 
     axum_future.await.into_diagnostic()??;
     worker_future.await.into_diagnostic()??;
+    cron_future.await.into_diagnostic()??;
 
     info!("Main Returning");
 
