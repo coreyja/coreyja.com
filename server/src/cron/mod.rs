@@ -8,6 +8,10 @@ use crate::{
     AppState,
 };
 
+fn one_hour() -> Duration {
+    Duration::from_secs(60 * 60)
+}
+
 pub async fn run_cron(app_state: AppState) -> Result<()> {
     let mut last_enqueue_map: HashMap<&str, Instant> = HashMap::new();
 
@@ -17,7 +21,7 @@ pub async fn run_cron(app_state: AppState) -> Result<()> {
         let refresh = last_enqueue_map.get("RefreshSponsors");
         if let Some(last_enqueue) = refresh {
             let elapsed = last_enqueue.elapsed();
-            if elapsed > Duration::from_secs(5) {
+            if elapsed > one_hour() {
                 tracing::info!(
                     task_name = "RefreshSponsors",
                     time_since_last_run =? elapsed,

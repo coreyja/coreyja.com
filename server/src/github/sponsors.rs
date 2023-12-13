@@ -120,8 +120,21 @@ impl SponsorType {
 }
 
 async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<()> {
-    let mut query_builder = QueryBuilder::new("INSERT INTO GithubSponsors
-  (github_sponsor_id, sponsor_type, github_id, github_login, sponsored_at, is_active, is_one_time_payment, tier_name, amount_cents, privacy_level)");
+    let mut query_builder = QueryBuilder::new(
+        "
+    INSERT INTO GithubSponsors (
+        github_sponsor_id,
+        sponsor_type,
+        github_id,
+        github_login,
+        sponsored_at,
+        is_active,
+        is_one_time_payment,
+        tier_name,
+        amount_cents,
+        privacy_level
+    )",
+    );
 
     query_builder.push_values(sponsors, |mut b, sponsor| {
         b.push_bind(Uuid::new_v4())
@@ -135,6 +148,28 @@ async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<
             .push_bind(sponsor.tier.as_ref().map(|t| t.monthly_price_in_cents))
             .push_bind(sponsor.privacy_level.to_owned());
     });
+    query_builder.push(
+        "ON CONFLICT (github_id) DO UPDATE SET (
+        sponsor_type,
+        github_login,
+        sponsored_at,
+        is_active,
+        is_one_time_payment,
+        tier_name,
+        amount_cents,
+        privacy_level
+    ) =
+    (
+        EXCLUDED.sponsor_type,
+        EXCLUDED.github_login,
+        EXCLUDED.sponsored_at,
+        EXCLUDED.is_active,
+        EXCLUDED.is_one_time_payment,
+        EXCLUDED.tier_name,
+        EXCLUDED.amount_cents,
+        EXCLUDED.privacy_level
+    )",
+    );
 
     let query = query_builder.build();
 
