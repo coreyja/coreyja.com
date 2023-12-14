@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
-use miette::IntoDiagnostic;
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
 use crate::{
@@ -15,7 +14,6 @@ use crate::{
             post_templates::{BlogPostList, TilPostList},
         },
     },
-    jobs::{sponsors::RefreshSponsors, Job},
     AppState,
 };
 
