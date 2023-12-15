@@ -36,6 +36,8 @@ pub mod jobs;
 pub mod state;
 pub(crate) use state::{AppConfig, AppState};
 
+pub(crate) mod google;
+
 fn setup_sentry() -> Option<ClientInitGuard> {
     let git_commit: Option<std::borrow::Cow<_>> = option_env!("VERGEN_GIT_SHA").map(|x| x.into());
     let release_name =
@@ -140,6 +142,7 @@ fn main() -> Result<()> {
         .block_on(async { _main().await })
 }
 
+#[cfg(not(feature = "local"))]
 async fn _main() -> Result<()> {
     setup_tracing()?;
 
@@ -147,6 +150,17 @@ async fn _main() -> Result<()> {
     let command = cli.command.unwrap_or_default();
 
     command.run().await
+}
+
+#[cfg(feature = "local")]
+async fn _main() -> Result<()> {
+    setup_tracing()?;
+
+    let app_state = AppState::from_env().await?;
+
+    jobs::Job::run(&jobs::youtube_videos::RefreshVideos, app_state.clone()).await?;
+
+    Ok(())
 }
 
 #[cfg(test)]

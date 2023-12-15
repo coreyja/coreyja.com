@@ -42,6 +42,8 @@ mod templates;
 
 pub(crate) mod auth;
 
+pub(crate) mod admin;
+
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");
 

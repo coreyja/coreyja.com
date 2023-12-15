@@ -12,15 +12,6 @@ default-run = "server"
 name = "server"
 path = "src/main.rs"
 
-[[bin]]
-name = "local"
-path = "src/local.rs"
-required-features = ["local"]
-
-[[bin]]
-name = "local_template"
-path = "src/local_TEMPLATE.rs"
-
 [features]
 local = []
 

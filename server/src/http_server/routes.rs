@@ -36,14 +36,14 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
         .route("/newsletter", get(newsletter_get))
-        .route("/auth/github_oauth", get(auth::github_oauth::github_oauth))
+        .route("/auth/github", get(auth::github_oauth::github_oauth))
         .route(
             "/login",
             get(|State(app_state): State<AppState>| async move {
                 Redirect::temporary(&format!(
                     "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}",
                     app_state.github.client_id,
-                    app_state.app.app_url("/auth/github_oauth")
+                    app_state.app.app_url("/auth/github")
                 ))
             }),
         )
@@ -65,7 +65,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                     ResponseResult::Ok(Redirect::temporary(&format!(
                         "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
                         app_state.github.client_id,
-                        app_state.app.app_url("/auth/github_oauth"),
+                        app_state.app.app_url("/auth/github"),
                         state.github_login_state_id
                     )))
                 },
@@ -106,6 +106,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                 },
             ),
         )
+        .route("/admin/auth/google", get(admin::auth::google_auth))
+        .route("/auth/google/callback", get(admin::auth::google_auth_callback))
         .fallback(fallback)
 }
 

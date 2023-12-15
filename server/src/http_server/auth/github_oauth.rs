@@ -58,7 +58,7 @@ pub(crate) async fn github_oauth(
             ("client_id", &app_state.github.client_id),
             ("client_secret", &app_state.github.client_secret),
             ("code", &query.code),
-            ("redirect_uri", &app_state.app.app_url("/auth/github_oauth")),
+            ("redirect_uri", &app_state.app.app_url("/auth/github")),
         ])
         .header("Accept", "application/json")
         .send()

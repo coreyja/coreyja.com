@@ -12,8 +12,8 @@ use tower_cookies::Key;
 use tracing::{info, instrument};
 
 use crate::{
-    encrypt, github::GithubConfig, http_server::pages::blog::md::SyntaxHighlightingContext,
-    twitch::TwitchConfig,
+    encrypt, github::GithubConfig, google::GoogleConfig,
+    http_server::pages::blog::md::SyntaxHighlightingContext, twitch::TwitchConfig,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -64,6 +64,7 @@ pub(crate) struct AppState {
     pub twitch: TwitchConfig,
     pub github: GithubConfig,
     pub open_ai: OpenAiConfig,
+    pub google: GoogleConfig,
     pub app: AppConfig,
     pub markdown_to_html_context: SyntaxHighlightingContext,
     pub blog_posts: Arc<BlogPosts>,
@@ -108,6 +109,7 @@ impl AppState {
             github: GithubConfig::from_env()?,
             app: AppConfig::from_env()?,
             open_ai: OpenAiConfig::from_env()?,
+            google: GoogleConfig::from_env()?,
             markdown_to_html_context: SyntaxHighlightingContext::default(),
             versions: VersionInfo::from_env(),
             blog_posts,
