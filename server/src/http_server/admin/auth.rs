@@ -8,7 +8,7 @@ use axum::{
 use crate::state::AppState;
 
 pub(crate) async fn google_auth(State(app_state): State<AppState>) -> Redirect {
-    let redirect_uri = app_state.app.app_url("/auth/google/callback");
+    let redirect_uri = app_state.app.app_url("/admin/auth/google/callback");
     let auth_url = format!(
       "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={}&redirect_uri={}&scope=email",
       app_state.google.client_id, redirect_uri
@@ -39,7 +39,7 @@ pub(crate) async fn google_auth_callback(
             ("grant_type", "authorization_code"),
             (
                 "redirect_uri",
-                &app_state.app.app_url("/auth/google/callback"),
+                &app_state.app.app_url("/admin/auth/google/callback"),
             ),
         ])
         .send()
