@@ -3,9 +3,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
+use base64::Engine;
 use clap::Parser;
 use commands::Command;
-use db::PgPool;
+use db::{setup_db_pool, PgPool};
 use debug_ignore::DebugIgnore;
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
@@ -13,8 +14,7 @@ use posts::projects::Projects;
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
-use tower_cookies::Key;
-use tracing::{info, instrument};
+use tracing::instrument;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{prelude::*, util::SubscriberInitExt, EnvFilter, Registry};
 use tracing_tree::HierarchicalLayer;
@@ -38,66 +38,8 @@ mod encrypt;
 
 pub mod cron;
 pub mod jobs;
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct AppConfig {
-    base_url: String,
-}
-
-impl AppConfig {
-    #[instrument]
-    fn from_env() -> Result<Self> {
-        Ok(Self {
-            base_url: std::env::var("APP_BASE_URL")
-                .into_diagnostic()
-                .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
-        })
-    }
-
-    fn app_url(&self, path: &str) -> String {
-        if path.starts_with('/') {
-            format!("{}{}", self.base_url, path)
-        } else {
-            format!("{}/{}", self.base_url, path)
-        }
-    }
-
-    fn home_page(&self) -> String {
-        self.base_url.clone()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct VersionInfo {
-    git_commit: &'static str,
-    rustc_version: &'static str,
-}
-
-impl VersionInfo {
-    fn from_env() -> Self {
-        Self {
-            git_commit: env!("VERGEN_GIT_SHA"),
-            rustc_version: env!("VERGEN_RUSTC_SEMVER"),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct AppState {
-    twitch: TwitchConfig,
-    github: GithubConfig,
-    open_ai: OpenAiConfig,
-    app: AppConfig,
-    markdown_to_html_context: SyntaxHighlightingContext,
-    blog_posts: Arc<BlogPosts>,
-    til_posts: Arc<TilPosts>,
-    streams: Arc<PastStreams>,
-    projects: Arc<Projects>,
-    versions: VersionInfo,
-    db: PgPool,
-    cookie_key: DebugIgnore<Key>,
-    encrypt_config: encrypt::Config,
-}
+pub mod state;
+pub(crate) use state::{AppConfig, AppState};
 
 fn setup_sentry() -> Option<ClientInitGuard> {
     let git_commit: Option<std::borrow::Cow<_>> = option_env!("VERGEN_GIT_SHA").map(|x| x.into());

@@ -14,7 +14,7 @@ fn one_hour() -> Duration {
     Duration::from_secs(60 * 60)
 }
 
-pub async fn run_cron(app_state: AppState) -> Result<()> {
+pub(crate) async fn run_cron(app_state: AppState) -> Result<()> {
     let mut registry = CronRegistry::new(app_state);
 
     registry.register("RefreshSponsors", one_hour(), |app_state| {

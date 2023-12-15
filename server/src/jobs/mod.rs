@@ -4,9 +4,10 @@ use crate::AppState;
 use miette::IntoDiagnostic;
 
 pub mod sponsors;
+pub mod youtube_videos;
 
 #[async_trait::async_trait]
-pub trait Job:
+pub(crate) trait Job:
     Serialize + DeserializeOwned + Send + Sync + std::fmt::Debug + Clone + 'static
 {
     const NAME: &'static str;

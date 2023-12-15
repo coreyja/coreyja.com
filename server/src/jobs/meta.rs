@@ -10,7 +10,10 @@ pub enum RunJobResult {
     NoRunnableJobInQueue,
 }
 
-pub async fn run_next_job(app_state: crate::AppState, worker_id: &str) -> Result<RunJobResult> {
+pub(crate) async fn run_next_job(
+    app_state: crate::AppState,
+    worker_id: &str,
+) -> Result<RunJobResult> {
     let now = chrono::Utc::now();
     let job = sqlx::query!(
         "
@@ -79,7 +82,7 @@ pub async fn run_next_job(app_state: crate::AppState, worker_id: &str) -> Result
     Ok(RunJobResult::JobRan(JobId(job.job_id)))
 }
 
-pub async fn job_worker(app_state: crate::AppState) -> Result<()> {
+pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
     loop {
         let worker_id = uuid::Uuid::new_v4().to_string();
         tracing::info!(%worker_id, "About to pickup next job");

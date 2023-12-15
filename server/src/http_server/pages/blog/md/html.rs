@@ -13,7 +13,7 @@ use url::Url;
 use crate::AppConfig;
 
 #[derive(Debug, Clone)]
-pub(crate) struct SyntaxHighlightingContext {
+pub struct SyntaxHighlightingContext {
     pub(crate) theme: syntect::highlighting::Theme,
     pub(crate) syntax_set: syntect::parsing::SyntaxSet,
 }

@@ -1,4 +1,5 @@
 use crate::*;
+use tracing::instrument;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TwitchOauthRequest {
