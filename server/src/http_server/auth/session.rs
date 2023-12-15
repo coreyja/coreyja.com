@@ -105,11 +105,11 @@ impl FromRequestParts<AppState> for AdminUser {
                 session: db_session,
                 github_link,
             }),
-            Ok(None) => Err(Redirect::temporary("/login")),
+            Ok(None) => Err(Redirect::temporary("/")),
             Err(e) => {
                 sentry::capture_error(&e);
 
-                Err(Redirect::temporary("/login"))
+                Err(Redirect::temporary("/"))
             }
         }
     }
