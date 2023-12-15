@@ -2,15 +2,14 @@
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use ::posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
-use base64::Engine;
+use ::posts::past_streams::PastStreams;
+
 use clap::Parser;
 use commands::Command;
-use db::{setup_db_pool, PgPool};
-use debug_ignore::DebugIgnore;
+
 use miette::{Context, IntoDiagnostic};
 use opentelemetry_otlp::WithExportConfig;
-use posts::projects::Projects;
+
 use sentry::ClientInitGuard;
 use serde::{Deserialize, Serialize};
 
@@ -22,15 +21,11 @@ use tracing_tree::HierarchicalLayer;
 pub use miette::Result;
 
 mod twitch;
-use twitch::*;
 
 mod http_server;
-use http_server::{pages::blog::md::SyntaxHighlightingContext, *};
+use http_server::*;
 
 mod github;
-use github::*;
-
-use openai::*;
 
 mod commands;
 
