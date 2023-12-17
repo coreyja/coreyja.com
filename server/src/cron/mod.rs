@@ -19,6 +19,7 @@ pub(crate) async fn run_cron(app_state: AppState) -> Result<()> {
 
     registry.register("RefreshSponsors", one_hour(), |app_state| {
         RefreshSponsors.enqueue(app_state)
+        // Box::pin(async move { Ok(()) })
     });
 
     registry.run().await

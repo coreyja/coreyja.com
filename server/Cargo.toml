@@ -74,6 +74,7 @@ jsonwebtoken = "9.1.0"
 age = { version = "0.9.2", features = ["async"] }
 graphql_client = { version = "0.13.0", features = ["reqwest-rustls"] }
 google-youtube3 = "5.0.3"
+futures = "0.3.29"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }

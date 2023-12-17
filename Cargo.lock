@@ -5144,6 +5144,7 @@ dependencies = [
  "clap",
  "db",
  "debug-ignore",
+ "futures",
  "google-youtube3",
  "gql_client",
  "graphql_client",
