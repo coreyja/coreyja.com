@@ -108,7 +108,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .route("/admin/auth/google", get(admin::auth::google_auth))
         .route("/admin/auth/google/callback", get(admin::auth::google_auth_callback))
-        .route("/admin", get(|_admin: AdminUser| async { "Hello, admin!"}))
+        .route("/admin", get(admin::dashboard))
         .fallback(fallback)
 }
 

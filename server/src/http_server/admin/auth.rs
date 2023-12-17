@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use axum::{
     extract::{Query, State},
-    response::Redirect,
+    response::{IntoResponse, Redirect},
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +37,7 @@ pub(crate) async fn google_auth_callback(
     State(app_state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
     admin: AdminUser,
-) -> Result<String, String> {
+) -> Result<impl IntoResponse, String> {
     // Extract the authorization code from the callback query parameters
     let code = match params.get("code") {
         Some(code) => code,
@@ -125,5 +125,5 @@ pub(crate) async fn google_auth_callback(
     .await
     .unwrap();
 
-    Ok("Authed".to_string())
+    Ok(Redirect::to("/admin"))
 }

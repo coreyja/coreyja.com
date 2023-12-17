@@ -12,3 +12,7 @@ CREATE TABLE
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
   );
+
+CREATE UNIQUE INDEX idx_google_users_external_google_id ON GoogleUsers (external_google_id);
+
+CREATE UNIQUE INDEX idx_google_users_user_id ON GoogleUsers (user_id);

@@ -13,6 +13,8 @@ pub struct DBSession {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+struct User {}
+
 #[async_trait]
 impl FromRequestParts<AppState> for DBSession {
     type Rejection = axum::response::Redirect;
