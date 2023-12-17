@@ -1,12 +1,20 @@
-use miette::{IntoDiagnostic, Result};
+use miette::{Diagnostic, ErrReport, IntoDiagnostic, Result};
+use thiserror::Error;
 
 use super::{sponsors::RefreshSponsors, Job};
 
+#[derive(Debug, Clone)]
 pub struct JobId(uuid::Uuid);
 
-pub enum RunJobResult {
+impl std::fmt::Display for JobId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.to_string().fmt(f)
+    }
+}
+
+pub type RunJobResult = Result<RunJobSuccess, JobError>;
+pub enum RunJobSuccess {
     JobRan(JobId),
-    JobErrored(JobId),
     NoRunnableJobInQueue,
 }
 
@@ -38,9 +46,10 @@ pub(crate) async fn run_next_job(
     .into_diagnostic()?;
 
     let Some(job) = job else {
-        return Ok(RunJobResult::NoRunnableJobInQueue);
+        return Ok(Ok(RunJobSuccess::NoRunnableJobInQueue));
     };
 
+    let job_id = JobId(job.job_id);
     let job_result = match job.name.as_str() {
         "RefreshSponsors" => {
             let job: RefreshSponsors = serde_json::from_value(job.payload).into_diagnostic()?;
@@ -49,7 +58,7 @@ pub(crate) async fn run_next_job(
         _ => return Err(miette::miette!("Unknown job type: {}", job.name)),
     };
 
-    if job_result.is_err() {
+    if let Err(e) = job_result {
         sqlx::query!(
             "
           UPDATE jobs
@@ -64,7 +73,7 @@ pub(crate) async fn run_next_job(
         .await
         .into_diagnostic()?;
 
-        return Ok(RunJobResult::JobErrored(JobId(job.job_id)));
+        return Ok(Err(JobError(job_id, e)));
     }
 
     sqlx::query!(
@@ -79,8 +88,12 @@ pub(crate) async fn run_next_job(
     .await
     .into_diagnostic()?;
 
-    Ok(RunJobResult::JobRan(JobId(job.job_id)))
+    Ok(Ok(RunJobSuccess::JobRan(job_id)))
 }
+
+#[derive(Debug, Diagnostic, Error)]
+#[error("JobError(id:${1}: ${0}")]
+pub(crate) struct JobError(JobId, miette::Report);
 
 pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
     loop {
@@ -89,14 +102,20 @@ pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
         let result = run_next_job(app_state.clone(), &worker_id).await?;
 
         match result {
-            RunJobResult::JobRan(job_id) => {
+            Ok(RunJobSuccess::JobRan(job_id)) => {
                 tracing::info!(%worker_id, job_id =% job_id.0, "Job Ran");
             }
-            RunJobResult::JobErrored(job_id) => {
-                tracing::info!(%worker_id, job_id =% job_id.0, "Job Errored");
-            }
-            RunJobResult::NoRunnableJobInQueue => {
+            Ok(RunJobSuccess::NoRunnableJobInQueue) => {
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            }
+            Err(job_error) => {
+                sentry::capture_error(&job_error);
+                tracing::info!(
+                    %worker_id,
+                    job_id =% job_error.0.0,
+                    error =% job_error.1,
+                    "Job Errored"
+                );
             }
         }
     }
