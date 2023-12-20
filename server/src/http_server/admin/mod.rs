@@ -24,18 +24,28 @@ pub(crate) async fn dashboard(
     .await
     .into_diagnostic()?;
 
+    let youtube_last_refresh_at =
+        sqlx::query!("SELECT * FROM LastRefreshAts where key = 'youtube_videos'")
+            .fetch_one(&app_state.db)
+            .await
+            .into_diagnostic()?
+            .last_refresh_at;
+
     Ok(base_constrained(
         html! {
             h1 class="text-xl" { "Admin Dashboard" }
 
-            h3 class="text-lg" { "Google Auth Status" }
+            h3 class="py-2 text-lg" { "Google Auth Status" }
             @if let Some(google_user) = google_user {
                 p { "Local Google User ID: " (google_user.google_user_id) }
                 p { "Google Email: " (google_user.external_google_email) }
                 p { "External Google ID: " (google_user.external_google_id) }
 
+                h5 class="py-2 text-lg" { "Youtube Videos" }
+                p { "Last Refreshed: " (format!("{:?}", youtube_last_refresh_at)) }
+
                 form action="/admin/jobs/refresh_youtube" method="post" {
-                    input type="submit" value="Refresh";
+                    input type="submit" value="Refresh Youtube Videos";
                 }
             } @else {
                 p { "No Google User Found" }

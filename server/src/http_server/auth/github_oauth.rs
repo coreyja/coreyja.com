@@ -37,12 +37,12 @@ impl GithubUser {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct GitHubOAuthResponse {
-    access_token: String,
-    expires_in: u64,
-    refresh_token: String,
-    refresh_token_expires_in: u64,
-    scope: String,
-    token_type: String,
+    pub(crate) access_token: String,
+    pub(crate) expires_in: u64,
+    pub(crate) refresh_token: String,
+    pub(crate) refresh_token_expires_in: u64,
+    pub(crate) scope: String,
+    pub(crate) token_type: String,
 }
 
 pub(crate) async fn github_oauth(

@@ -3,6 +3,8 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::google::get_valid_google_token;
+
 use super::Job;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,24 +15,7 @@ impl Job for RefreshVideos {
     const NAME: &'static str = "RefreshVideos";
 
     async fn run(&self, app_state: crate::AppState) -> miette::Result<()> {
-        let google_user = sqlx::query!(
-            "
-            SELECT
-                google_user_id,
-                encrypted_access_token,
-                encrypted_refresh_token,
-                access_token_expires_at
-            FROM GoogleUsers
-            LIMIT 1
-            "
-        )
-        .fetch_one(&app_state.db)
-        .await
-        .into_diagnostic()?;
-
-        let access_token = app_state
-            .encrypt_config
-            .decrypt(&google_user.encrypted_access_token)?;
+        let access_token = get_valid_google_token(&app_state).await?;
 
         let hub = google_youtube3::YouTube::new(
             google_youtube3::hyper::Client::builder().build(

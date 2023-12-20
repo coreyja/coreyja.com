@@ -100,7 +100,10 @@ impl AppState {
             Key::derive_from(&cookie_key)
         } else {
             info!("Generating new cookie key");
-            Key::generate()
+            let k = Key::generate();
+            let based = base64::engine::general_purpose::STANDARD.encode(k.master());
+            dbg!(&based);
+            k
         };
         let cookie_key = DebugIgnore(cookie_key);
 
