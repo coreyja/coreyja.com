@@ -1,5 +1,6 @@
 use axum::{extract::State, response::IntoResponse};
-use maud::html;
+use chrono::Utc;
+use maud::{html, Render};
 use miette::IntoDiagnostic;
 
 use crate::state::AppState;
@@ -42,7 +43,7 @@ pub(crate) async fn dashboard(
                 p { "External Google ID: " (google_user.external_google_id) }
 
                 h5 class="py-2 text-lg" { "Youtube Videos" }
-                p { "Last Refreshed: " (format!("{:?}", youtube_last_refresh_at)) }
+                p { "Last Refreshed: " (Timestamp(youtube_last_refresh_at)) }
 
                 form action="/admin/jobs/refresh_youtube" method="post" {
                     input type="submit" value="Refresh Youtube Videos";
@@ -54,4 +55,15 @@ pub(crate) async fn dashboard(
         },
         Default::default(),
     ))
+}
+
+struct Timestamp(chrono::DateTime<Utc>);
+
+impl Render for Timestamp {
+    fn render(&self) -> maud::Markup {
+        let ago = chrono_humanize::HumanTime::from(self.0 - chrono::Utc::now());
+        html! {
+            span title=(format!("{} UTC", self.0.to_rfc3339())) { (ago) }
+        }
+    }
 }
