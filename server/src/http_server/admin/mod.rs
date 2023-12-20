@@ -27,10 +27,10 @@ pub(crate) async fn dashboard(
 
     let youtube_last_refresh_at =
         sqlx::query!("SELECT * FROM LastRefreshAts where key = 'youtube_videos'")
-            .fetch_one(&app_state.db)
+            .fetch_optional(&app_state.db)
             .await
             .into_diagnostic()?
-            .last_refresh_at;
+            .map(|row| row.last_refresh_at);
 
     Ok(base_constrained(
         html! {
@@ -57,13 +57,19 @@ pub(crate) async fn dashboard(
     ))
 }
 
-struct Timestamp(chrono::DateTime<Utc>);
+struct Timestamp(Option<chrono::DateTime<Utc>>);
 
 impl Render for Timestamp {
     fn render(&self) -> maud::Markup {
-        let ago = chrono_humanize::HumanTime::from(self.0 - chrono::Utc::now());
-        html! {
-            span title=(format!("{} UTC", self.0.to_rfc3339())) { (ago) }
+        if let Some(timestamp) = self.0 {
+            let ago = chrono_humanize::HumanTime::from(timestamp - chrono::Utc::now());
+            html! {
+                span title=(format!("{} UTC", timestamp.to_rfc3339())) { (ago) }
+            }
+        } else {
+            html! {
+                span { "Never" }
+            }
         }
     }
 }

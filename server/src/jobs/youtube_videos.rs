@@ -1,9 +1,13 @@
-use google_youtube3::api::PlaylistItem;
+use google_youtube3::{
+    api::PlaylistItem, client::Hub, hyper::client::HttpConnector, hyper_rustls::HttpsConnector,
+    YouTube,
+};
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use uuid::Uuid;
 
-use crate::google::get_valid_google_token;
+use crate::{google::get_valid_google_token, state::AppState};
 
 use super::Job;
 
@@ -102,8 +106,141 @@ impl Job for RefreshVideos {
         .await
         .into_diagnostic()?;
 
+        assign_videos_to_playlists(&hub, &app_state).await?;
+
         Ok(())
     }
+}
+
+async fn assign_videos_to_playlists(
+    hub: &YouTube<HttpsConnector<HttpConnector>>,
+    app_state: &AppState,
+) -> miette::Result<()> {
+    let playlists = hub
+        .playlists()
+        .list(&vec!["snippet".to_owned()])
+        .mine(true)
+        .doit()
+        .await
+        .into_diagnostic()?;
+
+    for playlist in playlists.1.items.unwrap() {
+        let playlist_id = playlist
+            .id
+            .ok_or_else(|| miette::miette!("No playlist ID found"))?;
+        let snippet = playlist
+            .snippet
+            .ok_or_else(|| miette::miette!("No snippet found"))?;
+
+        let youtube_playlist_id = sqlx::query!(
+            "INSERT INTO YoutubePlaylists (
+                    youtube_playlist_id,
+                    external_youtube_playlist_id,
+                    title,
+                    description
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4
+                ) ON CONFLICT (external_youtube_playlist_id) DO UPDATE SET
+                    title = excluded.title,
+                    description = excluded.description
+                    RETURNING youtube_playlist_id",
+            uuid::Uuid::new_v4(),
+            playlist_id,
+            snippet.title,
+            snippet.description,
+        )
+        .fetch_one(&app_state.db)
+        .await
+        .into_diagnostic()?
+        .youtube_playlist_id;
+
+        let page = hub
+            .playlist_items()
+            .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
+            .playlist_id(&playlist_id)
+            .doit()
+            .await
+            .into_diagnostic()?;
+
+        let mut current_result = Some(page);
+
+        while let Some(result) = current_result {
+            let page = result.1.items;
+            insert_playlist_page(&app_state.db, youtube_playlist_id, page).await?;
+
+            current_result = if let Some(next_page_token) = result.1.next_page_token {
+                Some(
+                    hub.playlist_items()
+                        .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
+                        .playlist_id(&playlist_id)
+                        .page_token(&next_page_token)
+                        .doit()
+                        .await
+                        .into_diagnostic()?,
+                )
+            } else {
+                None
+            };
+        }
+    }
+
+    Ok(())
+}
+
+async fn insert_playlist_page(
+    db: &PgPool,
+    youtube_playlist_id: Uuid,
+    page: Option<Vec<PlaylistItem>>,
+) -> miette::Result<()> {
+    let Some(page) = page else { return Ok(()) };
+
+    for item in page {
+        let Some(ref content_details) = item.content_details else {
+            return Err(miette::miette!(
+                "No content details found for item {:?}",
+                item
+            ));
+        };
+        let external_video_id = content_details
+            .video_id
+            .as_ref()
+            .ok_or_else(|| miette::miette!("No video ID found for item {:?}", item))?;
+
+        let local_video_id = sqlx::query!(
+            "
+            SELECT youtube_video_id FROM YoutubeVideos WHERE external_youtube_id = $1
+            ",
+            external_video_id
+        )
+        .fetch_one(db)
+        .await
+        .into_diagnostic()?
+        .youtube_video_id;
+
+        sqlx::query!(
+            "
+    INSERT INTO YoutubeVideoPlaylists (
+        youtube_video_playlist_id,
+        youtube_playlist_id,
+        youtube_video_id
+    ) VALUES (
+        $1,
+        $2,
+        $3
+    ) ON CONFLICT (youtube_playlist_id, youtube_video_id) DO NOTHING",
+            Uuid::new_v4(),
+            youtube_playlist_id,
+            local_video_id,
+        )
+        .execute(db)
+        .await
+        .into_diagnostic()?;
+    }
+
+    Ok(())
 }
 
 async fn insert_youtube_video_page(
