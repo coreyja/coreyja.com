@@ -9,3 +9,4 @@ edition = "2021"
 chrono.workspace = true
 miette = { workspace = true }
 sqlx = { workspace = true }
+tracing = { workspace = true }

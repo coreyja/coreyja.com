@@ -15,7 +15,30 @@ pub async fn setup_db_pool() -> Result<PgPool> {
         .await
         .into_diagnostic()?;
 
+    const MIGRATION_LOCK_ID: i64 = 0xDB_DB_12_34;
+    sqlx::query!("SELECT pg_advisory_lock($1)", MIGRATION_LOCK_ID)
+        .execute(&pool)
+        .await
+        .into_diagnostic()?;
+
     sqlx::migrate!().run(&pool).await.into_diagnostic()?;
+
+    let unlock_result = sqlx::query!("SELECT pg_advisory_unlock($1)", MIGRATION_LOCK_ID)
+        .fetch_one(&pool)
+        .await
+        .into_diagnostic()?
+        .pg_advisory_unlock;
+
+    match unlock_result {
+        Some(b) => {
+            if b {
+                tracing::info!("Migration lock unlocked");
+            } else {
+                tracing::info!("Failed to unlock migration lock");
+            }
+        }
+        None => panic!("Failed to unlock migration lock"),
+    }
 
     Ok(pool)
 }
