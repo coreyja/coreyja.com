@@ -7,6 +7,7 @@ use crate::state::AppState;
 use super::{auth::session::AdminUser, errors::MietteError, templates::base_constrained};
 
 pub(crate) mod auth;
+pub(crate) mod job_routes;
 
 pub(crate) async fn dashboard(
     admin: AdminUser,
@@ -32,6 +33,10 @@ pub(crate) async fn dashboard(
                 p { "Local Google User ID: " (google_user.google_user_id) }
                 p { "Google Email: " (google_user.external_google_email) }
                 p { "External Google ID: " (google_user.external_google_id) }
+
+                form action="/admin/jobs/refresh_youtube" method="post" {
+                    input type="submit" value="Refresh";
+                }
             } @else {
                 p { "No Google User Found" }
                 a href="/admin/auth/google" { "Login now" }

@@ -13,6 +13,25 @@ impl Job for RefreshVideos {
     const NAME: &'static str = "RefreshVideos";
 
     async fn run(&self, app_state: crate::AppState) -> miette::Result<()> {
+        let google_user = sqlx::query!(
+            "
+            SELECT
+                google_user_id,
+                encrypted_access_token,
+                encrypted_refresh_token,
+                access_token_expires_at
+            FROM GoogleUsers
+            LIMIT 1
+            "
+        )
+        .fetch_one(&app_state.db)
+        .await
+        .into_diagnostic()?;
+
+        let access_token = app_state
+            .encrypt_config
+            .decrypt(&google_user.encrypted_access_token)?;
+
         let hub = google_youtube3::YouTube::new(
             google_youtube3::hyper::Client::builder().build(
                 google_youtube3::hyper_rustls::HttpsConnectorBuilder::new()
@@ -22,9 +41,7 @@ impl Job for RefreshVideos {
                     .enable_http2()
                     .build(),
             ),
-            std::env::var("COREYJA_YOUTUBE_ACCESS_TOKEN")
-                .unwrap()
-                .to_string(),
+            access_token,
         );
 
         let channels = hub
@@ -83,6 +100,22 @@ impl Job for RefreshVideos {
                 None
             };
         }
+
+        sqlx::query!(
+            "
+            INSERT INTO LastRefreshAts (
+                key,
+                last_refresh_at
+            ) VALUES (
+                'youtube_videos',
+                NOW()
+            ) ON CONFLICT (key) DO UPDATE SET
+                last_refresh_at = excluded.last_refresh_at
+            "
+        )
+        .execute(&app_state.db)
+        .await
+        .into_diagnostic()?;
 
         Ok(())
     }

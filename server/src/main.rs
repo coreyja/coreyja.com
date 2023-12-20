@@ -63,7 +63,7 @@ fn setup_sentry() -> Option<ClientInitGuard> {
 
 fn setup_tracing() -> Result<()> {
     let rust_log =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,server=trace,tower_http=debug".into());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "info,server=trace,tower_http=debug".into());
 
     let env_filter = EnvFilter::builder()
         .parse(&rust_log)

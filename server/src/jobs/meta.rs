@@ -26,18 +26,17 @@ pub(crate) async fn run_next_job(
     let job = sqlx::query!(
         "
         UPDATE jobs
-        SET LOCKED_BY = $2, LOCKED_AT = $3
+        SET LOCKED_BY = $1, LOCKED_AT = $2
         WHERE job_id = (
             SELECT job_id
             FROM jobs
-            WHERE run_at <= $1 AND locked_by IS NULL
+            WHERE run_at <= NOW() AND locked_by IS NULL
             ORDER BY priority DESC, created_at ASC
             LIMIT 1
             FOR UPDATE SKIP LOCKED
         )
         RETURNING job_id, name, payload, priority, run_at, created_at, context
         ",
-        now,
         worker_id,
         now,
     )
@@ -53,6 +52,11 @@ pub(crate) async fn run_next_job(
     let job_result = match job.name.as_str() {
         "RefreshSponsors" => {
             let job: RefreshSponsors = serde_json::from_value(job.payload).into_diagnostic()?;
+            job.run(app_state.clone()).await
+        }
+        "RefreshVideos" => {
+            let job: super::youtube_videos::RefreshVideos =
+                serde_json::from_value(job.payload).into_diagnostic()?;
             job.run(app_state.clone()).await
         }
         _ => return Err(miette::miette!("Unknown job type: {}", job.name)),
