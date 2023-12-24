@@ -279,7 +279,7 @@ async fn insert_youtube_video_page(
 
         let thumbnail_url = snippet
             .thumbnails
-            .and_then(|thumbnails| thumbnails.default)
+            .and_then(|thumbnails| thumbnails.high)
             .and_then(|thumbnail| thumbnail.url)
             .ok_or_else(|| miette::miette!("No thumbnail_url found for item"))?;
 
