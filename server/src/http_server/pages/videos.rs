@@ -27,19 +27,58 @@ impl Render for VideoList {
         html! {
           ul {
             @for video in &self.0 {
-              li class="my-8" {
-
-                a href=(format!("/videos/{}", video.youtube_video_id)) {
-                    img class="h-[180px] aspect-video object-cover object-center mb-2" src=(video.thumbnail_url.as_deref().unwrap()) alt=(video.title);
-                    p class="" { (video.title) }
-
-                    p class="text-subtitle text-sm" { (video.published_at.unwrap().date()) }
-                }
-              }
+              (VideoThumbnailCard(video))
             }
           }
         }
     }
+}
+
+pub(crate) struct VideoThumbnailCard<'a>(pub(crate) &'a YoutubeVideo);
+
+impl<'video> Render for VideoThumbnailCard<'video> {
+    fn render(&self) -> Markup {
+        let video = &self.0;
+
+        html! {
+          li class="my-8" {
+
+            a href=(format!("/videos/{}", video.youtube_video_id)) {
+                img class="h-[180px] aspect-video object-cover object-center mb-2" src=(video.thumbnail_url.as_deref().unwrap()) alt=(video.title) loading="lazy";
+                p class="max-w-[340px]" { (video.title) }
+
+                p class="text-subtitle text-sm" { (video.published_at.unwrap().date()) }
+            }
+          }
+        }
+    }
+}
+
+pub(crate) async fn video_index(
+    State(app_state): State<AppState>,
+) -> Result<impl IntoResponse, crate::http_server::errors::MietteError> {
+    let videos = sqlx::query_as!(
+        YoutubeVideo,
+        "SELECT *
+      FROM YoutubeVideos
+      ORDER BY published_at DESC"
+    )
+    .fetch_all(&app_state.db)
+    .await
+    .into_diagnostic()?;
+
+    Ok(base_constrained(
+        html! {
+          h1 class="text-3xl" { "Past Videos" }
+
+          ul class="grid grid-cols-1 md:grid-cols-2 gap-4" {
+            @for video in &videos {
+              (VideoThumbnailCard(video))
+            }
+          }
+        },
+        Default::default(),
+    ))
 }
 
 pub(crate) async fn video_get(
