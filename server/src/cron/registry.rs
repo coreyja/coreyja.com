@@ -1,15 +1,15 @@
 use std::{collections::HashMap, future::Future, pin::Pin, time::Duration};
 
 use miette::Result;
-use tokio::time::{Instant};
+use tokio::time::Instant;
 
 use crate::AppState;
 
-pub(crate) struct CronRegistry {
+pub(super) struct CronRegistry {
     pub(crate) jobs: HashMap<&'static str, CronJob>,
 }
 
-pub(crate) trait CronFn:
+pub(super) trait CronFn:
     Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync
 {
 }

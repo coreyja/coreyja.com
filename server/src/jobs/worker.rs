@@ -15,16 +15,16 @@ impl std::fmt::Display for JobId {
     }
 }
 
-pub(crate) type RunJobResult = Result<RunJobSuccess, JobError>;
+pub(super) type RunJobResult = Result<RunJobSuccess, JobError>;
 
 #[derive(Debug)]
-pub enum RunJobSuccess {
+pub(super) enum RunJobSuccess {
     JobRan(JobFromDB),
     NoRunnableJobInQueue,
 }
 
 #[derive(Debug)]
-struct JobFromDB {
+pub(super) struct JobFromDB {
     job_id: uuid::Uuid,
     name: String,
     payload: serde_json::Value,
