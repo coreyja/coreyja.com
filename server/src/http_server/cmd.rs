@@ -2,7 +2,7 @@ use miette::{IntoDiagnostic, Result};
 use tokio::task::JoinError;
 use tracing::info;
 
-use crate::{cron::run_cron, http_server::run_axum, jobs::meta::job_worker, AppState};
+use crate::{cron::run_cron, http_server::run_axum, jobs::worker::job_worker, AppState};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_state = AppState::from_env().await?;

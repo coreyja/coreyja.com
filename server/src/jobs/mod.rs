@@ -44,4 +44,4 @@ pub(crate) trait Job:
     }
 }
 
-pub mod meta;
+pub mod worker;
