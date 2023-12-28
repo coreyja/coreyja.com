@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM LastRefreshAts where key = 'youtube_videos'",
+  "query": "SELECT * FROM LastRefreshAts",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "8dac1566be015142e8086298acd92b6f0b93494dc6126b8a48ed21a40b2ab6e9"
+  "hash": "bf7e21d8a02f971e7bdc5c771399006e844797c1dc6eba86041367dd98eab267"
 }
