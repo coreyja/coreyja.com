@@ -1,3 +1,4 @@
+use axum::http::Request;
 use tower_http::trace::{MakeSpan, OnResponse};
 use tracing::Level;
 
@@ -6,18 +7,23 @@ pub(crate) struct Tracer;
 
 impl<Body> MakeSpan<Body> for Tracer {
     fn make_span(&mut self, request: &axum::http::Request<Body>) -> tracing::Span {
+        let route = http_route(request);
+        let span_name = format!("{} {}", request.method(), route);
+
         tracing::span!(
             Level::INFO,
-            "request",
+            "server.request",
+            otel.name = span_name,
             kind = "server",
             uri = %request.uri(),
-            ulr.path = %request.uri().path(),
+            url.path = %request.uri().path(),
             url.query = request.uri().query(),
             url.scheme = request.uri().scheme_str(),
             server.address = request.uri().host(),
             server.port = request.uri().port_u16(),
             http_version = ?request.version(),
             user_agent.original = request.headers().get("user-agent").and_then(|h| h.to_str().ok()),
+            http.route = route,
             http.request.method = %request.method(),
             http.request.header.host = request.headers().get("host").and_then(|h| h.to_str().ok()),
             http.request.header.forwarded_for = request.headers().get("x-forwarded-for").and_then(|h| h.to_str().ok()),
@@ -58,4 +64,11 @@ impl<Body> OnResponse<Body> for Tracer {
                 .and_then(|h| h.to_str().ok()),
         );
     }
+}
+
+#[inline]
+fn http_route<B>(req: &Request<B>) -> &str {
+    req.extensions()
+        .get::<axum::extract::MatchedPath>()
+        .map_or_else(|| "", |mp| mp.as_str())
 }
