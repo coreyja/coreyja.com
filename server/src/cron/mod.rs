@@ -3,7 +3,6 @@ use std::time::Duration;
 use miette::Result;
 
 use crate::{
-    http_server::admin::job_routes::refresh_youtube,
     jobs::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos, Job},
     AppState,
 };

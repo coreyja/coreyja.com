@@ -8,7 +8,6 @@ use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 use crate::{
     http_server::{
         pages::{
-            streams::StreamPostList,
             videos::{VideoList, YoutubeVideo},
         },
         templates::{

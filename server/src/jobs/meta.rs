@@ -1,4 +1,4 @@
-use miette::{Diagnostic, ErrReport, IntoDiagnostic, Result};
+use miette::{Diagnostic, IntoDiagnostic, Result};
 use thiserror::Error;
 
 use super::{sponsors::RefreshSponsors, Job};
@@ -12,7 +12,7 @@ impl std::fmt::Display for JobId {
     }
 }
 
-pub type RunJobResult = Result<RunJobSuccess, JobError>;
+pub(crate) type RunJobResult = Result<RunJobSuccess, JobError>;
 pub enum RunJobSuccess {
     JobRan(JobId),
     NoRunnableJobInQueue,

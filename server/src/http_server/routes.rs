@@ -2,7 +2,7 @@ use axum::Json;
 use posts::blog::BlogPosts;
 use serde_json::json;
 
-use super::{auth::session::AdminUser, *};
+use super::{*};
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()

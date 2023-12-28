@@ -1,5 +1,5 @@
 use google_youtube3::{
-    api::PlaylistItem, client::Hub, hyper::client::HttpConnector, hyper_rustls::HttpsConnector,
+    api::PlaylistItem, hyper::client::HttpConnector, hyper_rustls::HttpsConnector,
     YouTube,
 };
 use miette::IntoDiagnostic;
@@ -61,7 +61,7 @@ impl Job for RefreshVideos {
             .uploads
             .ok_or_else(|| miette::miette!("No uploads playlist found"))?;
 
-        let mut first_page = hub
+        let first_page = hub
             .playlist_items()
             .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
             .playlist_id(&upload_playlist)
