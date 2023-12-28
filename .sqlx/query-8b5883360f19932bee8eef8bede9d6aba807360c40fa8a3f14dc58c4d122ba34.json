@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO LastRefreshAts (\n                key,\n                last_refresh_at\n            ) VALUES (\n                'youtube_videos',\n                NOW()\n            ) ON CONFLICT (key) DO UPDATE SET\n                last_refresh_at = excluded.last_refresh_at\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "8b5883360f19932bee8eef8bede9d6aba807360c40fa8a3f14dc58c4d122ba34"
+}

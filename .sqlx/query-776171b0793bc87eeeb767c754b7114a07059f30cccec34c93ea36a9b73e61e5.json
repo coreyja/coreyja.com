@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE jobs\n        SET LOCKED_BY = $2, LOCKED_AT = $3\n        WHERE job_id = (\n            SELECT job_id\n            FROM jobs\n            WHERE run_at <= $1 AND locked_by IS NULL\n            ORDER BY priority DESC, created_at ASC\n            LIMIT 1\n            FOR UPDATE SKIP LOCKED\n        )\n        RETURNING job_id, name, payload, priority, run_at, created_at, context\n        ",
+  "query": "\n        UPDATE jobs\n        SET LOCKED_BY = $1, LOCKED_AT = $2\n        WHERE job_id = (\n            SELECT job_id\n            FROM jobs\n            WHERE run_at <= NOW() AND locked_by IS NULL\n            ORDER BY priority DESC, created_at ASC\n            LIMIT 1\n            FOR UPDATE SKIP LOCKED\n        )\n        RETURNING job_id, name, payload, priority, run_at, created_at, context\n        ",
   "describe": {
     "columns": [
       {
@@ -41,7 +41,6 @@
     ],
     "parameters": {
       "Left": [
-        "Timestamptz",
         "Text",
         "Timestamptz"
       ]
@@ -56,5 +55,5 @@
       false
     ]
   },
-  "hash": "6e60181fc33eebda63fc1aa7621b966cea339f577c8d87bffee07b8a5fa5429a"
+  "hash": "776171b0793bc87eeeb767c754b7114a07059f30cccec34c93ea36a9b73e61e5"
 }
