@@ -1,12 +1,4 @@
 -- Add migration script here
--- youtube_video_id
--- external_youtube_id,
--- title,
--- description,
--- published_at,
--- thumbnail_url,
--- channel_id,
--- channel_title
 CREATE TABLE
   YoutubeVideos (
     youtube_video_id UUID PRIMARY KEY,
