@@ -13,17 +13,40 @@ impl std::fmt::Display for JobId {
 }
 
 pub(crate) type RunJobResult = Result<RunJobSuccess, JobError>;
+
+#[derive(Debug)]
 pub enum RunJobSuccess {
     JobRan(JobId),
     NoRunnableJobInQueue,
 }
 
+#[derive(Debug)]
+struct JobFromDB {
+    job_id: uuid::Uuid,
+    name: String,
+    payload: serde_json::Value,
+    priority: i32,
+    run_at: chrono::DateTime<chrono::Utc>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    context: String,
+}
+
+#[tracing::instrument(
+    name = "worker.run_next_job",
+    skip(app_state),
+    fields(
+        worker.id = worker_id,
+    ),
+    ret,
+    err,
+)]
 pub(crate) async fn run_next_job(
     app_state: crate::AppState,
     worker_id: &str,
 ) -> Result<RunJobResult> {
     let now = chrono::Utc::now();
-    let job = sqlx::query!(
+    let job = sqlx::query_as!(
+        JobFromDB,
         "
         UPDATE jobs
         SET LOCKED_BY = $1, LOCKED_AT = $2
@@ -49,14 +72,7 @@ pub(crate) async fn run_next_job(
     };
 
     let job_id = JobId(job.job_id);
-    let job_result = match job.name.as_str() {
-        "RefreshSponsors" => RefreshSponsors::run_from_value(job.payload, app_state.clone()).await,
-        "RefreshVideos" => {
-            super::youtube_videos::RefreshVideos::run_from_value(job.payload, app_state.clone())
-                .await
-        }
-        _ => return Err(miette::miette!("Unknown job type: {}", job.name)),
-    };
+    let job_result = run_job(&job, &app_state, worker_id).await;
 
     if let Err(e) = job_result {
         sqlx::query!(
@@ -90,14 +106,44 @@ pub(crate) async fn run_next_job(
     Ok(Ok(RunJobSuccess::JobRan(job_id)))
 }
 
+#[tracing::instrument(
+    name = "worker.run_job",
+    skip(app_state, job, worker_id),
+    fields(
+        job.id = %job.job_id,
+        job.name = job.name,
+        job.priority = job.priority,
+        job.run_at = %job.run_at,
+        job.created_at = %job.created_at,
+        job.context = job.context,
+        worker.id = worker_id,
+    )
+    err,
+)]
+async fn run_job(
+    job: &JobFromDB,
+    app_state: &crate::state::AppState,
+    worker_id: &str,
+) -> Result<()> {
+    let payload = job.payload.clone();
+
+    match job.name.as_str() {
+        "RefreshSponsors" => RefreshSponsors::run_from_value(payload, app_state.clone()).await,
+        "RefreshVideos" => {
+            super::youtube_videos::RefreshVideos::run_from_value(payload, app_state.clone()).await
+        }
+        _ => Err(miette::miette!("Unknown job type: {}", job.name)),
+    }
+}
+
 #[derive(Debug, Diagnostic, Error)]
 #[error("JobError(id:${1}: ${0}")]
 pub(crate) struct JobError(JobId, miette::Report);
 
 pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
+    let worker_id = uuid::Uuid::new_v4().to_string();
     loop {
-        let worker_id = uuid::Uuid::new_v4().to_string();
-        tracing::info!(%worker_id, "About to pickup next job");
+        tracing::info!(%worker_id, "About to attempt to pickup and run next job");
         let result = run_next_job(app_state.clone(), &worker_id).await?;
 
         match result {
@@ -105,14 +151,17 @@ pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
                 tracing::info!(%worker_id, job_id =% job_id.0, "Job Ran");
             }
             Ok(RunJobSuccess::NoRunnableJobInQueue) => {
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                let duration = std::time::Duration::from_secs(5);
+                tracing::debug!(%worker_id, ?duration, "No Job to Run, sleeping for requested duration");
+
+                tokio::time::sleep(duration).await;
             }
             Err(job_error) => {
                 sentry::capture_error(&job_error);
-                tracing::info!(
+                tracing::error!(
                     %worker_id,
                     job_id =% job_error.0.0,
-                    error =% job_error.1,
+                    error_msg =% job_error.1,
                     "Job Errored"
                 );
             }

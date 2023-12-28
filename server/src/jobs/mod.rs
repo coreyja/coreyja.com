@@ -15,21 +15,15 @@ pub(crate) trait Job:
 
     async fn run(&self, app_state: AppState) -> miette::Result<()>;
 
-    #[instrument(skip(app_state), fields(job_name = Self::NAME, success, error))]
+    #[instrument(name = "jobs.run_from_value", skip(app_state), fields(job.name = Self::NAME), err)]
     async fn run_from_value(value: serde_json::Value, app_state: AppState) -> miette::Result<()> {
         let job: Self = serde_json::from_value(value).into_diagnostic()?;
         let job_result = job.run(app_state).await;
 
-        let current_span = tracing::Span::current();
-        current_span.record("success", job_result.is_ok());
-
-        if let Err(e) = &job_result {
-            current_span.record("error", format!("{}", e));
-        }
-
         job_result
     }
 
+    #[instrument(name = "jobs.enqueue", skip(app_state), fields(job.name = Self::NAME), err)]
     async fn enqueue(self, app_state: AppState) -> miette::Result<()> {
         sqlx::query!(
             "
