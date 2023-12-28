@@ -1,0 +1,6 @@
+ALTER TABLE GithubLoginStates
+ADD COLUMN "return_to" TEXT NULL;
+
+ALTER TABLE GithubLoginStates
+ALTER COLUMN "app"
+DROP NOT NULL;

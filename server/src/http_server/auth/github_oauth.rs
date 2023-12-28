@@ -50,6 +50,20 @@ pub(crate) async fn github_oauth(
     Query(query): Query<GitHubOAuthCode>,
     cookies: Cookies,
 ) -> impl IntoResponse {
+    let Some(state) = query.state else {
+        return ResponseResult::Ok(Redirect::temporary("/"));
+    };
+    let state = sqlx::query!(
+        r#"
+    SELECT * FROM GithubLoginStates
+    WHERE github_login_state_id = $1 AND state = 'created'
+    "#,
+        state
+    )
+    .fetch_one(&app_state.db)
+    .await
+    .into_diagnostic()?;
+
     let client = reqwest::Client::new();
 
     let oauth_response: Value = client
@@ -229,35 +243,35 @@ pub(crate) async fn github_oauth(
             .expires(None);
     private.add(session_cookie.into());
 
-    if let Some(state) = query.state {
-        let state = sqlx::query!(
-            r#"
+    let state = sqlx::query!(
+        r#"
         UPDATE GithubLoginStates
         SET state = $1, github_link_id = $2
         WHERE github_login_state_id = $3
         RETURNING *
         "#,
-            "github_completed",
-            github_link_id,
-            &state
-        )
-        .fetch_one(pool)
-        .await
-        .into_diagnostic()?;
+        "github_completed",
+        github_link_id,
+        &state.github_login_state_id
+    )
+    .fetch_one(pool)
+    .await
+    .into_diagnostic()?;
 
-        let projects = app_state.projects.clone();
-        let project = projects
-            .projects
-            .iter()
-            .find(|p| p.slug().unwrap() == state.app);
+    let Some(app) = state.app else {
+        let return_to = state.return_to.unwrap_or_else(|| "/".to_string());
+        return ResponseResult::Ok(Redirect::temporary(&return_to));
+    };
 
-        if let Some(project) = project {
-            if let Some(login_callback) = &project.frontmatter.login_callback {
-                return ResponseResult::Ok(Redirect::temporary(&format!(
-                    "{}?state={}",
-                    login_callback, state.github_login_state_id
-                )));
-            }
+    let projects = app_state.projects.clone();
+    let project = projects.projects.iter().find(|p| p.slug().unwrap() == app);
+
+    if let Some(project) = project {
+        if let Some(login_callback) = &project.frontmatter.login_callback {
+            return ResponseResult::Ok(Redirect::temporary(&format!(
+                "{}?state={}",
+                login_callback, state.github_login_state_id
+            )));
         }
     }
 

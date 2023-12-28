@@ -13,7 +13,6 @@ pub struct DBSession {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-
 #[async_trait]
 impl FromRequestParts<AppState> for DBSession {
     type Rejection = axum::response::Redirect;
@@ -38,8 +37,18 @@ impl FromRequestParts<AppState> for DBSession {
         let session_cookie = private.get("session_id");
 
         let Some(session_cookie) = session_cookie else {
-            Err(Redirect::temporary("/login"))?
+            let return_to_path = parts
+                .uri
+                .path_and_query()
+                .map(|x| x.as_str())
+                .unwrap_or("/");
+
+            Err(Redirect::temporary(&format!(
+                "/login?return_to={}",
+                return_to_path
+            )))?
         };
+
         let session_id = session_cookie.value().to_string();
         let Ok(session_id) = uuid::Uuid::parse_str(&session_id) else {
             sentry::capture_message(

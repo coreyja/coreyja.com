@@ -1,8 +1,10 @@
-use axum::Json;
+use std::collections::HashMap;
+
+use axum::{extract::Query, Json};
 use posts::blog::BlogPosts;
 use serde_json::json;
 
-use super::{*};
+use super::*;
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()
@@ -41,12 +43,25 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/auth/github", get(auth::github_oauth::github_oauth))
         .route(
             "/login",
-            get(|State(app_state): State<AppState>| async move {
-                Redirect::temporary(&format!(
-                    "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}",
+            get(|State(app_state): State<AppState>, Query(queries): Query<HashMap<String, String>>| async move {
+                let state = sqlx::query!(
+                    r#"
+                    INSERT INTO GithubLoginStates (github_login_state_id, state, return_to)
+                    VALUES ($1, $2, $3)
+                    RETURNING *
+                    "#,
+                    uuid::Uuid::new_v4(),
+                    "created",
+                    queries.get("return_to"),
+
+                ).fetch_one(&app_state.db).await.into_diagnostic()?;
+
+                miette::Result::<Redirect, MietteError>::Ok(Redirect::temporary(&format!(
+                    "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
                     app_state.github.client_id,
-                    app_state.app.app_url("/auth/github")
-                ))
+                    app_state.app.app_url("/auth/github"),
+                    state.github_login_state_id
+                )))
             }),
         )
         .route(
