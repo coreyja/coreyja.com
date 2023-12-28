@@ -11,7 +11,7 @@ pub(crate) async fn serve() -> Result<()> {
     let futures = vec![
         tokio::spawn(run_axum(app_state.clone())),
         tokio::spawn(job_worker(app_state.clone())),
-        // tokio::spawn(run_cron(app_state.clone())),
+        tokio::spawn(run_cron(app_state.clone())),
     ];
     info!("Tasks Spawned");
 

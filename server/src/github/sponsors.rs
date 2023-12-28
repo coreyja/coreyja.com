@@ -33,16 +33,21 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
         .build()
         .into_diagnostic()?;
 
-    let response_body =
+    let response =
         post_graphql::<GetSponsors, _>(&client, "https://api.github.com/graphql", Variables {})
             .await
             .unwrap();
 
-    let response = response_body
+    if let Some(e) = response.errors {
+        for error in e {
+            tracing::error!(error = ?error, "Error getting sponsors");
+        }
+    }
+    let response_body = response
         .data
-        .ok_or_else(|| miette::miette!("There were no sponsors"))?;
+        .ok_or_else(|| miette::miette!("No data was returned in the query for Sponsors"))?;
 
-    Ok(response
+    Ok(response_body
         .viewer
         .sponsorships_as_maintainer
         .edges
