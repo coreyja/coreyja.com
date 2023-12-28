@@ -88,7 +88,7 @@ impl CronRegistry {
         loop {
             self.tick(&worker_id, &mut last_enqueue_map).await?;
 
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_secs(60)).await;
         }
     }
 
