@@ -32,8 +32,8 @@ pub(super) struct JobFromDB {
 }
 
 #[derive(Debug, Diagnostic, Error)]
-#[error("JobError(id:${1}: ${0}")]
-pub(crate) struct JobError(JobId, miette::Report);
+#[error("JobError(id:${}) ${1}", self.0.job_id)]
+pub(crate) struct JobError(JobFromDB, miette::Report);
 
 struct Worker {
     id: uuid::Uuid,
