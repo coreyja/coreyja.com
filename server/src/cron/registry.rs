@@ -1,13 +1,12 @@
 use std::{collections::HashMap, future::Future, pin::Pin, time::Duration};
 
 use miette::Result;
-use tokio::time::{sleep, Instant};
+use tokio::time::{Instant};
 
 use crate::AppState;
 
 pub(crate) struct CronRegistry {
-    app_state: AppState,
-    jobs: HashMap<&'static str, CronJob>,
+    pub(crate) jobs: HashMap<&'static str, CronJob>,
 }
 
 pub(crate) trait CronFn:
@@ -19,7 +18,7 @@ impl<T> CronFn for T where
 {
 }
 
-struct CronJob {
+pub(super) struct CronJob {
     name: &'static str,
     func: Box<dyn CronFn>,
     interval: Duration,
@@ -34,7 +33,7 @@ impl CronJob {
             cron_job.interval = ?self.interval
         )
     )]
-    async fn tick(
+    pub(crate) async fn tick(
         &self,
         app_state: AppState,
         last_enqueue_map: &mut HashMap<&str, Instant>,
@@ -64,9 +63,8 @@ impl CronJob {
 }
 
 impl CronRegistry {
-    pub fn new(app_state: AppState) -> Self {
+    pub fn new() -> Self {
         Self {
-            app_state,
             jobs: HashMap::new(),
         }
     }
@@ -79,30 +77,5 @@ impl CronRegistry {
             interval,
         };
         self.jobs.insert(name, cron_job);
-    }
-
-    pub async fn run(self) -> Result<()> {
-        let worker_id = uuid::Uuid::new_v4();
-        let mut last_enqueue_map: HashMap<&str, Instant> = HashMap::new();
-
-        tracing::debug!("Starting cron loop");
-        loop {
-            self.tick(&worker_id, &mut last_enqueue_map).await?;
-
-            sleep(Duration::from_secs(60)).await;
-        }
-    }
-
-    #[tracing::instrument(name = "cron.tick", skip_all, fields(cron_worker.id = %worker_id))]
-    async fn tick(
-        &self,
-        worker_id: &uuid::Uuid,
-        last_enqueue_map: &mut HashMap<&str, Instant>,
-    ) -> Result<(), miette::ErrReport> {
-        for (_, job) in self.jobs.iter() {
-            job.tick(self.app_state.clone(), last_enqueue_map).await?;
-        }
-
-        Ok(())
     }
 }
