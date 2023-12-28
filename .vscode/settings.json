@@ -1,7 +1,8 @@
 {
-  "rust-analyzer.showUnlinkedFileNotification": false,
   "cSpell.words": [
     "chrono",
-    "reqwest"
+    "reqwest",
+    "rustc",
+    "vergen"
   ]
 }

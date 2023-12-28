@@ -38,7 +38,9 @@ pub(crate) async fn home_page(
 
     let recent_videos = sqlx::query_as!(
         YoutubeVideo,
-        "Select * from YoutubeVideos order by published_at desc limit 3"
+        "SELECT *
+        FROM YoutubeVideos
+        ORDER BY published_at DESC LIMIT 3"
     )
     .fetch_all(&app_state.db)
     .await
@@ -64,25 +66,27 @@ pub(crate) async fn home_page(
                     }
                 }
 
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/streams" { "Recent Videos" } }
-                    (VideoList(recent_videos))
+                div class="flex flex-col md:flex-row md:space-x-8" {
+                    div class="flex-grow" {
+                        div ."mb-16" {
+                            h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
+                            (TilPostList(recent_tils))
+                        }
+
+                        div ."mb-16" {
+                            h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
+                            (BlogPostList(recent_posts))
+                        }
+                    }
+
+                    div class="w-[320px]" {
+                        div ."mb-16" {
+                            h2 ."text-3xl" { a href="/streams" { "Recent Videos" } }
+                            (VideoList(recent_videos))
+                        }
+                    }
                 }
 
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/streams" { "Recent Streams" } }
-                    (StreamPostList(recent_streams))
-                }
-
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
-                    (TilPostList(recent_tils))
-                }
-
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
-                    (BlogPostList(recent_posts))
-                }
             }))
 
         },
