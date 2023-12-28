@@ -2,11 +2,14 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
+use miette::IntoDiagnostic;
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
 use crate::{
     http_server::{
-        pages::streams::StreamPostList,
+        pages::{
+            videos::{VideoList, YoutubeVideo},
+        },
         templates::{
             base,
             buttons::LinkButton,
@@ -18,13 +21,11 @@ use crate::{
 };
 
 pub(crate) async fn home_page(
-    State(_app_state): State<AppState>,
+    State(app_state): State<AppState>,
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(part_streams): State<Arc<PastStreams>>,
 ) -> Markup {
-    // (RefreshSponsors {}).enqueue(app_state).await.unwrap();
-
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 
@@ -33,6 +34,17 @@ pub(crate) async fn home_page(
 
     let mut recent_streams = part_streams.by_recency();
     recent_streams.truncate(3);
+
+    let recent_videos = sqlx::query_as!(
+        YoutubeVideo,
+        "SELECT *
+        FROM YoutubeVideos
+        ORDER BY published_at DESC LIMIT 3"
+    )
+    .fetch_all(&app_state.db)
+    .await
+    .into_diagnostic()
+    .unwrap();
 
     base(
         html! {
@@ -53,20 +65,27 @@ pub(crate) async fn home_page(
                     }
                 }
 
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/streams" { "Recent Streams" } }
-                    (StreamPostList(recent_streams))
+                div class="flex flex-col md:flex-row md:space-x-8" {
+                    div class="flex-grow" {
+                        div ."mb-16" {
+                            h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
+                            (TilPostList(recent_tils))
+                        }
+
+                        div ."mb-16" {
+                            h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
+                            (BlogPostList(recent_posts))
+                        }
+                    }
+
+                    div class="w-[320px]" {
+                        div ."mb-16" {
+                            h2 ."text-3xl" { a href="/streams" { "Recent Videos" } }
+                            (VideoList(recent_videos))
+                        }
+                    }
                 }
 
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
-                    (TilPostList(recent_tils))
-                }
-
-                div ."mb-16" {
-                    h2 ."text-3xl" { a href="/posts" { "Recent Blog Posts" } }
-                    (BlogPostList(recent_posts))
-                }
             }))
 
         },

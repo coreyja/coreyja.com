@@ -33,16 +33,21 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
         .build()
         .into_diagnostic()?;
 
-    let response_body =
+    let response =
         post_graphql::<GetSponsors, _>(&client, "https://api.github.com/graphql", Variables {})
             .await
             .unwrap();
 
-    let response = response_body
+    if let Some(e) = response.errors {
+        for error in e {
+            tracing::error!(error = ?error, "Error getting sponsors");
+        }
+    }
+    let response_body = response
         .data
-        .ok_or_else(|| miette::miette!("There were no sponsors"))?;
+        .ok_or_else(|| miette::miette!("No data was returned in the query for Sponsors"))?;
 
-    Ok(response
+    Ok(response_body
         .viewer
         .sponsorships_as_maintainer
         .edges
@@ -183,17 +188,42 @@ pub async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
 
     insert_sponsors(&sponsors, &app_state.db).await?;
 
-    // TODO: Delete orphaned sponsors
-    // sqlx::query!(
-    //     r#"
-    //     DELETE FROM GithubSponsors
-    //     WHERE github_id != ANY($1)
-    //     "#,
-    //     &sponsors.iter().map(|s| s.id.clone()).collect::<Vec<_>>()
-    // )
-    // .execute(&app_state.db)
-    // .await
-    // .into_diagnostic()?;
+    sqlx::query!(
+        r#"
+        DELETE FROM GithubSponsors
+        WHERE github_id not in (Select * from UNNEST($1::text[]))
+        "#,
+        &sponsors.iter().map(|s| s.id.clone()).collect::<Vec<_>>()
+    )
+    .execute(&app_state.db)
+    .await
+    .into_diagnostic()?;
+
+    set_last_refresh_at(app_state, "github_sponsors").await?;
+
+    Ok(())
+}
+
+pub async fn set_last_refresh_at(
+    app_state: &crate::state::AppState,
+    key: &str,
+) -> Result<(), miette::ErrReport> {
+    sqlx::query!(
+        "
+        INSERT INTO LastRefreshAts (
+            key,
+            last_refresh_at
+        ) VALUES (
+            $1,
+            NOW()
+        ) ON CONFLICT (key) DO UPDATE SET
+            last_refresh_at = excluded.last_refresh_at
+        ",
+        key
+    )
+    .execute(&app_state.db)
+    .await
+    .into_diagnostic()?;
 
     Ok(())
 }

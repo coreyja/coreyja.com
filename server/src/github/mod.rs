@@ -94,3 +94,17 @@ pub(crate) async fn generate_server_token(
 
     Ok(token.to_string())
 }
+
+#[derive(Debug, Clone)]
+pub struct GithubLink {
+    pub github_link_id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub external_github_login: String,
+    pub external_github_id: String,
+    pub encrypted_access_token: Vec<u8>,
+    pub encrypted_refresh_token: Vec<u8>,
+    pub access_token_expires_at: chrono::DateTime<chrono::Utc>,
+    pub refresh_token_expires_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}

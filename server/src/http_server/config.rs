@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::extract::FromRef;
 use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
 
-use crate::{twitch::TwitchConfig, AppConfig, AppState};
+use crate::{google::GoogleConfig, twitch::TwitchConfig, AppConfig, AppState};
 
 use super::pages::blog::md::SyntaxHighlightingContext;
 
@@ -46,5 +46,11 @@ impl FromRef<AppState> for Arc<PastStreams> {
 impl FromRef<AppState> for Arc<Projects> {
     fn from_ref(config: &AppState) -> Self {
         config.projects.clone()
+    }
+}
+
+impl FromRef<AppState> for GoogleConfig {
+    fn from_ref(config: &AppState) -> Self {
+        config.google.clone()
     }
 }

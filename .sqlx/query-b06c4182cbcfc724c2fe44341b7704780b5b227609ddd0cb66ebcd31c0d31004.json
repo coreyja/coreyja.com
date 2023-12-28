@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT *\n            FROM GithubLinks\n            WHERE user_id = $1 AND external_github_id = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "github_link_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "external_github_login",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "external_github_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "access_token_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "refresh_token_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "encrypted_access_token",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 9,
+        "name": "encrypted_refresh_token",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b06c4182cbcfc724c2fe44341b7704780b5b227609ddd0cb66ebcd31c0d31004"
+}

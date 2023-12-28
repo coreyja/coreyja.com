@@ -4,3 +4,4 @@ pub mod home;
 pub mod projects;
 pub mod streams;
 pub mod til;
+pub mod videos;

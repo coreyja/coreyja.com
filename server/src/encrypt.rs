@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use miette::{Context, IntoDiagnostic};
+use miette::{Context, IntoDiagnostic, Result};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -8,7 +8,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_env() -> miette::Result<Self> {
+    pub fn from_env() -> Result<Self> {
         Ok(Self {
             secret_key: std::env::var("ENCRYPTION_SECRET_KEY")
                 .into_diagnostic()
@@ -25,7 +25,7 @@ impl Default for Config {
     }
 }
 
-pub fn encrypt(data: &str, config: &Config) -> miette::Result<Vec<u8>> {
+pub fn encrypt(data: &str, config: &Config) -> Result<Vec<u8>> {
     let encrypted = {
         let encryptor = age::Encryptor::with_user_passphrase(age::secrecy::Secret::new(
             config.secret_key.to_owned(),
@@ -62,4 +62,14 @@ pub fn decrypt(data: &[u8], config: &Config) -> miette::Result<String> {
     };
 
     String::from_utf8(decrypted).into_diagnostic()
+}
+
+impl Config {
+    pub fn encrypt(&self, data: &str) -> Result<Vec<u8>> {
+        encrypt(data, self)
+    }
+
+    pub fn decrypt(&self, data: &[u8]) -> Result<String> {
+        decrypt(data, self)
+    }
 }

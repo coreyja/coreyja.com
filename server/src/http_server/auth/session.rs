@@ -3,7 +3,7 @@ use axum::{extract::FromRequestParts, http, response::Redirect};
 use serde::{Deserialize, Serialize};
 use tower_cookies::Cookies;
 
-use crate::AppState;
+use crate::{github::GithubLink, AppState};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DBSession {
@@ -12,6 +12,8 @@ pub struct DBSession {
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+
+struct User {}
 
 #[async_trait]
 impl FromRequestParts<AppState> for DBSession {
@@ -66,5 +68,51 @@ impl FromRequestParts<AppState> for DBSession {
         })?;
 
         Ok(session)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AdminUser {
+    pub session: DBSession,
+    pub github_link: GithubLink,
+}
+
+const COREYJA_PERSONAL_GITHUB_ID: &str = "MDQ6VXNlcjk2NDc3MQ==";
+
+#[async_trait]
+impl FromRequestParts<AppState> for AdminUser {
+    type Rejection = axum::response::Redirect;
+
+    async fn from_request_parts(
+        parts: &mut http::request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let db_session = DBSession::from_request_parts(parts, state).await?;
+
+        let github_link = sqlx::query_as!(
+            GithubLink,
+            r#"
+            SELECT *
+            FROM GithubLinks
+            WHERE user_id = $1 AND external_github_id = $2
+            "#,
+            db_session.user_id,
+            COREYJA_PERSONAL_GITHUB_ID
+        )
+        .fetch_optional(&state.db)
+        .await;
+
+        match github_link {
+            Ok(Some(github_link)) => Ok(AdminUser {
+                session: db_session,
+                github_link,
+            }),
+            Ok(None) => Err(Redirect::temporary("/")),
+            Err(e) => {
+                sentry::capture_error(&e);
+
+                Err(Redirect::temporary("/"))
+            }
+        }
     }
 }
