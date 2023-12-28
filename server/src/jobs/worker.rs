@@ -93,7 +93,7 @@ impl Worker {
             .await
             .into_diagnostic()?;
 
-            return Ok(Err(JobError(job_id, e)));
+            return Ok(Err(JobError(job, e)));
         }
 
         sqlx::query!(
@@ -181,7 +181,7 @@ impl Worker {
                 sentry::capture_error(&job_error);
                 tracing::error!(
                     worker.id =% self.id,
-                    job_id =% job_error.0.0,
+                    job_id =% job_error.0.job_id,
                     error_msg =% job_error.1,
                     "Job Errored"
                 );
