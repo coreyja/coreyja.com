@@ -32,6 +32,19 @@ pub(crate) async fn dashboard(
             .into_diagnostic()?
             .map(|row| row.last_refresh_at);
 
+    let youtube_refresh_job = sqlx::query!(
+        "
+            SELECT *
+            FROM Jobs
+            WHERE name = 'RefreshVideos'
+            ORDER BY created_at DESC
+            LIMIT 1
+            "
+    )
+    .fetch_optional(&app_state.db)
+    .await
+    .into_diagnostic()?;
+
     Ok(base_constrained(
         html! {
             h1 class="text-xl" { "Admin Dashboard" }
@@ -44,6 +57,15 @@ pub(crate) async fn dashboard(
 
                 h5 class="py-2 text-lg" { "Youtube Videos" }
                 p { "Last Refreshed: " (Timestamp(youtube_last_refresh_at)) }
+                @if let Some(job) = youtube_refresh_job {
+                    p { "Refresh Job Enqueued At: " (job.created_at) }
+                    p { "Refresh Job Run At: " (job.run_at) }
+
+                    @if let Some((locked_at, locked_by)) = job.locked_at.zip(job.locked_by) {
+                        p { "Refresh Job Locked At: " (locked_at) }
+                        p { "Refresh Job Locked By: " (locked_by) }
+                    }
+                }
 
                 form action="/admin/jobs/refresh_youtube" method="post" {
                     input type="submit" value="Refresh Youtube Videos";

@@ -50,14 +50,10 @@ pub(crate) async fn run_next_job(
 
     let job_id = JobId(job.job_id);
     let job_result = match job.name.as_str() {
-        "RefreshSponsors" => {
-            let job: RefreshSponsors = serde_json::from_value(job.payload).into_diagnostic()?;
-            job.run(app_state.clone()).await
-        }
+        "RefreshSponsors" => RefreshSponsors::run_from_value(job.payload, app_state.clone()).await,
         "RefreshVideos" => {
-            let job: super::youtube_videos::RefreshVideos =
-                serde_json::from_value(job.payload).into_diagnostic()?;
-            job.run(app_state.clone()).await
+            super::youtube_videos::RefreshVideos::run_from_value(job.payload, app_state.clone())
+                .await
         }
         _ => return Err(miette::miette!("Unknown job type: {}", job.name)),
     };
@@ -66,10 +62,9 @@ pub(crate) async fn run_next_job(
         sqlx::query!(
             "
           UPDATE jobs
-          SET locked_by = NULL, locked_at = NULL, run_at = $1
-          WHERE job_id = $2 AND locked_by = $3
+          SET locked_by = NULL, locked_at = NULL, run_at = now() + interval '60 seconds'
+          WHERE job_id = $1 AND locked_by = $2
               ",
-            now + chrono::Duration::seconds(60),
             job.job_id,
             worker_id
         )

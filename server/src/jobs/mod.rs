@@ -14,6 +14,11 @@ pub(crate) trait Job:
 
     async fn run(&self, app_state: AppState) -> miette::Result<()>;
 
+    async fn run_from_value(value: serde_json::Value, app_state: AppState) -> miette::Result<()> {
+        let job: Self = serde_json::from_value(value).into_diagnostic()?;
+        job.run(app_state).await
+    }
+
     async fn enqueue(self, app_state: AppState) -> miette::Result<()> {
         sqlx::query!(
             "
