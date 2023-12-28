@@ -1,13 +1,14 @@
 use google_youtube3::{
-    api::PlaylistItem, hyper::client::HttpConnector, hyper_rustls::HttpsConnector,
-    YouTube,
+    api::PlaylistItem, hyper::client::HttpConnector, hyper_rustls::HttpsConnector, YouTube,
 };
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{google::get_valid_google_token, state::AppState};
+use crate::{
+    github::sponsors::set_last_refresh_at, google::get_valid_google_token, state::AppState,
+};
 
 use super::Job;
 
@@ -90,21 +91,7 @@ impl Job for RefreshVideos {
             };
         }
 
-        sqlx::query!(
-            "
-            INSERT INTO LastRefreshAts (
-                key,
-                last_refresh_at
-            ) VALUES (
-                'youtube_videos',
-                NOW()
-            ) ON CONFLICT (key) DO UPDATE SET
-                last_refresh_at = excluded.last_refresh_at
-            "
-        )
-        .execute(&app_state.db)
-        .await
-        .into_diagnostic()?;
+        set_last_refresh_at(&app_state, "youtube_videos").await?;
 
         assign_videos_to_playlists(&hub, &app_state).await?;
 
