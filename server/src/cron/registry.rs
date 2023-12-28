@@ -11,11 +11,11 @@ pub(crate) struct CronRegistry {
 }
 
 pub(crate) trait CronFn:
-    Fn(AppState) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync
+    Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync
 {
 }
 impl<T> CronFn for T where
-    T: Fn(AppState) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync
+    T: Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync
 {
 }
 
@@ -40,6 +40,7 @@ impl CronJob {
         last_enqueue_map: &mut HashMap<&str, Instant>,
     ) -> Result<()> {
         let last_enqueue = last_enqueue_map.get(self.name);
+        let context = format!("Cron@{}", app_state.versions.git_commit);
 
         if let Some(last_enqueue) = last_enqueue {
             let elapsed = last_enqueue.elapsed();
@@ -49,12 +50,12 @@ impl CronJob {
                     time_since_last_run =? elapsed,
                     "Enqueuing Task"
                 );
-                (self.func)(app_state).await?;
+                (self.func)(app_state, context).await?;
                 last_enqueue_map.insert(self.name, Instant::now());
             }
         } else {
             tracing::info!(task_name = self.name, "Enqueuing Task for first time");
-            (self.func)(app_state).await?;
+            (self.func)(app_state, context).await?;
             last_enqueue_map.insert(self.name, Instant::now());
         }
 

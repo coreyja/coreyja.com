@@ -23,7 +23,7 @@ pub(crate) trait Job:
     }
 
     #[instrument(name = "jobs.enqueue", skip(app_state), fields(job.name = Self::NAME), err)]
-    async fn enqueue(self, app_state: AppState) -> miette::Result<()> {
+    async fn enqueue(self, app_state: AppState, context: String) -> miette::Result<()> {
         sqlx::query!(
             "
         INSERT INTO jobs (job_id, name, payload, priority, run_at, created_at, context)
@@ -34,7 +34,7 @@ pub(crate) trait Job:
             0,
             chrono::Utc::now(),
             chrono::Utc::now(),
-            ""
+            context,
         )
         .execute(&app_state.db)
         .await

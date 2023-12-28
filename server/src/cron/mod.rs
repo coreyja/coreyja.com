@@ -17,12 +17,12 @@ fn one_hour() -> Duration {
 pub(crate) async fn run_cron(app_state: AppState) -> Result<()> {
     let mut registry = CronRegistry::new(app_state);
 
-    registry.register("RefreshSponsors", one_hour(), |app_state| {
-        RefreshSponsors.enqueue(app_state)
+    registry.register("RefreshSponsors", one_hour(), |app_state, context| {
+        RefreshSponsors.enqueue(app_state, context)
     });
 
-    registry.register("RefreshVideos", one_hour(), |app_state| {
-        RefreshVideos.enqueue(app_state)
+    registry.register("RefreshVideos", one_hour(), |app_state, context| {
+        RefreshVideos.enqueue(app_state, context)
     });
 
     registry.run().await
