@@ -26,6 +26,14 @@ struct CronJob {
 }
 
 impl CronJob {
+    #[tracing::instrument(
+        name = "cron_job.tick",
+        skip_all,
+        fields(
+            cron_job.name = self.name, 
+            cron_job.interval = ?self.interval
+        )
+    )]
     async fn tick(
         &self,
         app_state: AppState,
@@ -62,28 +70,38 @@ impl CronRegistry {
         }
     }
 
-    pub fn register(&mut self, name: &'static str, duration: Duration, job: impl CronFn + 'static) {
+    #[tracing::instrument(name = "cron.register", skip_all, fields(cron_job.name = name, cron_job.interval = ?interval))]
+    pub fn register(&mut self, name: &'static str, interval: Duration, job: impl CronFn + 'static) {
         let cron_job = CronJob {
             name,
             func: Box::new(job),
-            interval: duration,
+            interval,
         };
         self.jobs.insert(name, cron_job);
     }
 
     pub async fn run(self) -> Result<()> {
+        let worker_id = uuid::Uuid::new_v4();
         let mut last_enqueue_map: HashMap<&str, Instant> = HashMap::new();
 
         tracing::debug!("Starting cron loop");
         loop {
-            tracing::debug!("Cron Loop Tick");
+            self.tick(&worker_id, &mut last_enqueue_map).await?;
 
-            for (_, job) in self.jobs.iter() {
-                job.tick(self.app_state.clone(), &mut last_enqueue_map)
-                    .await?;
-            }
-
-            sleep(Duration::from_secs(2)).await;
+            sleep(Duration::from_secs(1)).await;
         }
+    }
+
+    #[tracing::instrument(name = "cron.tick", skip_all, fields(cron_worker.id = %worker_id))]
+    async fn tick(
+        &self,
+        worker_id: &uuid::Uuid,
+        last_enqueue_map: &mut HashMap<&str, Instant>,
+    ) -> Result<(), miette::ErrReport> {
+        for (_, job) in self.jobs.iter() {
+            job.tick(self.app_state.clone(), last_enqueue_map).await?;
+        }
+
+        Ok(())
     }
 }
