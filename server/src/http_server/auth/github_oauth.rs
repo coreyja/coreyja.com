@@ -7,6 +7,7 @@ use miette::{Context, IntoDiagnostic};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tower_cookies::Cookies;
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::{encrypt::encrypt, http_server::ResponseResult, AppState};
@@ -51,6 +52,8 @@ pub(crate) async fn github_oauth(
     cookies: Cookies,
 ) -> impl IntoResponse {
     let Some(state) = query.state else {
+        warn!("No state provided in Github Oauth Redirect");
+
         return ResponseResult::Ok(Redirect::temporary("/"));
     };
     let state = sqlx::query!(
