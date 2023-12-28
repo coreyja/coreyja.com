@@ -1,5 +1,8 @@
 use miette::{Diagnostic, IntoDiagnostic, Result};
 use thiserror::Error;
+use tracing::Span;
+
+use crate::state::AppState;
 
 use super::{sponsors::RefreshSponsors, Job};
 
@@ -32,18 +35,20 @@ struct JobFromDB {
 }
 
 #[tracing::instrument(
-    name = "worker.run_next_job",
-    skip(app_state),
+    name = "worker.fetch_next_job",
+    skip(worker_id, app_state),
     fields(
         worker.id = worker_id,
+        job.id,
+        job.name,
     ),
     ret,
     err,
 )]
-pub(crate) async fn run_next_job(
-    app_state: crate::AppState,
+async fn fetch_next_job(
+    app_state: &AppState,
     worker_id: &str,
-) -> Result<RunJobResult> {
+) -> miette::Result<Option<JobFromDB>> {
     let now = chrono::Utc::now();
     let job = sqlx::query_as!(
         JobFromDB,
@@ -66,6 +71,18 @@ pub(crate) async fn run_next_job(
     .fetch_optional(&app_state.db)
     .await
     .into_diagnostic()?;
+
+    if let Some(job) = &job {
+        let span = Span::current();
+        span.record("job.id", job.job_id.to_string());
+        span.record("job.name", &job.name);
+    }
+
+    Ok(job)
+}
+
+pub(crate) async fn run_next_job(app_state: AppState, worker_id: &str) -> Result<RunJobResult> {
+    let job = fetch_next_job(&app_state, worker_id).await?;
 
     let Some(job) = job else {
         return Ok(Ok(RunJobSuccess::NoRunnableJobInQueue));
