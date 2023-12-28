@@ -40,7 +40,7 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
 
     if let Some(e) = response.errors {
         for error in e {
-            tracing::error!(error = ?error, "Error getting sponsors");
+            tracing::error!(error_msg = ?error, "Error getting sponsors");
         }
     }
     let response_body = response
