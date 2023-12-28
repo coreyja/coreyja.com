@@ -3,7 +3,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use db::users::UserFromDB;
-use miette::IntoDiagnostic;
+use miette::{Context, IntoDiagnostic};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tower_cookies::Cookies;
@@ -68,8 +68,14 @@ pub(crate) async fn github_oauth(
         .await
         .into_diagnostic()?;
 
-    let oauth_response: GitHubOAuthResponse =
-        serde_json::from_value(oauth_response).into_diagnostic()?;
+    let oauth_response: GitHubOAuthResponse = serde_json::from_value(oauth_response.clone())
+        .into_diagnostic()
+        .wrap_err_with(|| {
+            format!(
+                "Could not decode this JSON as a GithubOauthResponse: {:?}",
+                &oauth_response
+            )
+        })?;
 
     let user_info = client
         .get("https://api.github.com/user")
