@@ -37,7 +37,7 @@ pub(crate) struct TwitchConfig {
 }
 
 impl TwitchConfig {
-    #[instrument]
+    #[instrument(name = "TwitchConfig::from_env")]
     pub(crate) fn from_env() -> Result<Self> {
         Ok(Self {
             client_id: std::env::var("TWITCH_CLIENT_ID").into_diagnostic()?,

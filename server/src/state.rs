@@ -22,7 +22,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    #[instrument]
+    #[instrument(name = "AppConfig::from_env")]
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             base_url: std::env::var("APP_BASE_URL")
@@ -51,6 +51,7 @@ pub struct VersionInfo {
 }
 
 impl VersionInfo {
+    #[instrument(name = "VersionInfo::from_env")]
     fn from_env() -> Self {
         Self {
             git_commit: env!("VERGEN_GIT_SHA"),
@@ -78,6 +79,7 @@ pub(crate) struct AppState {
 }
 
 impl AppState {
+    #[instrument(name = "AppState::from_env", err)]
     pub async fn from_env() -> Result<Self> {
         let blog_posts = BlogPosts::from_static_dir()?;
         let blog_posts = Arc::new(blog_posts);

@@ -97,8 +97,8 @@ fn setup_tracing() -> Result<()> {
         None
     };
 
-    let heirarchical = {
-        let heirarchical = HierarchicalLayer::default()
+    let hierarchical = {
+        let hierarchical = HierarchicalLayer::default()
             .with_writer(std::io::stdout)
             .with_indent_lines(true)
             .with_indent_amount(2)
@@ -110,11 +110,11 @@ fn setup_tracing() -> Result<()> {
 
         println!("Let's also log to stdout.");
 
-        heirarchical
+        hierarchical
     };
 
     Registry::default()
-        .with(heirarchical)
+        .with(hierarchical)
         .with(opentelemetry_layer)
         .with(env_filter)
         .with(sentry_tracing::layer())

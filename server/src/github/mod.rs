@@ -13,7 +13,7 @@ pub(crate) struct GithubConfig {
 }
 
 impl GithubConfig {
-    #[instrument]
+    #[instrument(name = "GithubConfig::from_env")]
     pub(crate) fn from_env() -> Result<Self> {
         Ok(Self {
             app_id: std::env::var("GITHUB_APP_ID")

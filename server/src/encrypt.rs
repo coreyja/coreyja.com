@@ -8,6 +8,7 @@ pub struct Config {
 }
 
 impl Config {
+    #[tracing::instrument(name = "encrypt::Config::from_env")]
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             secret_key: std::env::var("ENCRYPTION_SECRET_KEY")

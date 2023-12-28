@@ -1,3 +1,17 @@
 {
-  "cSpell.words": ["chrono", "otel", "reqwest", "rustc", "UNNEST", "vergen"]
+  "cSpell.words": [
+    "chrono",
+    "jsonwebtoken",
+    "openai",
+    "opentelemetry",
+    "otel",
+    "otlp",
+    "proto",
+    "reqwest",
+    "rustc",
+    "syntect",
+    "thiserror",
+    "UNNEST",
+    "vergen"
+  ]
 }

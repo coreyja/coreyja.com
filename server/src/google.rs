@@ -11,6 +11,7 @@ pub struct GoogleConfig {
 }
 
 impl GoogleConfig {
+    #[tracing::instrument(name = "GoogleConfig::from_env")]
     pub fn from_env() -> miette::Result<Self> {
         Ok(Self {
             client_id: std::env::var("GOOGLE_CLIENT_ID")
