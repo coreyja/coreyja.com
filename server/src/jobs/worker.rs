@@ -18,10 +18,7 @@ impl std::fmt::Display for JobId {
 pub(super) type RunJobResult = Result<RunJobSuccess, JobError>;
 
 #[derive(Debug)]
-pub(super) enum RunJobSuccess {
-    JobRan(JobFromDB),
-    NoRunnableJobInQueue,
-}
+pub(super) struct RunJobSuccess(JobFromDB);
 
 #[derive(Debug)]
 pub(super) struct JobFromDB {
@@ -78,13 +75,7 @@ impl Worker {
         }
     }
 
-    pub(crate) async fn run_next_job(&self) -> Result<RunJobResult> {
-        let job = self.fetch_next_job().await?;
-
-        let Some(job) = job else {
-            return Ok(Ok(RunJobSuccess::NoRunnableJobInQueue));
-        };
-
+    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> Result<RunJobResult> {
         let job_id = JobId(job.job_id);
         let job_result = self.run_job(&job).await;
 
@@ -117,7 +108,7 @@ impl Worker {
         .await
         .into_diagnostic()?;
 
-        Ok(Ok(RunJobSuccess::JobRan(job)))
+        Ok(Ok(RunJobSuccess(job)))
     }
 
     #[tracing::instrument(
@@ -131,12 +122,11 @@ impl Worker {
         err,
     )]
     async fn fetch_next_job(&self) -> miette::Result<Option<JobFromDB>> {
-        let now = chrono::Utc::now();
         let job = sqlx::query_as!(
             JobFromDB,
             "
             UPDATE jobs
-            SET LOCKED_BY = $1, LOCKED_AT = $2
+            SET LOCKED_BY = $1, LOCKED_AT = NOW()
             WHERE job_id = (
                 SELECT job_id
                 FROM jobs
@@ -148,7 +138,6 @@ impl Worker {
             RETURNING job_id, name, payload, priority, run_at, created_at, context
             ",
             self.id.to_string(),
-            now,
         )
         .fetch_optional(&self.state.db)
         .await
@@ -171,17 +160,22 @@ impl Worker {
         ),
     )]
     async fn tick(&self) -> miette::Result<()> {
-        let result = self.run_next_job().await?;
+        let job = self.fetch_next_job().await?;
+
+        let Some(job) = job else {
+            let duration = std::time::Duration::from_secs(5);
+            tracing::debug!(worker.id =% self.id, ?duration, "No Job to Run, sleeping for requested duration");
+
+            tokio::time::sleep(duration).await;
+
+            return Ok(());
+        };
+
+        let result = self.run_next_job(job).await?;
 
         match result {
-            Ok(RunJobSuccess::JobRan(job)) => {
+            Ok(RunJobSuccess(job)) => {
                 tracing::info!(worker.id =% self.id, job_id =% job.job_id, "Job Ran");
-            }
-            Ok(RunJobSuccess::NoRunnableJobInQueue) => {
-                let duration = std::time::Duration::from_secs(5);
-                tracing::debug!(worker.id =% self.id, ?duration, "No Job to Run, sleeping for requested duration");
-
-                tokio::time::sleep(duration).await;
             }
             Err(job_error) => {
                 sentry::capture_error(&job_error);
