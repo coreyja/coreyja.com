@@ -38,14 +38,12 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
             .await
             .unwrap();
 
-    if let Some(e) = response.errors {
-        for error in e {
-            tracing::error!(error_msg = ?error, "Error getting sponsors");
-        }
-    }
-    let response_body = response
-        .data
-        .ok_or_else(|| miette::miette!("No data was returned in the query for Sponsors"))?;
+    let response_body = response.data.ok_or_else(|| {
+        miette::miette!(
+            "No data was returned in the query for Sponsors: {:?}",
+            &response.errors
+        )
+    })?;
 
     Ok(response_body
         .viewer
