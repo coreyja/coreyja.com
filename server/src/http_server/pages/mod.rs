@@ -1,4 +1,4 @@
-pub mod admin;
+pub mod versions;
 pub mod blog;
 pub mod home;
 pub mod projects;

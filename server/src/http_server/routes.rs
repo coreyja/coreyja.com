@@ -8,7 +8,7 @@ use super::*;
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()
-        .route("/_", get(pages::admin::versions))
+        .route("/_", get(pages::versions::versions))
         .route("/static/*path", get(static_assets))
         .route("/styles/syntax.css", get(|| async move { syntax_css }))
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
