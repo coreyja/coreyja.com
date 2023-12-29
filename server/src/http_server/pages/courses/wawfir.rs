@@ -84,7 +84,10 @@ pub async fn get(access: Option<CourseAccess>) -> Result<impl IntoResponse, Miet
                     }
                 }
             } @else {
-              p class="mb-2" { "You do not have access!" }
+                p class="mb-2" {
+                    "You do not have access. Yet! If you would like pre-release access to this course please "
+                    a href="https://github.com/sponsors/coreyja" { "sponsor my on Github Sponsors"}
+                }
             }
           }
         },
