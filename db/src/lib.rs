@@ -43,3 +43,17 @@ pub async fn setup_db_pool() -> Result<PgPool> {
 
     Ok(pool)
 }
+
+pub struct GithubSponsor {
+    pub github_sponsor_id: uuid::Uuid,
+    pub user_id: Option<uuid::Uuid>,
+    pub sponsor_type: String,
+    pub github_id: String,
+    pub github_login: String,
+    pub sponsored_at: chrono::DateTime<chrono::Utc>,
+    pub is_active: bool,
+    pub is_one_time_payment: bool,
+    pub tier_name: Option<String>,
+    pub amount_cents: Option<i32>,
+    pub privacy_level: String,
+}

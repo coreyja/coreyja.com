@@ -12,6 +12,7 @@
     "syntect",
     "thiserror",
     "UNNEST",
-    "vergen"
+    "vergen",
+    "wawfir"
   ]
 }

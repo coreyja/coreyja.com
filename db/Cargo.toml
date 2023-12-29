@@ -10,3 +10,4 @@ chrono.workspace = true
 miette = { workspace = true }
 sqlx = { workspace = true }
 tracing = { workspace = true }
+uuid = "1.6.1"

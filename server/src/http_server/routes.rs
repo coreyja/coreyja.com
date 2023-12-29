@@ -127,6 +127,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/auth/google/callback", get(admin::auth::google_auth_callback))
         .route("/admin/jobs/refresh_youtube", post(admin::job_routes::refresh_youtube))
         .route("/admin", get(admin::dashboard))
+        .route("/courses/wawfir", get(pages::courses::wawfir::get))
         .fallback(fallback)
 }
 
