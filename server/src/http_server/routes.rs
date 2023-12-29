@@ -128,6 +128,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/jobs/refresh_youtube", post(admin::job_routes::refresh_youtube))
         .route("/admin", get(admin::dashboard))
         .route("/courses/wawfir", get(pages::courses::wawfir::get))
+        .route("/courses/wawfir/chapters/test", get(pages::courses::wawfir::test::get))
         .fallback(fallback)
 }
 

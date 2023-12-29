@@ -8,10 +8,11 @@ use crate::{
     http_server::{
         auth::session::{AdminUser, DBSession},
         errors::MietteError,
-        templates::{base, base_constrained, constrained_width},
+        templates::{base, constrained_width},
     },
     state::AppState,
 };
+pub(crate) mod test;
 
 #[derive(Debug, Clone)]
 pub enum CourseAccess {

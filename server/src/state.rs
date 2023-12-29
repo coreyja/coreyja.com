@@ -76,6 +76,7 @@ pub(crate) struct AppState {
     pub db: PgPool,
     pub cookie_key: DebugIgnore<Key>,
     pub encrypt_config: encrypt::Config,
+    pub mux: MuxConfig,
 }
 
 impl AppState {
@@ -124,8 +125,37 @@ impl AppState {
             db: setup_db_pool().await?,
             cookie_key,
             encrypt_config: encrypt::Config::from_env()?,
+            mux: MuxConfig::from_env()?,
         };
 
         Ok(app_state)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MuxConfig {
+    pub access_token_id: String,
+    pub secret_key: String,
+    pub signing_key_id: String,
+    pub signing_private_key: String,
+}
+
+impl MuxConfig {
+    #[instrument(name = "MuxConfig::from_env")]
+    pub fn from_env() -> Result<Self> {
+        Ok(Self {
+            access_token_id: std::env::var("MUX_ACCESS_TOKEN_ID")
+                .into_diagnostic()
+                .wrap_err("Missing MUX_ACCESS_TOKEN, needed for mux")?,
+            secret_key: std::env::var("MUX_SECRET_KEY")
+                .into_diagnostic()
+                .wrap_err("Missing MUX_SECRET_KEY, needed for mux")?,
+            signing_key_id: std::env::var("MUX_SIGNING_KEY_ID")
+                .into_diagnostic()
+                .wrap_err("Missing MUX_SIGNING_KEY_ID, needed for mux")?,
+            signing_private_key: std::env::var("MUX_SIGNING_PRIVATE_KEY")
+                .into_diagnostic()
+                .wrap_err("Missing MUX_SIGNING_PRIVATE_KEY, needed for mux")?,
+        })
     }
 }
