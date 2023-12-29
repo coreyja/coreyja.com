@@ -44,6 +44,7 @@ pub async fn setup_db_pool() -> Result<PgPool> {
     Ok(pool)
 }
 
+#[derive(Debug, Clone)]
 pub struct GithubSponsor {
     pub github_sponsor_id: uuid::Uuid,
     pub user_id: Option<uuid::Uuid>,

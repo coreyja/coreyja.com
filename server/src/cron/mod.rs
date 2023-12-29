@@ -33,5 +33,6 @@ fn cron_registry() -> CronRegistry {
 pub(crate) async fn run_cron(app_state: AppState) -> Result<()> {
     let worker = worker::Worker::new(app_state, cron_registry());
 
-    worker.run().await
+    // worker.run().await
+    Ok(())
 }
