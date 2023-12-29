@@ -56,10 +56,8 @@ pub(crate) async fn dashboard(
             }
 
             h3 class="py-2 text-lg" { "Google Auth Status" }
-            @if let Some(google_user) = google_user {
-                p { "Local Google User ID: " (google_user.google_user_id) }
-                p { "Google Email: " (google_user.external_google_email) }
-                p { "External Google ID: " (google_user.external_google_id) }
+            @if google_user.is_some() {
+                p { "Google Auth Complete!" }
 
                 h5 class="py-2 text-lg" { "Youtube Videos" }
                 @if let Some(job) = youtube_refresh_job {
