@@ -76,7 +76,6 @@ impl Worker {
     }
 
     pub(crate) async fn run_next_job(&self, job: JobFromDB) -> Result<RunJobResult> {
-        let job_id = JobId(job.job_id);
         let job_result = self.run_job(&job).await;
 
         if let Err(e) = job_result {
