@@ -16,15 +16,6 @@ path = "src/main.rs"
 name = "gen_app_keys"
 path = "src/generate_app_keys.rs"
 
-[[bin]]
-name = "local"
-path = "src/local.rs"
-required-features = ["local"]
-
-[[bin]]
-name = "local_template"
-path = "src/local_TEMPLATE.rs"
-
 [features]
 local = []
 

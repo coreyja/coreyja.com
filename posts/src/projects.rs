@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs::read_to_string};
+use std::fmt::Display;
 
 use include_dir::{include_dir, Dir};
 use miette::{Context, Diagnostic, IntoDiagnostic, Result};

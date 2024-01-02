@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use axum::{extract::Query, Json};
+use jsonwebtoken::{Algorithm, Validation};
 use posts::blog::BlogPosts;
 use serde_json::json;
 
@@ -76,7 +77,6 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                         "#,
                         uuid::Uuid::new_v4(),
                         from_app,
-                        "created"
                     ).fetch_one(&app_state.db).await.into_diagnostic()?;
 
                     ResponseResult::Ok(Redirect::temporary(&format!(
