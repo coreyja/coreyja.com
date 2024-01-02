@@ -268,15 +268,16 @@ pub(crate) async fn github_oauth(
 
     let projects = app_state.projects.clone();
     let project = projects.projects.iter().find(|p| p.slug().unwrap() == app);
+    let Some(project) = project else {
+        return Err(miette::miette!("No project found for {}", app).into());
+    };
 
-    if let Some(project) = project {
-        if let Some(login_callback) = &project.frontmatter.login_callback {
-            return ResponseResult::Ok(Redirect::temporary(&format!(
-                "{}?state={}",
-                login_callback, state.github_login_state_id
-            )));
-        }
-    }
+    let Some(login_callback) = &project.frontmatter.login_callback else {
+        return Err(miette::miette!("No login_callback found for {}", app).into());
+    };
 
-    ResponseResult::Ok(Redirect::temporary("/"))
+    ResponseResult::Ok(Redirect::temporary(&format!(
+        "{}?state={}",
+        login_callback, state.github_login_state_id
+    )))
 }

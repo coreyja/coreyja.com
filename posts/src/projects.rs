@@ -135,10 +135,14 @@ impl Project {
         let metadata: FrontMatter = ast.frontmatter()?;
         let path = file.path().to_owned();
 
-        let pub_key_path = path.with_extension("pub.pem");
+        let mut pub_key_path = file.path().to_owned();
+        pub_key_path = pub_key_path.with_extension("");
+        pub_key_path.push("testing.pub.pem");
+
+        let pub_key_path = &pub_key_path;
         // THIS IS A HACK!
         // it will only work from static but thats the only way i use it
-        let pub_key_file = PROJECTS_DIR.get_file(&pub_key_path);
+        let pub_key_file = PROJECTS_DIR.get_file(pub_key_path);
         let pub_key = pub_key_file.map(|f| f.contents_utf8().unwrap().to_string());
 
         Ok(Self {

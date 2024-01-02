@@ -112,21 +112,28 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
                         FROM GithubLoginStates
                         JOIN GithubLinks using (github_link_id)
                         JOIN Users using (user_id)
-                        WHERE github_login_state_id = $1 and state = 'github_completed'
+                        WHERE github_login_state_id = $1
                         "#,
                         github_login_state_id
                     ).fetch_one(&app_state.db).await.into_diagnostic()?;
 
-                    assert_eq!(state.state, "github_completed");
+                    if state.state == "claimed" {
+                        return Err(miette::miette!("This Login has already been claimed").into());
+                    }
+
+                    if state.state != "github_completed" {
+                        return Err(miette::miette!("This login is not in the correct state").into());
+                    }
+
+                    debug_assert_eq!(state.state, "github_completed");
 
                     sqlx::query!(
                         r#"
                         UPDATE GithubLoginStates
-                        SET state = $1
-                        WHERE github_login_state_id = $2
+                        SET state = 'claimed'
+                        WHERE github_login_state_id = $1
                         RETURNING *
                         "#,
-                        "claimed",
                         github_login_state_id
                     ).fetch_one(&app_state.db).await.into_diagnostic()?;
 
