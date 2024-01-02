@@ -8,24 +8,23 @@ use posts::{
 };
 use rand::rngs::ThreadRng;
 use rsa::pkcs8::{EncodePrivateKey, EncodePublicKey};
+use tokio::fs::create_dir_all;
 
-fn generate_keys_for_project(project: &Post<FrontMatterWithKey>, fly_app_name: &str) -> Result<()> {
+fn generate_keys_for_project(
+    rng: &mut ThreadRng,
+    project: &Post<FrontMatterWithKey>,
+    fly_app_name: &str,
+) -> Result<()> {
     let project_slug = project.slug().unwrap();
     println!(
         "Creating public/private key pair for {}",
         project.frontmatter.title
     );
 
-    let mut rng = rand::thread_rng();
-    let (private_pem, public_pem) = gen_keys(&mut rng)?;
-
-    let mut public_key_file = File::create(format!("projects/{}.pub.pem", project_slug)).unwrap();
-    public_key_file
-        .write_all(public_pem.as_bytes())
-        .into_diagnostic()?;
+    let (private_pem, public_pem) = gen_keys(rng)?;
 
     let mut public_key_file =
-        File::create(format!("projects/{}.testing.pub.pem", project_slug)).unwrap();
+        File::create(format!("projects/{}/key.pub.pem", project_slug)).unwrap();
     public_key_file
         .write_all(public_pem.as_bytes())
         .into_diagnostic()?;
@@ -41,20 +40,22 @@ fn generate_keys_for_project(project: &Post<FrontMatterWithKey>, fly_app_name: &
     Ok(())
 }
 
-fn generate_testing_keys_for_project(project: &Post<FrontMatterWithKey>) -> Result<()> {
+fn generate_testing_keys_for_project(
+    rng: &mut ThreadRng,
+    project: &Post<FrontMatterWithKey>,
+) -> Result<()> {
     let project_slug = project.slug().unwrap();
 
-    let mut rng = rand::thread_rng();
-    let (testing_private_pem, testing_public_pem) = gen_keys(&mut rng)?;
+    let (testing_private_pem, testing_public_pem) = gen_keys(rng)?;
 
     let mut testing_public_key_file =
-        File::create(format!("projects/{}.testing.pub.pem", project_slug)).unwrap();
+        File::create(format!("projects/{}/testing.pub.pem", project_slug)).unwrap();
     testing_public_key_file
         .write_all(testing_public_pem.as_bytes())
         .into_diagnostic()?;
 
     let mut testing_private_key_file =
-        File::create(format!("projects/{}.testing.private.pem", project_slug)).unwrap();
+        File::create(format!("projects/{}/testing.private.pem", project_slug)).unwrap();
     testing_private_key_file
         .write_all(testing_private_pem.as_bytes())
         .into_diagnostic()?;
@@ -81,9 +82,14 @@ async fn main() -> Result<()> {
         std::process::exit(1);
     };
 
-    generate_keys_for_project(project, &fly_app_name)?;
+    create_dir_all(format!("projects/{project_slug}"))
+        .await
+        .into_diagnostic()?;
 
-    generate_testing_keys_for_project(project)?;
+    let mut rng = rand::thread_rng();
+    generate_keys_for_project(&mut rng, project, &fly_app_name)?;
+
+    generate_testing_keys_for_project(&mut rng, project)?;
 
     Ok(())
 }
