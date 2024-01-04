@@ -26,7 +26,7 @@ use crate::{
     AppConfig, AppState,
 };
 
-use self::md::SyntaxHighlightingContext;
+use self::md::{FindCoverPhoto, SyntaxHighlightingContext};
 
 pub(crate) mod md;
 
@@ -168,6 +168,9 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
+
+    let cover_photo = markdown.ast.0.cover_photo();
+
     let html = match markdown
         .ast
         .into_html(&state.app, &state.markdown_to_html_context)
@@ -179,6 +182,14 @@ pub(crate) async fn post_get(
 
             return Err(miette_error.1);
         }
+    };
+
+    let image_defaulted_open_graph = match cover_photo {
+        Some(cover_photo) => OpenGraph {
+            image: Some(cover_photo),
+            ..Default::default()
+        },
+        None => Default::default(),
     };
 
     Ok(base_constrained(
@@ -194,7 +205,7 @@ pub(crate) async fn post_get(
             title: markdown.title,
             r#type: "article".to_string(),
             description: post.short_description(),
-            ..Default::default()
+            ..image_defaulted_open_graph
         },
     )
     .into_response())
