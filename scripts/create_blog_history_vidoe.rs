@@ -4,10 +4,13 @@
 //! [dependencies]
 //! git2 = { version = "0.18.1" }
 //! miette = { version = "5.9.0", features = ["fancy"] }
+//! glob = "0.3"
 //! ```
 
 use git2::{Error, Repository};
+use glob::glob;
 use miette::IntoDiagnostic;
+use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -50,18 +53,29 @@ fn main() -> miette::Result<()> {
         }
     }
 
+    let frame_glob = format!("{out_dir}/image_version_*.png");
+
     Command::new("ffmpeg")
         .arg("-framerate")
-        .arg("16")
+        .arg("8")
         .arg("-pattern_type")
         .arg("glob")
         .arg("-i")
-        .arg(format!("{out_dir}/image_version_*.png"))
+        .arg(&frame_glob)
         .arg(format!("{out_dir}/video.mp4"))
         .spawn()
         .into_diagnostic()?
         .wait()
         .into_diagnostic()?;
+
+    for entry in glob(&frame_glob).into_diagnostic()? {
+        match entry {
+            Ok(path) => {
+                fs::remove_file(path).into_diagnostic()?;
+            }
+            Err(e) => println!("Error reading file: {:?}", e),
+        }
+    }
 
     Ok(())
 }
