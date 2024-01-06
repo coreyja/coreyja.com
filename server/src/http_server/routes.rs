@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
-use axum::{extract::Query, Json};
-use jsonwebtoken::{Algorithm, Validation};
 use posts::blog::BlogPosts;
-use serde_json::json;
 
 use super::*;
 
@@ -42,122 +37,18 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/year/*year", get(redirect_to_posts_index))
         .route("/newsletter", get(newsletter_get))
         .route("/auth/github", get(auth::github_oauth::github_oauth))
-        .route(
-            "/login",
-            get(|State(app_state): State<AppState>, Query(queries): Query<HashMap<String, String>>| async move {
-                let state = sqlx::query!(
-                    r#"
-                    INSERT INTO GithubLoginStates (github_login_state_id, state, return_to)
-                    VALUES ($1, $2, $3)
-                    RETURNING *
-                    "#,
-                    uuid::Uuid::new_v4(),
-                    "created",
-                    queries.get("return_to"),
-
-                ).fetch_one(&app_state.db).await.into_diagnostic()?;
-
-                miette::Result::<Redirect, MietteError>::Ok(Redirect::temporary(&format!(
-                    "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
-                    app_state.github.client_id,
-                    app_state.app.app_url("/auth/github"),
-                    state.github_login_state_id
-                )))
-            }),
-        )
-        .route(
-            "/login/:from_app",
-            get(
-                |State(app_state): State<AppState>, Path(from_app): Path<String>| async move {
-                    let state = sqlx::query!(
-                        r#"
-                        INSERT INTO GithubLoginStates (github_login_state_id, app, state)
-                        VALUES ($1, $2, 'created')
-                        RETURNING *
-                        "#,
-                        uuid::Uuid::new_v4(),
-                        from_app,
-                    ).fetch_one(&app_state.db).await.into_diagnostic()?;
-
-                    ResponseResult::Ok(Redirect::temporary(&format!(
-                        "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
-                        app_state.github.client_id,
-                        app_state.app.app_url("/auth/github"),
-                        state.github_login_state_id
-                    )))
-                },
-            ),
-        )
-        .route(
-            "/login/:project_slug/claim",
-            post(
-                |State(app_state): State<AppState>, Path(project_slug): Path<String>, Json(body): Json<ClaimBody>| async move {
-                    let projects = app_state.projects.clone();
-                    let project = projects.projects.iter().find(|p| p.slug().unwrap() == project_slug).unwrap();
-                    let auth_public_key = project.frontmatter.auth_public_key.as_ref().unwrap();
-
-                    let jwt = body.jwt;
-                    let jwt = jsonwebtoken::decode::<JWTClaim>(
-                        &jwt,
-                        &jsonwebtoken::DecodingKey::from_rsa_pem(
-                            auth_public_key.as_bytes(),
-                        ).unwrap(),
-                        &Validation::new(Algorithm::RS256),
-                    ).unwrap();
-
-                    let github_login_state_id = jwt.claims.sub.parse::<uuid::Uuid>().unwrap();
-                    let state = sqlx::query!(
-                        r#"
-                        SELECT state, Users.user_id
-                        FROM GithubLoginStates
-                        JOIN GithubLinks using (github_link_id)
-                        JOIN Users using (user_id)
-                        WHERE github_login_state_id = $1
-                        "#,
-                        github_login_state_id
-                    ).fetch_one(&app_state.db).await.into_diagnostic()?;
-
-                    if state.state == "claimed" {
-                        return Err(miette::miette!("This Login has already been claimed").into());
-                    }
-
-                    if state.state != "github_completed" {
-                        return Err(miette::miette!("This login is not in the correct state").into());
-                    }
-
-                    debug_assert_eq!(state.state, "github_completed");
-
-                    sqlx::query!(
-                        r#"
-                        UPDATE GithubLoginStates
-                        SET state = 'claimed'
-                        WHERE github_login_state_id = $1
-                        RETURNING *
-                        "#,
-                        github_login_state_id
-                    ).fetch_one(&app_state.db).await.into_diagnostic()?;
-
-                    ResponseResult::Ok(Json(json!({
-                        "user_id": state.user_id,
-                    })))
-                },
-            ),
-        )
+        .nest("/login", pages::login::routes())
         .route("/admin/auth/google", get(admin::auth::google_auth))
-        .route("/admin/auth/google/callback", get(admin::auth::google_auth_callback))
-        .route("/admin/jobs/refresh_youtube", post(admin::job_routes::refresh_youtube))
+        .route(
+            "/admin/auth/google/callback",
+            get(admin::auth::google_auth_callback),
+        )
+        .route(
+            "/admin/jobs/refresh_youtube",
+            post(admin::job_routes::refresh_youtube),
+        )
         .route("/admin", get(admin::dashboard))
         .fallback(fallback)
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct ClaimBody {
-    jwt: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct JWTClaim {
-    sub: String,
 }
 
 async fn redirect_to_posts_index() -> impl IntoResponse {

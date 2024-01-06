@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        INSERT INTO GithubLoginStates (github_login_state_id, app, state)\n                        VALUES ($1, $2, 'created')\n                        RETURNING *\n                        ",
+  "query": "\n       UPDATE GithubLoginStates\n       SET state = 'claimed'\n       WHERE github_login_state_id = $1\n       RETURNING *\n       ",
   "describe": {
     "columns": [
       {
@@ -36,8 +36,7 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -49,5 +48,5 @@
       true
     ]
   },
-  "hash": "7a9a0f5dd0e76d44166b22ce50b923558a5de87ed2b5ebabe6233a997bcdede4"
+  "hash": "b6f5c5508b22561d17f2d7b71404985e90a9b0be9c6d67bbbc48d031d2e2ad95"
 }
