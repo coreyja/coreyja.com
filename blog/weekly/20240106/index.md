@@ -24,7 +24,7 @@ If anyone reading this is looking to make a podcast and doesn't know where to st
 `caje` was one of the most comprehensive projects we tackled this year!
 It all started with a comment on an existing video, asking about making a CDN in Rust.
 
-[https://www.youtube.com/playlist?list=PL0FtqJaYsqZ2v0FezJa15ynwBpo7KE8Xa]
+[YouTube Playlist](https://www.youtube.com/playlist?list=PL0FtqJaYsqZ2v0FezJa15ynwBpo7KE8Xa)
 
 And from there we made _eight_ full length streams where we build up `caje` from scratch in Rust!
 
