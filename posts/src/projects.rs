@@ -37,7 +37,7 @@ impl Display for ProjectStatus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub struct FrontMatter {
+struct FrontMatter {
     pub title: String,
     pub subtitle: Option<String>,
     pub repo: String,
@@ -62,7 +62,7 @@ pub struct FrontMatterWithKey {
 }
 
 impl FrontMatterWithKey {
-    pub fn from_frontmatter(frontmatter: FrontMatter, pub_key: Option<String>) -> Self {
+    pub(self) fn from_frontmatter(frontmatter: FrontMatter, pub_key: Option<String>) -> Self {
         Self {
             title: frontmatter.title,
             subtitle: frontmatter.subtitle,
