@@ -52,7 +52,7 @@ const colors = {
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./server/**/*.{rs,html}"],
+  content: ["./**/*.{rs,html,md}"],
   theme: {
     fontSize: {
       sm: '0.8rem',
