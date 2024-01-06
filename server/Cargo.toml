@@ -18,6 +18,7 @@ path = "src/generate_app_keys.rs"
 
 [features]
 local = []
+test_auth = []
 
 [dependencies]
 async-trait = "0.1.60"
@@ -30,7 +31,7 @@ indoc = "2.0"
 markdown = { workspace = true }
 maud = { version = "0.25.0", features = [
   "axum",
-], git = "https://github.com/vidhanio/maud", rev = "fb77d399d001a345f3a369eb2c7a12da243376a6" }
+], git = "https://github.com/lambda-fairy/maud", rev = "320add87a12d8e5be115de9e0fe3f4b331512a4a" }
 miette = { workspace = true }
 mime_guess = "2.0"
 opentelemetry = { workspace = true }

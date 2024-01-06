@@ -137,6 +137,11 @@ impl Project {
 
         let mut pub_key_path = file.path().to_owned();
         pub_key_path = pub_key_path.with_extension("");
+
+        #[cfg(not(feature = "test_auth"))]
+        pub_key_path.push("key.pub.pem");
+
+        #[cfg(feature = "test_auth")]
         pub_key_path.push("testing.pub.pem");
 
         let pub_key_path = &pub_key_path;
