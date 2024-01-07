@@ -12,7 +12,7 @@ use serde_json::json;
 
 use crate::{http_server::ResponseResult, state::AppState};
 
-pub fn routes() -> axum::Router<AppState> {
+pub(crate) fn routes() -> axum::Router<AppState> {
     axum::Router::new()
         .route("/", get(login))
         .route("/{app_slug}", get(app_login).post(app_claim))
