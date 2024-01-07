@@ -4,6 +4,8 @@ use tracing::Span;
 
 use crate::app_state::AppState as AS;
 
+use super::registry::JobRegistry;
+
 #[derive(Debug, Clone)]
 pub struct JobId(uuid::Uuid);
 
@@ -19,30 +21,32 @@ pub(super) type RunJobResult = Result<RunJobSuccess, JobError>;
 pub(super) struct RunJobSuccess(JobFromDB);
 
 #[derive(Debug)]
-pub(super) struct JobFromDB {
-    job_id: uuid::Uuid,
-    name: String,
-    payload: serde_json::Value,
-    priority: i32,
-    run_at: chrono::DateTime<chrono::Utc>,
-    created_at: chrono::DateTime<chrono::Utc>,
-    context: String,
+pub struct JobFromDB {
+    pub job_id: uuid::Uuid,
+    pub name: String,
+    pub payload: serde_json::Value,
+    pub priority: i32,
+    pub run_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub context: String,
 }
 
 #[derive(Debug, Error)]
 #[error("JobError(id:${}) ${1}", self.0.job_id)]
 pub(crate) struct JobError(JobFromDB, miette::Report);
 
-struct Worker<AppState: AS> {
+struct Worker<AppState: AS, R: JobRegistry<AppState>> {
     id: uuid::Uuid,
     state: AppState,
+    registry: R,
 }
 
-impl<AppState: AS> Worker<AppState> {
-    fn new(state: AppState) -> Self {
+impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
+    fn new(state: AppState, registry: R) -> Self {
         Self {
             id: uuid::Uuid::new_v4(),
             state,
+            registry,
         }
     }
 
@@ -61,17 +65,8 @@ impl<AppState: AS> Worker<AppState> {
         err,
     )]
     async fn run_job(&self, job: &JobFromDB) -> miette::Result<()> {
-        todo!("I need to figure out how jobs will work I guess lol")
-        // let payload = job.payload.clone();
-
-        // match job.name.as_str() {
-        //     "RefreshSponsors" => RefreshSponsors::run_from_value(payload, self.state.clone()).await,
-        //     "RefreshVideos" => {
-        //         super::youtube_videos::RefreshVideos::run_from_value(payload, self.state.clone())
-        //             .await
-        //     }
-        //     _ => Err(miette::miette!("Unknown job type: {}", job.name)),
-        // }
+        // todo!("I need to figure out how jobs will work I guess lol");
+        self.registry.run_job(job, self.state.clone()).await
     }
 
     pub(crate) async fn run_next_job(&self, job: JobFromDB) -> miette::Result<RunJobResult> {
@@ -189,8 +184,11 @@ impl<AppState: AS> Worker<AppState> {
     }
 }
 
-pub async fn job_worker<AppState: AS>(app_state: AppState) -> miette::Result<()> {
-    let worker = Worker::new(app_state);
+pub async fn job_worker<AppState: AS>(
+    app_state: AppState,
+    registry: impl JobRegistry<AppState>,
+) -> miette::Result<()> {
+    let worker = Worker::new(app_state, registry);
 
     loop {
         worker.tick().await?;

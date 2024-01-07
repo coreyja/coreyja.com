@@ -3,15 +3,17 @@ use miette::{IntoDiagnostic, Result};
 use tokio::task::JoinError;
 use tracing::info;
 
-use crate::{cron::run_cron, http_server::run_axum, AppState};
+use crate::{cron::run_cron, http_server::run_axum, jobs::Jobs, AppState};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_state = AppState::from_env().await?;
 
+    let job_registry = Jobs;
+
     info!("Spawning Tasks");
     let futures = vec![
         tokio::spawn(run_axum(app_state.clone())),
-        tokio::spawn(job_worker(app_state.clone())),
+        tokio::spawn(job_worker(app_state.clone(), job_registry)),
         tokio::spawn(run_cron(app_state.clone())),
     ];
     info!("Tasks Spawned");

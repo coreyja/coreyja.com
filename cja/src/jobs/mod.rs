@@ -4,8 +4,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::instrument;
 
-// pub mod sponsors;
-// pub mod youtube_videos;
+pub mod registry;
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum EnqueueError {
