@@ -1,10 +1,8 @@
-use miette::{Diagnostic, IntoDiagnostic, Result};
+use miette::IntoDiagnostic;
 use thiserror::Error;
 use tracing::Span;
 
-use crate::state::AppState;
-
-use super::{sponsors::RefreshSponsors, Job};
+use crate::app_state::AppState as AS;
 
 #[derive(Debug, Clone)]
 pub struct JobId(uuid::Uuid);
@@ -31,16 +29,16 @@ pub(super) struct JobFromDB {
     context: String,
 }
 
-#[derive(Debug, Diagnostic, Error)]
+#[derive(Debug, Error)]
 #[error("JobError(id:${}) ${1}", self.0.job_id)]
 pub(crate) struct JobError(JobFromDB, miette::Report);
 
-struct Worker {
+struct Worker<AppState: AS> {
     id: uuid::Uuid,
     state: AppState,
 }
 
-impl Worker {
+impl<AppState: AS> Worker<AppState> {
     fn new(state: AppState) -> Self {
         Self {
             id: uuid::Uuid::new_v4(),
@@ -62,20 +60,21 @@ impl Worker {
         )
         err,
     )]
-    async fn run_job(&self, job: &JobFromDB) -> Result<()> {
-        let payload = job.payload.clone();
+    async fn run_job(&self, job: &JobFromDB) -> miette::Result<()> {
+        todo!("I need to figure out how jobs will work I guess lol")
+        // let payload = job.payload.clone();
 
-        match job.name.as_str() {
-            "RefreshSponsors" => RefreshSponsors::run_from_value(payload, self.state.clone()).await,
-            "RefreshVideos" => {
-                super::youtube_videos::RefreshVideos::run_from_value(payload, self.state.clone())
-                    .await
-            }
-            _ => Err(miette::miette!("Unknown job type: {}", job.name)),
-        }
+        // match job.name.as_str() {
+        //     "RefreshSponsors" => RefreshSponsors::run_from_value(payload, self.state.clone()).await,
+        //     "RefreshVideos" => {
+        //         super::youtube_videos::RefreshVideos::run_from_value(payload, self.state.clone())
+        //             .await
+        //     }
+        //     _ => Err(miette::miette!("Unknown job type: {}", job.name)),
+        // }
     }
 
-    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> Result<RunJobResult> {
+    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> miette::Result<RunJobResult> {
         let job_result = self.run_job(&job).await;
 
         if let Err(e) = job_result {
@@ -88,7 +87,7 @@ impl Worker {
                 job.job_id,
                 self.id.to_string()
             )
-            .execute(&self.state.db)
+            .execute(&self.state.db())
             .await
             .into_diagnostic()?;
 
@@ -103,7 +102,7 @@ impl Worker {
             job.job_id,
             self.id.to_string()
         )
-        .execute(&self.state.db)
+        .execute(&self.state.db())
         .await
         .into_diagnostic()?;
 
@@ -138,7 +137,7 @@ impl Worker {
             ",
             self.id.to_string(),
         )
-        .fetch_optional(&self.state.db)
+        .fetch_optional(&self.state.db())
         .await
         .into_diagnostic()?;
 
@@ -177,7 +176,6 @@ impl Worker {
                 tracing::info!(worker.id =% self.id, job_id =% job.job_id, "Job Ran");
             }
             Err(job_error) => {
-                sentry::capture_error(&job_error);
                 tracing::error!(
                     worker.id =% self.id,
                     job_id =% job_error.0.job_id,
@@ -191,7 +189,7 @@ impl Worker {
     }
 }
 
-pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
+pub(crate) async fn job_worker<AppState: AS>(app_state: AppState) -> miette::Result<()> {
     let worker = Worker::new(app_state);
 
     loop {

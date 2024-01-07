@@ -1,14 +1,22 @@
+use crate::app_state::AppState as AS;
+use miette::{Diagnostic, IntoDiagnostic};
 use serde::{de::DeserializeOwned, Serialize};
+use thiserror::Error;
 use tracing::instrument;
 
-use crate::AppState;
-use miette::IntoDiagnostic;
+// pub mod sponsors;
+// pub mod youtube_videos;
 
-pub mod sponsors;
-pub mod youtube_videos;
+#[derive(Debug, Error, Diagnostic)]
+enum EnqueueError {
+    #[error("SqlxError: {0}")]
+    SqlxError(#[from] sqlx::Error),
+    #[error("SerdeJsonError: {0}")]
+    SerdeJsonError(#[from] serde_json::Error),
+}
 
 #[async_trait::async_trait]
-pub(crate) trait Job:
+pub(crate) trait Job<AppState: AS>:
     Serialize + DeserializeOwned + Send + Sync + std::fmt::Debug + Clone + 'static
 {
     const NAME: &'static str;
@@ -23,22 +31,21 @@ pub(crate) trait Job:
     }
 
     #[instrument(name = "jobs.enqueue", skip(app_state), fields(job.name = Self::NAME), err)]
-    async fn enqueue(self, app_state: AppState, context: String) -> miette::Result<()> {
+    async fn enqueue(self, app_state: AppState, context: String) -> Result<(), EnqueueError> {
         sqlx::query!(
             "
         INSERT INTO jobs (job_id, name, payload, priority, run_at, created_at, context)
         VALUES ($1, $2, $3, $4, $5, $6, $7)",
             uuid::Uuid::new_v4(),
             Self::NAME,
-            serde_json::to_value(self).into_diagnostic()?,
+            serde_json::to_value(self)?,
             0,
             chrono::Utc::now(),
             chrono::Utc::now(),
             context,
         )
-        .execute(&app_state.db)
-        .await
-        .into_diagnostic()?;
+        .execute(&app_state.db())
+        .await?;
 
         Ok(())
     }
