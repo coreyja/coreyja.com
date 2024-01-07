@@ -42,13 +42,6 @@ pub struct CronJob<AppState: AS> {
     interval: Duration,
 }
 
-trait CronJobTrait<AppState: AS, Error: Diagnostic> {
-    fn run(
-        &self,
-        app_state: AppState,
-    ) -> Result<(), TickError>;
-}
-
 #[derive(Debug, thiserror::Error, Diagnostic)]
 #[error("TickError: {0}")]
 pub enum TickError {
