@@ -43,7 +43,7 @@ pub trait Job<AppState: AS>:
             chrono::Utc::now(),
             context,
         )
-        .execute(&app_state.db())
+        .execute(app_state.db())
         .await?;
 
         Ok(())

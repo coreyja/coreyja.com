@@ -81,7 +81,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
                 job.job_id,
                 self.id.to_string()
             )
-            .execute(&self.state.db())
+            .execute(self.state.db())
             .await
             .into_diagnostic()?;
 
@@ -96,7 +96,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
             job.job_id,
             self.id.to_string()
         )
-        .execute(&self.state.db())
+        .execute(self.state.db())
         .await
         .into_diagnostic()?;
 
@@ -131,7 +131,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
             ",
             self.id.to_string(),
         )
-        .fetch_optional(&self.state.db())
+        .fetch_optional(self.state.db())
         .await
         .into_diagnostic()?;
 
