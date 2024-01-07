@@ -3462,7 +3462,7 @@ checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 [[package]]
 name = "maud"
 version = "0.25.0"
-source = "git+https://github.com/vidhanio/maud?rev=fb77d399d001a345f3a369eb2c7a12da243376a6#fb77d399d001a345f3a369eb2c7a12da243376a6"
+source = "git+https://github.com/lambda-fairy/maud?rev=320add87a12d8e5be115de9e0fe3f4b331512a4a#320add87a12d8e5be115de9e0fe3f4b331512a4a"
 dependencies = [
  "axum-core 0.4.0",
  "http 1.0.0",
@@ -3473,7 +3473,7 @@ dependencies = [
 [[package]]
 name = "maud_macros"
 version = "0.25.0"
-source = "git+https://github.com/vidhanio/maud?rev=fb77d399d001a345f3a369eb2c7a12da243376a6#fb77d399d001a345f3a369eb2c7a12da243376a6"
+source = "git+https://github.com/lambda-fairy/maud?rev=320add87a12d8e5be115de9e0fe3f4b331512a4a#320add87a12d8e5be115de9e0fe3f4b331512a4a"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -5172,7 +5172,9 @@ dependencies = [
  "opentelemetry-otlp",
  "path-absolutize",
  "posts",
+ "rand 0.8.5",
  "reqwest",
+ "rsa",
  "rss",
  "sentry",
  "sentry-tower",

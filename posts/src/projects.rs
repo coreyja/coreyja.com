@@ -37,7 +37,7 @@ impl Display for ProjectStatus {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub struct FrontMatter {
+struct FrontMatter {
     pub title: String,
     pub subtitle: Option<String>,
     pub repo: String,
@@ -45,9 +45,39 @@ pub struct FrontMatter {
     pub parent_project: Option<String>,
     pub status: ProjectStatus,
     pub login_callback: Option<String>,
+    pub fly_app_name: Option<String>,
 }
 
-pub type Project = Post<FrontMatter>;
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct FrontMatterWithKey {
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub repo: String,
+    pub youtube_playlist: Option<String>,
+    pub parent_project: Option<String>,
+    pub status: ProjectStatus,
+    pub login_callback: Option<String>,
+    pub fly_app_name: Option<String>,
+    pub auth_public_key: Option<String>,
+}
+
+impl FrontMatterWithKey {
+    pub(self) fn from_frontmatter(frontmatter: FrontMatter, pub_key: Option<String>) -> Self {
+        Self {
+            title: frontmatter.title,
+            subtitle: frontmatter.subtitle,
+            repo: frontmatter.repo,
+            youtube_playlist: frontmatter.youtube_playlist,
+            parent_project: frontmatter.parent_project,
+            status: frontmatter.status,
+            login_callback: frontmatter.login_callback,
+            fly_app_name: frontmatter.fly_app_name,
+            auth_public_key: pub_key,
+        }
+    }
+}
+
+pub type Project = Post<FrontMatterWithKey>;
 
 impl Projects {
     pub fn from_static_dir() -> Result<Self> {
@@ -105,10 +135,25 @@ impl Project {
         let metadata: FrontMatter = ast.frontmatter()?;
         let path = file.path().to_owned();
 
+        let mut pub_key_path = file.path().to_owned();
+        pub_key_path = pub_key_path.with_extension("");
+
+        #[cfg(not(feature = "test_auth"))]
+        pub_key_path.push("key.pub.pem");
+
+        #[cfg(feature = "test_auth")]
+        pub_key_path.push("testing.pub.pem");
+
+        let pub_key_path = &pub_key_path;
+        // THIS IS A HACK!
+        // it will only work from static but thats the only way i use it
+        let pub_key_file = PROJECTS_DIR.get_file(pub_key_path);
+        let pub_key = pub_key_file.map(|f| f.contents_utf8().unwrap().to_string());
+
         Ok(Self {
             ast,
             path,
-            frontmatter: metadata,
+            frontmatter: FrontMatterWithKey::from_frontmatter(metadata, pub_key),
         })
     }
 

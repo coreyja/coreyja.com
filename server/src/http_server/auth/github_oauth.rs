@@ -120,9 +120,9 @@ pub(crate) async fn github_oauth(
         SELECT Users.*, GithubLinks.github_link_id
         FROM Users
         JOIN GithubLinks USING (user_id)
-        WHERE GithubLinks.external_github_login = $1
+        WHERE GithubLinks.external_github_id = $1
         "#,
-            github_user.login()
+            github_user.id()
         )
         .fetch_optional(pool)
         .await
@@ -250,7 +250,7 @@ pub(crate) async fn github_oauth(
         r#"
         UPDATE GithubLoginStates
         SET state = $1, github_link_id = $2
-        WHERE github_login_state_id = $3
+        WHERE github_login_state_id = $3 AND state = 'created'
         RETURNING *
         "#,
         "github_completed",
@@ -268,15 +268,16 @@ pub(crate) async fn github_oauth(
 
     let projects = app_state.projects.clone();
     let project = projects.projects.iter().find(|p| p.slug().unwrap() == app);
+    let Some(project) = project else {
+        return Err(miette::miette!("No project found for {}", app).into());
+    };
 
-    if let Some(project) = project {
-        if let Some(login_callback) = &project.frontmatter.login_callback {
-            return ResponseResult::Ok(Redirect::temporary(&format!(
-                "{}?state={}",
-                login_callback, state.github_login_state_id
-            )));
-        }
-    }
+    let Some(login_callback) = &project.frontmatter.login_callback else {
+        return Err(miette::miette!("No login_callback found for {}", app).into());
+    };
 
-    ResponseResult::Ok(Redirect::temporary("/"))
+    ResponseResult::Ok(Redirect::temporary(&format!(
+        "{}?state={}",
+        login_callback, state.github_login_state_id
+    )))
 }

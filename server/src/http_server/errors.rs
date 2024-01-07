@@ -10,6 +10,7 @@ pub struct MietteError(pub(crate) miette::Report, pub(crate) StatusCode);
 impl IntoResponse for MietteError {
     fn into_response(self) -> axum::response::Response {
         sentry::capture_error(&self);
+        tracing::error!(error = %self.0, "MietteError");
 
         (self.1, self.0.to_string()).into_response()
     }

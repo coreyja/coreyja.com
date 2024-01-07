@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE GithubLoginStates\n        SET state = $1, github_link_id = $2\n        WHERE github_login_state_id = $3\n        RETURNING *\n        ",
+  "query": "\n        UPDATE GithubLoginStates\n        SET state = $1, github_link_id = $2\n        WHERE github_login_state_id = $3 AND state = 'created'\n        RETURNING *\n        ",
   "describe": {
     "columns": [
       {
@@ -50,5 +50,5 @@
       true
     ]
   },
-  "hash": "bdfc4ec2104d8989c36580c452ef0a0655e4c2484b75492a287e728a4043dd3f"
+  "hash": "b0a656837da59e32825b9d7a9585104051560f85be7ed446517d792ebef9dbf3"
 }
