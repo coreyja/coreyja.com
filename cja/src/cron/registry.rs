@@ -7,7 +7,7 @@ use tracing::error;
 use crate::app_state::AppState as AS;
 
 pub struct CronRegistry<AppState: AS> {
-    pub(crate) jobs: HashMap<&'static str, CronJob<AppState>>,
+    pub(super) jobs: HashMap<&'static str, CronJob<AppState>>,
 }
 
 #[async_trait::async_trait]
@@ -36,7 +36,7 @@ impl<AppState: AS, Func, FnError: Diagnostic> CronFn<AppState> for Func where
     }
 }
 
-pub struct CronJob<AppState: AS> {
+pub(super) struct CronJob<AppState: AS> {
     name: &'static str,
     func: Box<dyn CronFn<AppState> + Send + Sync + 'static>,
     interval: Duration,
