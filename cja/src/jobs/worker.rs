@@ -65,7 +65,6 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         err,
     )]
     async fn run_job(&self, job: &JobFromDB) -> miette::Result<()> {
-        // todo!("I need to figure out how jobs will work I guess lol");
         self.registry.run_job(job, self.state.clone()).await
     }
 
