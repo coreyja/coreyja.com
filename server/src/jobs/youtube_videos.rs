@@ -1,3 +1,4 @@
+use cja::jobs::Job;
 use google_youtube3::{
     api::PlaylistItem, hyper::client::HttpConnector, hyper_rustls::HttpsConnector, YouTube,
 };
@@ -10,13 +11,11 @@ use crate::{
     github::sponsors::set_last_refresh_at, google::get_valid_google_token, state::AppState,
 };
 
-use super::Job;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RefreshVideos;
 
 #[async_trait::async_trait]
-impl Job for RefreshVideos {
+impl Job<AppState> for RefreshVideos {
     const NAME: &'static str = "RefreshVideos";
 
     async fn run(&self, app_state: crate::AppState) -> miette::Result<()> {

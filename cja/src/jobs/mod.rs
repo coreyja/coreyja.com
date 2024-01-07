@@ -8,7 +8,7 @@ use tracing::instrument;
 // pub mod youtube_videos;
 
 #[derive(Debug, Error, Diagnostic)]
-enum EnqueueError {
+pub enum EnqueueError {
     #[error("SqlxError: {0}")]
     SqlxError(#[from] sqlx::Error),
     #[error("SerdeJsonError: {0}")]
@@ -16,7 +16,7 @@ enum EnqueueError {
 }
 
 #[async_trait::async_trait]
-pub(crate) trait Job<AppState: AS>:
+pub trait Job<AppState: AS>:
     Serialize + DeserializeOwned + Send + Sync + std::fmt::Debug + Clone + 'static
 {
     const NAME: &'static str;

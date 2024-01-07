@@ -11,7 +11,7 @@ pub struct CronRegistry<AppState: AS> {
 }
 
 #[async_trait::async_trait]
-pub(super) trait CronFn<AppState: AS + 'static>
+pub trait CronFn<AppState: AS>
 {
     // This collapses the error type to a string, right now thats because thats
     // what the only consumer really needs. As we add more error debugging we'll
@@ -24,7 +24,7 @@ pub(super) trait CronFn<AppState: AS + 'static>
 }
 
 #[async_trait::async_trait]
-impl<AppState: AS + 'static, Func, FnError: Diagnostic> CronFn<AppState> for Func where
+impl<AppState: AS, Func, FnError: Diagnostic> CronFn<AppState> for Func where
     Func: Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<(), FnError>> + Send>> + Send + Sync
 {
     async fn run(
@@ -36,9 +36,9 @@ impl<AppState: AS + 'static, Func, FnError: Diagnostic> CronFn<AppState> for Fun
     }
 }
 
-pub(super) struct CronJob<AppState: AS> {
+pub struct CronJob<AppState: AS> {
     name: &'static str,
-    func: Box<dyn CronFn<AppState>>,
+    func: Box<dyn CronFn<AppState> + Send + Sync + 'static>,
     interval: Duration,
 }
 
@@ -51,12 +51,12 @@ trait CronJobTrait<AppState: AS, Error: Diagnostic> {
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 #[error("TickError: {0}")]
-pub(super) enum TickError {
+pub enum TickError {
     JobError(String),
     SqlxError(sqlx::Error),
 }
 
-impl<AppState: AS + 'static> CronJob<AppState> {
+impl<AppState: AS> CronJob<AppState> {
     #[tracing::instrument(
         name = "cron_job.tick",
         skip_all,
@@ -94,7 +94,7 @@ impl<AppState: AS + 'static> CronJob<AppState> {
     }
 }
 
-impl<AppState: AS + 'static> CronRegistry<AppState> {
+impl<AppState: AS> CronRegistry<AppState> {
     pub fn new() -> Self {
         Self {
             jobs: HashMap::new(),
@@ -102,12 +102,18 @@ impl<AppState: AS + 'static> CronRegistry<AppState> {
     }
 
     #[tracing::instrument(name = "cron.register", skip_all, fields(cron_job.name = name, cron_job.interval = ?interval))]
-    pub fn register<Error: Diagnostic>(&mut self, name: &'static str, interval: Duration, job: impl CronFn<AppState>) {
+    pub fn register(&mut self, name: &'static str, interval: Duration, job: impl CronFn<AppState> + Send + Sync + 'static) {
         let cron_job = CronJob {
             name,
             func: Box::new(job),
             interval,
         };
         self.jobs.insert(name, cron_job);
+    }
+}
+
+impl<AppState: AS> Default for CronRegistry<AppState> {
+    fn default() -> Self {
+        Self::new()
     }
 }

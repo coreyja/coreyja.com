@@ -181,7 +181,7 @@ async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<
     Ok(())
 }
 
-pub async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
+pub(crate) async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
     let sponsors = get_sponsors(&app_state.github.pat).await?;
 
     insert_sponsors(&sponsors, &app_state.db).await?;
@@ -202,7 +202,7 @@ pub async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
     Ok(())
 }
 
-pub async fn set_last_refresh_at(
+pub(crate) async fn set_last_refresh_at(
     app_state: &crate::state::AppState,
     key: &str,
 ) -> Result<(), miette::ErrReport> {

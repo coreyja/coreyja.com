@@ -129,3 +129,13 @@ impl AppState {
         Ok(app_state)
     }
 }
+
+impl cja::app_state::AppState for AppState {
+    fn version(&self) -> &str {
+        self.versions.git_commit
+    }
+
+    fn db(&self) -> sqlx::PgPool {
+        self.db.clone()
+    }
+}

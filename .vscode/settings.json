@@ -14,8 +14,4 @@
     "UNNEST",
     "vergen"
   ],
-  "rust-analyzer.linkedProjects": [
-    "./cja/Cargo.toml",
-    "./cja/Cargo.toml"
-  ]
 }

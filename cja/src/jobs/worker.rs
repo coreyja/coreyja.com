@@ -189,7 +189,7 @@ impl<AppState: AS> Worker<AppState> {
     }
 }
 
-pub(crate) async fn job_worker<AppState: AS>(app_state: AppState) -> miette::Result<()> {
+pub async fn job_worker<AppState: AS>(app_state: AppState) -> miette::Result<()> {
     let worker = Worker::new(app_state);
 
     loop {
