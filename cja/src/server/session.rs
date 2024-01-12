@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 use axum_core::{body::Body, extract::FromRequestParts, response::IntoResponse};
 use http::{header, Response};
+use miette::IntoDiagnostic as _;
 use serde::{Deserialize, Serialize};
 use tower_cookies::Cookies;
+use uuid::Uuid;
 
-use crate::app_state::AppState as AS;
+use crate::app_state::{self, AppState as AS};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DBSession {
@@ -92,6 +94,40 @@ impl<AppState: AS> FromRequestParts<AppState> for DBSession {
 
             SessionRedirect::temporary("/login")
         })?;
+
+        Ok(session)
+    }
+}
+
+impl DBSession {
+    pub async fn create<AppState: AS>(
+        user_id: Uuid,
+        app_state: &AppState,
+        cookies: &Cookies,
+    ) -> miette::Result<Self> {
+        let session = sqlx::query_as!(
+            DBSession,
+            r#"
+        INSERT INTO Sessions (session_id, user_id)
+        VALUES ($1, $2)
+        RETURNING *
+        "#,
+            uuid::Uuid::new_v4(),
+            user_id
+        )
+        .fetch_one(app_state.db())
+        .await
+        .into_diagnostic()?;
+
+        let private = cookies.private(app_state.cookie_key());
+
+        let session_cookie =
+            tower_cookies::Cookie::build(("session_id", session.session_id.to_string()))
+                .path("/")
+                .http_only(true)
+                .secure(true)
+                .expires(None);
+        private.add(session_cookie.into());
 
         Ok(session)
     }
