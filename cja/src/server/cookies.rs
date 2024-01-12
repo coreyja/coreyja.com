@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use base64::{DecodeError, Engine};
 
+#[derive(Clone)]
 pub struct CookieKey(pub tower_cookies::Key);
 
 impl CookieKey {
