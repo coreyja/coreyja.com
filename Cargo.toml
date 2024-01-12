@@ -58,3 +58,5 @@ sqlx = { version = "0.7", features = [
 ] }
 
 uuid = { version = "1.6.1", features = ["v4", "serde"] }
+
+base64 = "0.21.7"
