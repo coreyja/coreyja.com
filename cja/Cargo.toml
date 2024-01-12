@@ -9,13 +9,17 @@ license = "Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-thiserror = "1.0.56"
 sqlx.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 uuid.workspace = true
 serde.workspace = true
-async-trait = "0.1.77"
 serde_json.workspace = true
 chrono.workspace = true
 miette.workspace = true
+
+axum-core = "0.4.2"
+async-trait = "0.1.77"
+thiserror = "1.0.56"
+tower-cookies = { version = "0.10.0", features = ["signed", "private"] }
+http = "1.0.0"

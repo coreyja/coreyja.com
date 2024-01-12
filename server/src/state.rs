@@ -138,4 +138,8 @@ impl cja::app_state::AppState for AppState {
     fn db(&self) -> &sqlx::PgPool {
         &self.db
     }
+
+    fn cookie_key(&self) -> &Key {
+        &self.cookie_key.0
+    }
 }

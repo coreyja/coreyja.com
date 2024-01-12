@@ -697,7 +697,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "810a80b128d70e6ed2bdf3fe8ed72c0ae56f5f5948d01c2753282dd92a84fce8"
 dependencies = [
  "async-trait",
- "axum-core 0.4.0",
+ "axum-core 0.4.2",
  "bytes",
  "futures-util",
  "http 1.0.0",
@@ -742,9 +742,9 @@ dependencies = [
 
 [[package]]
 name = "axum-core"
-version = "0.4.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de0ddc355eab88f4955090a823715df47acf0b7660aab7a69ad5ce6301ee3b73"
+checksum = "e87c8503f93e6d144ee5690907ba22db7ba79ab001a932ab99034f0fe836b3df"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1095,13 +1095,16 @@ name = "cja"
 version = "0.0.0"
 dependencies = [
  "async-trait",
+ "axum-core 0.4.2",
  "chrono",
+ "http 1.0.0",
  "miette",
  "serde",
  "serde_json",
  "sqlx",
  "thiserror",
  "tokio",
+ "tower-cookies",
  "tracing",
  "uuid",
 ]
@@ -3480,7 +3483,7 @@ name = "maud"
 version = "0.25.0"
 source = "git+https://github.com/lambda-fairy/maud?rev=320add87a12d8e5be115de9e0fe3f4b331512a4a#320add87a12d8e5be115de9e0fe3f4b331512a4a"
 dependencies = [
- "axum-core 0.4.0",
+ "axum-core 0.4.2",
  "http 1.0.0",
  "itoa",
  "maud_macros",
@@ -6093,7 +6096,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fd0118512cf0b3768f7fcccf0bef1ae41d68f2b45edc1e77432b36c97c56c6d"
 dependencies = [
  "async-trait",
- "axum-core 0.4.0",
+ "axum-core 0.4.2",
  "cookie",
  "futures-util",
  "http 1.0.0",

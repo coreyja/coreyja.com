@@ -1,0 +1,98 @@
+use async_trait::async_trait;
+use axum_core::{body::Body, extract::FromRequestParts, response::IntoResponse};
+use http::{header, Response};
+use serde::{Deserialize, Serialize};
+use tower_cookies::Cookies;
+
+use crate::app_state::AppState as AS;
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DBSession {
+    pub session_id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+pub struct SessionRedirect {
+    location: String,
+}
+
+impl SessionRedirect {
+    pub fn temporary(location: &str) -> Self {
+        Self {
+            location: location.to_string(),
+        }
+    }
+}
+
+impl IntoResponse for SessionRedirect {
+    fn into_response(self) -> Response<Body> {
+        (
+            http::status::StatusCode::TEMPORARY_REDIRECT,
+            [(header::LOCATION, self.location)],
+        )
+            .into_response()
+    }
+}
+
+#[async_trait]
+impl<AppState: AS> FromRequestParts<AppState> for DBSession {
+    type Rejection = SessionRedirect;
+
+    async fn from_request_parts(
+        parts: &mut http::request::Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let cookies = Cookies::from_request_parts(parts, state)
+            .await
+            .map_err(|(_, msg)| {
+                tracing::error!("Failed to get cookies: {msg}");
+
+                SessionRedirect::temporary("/login")
+            })?;
+
+        let private = cookies.private(state.cookie_key());
+
+        let session_cookie = private.get("session_id");
+
+        let Some(session_cookie) = session_cookie else {
+            let return_to_path = parts
+                .uri
+                .path_and_query()
+                .map(|x| x.as_str())
+                .unwrap_or("/");
+
+            Err(SessionRedirect::temporary(&format!(
+                "/login?return_to={}",
+                return_to_path
+            )))?
+        };
+
+        let session_id = session_cookie.value().to_string();
+        let Ok(session_id) = uuid::Uuid::parse_str(&session_id) else {
+            tracing::error!("Failed to parse session id: {session_id}");
+
+            Err(SessionRedirect::temporary("/login"))?
+        };
+
+        let session = sqlx::query_as!(
+            DBSession,
+            r#"
+        SELECT *
+        FROM Sessions
+        WHERE session_id = $1
+        "#,
+            &session_id
+        )
+        .fetch_one(state.db())
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch session: {e}");
+
+            SessionRedirect::temporary("/login")
+        })?;
+
+        Ok(session)
+    }
+}
