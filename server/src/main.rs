@@ -23,7 +23,6 @@ pub use miette::Result;
 mod twitch;
 
 mod http_server;
-use http_server::*;
 
 mod github;
 

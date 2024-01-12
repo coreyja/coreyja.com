@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tower_cookies::Cookies;
 use uuid::Uuid;
 
-use crate::app_state::{self, AppState as AS};
+use crate::app_state::AppState as AS;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DBSession {
