@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
-use base64::Engine;
+use cja::server::cookies::CookieKey;
 use db::setup_db_pool;
-use debug_ignore::DebugIgnore;
 use miette::{Context, IntoDiagnostic, Result};
 use openai::OpenAiConfig;
 use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tower_cookies::Key;
-use tracing::{info, instrument};
+use tracing::instrument;
 
 use crate::{
     encrypt, github::GithubConfig, google::GoogleConfig,
@@ -74,7 +72,7 @@ pub(crate) struct AppState {
     pub projects: Arc<Projects>,
     pub versions: VersionInfo,
     pub db: PgPool,
-    pub cookie_key: DebugIgnore<Key>,
+    pub cookie_key: CookieKey,
     pub encrypt_config: encrypt::Config,
 }
 
@@ -93,21 +91,7 @@ impl AppState {
         let projects = Projects::from_static_dir()?;
         let projects = Arc::new(projects);
 
-        let cookie_key = std::env::var("COOKIE_KEY");
-        let cookie_key = if let Ok(cookie_key) = cookie_key {
-            let cookie_key = base64::engine::general_purpose::STANDARD
-                .decode(cookie_key.as_bytes())
-                .into_diagnostic()?;
-
-            Key::derive_from(&cookie_key)
-        } else {
-            info!("Generating new cookie key");
-            let k = Key::generate();
-            let based = base64::engine::general_purpose::STANDARD.encode(k.master());
-            dbg!(&based);
-            k
-        };
-        let cookie_key = DebugIgnore(cookie_key);
+        let cookie_key = CookieKey::from_env_or_generate().into_diagnostic()?;
 
         let app_state = AppState {
             twitch: TwitchConfig::from_env()?,
@@ -139,7 +123,7 @@ impl cja::app_state::AppState for AppState {
         &self.db
     }
 
-    fn cookie_key(&self) -> &Key {
-        &self.cookie_key.0
+    fn cookie_key(&self) -> &CookieKey {
+        &self.cookie_key
     }
 }

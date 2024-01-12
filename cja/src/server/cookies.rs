@@ -1,9 +1,17 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Deref};
 
 use base64::{DecodeError, Engine};
 
 #[derive(Clone)]
 pub struct CookieKey(pub tower_cookies::Key);
+
+impl Deref for CookieKey {
+    type Target = tower_cookies::Key;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl CookieKey {
     pub fn from_env_or_generate() -> Result<Self, DecodeError> {

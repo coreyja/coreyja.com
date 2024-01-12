@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use axum::{extract::FromRequestParts, http, response::Redirect};
+use axum::{extract::FromRequestParts, http};
 use cja::server::session::{DBSession, SessionRedirect};
 
 use crate::{github::GithubLink, AppState};
