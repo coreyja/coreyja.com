@@ -68,6 +68,15 @@ fn main() -> miette::Result<()> {
         .wait()
         .into_diagnostic()?;
 
+    Command::new("ffmpeg")
+        .arg("-i")
+        .arg(format!("{out_dir}/video.mp4"))
+        .arg(format!("{out_dir}/video.gif"))
+        .spawn()
+        .into_diagnostic()?
+        .wait()
+        .into_diagnostic()?;
+
     for entry in glob(&frame_glob).into_diagnostic()? {
         match entry {
             Ok(path) => {
