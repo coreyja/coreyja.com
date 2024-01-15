@@ -31,18 +31,18 @@ pub trait Job<AppState: AS>:
 
     #[instrument(name = "jobs.enqueue", skip(app_state), fields(job.name = Self::NAME), err)]
     async fn enqueue(self, app_state: AppState, context: String) -> Result<(), EnqueueError> {
-        sqlx::query!(
+        sqlx::query(
             "
         INSERT INTO jobs (job_id, name, payload, priority, run_at, created_at, context)
         VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            uuid::Uuid::new_v4(),
-            Self::NAME,
-            serde_json::to_value(self)?,
-            0,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            context,
         )
+        .bind(uuid::Uuid::new_v4())
+        .bind(Self::NAME)
+        .bind(serde_json::to_value(self)?)
+        .bind(0)
+        .bind(chrono::Utc::now())
+        .bind(chrono::Utc::now())
+        .bind(context)
         .execute(app_state.db())
         .await?;
 

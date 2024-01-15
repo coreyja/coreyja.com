@@ -20,7 +20,7 @@ pub(super) type RunJobResult = Result<RunJobSuccess, JobError>;
 #[derive(Debug)]
 pub(super) struct RunJobSuccess(JobFromDB);
 
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct JobFromDB {
     pub job_id: uuid::Uuid,
     pub name: String,
@@ -72,15 +72,15 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         let job_result = self.run_job(&job).await;
 
         if let Err(e) = job_result {
-            sqlx::query!(
+            sqlx::query(
                 "
               UPDATE jobs
               SET locked_by = NULL, locked_at = NULL, run_at = now() + interval '60 seconds'
               WHERE job_id = $1 AND locked_by = $2
                   ",
-                job.job_id,
-                self.id.to_string()
             )
+            .bind(job.job_id)
+            .bind(self.id.to_string())
             .execute(self.state.db())
             .await
             .into_diagnostic()?;
@@ -88,14 +88,14 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
             return Ok(Err(JobError(job, e)));
         }
 
-        sqlx::query!(
+        sqlx::query(
             "
                 DELETE FROM jobs
                 WHERE job_id = $1 AND locked_by = $2
                 ",
-            job.job_id,
-            self.id.to_string()
         )
+        .bind(job.job_id)
+        .bind(self.id.to_string())
         .execute(self.state.db())
         .await
         .into_diagnostic()?;
@@ -114,8 +114,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         err,
     )]
     async fn fetch_next_job(&self) -> miette::Result<Option<JobFromDB>> {
-        let job = sqlx::query_as!(
-            JobFromDB,
+        let job = sqlx::query_as::<_, JobFromDB>(
             "
             UPDATE jobs
             SET LOCKED_BY = $1, LOCKED_AT = NOW()
@@ -129,8 +128,8 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
             )
             RETURNING job_id, name, payload, priority, run_at, created_at, context
             ",
-            self.id.to_string(),
         )
+        .bind(self.id.to_string())
         .fetch_optional(self.state.db())
         .await
         .into_diagnostic()?;

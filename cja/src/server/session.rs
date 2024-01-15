@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::app_state::AppState as AS;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, sqlx::FromRow)]
 pub struct DBSession {
     pub session_id: uuid::Uuid,
     pub user_id: uuid::Uuid,
@@ -78,15 +78,14 @@ impl<AppState: AS> FromRequestParts<AppState> for DBSession {
             Err(SessionRedirect::temporary("/login"))?
         };
 
-        let session = sqlx::query_as!(
-            DBSession,
+        let session = sqlx::query_as::<_, DBSession>(
             r#"
         SELECT *
         FROM Sessions
         WHERE session_id = $1
         "#,
-            &session_id
         )
+        .bind(session_id)
         .fetch_one(state.db())
         .await
         .map_err(|e| {
@@ -105,16 +104,15 @@ impl DBSession {
         app_state: &AppState,
         cookies: &Cookies,
     ) -> miette::Result<Self> {
-        let session = sqlx::query_as!(
-            DBSession,
+        let session = sqlx::query_as::<_, DBSession>(
             r#"
         INSERT INTO Sessions (session_id, user_id)
         VALUES ($1, $2)
         RETURNING *
         "#,
-            uuid::Uuid::new_v4(),
-            user_id
         )
+        .bind(uuid::Uuid::new_v4())
+        .bind(user_id)
         .fetch_one(app_state.db())
         .await
         .into_diagnostic()?;
