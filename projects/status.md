@@ -2,7 +2,8 @@
 title: status
 status: active
 repo: https://github.com/coreyja
-login_callback: http://localhost:3001/login/callback
+login_callback: https://status.coreyja.com/login/callback
+local_port: 3001
 fly_app_name: coreyja-status
 ---
 

@@ -272,12 +272,11 @@ pub(crate) async fn github_oauth(
         return Err(miette::miette!("No project found for {}", app).into());
     };
 
-    let Some(login_callback) = &project.frontmatter.login_callback else {
-        return Err(miette::miette!("No login_callback found for {}", app).into());
-    };
+    let mut login_callback = project.login_callback()?;
 
-    ResponseResult::Ok(Redirect::temporary(&format!(
-        "{}?state={}",
-        login_callback, state.github_login_state_id
-    )))
+    login_callback
+        .query_pairs_mut()
+        .append_pair("state", &state.github_login_state_id.to_string());
+
+    ResponseResult::Ok(Redirect::temporary(login_callback.as_ref()))
 }

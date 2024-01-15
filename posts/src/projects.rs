@@ -4,6 +4,7 @@ use include_dir::{include_dir, Dir};
 use miette::{Context, Diagnostic, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use url::Url;
 
 use crate::{title::Title, MarkdownAst, Post};
 
@@ -45,6 +46,7 @@ struct FrontMatter {
     pub parent_project: Option<String>,
     pub status: ProjectStatus,
     pub login_callback: Option<String>,
+    pub local_port: Option<u16>,
     pub fly_app_name: Option<String>,
 }
 
@@ -57,6 +59,7 @@ pub struct FrontMatterWithKey {
     pub parent_project: Option<String>,
     pub status: ProjectStatus,
     pub login_callback: Option<String>,
+    pub local_port: Option<u16>,
     pub fly_app_name: Option<String>,
     pub auth_public_key: Option<String>,
 }
@@ -71,6 +74,7 @@ impl FrontMatterWithKey {
             parent_project: frontmatter.parent_project,
             status: frontmatter.status,
             login_callback: frontmatter.login_callback,
+            local_port: frontmatter.local_port,
             fly_app_name: frontmatter.fly_app_name,
             auth_public_key: pub_key,
         }
@@ -199,6 +203,35 @@ impl Project {
 
     pub fn relative_link(&self) -> Result<String> {
         Ok(format!("/projects/{}", self.slug()?))
+    }
+
+    pub fn login_callback(&self) -> Result<Url> {
+        let login_callback = self.frontmatter.login_callback.clone().ok_or_else(|| {
+            let slug = self
+                .slug()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|e| format!("unknown got error {e}"));
+            miette::miette!("No login_callback found for {}", slug)
+        })?;
+
+        let mut login_callback = login_callback.parse::<url::Url>().into_diagnostic()?;
+
+        let local_port = self.local_port()?;
+
+        #[cfg(feature = "test_auth")]
+        {
+            login_callback.set_host(Some("localhost"));
+            login_callback.set_port(Some(local_port));
+            login_callback.set_scheme("http");
+        }
+
+        Ok(login_callback)
+    }
+
+    pub fn local_port(&self) -> Result<u16> {
+        self.frontmatter
+            .local_port
+            .ok_or_else(|| miette::miette!("No local_port found"))
     }
 }
 
