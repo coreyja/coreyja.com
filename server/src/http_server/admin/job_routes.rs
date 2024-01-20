@@ -2,10 +2,12 @@ use axum::{
     extract::State,
     response::{IntoResponse, Redirect},
 };
+use cja::jobs::Job;
+use miette::IntoDiagnostic;
 
 use crate::{
     http_server::{auth::session::AdminUser, errors::MietteError},
-    jobs::{youtube_videos::RefreshVideos, Job},
+    jobs::youtube_videos::RefreshVideos,
     state::AppState,
 };
 
@@ -15,7 +17,8 @@ pub(crate) async fn refresh_youtube(
 ) -> Result<impl IntoResponse, MietteError> {
     RefreshVideos
         .enqueue(app_state, "Admin Dashboard Manual".to_string())
-        .await?;
+        .await
+        .into_diagnostic()?;
 
     Ok(Redirect::to("/admin"))
 }

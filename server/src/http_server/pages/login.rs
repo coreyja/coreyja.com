@@ -12,10 +12,10 @@ use serde_json::json;
 
 use crate::{http_server::ResponseResult, state::AppState};
 
-pub fn routes() -> axum::Router<AppState> {
+pub(crate) fn routes() -> axum::Router<AppState> {
     axum::Router::new()
         .route("/", get(login))
-        .route("/{app_slug}", get(app_login).post(app_claim))
+        .route("/:from_app", get(app_login).post(app_claim))
 }
 
 async fn login(
@@ -48,6 +48,13 @@ async fn app_login(
     State(app_state): State<AppState>,
     Path(from_app): Path<String>,
 ) -> impl IntoResponse {
+    app_state
+        .projects
+        .projects
+        .iter()
+        .find(|p| p.slug().unwrap() == from_app)
+        .ok_or_else(|| miette::miette!("Project does not exist"))?;
+
     let state = sqlx::query!(
         r#"
       INSERT INTO GithubLoginStates (github_login_state_id, app, state)
@@ -95,12 +102,12 @@ async fn app_claim(
     let jwt = body.jwt;
     let jwt = jsonwebtoken::decode::<JWTClaim>(
         &jwt,
-        &jsonwebtoken::DecodingKey::from_rsa_pem(auth_public_key.as_bytes()).unwrap(),
+        &jsonwebtoken::DecodingKey::from_rsa_pem(auth_public_key.as_bytes()).into_diagnostic()?,
         &Validation::new(Algorithm::RS256),
     )
-    .unwrap();
+    .into_diagnostic()?;
 
-    let github_login_state_id = jwt.claims.sub.parse::<uuid::Uuid>().unwrap();
+    let github_login_state_id = jwt.claims.sub.parse::<uuid::Uuid>().into_diagnostic()?;
     let state = sqlx::query!(
         r#"
        SELECT state, Users.user_id

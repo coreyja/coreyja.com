@@ -1,7 +1,8 @@
 use axum::{extract::State, response::IntoResponse};
+use cja::server::session::DBSession;
 use maud::html;
 
-use crate::{http_server::auth::session::DBSession, AppState};
+use crate::AppState;
 
 #[axum_macros::debug_handler]
 pub(crate) async fn versions(

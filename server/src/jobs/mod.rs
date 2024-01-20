@@ -1,47 +1,23 @@
-use serde::{de::DeserializeOwned, Serialize};
-use tracing::instrument;
+use cja::jobs::{registry::JobRegistry, worker::JobFromDB, Job};
 
-use crate::AppState;
-use miette::IntoDiagnostic;
+use crate::state::AppState;
+
+use self::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos};
 
 pub mod sponsors;
 pub mod youtube_videos;
 
+pub(crate) struct Jobs;
+
 #[async_trait::async_trait]
-pub(crate) trait Job:
-    Serialize + DeserializeOwned + Send + Sync + std::fmt::Debug + Clone + 'static
-{
-    const NAME: &'static str;
+impl JobRegistry<AppState> for Jobs {
+    async fn run_job(&self, job: &JobFromDB, app_state: AppState) -> miette::Result<()> {
+        let payload = job.payload.clone();
 
-    async fn run(&self, app_state: AppState) -> miette::Result<()>;
-
-    #[instrument(name = "jobs.run_from_value", skip(app_state), fields(job.name = Self::NAME), err)]
-    async fn run_from_value(value: serde_json::Value, app_state: AppState) -> miette::Result<()> {
-        let job: Self = serde_json::from_value(value).into_diagnostic()?;
-
-        job.run(app_state).await
-    }
-
-    #[instrument(name = "jobs.enqueue", skip(app_state), fields(job.name = Self::NAME), err)]
-    async fn enqueue(self, app_state: AppState, context: String) -> miette::Result<()> {
-        sqlx::query!(
-            "
-        INSERT INTO jobs (job_id, name, payload, priority, run_at, created_at, context)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            uuid::Uuid::new_v4(),
-            Self::NAME,
-            serde_json::to_value(self).into_diagnostic()?,
-            0,
-            chrono::Utc::now(),
-            chrono::Utc::now(),
-            context,
-        )
-        .execute(&app_state.db)
-        .await
-        .into_diagnostic()?;
-
-        Ok(())
+        match job.name.as_str() {
+            "RefreshSponsors" => RefreshSponsors::run_from_value(payload, app_state).await,
+            "RefreshVideos" => RefreshVideos::run_from_value(payload, app_state).await,
+            _ => Err(miette::miette!("Unknown job type: {}", job.name)),
+        }
     }
 }
-
-pub mod worker;

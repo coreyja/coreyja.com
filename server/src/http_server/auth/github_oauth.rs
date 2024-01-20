@@ -2,6 +2,7 @@ use axum::{
     extract::{Query, State},
     response::{IntoResponse, Redirect},
 };
+use cja::server::session::DBSession;
 use db::users::UserFromDB;
 use miette::{Context, IntoDiagnostic};
 use serde::{Deserialize, Serialize};
@@ -223,28 +224,7 @@ pub(crate) async fn github_oauth(
         }
     };
 
-    let session = sqlx::query!(
-        r#"
-    INSERT INTO Sessions (session_id, user_id)
-    VALUES ($1, $2)
-    RETURNING *
-    "#,
-        uuid::Uuid::new_v4(),
-        local_user.user_id
-    )
-    .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
-
-    let private = cookies.private(&app_state.cookie_key.0);
-
-    let session_cookie =
-        tower_cookies::Cookie::build(("session_id", session.session_id.to_string()))
-            .path("/")
-            .http_only(true)
-            .secure(true)
-            .expires(None);
-    private.add(session_cookie.into());
+    DBSession::create(local_user.user_id, &app_state, &cookies).await?;
 
     let state = sqlx::query!(
         r#"

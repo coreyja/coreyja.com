@@ -1,10 +1,10 @@
-use miette::{Diagnostic, IntoDiagnostic, Result};
+use miette::IntoDiagnostic;
 use thiserror::Error;
 use tracing::Span;
 
-use crate::state::AppState;
+use crate::app_state::AppState as AS;
 
-use super::{sponsors::RefreshSponsors, Job};
+use super::registry::JobRegistry;
 
 #[derive(Debug, Clone)]
 pub struct JobId(uuid::Uuid);
@@ -20,31 +20,33 @@ pub(super) type RunJobResult = Result<RunJobSuccess, JobError>;
 #[derive(Debug)]
 pub(super) struct RunJobSuccess(JobFromDB);
 
-#[derive(Debug)]
-pub(super) struct JobFromDB {
-    job_id: uuid::Uuid,
-    name: String,
-    payload: serde_json::Value,
-    priority: i32,
-    run_at: chrono::DateTime<chrono::Utc>,
-    created_at: chrono::DateTime<chrono::Utc>,
-    context: String,
+#[derive(Debug, sqlx::FromRow)]
+pub struct JobFromDB {
+    pub job_id: uuid::Uuid,
+    pub name: String,
+    pub payload: serde_json::Value,
+    pub priority: i32,
+    pub run_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub context: String,
 }
 
-#[derive(Debug, Diagnostic, Error)]
+#[derive(Debug, Error)]
 #[error("JobError(id:${}) ${1}", self.0.job_id)]
 pub(crate) struct JobError(JobFromDB, miette::Report);
 
-struct Worker {
+struct Worker<AppState: AS, R: JobRegistry<AppState>> {
     id: uuid::Uuid,
     state: AppState,
+    registry: R,
 }
 
-impl Worker {
-    fn new(state: AppState) -> Self {
+impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
+    fn new(state: AppState, registry: R) -> Self {
         Self {
             id: uuid::Uuid::new_v4(),
             state,
+            registry,
         }
     }
 
@@ -62,48 +64,39 @@ impl Worker {
         )
         err,
     )]
-    async fn run_job(&self, job: &JobFromDB) -> Result<()> {
-        let payload = job.payload.clone();
-
-        match job.name.as_str() {
-            "RefreshSponsors" => RefreshSponsors::run_from_value(payload, self.state.clone()).await,
-            "RefreshVideos" => {
-                super::youtube_videos::RefreshVideos::run_from_value(payload, self.state.clone())
-                    .await
-            }
-            _ => Err(miette::miette!("Unknown job type: {}", job.name)),
-        }
+    async fn run_job(&self, job: &JobFromDB) -> miette::Result<()> {
+        self.registry.run_job(job, self.state.clone()).await
     }
 
-    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> Result<RunJobResult> {
+    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> miette::Result<RunJobResult> {
         let job_result = self.run_job(&job).await;
 
         if let Err(e) = job_result {
-            sqlx::query!(
+            sqlx::query(
                 "
               UPDATE jobs
               SET locked_by = NULL, locked_at = NULL, run_at = now() + interval '60 seconds'
               WHERE job_id = $1 AND locked_by = $2
                   ",
-                job.job_id,
-                self.id.to_string()
             )
-            .execute(&self.state.db)
+            .bind(job.job_id)
+            .bind(self.id.to_string())
+            .execute(self.state.db())
             .await
             .into_diagnostic()?;
 
             return Ok(Err(JobError(job, e)));
         }
 
-        sqlx::query!(
+        sqlx::query(
             "
                 DELETE FROM jobs
                 WHERE job_id = $1 AND locked_by = $2
                 ",
-            job.job_id,
-            self.id.to_string()
         )
-        .execute(&self.state.db)
+        .bind(job.job_id)
+        .bind(self.id.to_string())
+        .execute(self.state.db())
         .await
         .into_diagnostic()?;
 
@@ -121,8 +114,7 @@ impl Worker {
         err,
     )]
     async fn fetch_next_job(&self) -> miette::Result<Option<JobFromDB>> {
-        let job = sqlx::query_as!(
-            JobFromDB,
+        let job = sqlx::query_as::<_, JobFromDB>(
             "
             UPDATE jobs
             SET LOCKED_BY = $1, LOCKED_AT = NOW()
@@ -136,9 +128,9 @@ impl Worker {
             )
             RETURNING job_id, name, payload, priority, run_at, created_at, context
             ",
-            self.id.to_string(),
         )
-        .fetch_optional(&self.state.db)
+        .bind(self.id.to_string())
+        .fetch_optional(self.state.db())
         .await
         .into_diagnostic()?;
 
@@ -177,7 +169,6 @@ impl Worker {
                 tracing::info!(worker.id =% self.id, job_id =% job.job_id, "Job Ran");
             }
             Err(job_error) => {
-                sentry::capture_error(&job_error);
                 tracing::error!(
                     worker.id =% self.id,
                     job_id =% job_error.0.job_id,
@@ -191,8 +182,11 @@ impl Worker {
     }
 }
 
-pub(crate) async fn job_worker(app_state: crate::AppState) -> Result<()> {
-    let worker = Worker::new(app_state);
+pub async fn job_worker<AppState: AS>(
+    app_state: AppState,
+    registry: impl JobRegistry<AppState>,
+) -> miette::Result<()> {
+    let worker = Worker::new(app_state, registry);
 
     loop {
         worker.tick().await?;

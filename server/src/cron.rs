@@ -1,22 +1,20 @@
 use std::time::Duration;
 
-use miette::Result;
-
-use crate::{
-    jobs::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos, Job},
-    AppState,
+use cja::{
+    cron::{CronRegistry, Worker},
+    jobs::Job,
 };
 
-mod registry;
-use registry::CronRegistry;
-
-mod worker;
+use crate::{
+    jobs::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos},
+    state::AppState,
+};
 
 fn one_hour() -> Duration {
     Duration::from_secs(60 * 60)
 }
 
-fn cron_registry() -> CronRegistry {
+fn cron_registry() -> CronRegistry<AppState> {
     let mut registry = CronRegistry::new();
 
     registry.register("RefreshSponsors", one_hour(), |app_state, context| {
@@ -30,8 +28,8 @@ fn cron_registry() -> CronRegistry {
     registry
 }
 
-pub(crate) async fn run_cron(app_state: AppState) -> Result<()> {
-    let worker = worker::Worker::new(app_state, cron_registry());
+pub(crate) async fn run_cron(app_state: AppState) -> miette::Result<()> {
+    Worker::new(app_state, cron_registry()).run().await?;
 
-    worker.run().await
+    Ok(())
 }

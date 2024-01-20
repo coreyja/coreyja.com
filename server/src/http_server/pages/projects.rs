@@ -134,7 +134,7 @@ pub(crate) async fn projects_get(
           (markdown)
 
           h3 class="text-lg mt-8" { "Streams" }
-          (pages::streams::StreamPostList(streams))
+          (http_server::pages::streams::StreamPostList(streams))
         },
         OpenGraph {
             title: project.frontmatter.title.clone(),
