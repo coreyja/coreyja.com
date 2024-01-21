@@ -16,6 +16,7 @@ pub struct DBSession {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SessionRedirect {
     location: String,
 }

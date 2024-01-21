@@ -38,6 +38,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/newsletter", get(newsletter_get))
         .route("/auth/github", get(auth::github_oauth::github_oauth))
         .nest("/login", pages::login::routes())
+        .route("/my/account", get(pages::account::account_page))
+        .route("/my/sponsorship", get(pages::account::sponsorship_page))
         .route("/admin/auth/google", get(admin::auth::google_auth))
         .route(
             "/admin/auth/google/callback",

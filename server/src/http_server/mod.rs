@@ -35,6 +35,7 @@ pub(crate) mod cmd;
 pub(crate) mod pages;
 
 mod config;
+pub mod current_user;
 pub mod errors;
 mod routes;
 mod server_tracing;

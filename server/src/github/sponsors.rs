@@ -225,3 +225,17 @@ pub(crate) async fn set_last_refresh_at(
 
     Ok(())
 }
+
+pub struct GithubSponsorFromDB {
+    pub github_sponsor_id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub sponsor_type: String,
+    pub github_id: String,
+    pub github_login: String,
+    pub sponsored_at: DateTime,
+    pub is_active: bool,
+    pub is_one_time_payment: bool,
+    pub tier_name: Option<String>,
+    pub amount_cents: Option<i32>,
+    pub privacy_level: String,
+}
