@@ -188,7 +188,7 @@ pub(crate) async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
 
     sqlx::query!(
         r#"
-        DELETE FROM GithubSponsors
+        UPDATE GithubSponsors SET is_active = false
         WHERE github_id not in (Select * from UNNEST($1::text[]))
         "#,
         &sponsors.iter().map(|s| s.id.clone()).collect::<Vec<_>>()
