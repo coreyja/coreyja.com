@@ -86,6 +86,12 @@ struct JWTClaim {
     sub: String,
 }
 
+#[derive(Debug, serde::Serialize, Clone)]
+struct ClaimResponse {
+    user_id: uuid::Uuid,
+    is_active_sponsor: bool,
+}
+
 async fn app_claim(
     State(app_state): State<AppState>,
     Path(project_slug): Path<String>,
@@ -145,7 +151,24 @@ async fn app_claim(
     .await
     .into_diagnostic()?;
 
-    ResponseResult::Ok(Json(json!({
-        "user_id": state.user_id,
-    })))
+    let sponsor = sqlx::query!(
+        r#"
+        SELECT *
+        FROM GithubSponsors
+        WHERE user_id = $1
+        "#,
+        state.user_id
+    )
+    .fetch_optional(&app_state.db)
+    .await
+    .into_diagnostic()?;
+
+    let is_active_sponsor = sponsor
+        .map(|s| s.is_active && !s.is_one_time_payment)
+        .unwrap_or(false);
+
+    ResponseResult::Ok(Json(ClaimResponse {
+        user_id: state.user_id,
+        is_active_sponsor,
+    }))
 }
