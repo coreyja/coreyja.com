@@ -212,12 +212,13 @@ impl Project {
             miette::miette!("No login_callback found for {}", slug)
         })?;
 
+        #[allow(unused_mut)]
         let mut login_callback = login_callback.parse::<url::Url>().into_diagnostic()?;
-
-        let local_port = self.local_port()?;
 
         #[cfg(feature = "test_auth")]
         {
+            let local_port = self.local_port()?;
+
             login_callback.set_host(Some("localhost"));
             login_callback.set_port(Some(local_port));
             login_callback.set_scheme("http");

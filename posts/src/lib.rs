@@ -60,7 +60,7 @@ impl MarkdownAst {
 
     fn frontmatter_yml(&self) -> Result<&str> {
         let children = &self.0.children;
-        let Some(Node::Yaml(frontmatter)) = children.get(0) else {
+        let Some(Node::Yaml(frontmatter)) = children.first() else {
             return Err(miette::miette!(
                 "Should have a first child with YAML Frontmatter"
             ));

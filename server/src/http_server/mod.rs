@@ -22,7 +22,6 @@ use tower_cookies::CookieManagerLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::{AppConfig, AppState};
-pub use config::*;
 use errors::*;
 
 use self::{

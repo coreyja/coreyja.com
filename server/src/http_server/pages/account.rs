@@ -1,9 +1,5 @@
 use async_trait::async_trait;
-use axum::{
-    extract::{FromRequestParts, State},
-    response::IntoResponse,
-};
-use cja::server::session::DBSession;
+use axum::{extract::FromRequestParts, response::IntoResponse};
 use maud::html;
 
 use crate::{
@@ -18,7 +14,6 @@ use crate::{
 
 pub(crate) async fn account_page(
     current_user: CurrentUser,
-    State(app_state): State<AppState>,
 ) -> Result<impl IntoResponse, MietteError> {
     Ok(base_constrained(
         html! {
@@ -72,7 +67,6 @@ impl FromRequestParts<AppState> for Sponsor {
 pub(crate) async fn sponsorship_page(
     current_user: CurrentUser,
     sponsor: Option<Sponsor>,
-    State(app_state): State<AppState>,
 ) -> Result<impl IntoResponse, MietteError> {
     Ok(base_constrained(
         html! {

@@ -8,7 +8,6 @@ use axum::{
 };
 use jsonwebtoken::{Algorithm, Validation};
 use miette::IntoDiagnostic;
-use serde_json::json;
 
 use crate::{http_server::ResponseResult, state::AppState};
 

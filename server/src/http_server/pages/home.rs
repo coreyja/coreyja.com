@@ -2,20 +2,19 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
-use miette::IntoDiagnostic;
+use miette::{Context, IntoDiagnostic};
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
 use crate::{
     http_server::{
-        pages::{
-            videos::{VideoList, YoutubeVideo},
-        },
+        pages::videos::{VideoList, YoutubeVideo},
         templates::{
             base,
             buttons::LinkButton,
             constrained_width,
             post_templates::{BlogPostList, TilPostList},
         },
+        MietteError,
     },
     AppState,
 };
@@ -25,7 +24,7 @@ pub(crate) async fn home_page(
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(part_streams): State<Arc<PastStreams>>,
-) -> Markup {
+) -> Result<Markup, MietteError> {
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 
@@ -43,10 +42,15 @@ pub(crate) async fn home_page(
     )
     .fetch_all(&app_state.db)
     .await
-    .into_diagnostic()
-    .unwrap();
+    .into_diagnostic()?;
 
-    base(
+    sqlx::query!("SELECT * FROM USERS WHERE true = false",)
+        .fetch_one(&app_state.db)
+        .await
+        .into_diagnostic()
+        .context("Failed to fetch user")?;
+
+    Ok(base(
         html! {
             (constrained_width(html! {
                 ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
@@ -90,5 +94,5 @@ pub(crate) async fn home_page(
 
         },
         Default::default(),
-    )
+    ))
 }
