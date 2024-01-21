@@ -44,12 +44,6 @@ pub(crate) async fn home_page(
     .await
     .into_diagnostic()?;
 
-    sqlx::query!("SELECT * FROM USERS WHERE true = false",)
-        .fetch_one(&app_state.db)
-        .await
-        .into_diagnostic()
-        .context("Failed to fetch user")?;
-
     Ok(base(
         html! {
             (constrained_width(html! {
