@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Write};
+use std::fmt::{Debug, Display};
 
 use axum::http::StatusCode;
 use axum::response::IntoResponse;

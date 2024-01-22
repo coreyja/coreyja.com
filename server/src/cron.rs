@@ -1,9 +1,6 @@
 use std::time::Duration;
 
-use cja::{
-    cron::{CronRegistry, Worker},
-    jobs::Job,
-};
+use cja::cron::{CronRegistry, Worker};
 
 use crate::{
     jobs::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos},
@@ -17,13 +14,8 @@ fn one_hour() -> Duration {
 fn cron_registry() -> CronRegistry<AppState> {
     let mut registry = CronRegistry::new();
 
-    registry.register("RefreshSponsors", one_hour(), |app_state, context| {
-        RefreshSponsors.enqueue(app_state, context)
-    });
-
-    registry.register("RefreshVideos", one_hour(), |app_state, context| {
-        RefreshVideos.enqueue(app_state, context)
-    });
+    registry.register_job(RefreshSponsors, one_hour());
+    registry.register_job(RefreshVideos, one_hour());
 
     registry
 }

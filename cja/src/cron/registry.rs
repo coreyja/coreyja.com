@@ -4,41 +4,21 @@ use miette::Diagnostic;
 use tokio::time::Instant;
 use tracing::error;
 
-use crate::app_state::AppState as AS;
+use crate::{app_state::AppState as AS, jobs::Job};
 
 pub struct CronRegistry<AppState: AS> {
     pub(super) jobs: HashMap<&'static str, CronJob<AppState>>,
 }
 
-#[async_trait::async_trait]
-pub trait CronFn<AppState: AS>
-{
-    // This collapses the error type to a string, right now thats because thats
-    // what the only consumer really needs. As we add more error debugging we'll
-    // need to change this.
-    async fn run(
-        &self,
-        app_state: AppState,
-        context: String,
-    ) -> Result<(), String>;
-}
-
-#[async_trait::async_trait]
-impl<AppState: AS, Func, FnError: Diagnostic> CronFn<AppState> for Func where
-    Func: Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<(), FnError>> + Send>> + Send + Sync
-{
-    async fn run(
-        &self,
-        app_state: AppState,
-        context: String,
-    ) -> Result<(), String>  {
-        self(app_state, context).await.map_err(|err| format!("{err}"))
-    }
-}
-
+#[allow(clippy::type_complexity)]
 pub(super) struct CronJob<AppState: AS> {
     name: &'static str,
-    func: Box<dyn CronFn<AppState> + Send + Sync + 'static>,
+    func: Box<
+        dyn Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>>
+            + Send
+            + Sync
+            + 'static,
+    >,
     interval: Duration,
 }
 
@@ -54,7 +34,7 @@ impl<AppState: AS> CronJob<AppState> {
         name = "cron_job.tick",
         skip_all,
         fields(
-            cron_job.name = self.name, 
+            cron_job.name = self.name,
             cron_job.interval = ?self.interval
         )
     )]
@@ -74,12 +54,16 @@ impl<AppState: AS> CronJob<AppState> {
                     time_since_last_run =? elapsed,
                     "Enqueuing Task"
                 );
-                (self.func).run(app_state, context).await.map_err(TickError::JobError)?;
+                (self.func)(app_state, context)
+                    .await
+                    .map_err(TickError::JobError)?;
                 last_enqueue_map.insert(self.name, Instant::now());
             }
         } else {
             tracing::info!(task_name = self.name, "Enqueuing Task for first time");
-            (self.func).run(app_state, context).await.map_err(TickError::JobError)?;
+            (self.func)(app_state, context)
+                .await
+                .map_err(TickError::JobError)?;
             last_enqueue_map.insert(self.name, Instant::now());
         }
 
@@ -95,13 +79,33 @@ impl<AppState: AS> CronRegistry<AppState> {
     }
 
     #[tracing::instrument(name = "cron.register", skip_all, fields(cron_job.name = name, cron_job.interval = ?interval))]
-    pub fn register(&mut self, name: &'static str, interval: Duration, job: impl CronFn<AppState> + Send + Sync + 'static) {
+    pub fn register(
+        &mut self,
+        name: &'static str,
+        interval: Duration,
+        job: impl Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>>
+            + Send
+            + Sync
+            + 'static,
+    ) {
         let cron_job = CronJob {
             name,
             func: Box::new(job),
             interval,
         };
         self.jobs.insert(name, cron_job);
+    }
+
+    #[tracing::instrument(name = "cron.register_job", skip_all, fields(cron_job.name = J::NAME, cron_job.interval = ?interval))]
+    pub fn register_job<J: Job<AppState>>(&mut self, job: J, interval: Duration) {
+        self.register(J::NAME, interval, move |app_state, context| {
+            let job = job.clone();
+            Box::pin(async move {
+                J::enqueue(job, app_state, context)
+                    .await
+                    .map_err(|_| "Failed to enqueue job".to_string())
+            })
+        });
     }
 }
 

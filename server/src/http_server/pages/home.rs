@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
-use miette::{Context, IntoDiagnostic};
+use miette::IntoDiagnostic;
 use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
 
 use crate::{
