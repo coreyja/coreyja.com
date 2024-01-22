@@ -19,7 +19,7 @@ macro_rules! impl_job_registry {
 
                 match job.name.as_str() {
                     $(
-                        $job_type::NAME => $job_type::run_from_value(payload, app_state).await,
+                        <$job_type>::NAME => <$job_type>::run_from_value(payload, app_state).await,
                     )*
                     _ => Err(miette::miette!("Unknown job type: {}", job.name)),
                 }
