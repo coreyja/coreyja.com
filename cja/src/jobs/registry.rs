@@ -13,8 +13,10 @@ macro_rules! impl_job_registry {
         pub(crate) struct Jobs;
 
         #[async_trait::async_trait]
-        impl JobRegistry<$state> for Jobs {
-            async fn run_job(&self, job: &JobFromDB, app_state: $state) -> miette::Result<()> {
+        impl $crate::jobs::registry::JobRegistry<$state> for Jobs {
+            async fn run_job(&self, job: &$crate::jobs::worker::JobFromDB, app_state: $state) -> miette::Result<()> {
+                use $crate::jobs::Job as _;
+
                 let payload = job.payload.clone();
 
                 match job.name.as_str() {

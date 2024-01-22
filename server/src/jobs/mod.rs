@@ -1,7 +1,4 @@
-use cja::{
-    impl_job_registry,
-    jobs::{registry::JobRegistry, worker::JobFromDB, Job},
-};
+use cja::impl_job_registry;
 
 use crate::state::AppState;
 
