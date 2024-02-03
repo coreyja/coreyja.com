@@ -217,12 +217,26 @@ impl Project {
 
         #[cfg(feature = "test_auth")]
         {
+            println!("Inside conditional block");
             let local_port = self.local_port()?;
+            println!("After getting local port");
 
-            login_callback.set_host(Some("localhost"));
-            login_callback.set_port(Some(local_port));
-            login_callback.set_scheme("http");
+            login_callback
+                .set_host(Some("localhost"))
+                .into_diagnostic()?;
+            println!("After setting host");
+
+            login_callback
+                .set_port(Some(local_port))
+                .map_err(|_| miette::miette!("Port could not be set"))?;
+            println!("After setting port");
+
+            login_callback
+                .set_scheme("http")
+                .map_err(|_| miette::miette!("Scheme could not be set"))?;
+            println!("After setting scheme");
         }
+        println!("After conditional block");
 
         Ok(login_callback)
     }
