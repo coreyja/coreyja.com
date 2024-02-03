@@ -18,7 +18,7 @@ path = "src/generate_app_keys.rs"
 
 [features]
 local = []
-test_auth = []
+test_auth = ["posts/test_auth"]
 
 [dependencies]
 async-trait = "0.1.60"
