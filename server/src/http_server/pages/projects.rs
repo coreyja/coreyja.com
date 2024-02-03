@@ -16,15 +16,14 @@ use crate::{
     *,
 };
 
-use super::blog::md::IntoHtml;
+use super::{blog::md::IntoHtml, videos::YoutubeVideo};
 
 #[instrument(skip_all)]
 pub(crate) async fn projects_index(
     State(projects): State<Arc<Projects>>,
-    State(streams): State<Arc<PastStreams>>,
+    State(state): State<AppState>,
 ) -> ResponseResult<Markup> {
     let projects = projects.by_title();
-    let streams = streams.by_recency();
 
     let mut grouped_projects: Vec<(ProjectStatus, Vec<Project>)> = projects
         .into_iter()
@@ -34,6 +33,22 @@ pub(crate) async fn projects_index(
         .collect::<Vec<_>>();
 
     grouped_projects.sort_by_key(|(status, _)| *status);
+
+    let recent_video_published = sqlx::query!(
+        r#"
+        SELECT YoutubePlaylists.external_youtube_playlist_id,
+        max(YoutubeVideos.published_at)
+        FROM YoutubeVideos
+        JOIN YoutubeVideoPlaylists using (youtube_video_id)
+        JOIN YoutubePlaylists using (youtube_playlist_id)
+        WHERE YoutubeVideos.published_at IS NOT NULL
+        GROUP BY YoutubePlaylists.external_youtube_playlist_id
+        "#,
+    )
+    .fetch_all(&state.db)
+    .await
+    .into_diagnostic()
+    .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))?;
 
     Ok(base_constrained(
         html! {
@@ -47,10 +62,18 @@ pub(crate) async fn projects_index(
                   a href=(project.relative_link()?) {
                     (project.frontmatter.title)
 
-                    @let most_recent_stream = streams.iter().find(|s| s.frontmatter.project.as_deref() == Some(project.slug().unwrap()));
-                    @if let Some(stream) = most_recent_stream {
-                      span class="text-subtitle text-sm inline-block pl-4" {
-                        "Last Streamed: " (stream.frontmatter.date)
+                    @let most_recent_video = recent_video_published
+                                              .iter()
+                                              .find(|s|
+                                                Some(
+                                                  &s.external_youtube_playlist_id) ==
+                                                    project.frontmatter.youtube_playlist.as_ref()
+                                              );
+                    @if let Some(stream) = most_recent_video {
+                      @if let Some(date) = stream.max {
+                        span class="text-subtitle text-sm inline-block pl-4" {
+                          "Most Recent Video: " (date.format("%Y-%m-%d"))
+                        }
                       }
                     }
                   }
@@ -90,11 +113,10 @@ impl Render for StatusTag {
     }
 }
 
-#[instrument(skip(streams, projects))]
+#[instrument(skip_all, fields(slug))]
 #[axum_macros::debug_handler(state = AppState)]
 pub(crate) async fn projects_get(
     State(projects): State<Arc<Projects>>,
-    State(streams): State<Arc<PastStreams>>,
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Markup, Response> {
@@ -104,12 +126,6 @@ pub(crate) async fn projects_get(
         .find(|p| p.slug().unwrap() == slug)
         .ok_or_else(|| StatusCode::NOT_FOUND.into_response())?;
 
-    let streams: Vec<_> = streams
-        .by_recency()
-        .into_iter()
-        .filter(|s| s.frontmatter.project.as_ref() == Some(&slug))
-        .collect();
-
     let markdown = project
         .ast
         .0
@@ -117,6 +133,24 @@ pub(crate) async fn projects_get(
         .into_html(&state.app, &state.markdown_to_html_context)
         .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
         .map_err(|e| e.into_response())?;
+
+    let youtube_videos = sqlx::query_as!(
+        YoutubeVideo,
+        r#"
+        SELECT YoutubeVideos.*
+        FROM YoutubeVideos
+        JOIN YoutubeVideoPlaylists using (youtube_video_id)
+        JOIN YoutubePlaylists using (youtube_playlist_id)
+        WHERE YoutubePlaylists.external_youtube_playlist_id = $1
+        ORDER BY published_at DESC
+        "#,
+        project.frontmatter.youtube_playlist
+    )
+    .fetch_all(&state.db)
+    .await
+    .into_diagnostic()
+    .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+    .map_err(|e| e.into_response())?;
 
     Ok(base_constrained(
         html! {
@@ -133,8 +167,9 @@ pub(crate) async fn projects_get(
 
           (markdown)
 
-          h3 class="text-lg mt-8" { "Streams" }
-          (http_server::pages::streams::StreamPostList(streams))
+          h3 class="text-lg mt-8" { "Videos" }
+          // (http_server::pages::streams::StreamPostList(streams))
+          (http_server::pages::videos::VideoList(youtube_videos))
         },
         OpenGraph {
             title: project.frontmatter.title.clone(),

@@ -25,7 +25,7 @@ pub(crate) struct VideoList(pub(crate) Vec<YoutubeVideo>);
 impl Render for VideoList {
     fn render(&self) -> Markup {
         html! {
-          ul {
+          ul class="flex flex-row flex-wrap" {
             @for video in &self.0 {
               (VideoThumbnailCard(video))
             }

@@ -2,6 +2,7 @@
 title: Halloween Choose Your Own Adventure
 repo: https://github.com/coreyja/halloween-game
 status: active
+youtube_playlist: PL0FtqJaYsqZ2bDdvsHIBBuaYgmEDOB72R
 ---
 
 ## Demo: [here](https://halloween.coreyja.com)

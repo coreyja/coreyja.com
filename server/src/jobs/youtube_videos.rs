@@ -110,16 +110,49 @@ async fn assign_videos_to_playlists(
         .await
         .into_diagnostic()?;
 
-    for playlist in playlists.1.items.unwrap() {
-        let playlist_id = playlist
-            .id
-            .ok_or_else(|| miette::miette!("No playlist ID found"))?;
-        let snippet = playlist
-            .snippet
-            .ok_or_else(|| miette::miette!("No snippet found"))?;
+    // for playlist in playlists.1.items.unwrap() {
+    //     insert_playlist_page(playlist, app_state, hub).await?;
+    // }
 
-        let youtube_playlist_id = sqlx::query!(
-            "INSERT INTO YoutubePlaylists (
+    let mut current_result = Some(playlists);
+    while let Some(result) = current_result {
+        if let Some(playlists) = result.1.items {
+            for playlist in playlists {
+                insert_playlist_page(playlist, app_state, hub).await?;
+            }
+        }
+
+        current_result = if let Some(next_page_token) = result.1.next_page_token {
+            Some(
+                hub.playlists()
+                    .list(&vec!["snippet".to_owned()])
+                    .mine(true)
+                    .page_token(&next_page_token)
+                    .doit()
+                    .await
+                    .into_diagnostic()?,
+            )
+        } else {
+            None
+        };
+    }
+
+    Ok(())
+}
+
+async fn insert_playlist_page(
+    playlist: google_youtube3::api::Playlist,
+    app_state: &AppState,
+    hub: &YouTube<HttpsConnector<HttpConnector>>,
+) -> Result<(), miette::ErrReport> {
+    let playlist_id = playlist
+        .id
+        .ok_or_else(|| miette::miette!("No playlist ID found"))?;
+    let snippet = playlist
+        .snippet
+        .ok_or_else(|| miette::miette!("No snippet found"))?;
+    let youtube_playlist_id = sqlx::query!(
+        "INSERT INTO YoutubePlaylists (
                     youtube_playlist_id,
                     external_youtube_playlist_id,
                     title,
@@ -133,50 +166,44 @@ async fn assign_videos_to_playlists(
                     title = excluded.title,
                     description = excluded.description
                     RETURNING youtube_playlist_id",
-            uuid::Uuid::new_v4(),
-            playlist_id,
-            snippet.title,
-            snippet.description,
-        )
-        .fetch_one(&app_state.db)
+        uuid::Uuid::new_v4(),
+        playlist_id,
+        snippet.title,
+        snippet.description,
+    )
+    .fetch_one(&app_state.db)
+    .await
+    .into_diagnostic()?
+    .youtube_playlist_id;
+    let page = hub
+        .playlist_items()
+        .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
+        .playlist_id(&playlist_id)
+        .doit()
         .await
-        .into_diagnostic()?
-        .youtube_playlist_id;
+        .into_diagnostic()?;
+    let mut current_result = Some(page);
+    Ok(while let Some(result) = current_result {
+        let page = result.1.items;
+        insert_playlist_items_page(&app_state.db, youtube_playlist_id, page).await?;
 
-        let page = hub
-            .playlist_items()
-            .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
-            .playlist_id(&playlist_id)
-            .doit()
-            .await
-            .into_diagnostic()?;
-
-        let mut current_result = Some(page);
-
-        while let Some(result) = current_result {
-            let page = result.1.items;
-            insert_playlist_page(&app_state.db, youtube_playlist_id, page).await?;
-
-            current_result = if let Some(next_page_token) = result.1.next_page_token {
-                Some(
-                    hub.playlist_items()
-                        .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
-                        .playlist_id(&playlist_id)
-                        .page_token(&next_page_token)
-                        .doit()
-                        .await
-                        .into_diagnostic()?,
-                )
-            } else {
-                None
-            };
-        }
-    }
-
-    Ok(())
+        current_result = if let Some(next_page_token) = result.1.next_page_token {
+            Some(
+                hub.playlist_items()
+                    .list(&vec!["snippet".to_owned(), "contentDetails".to_owned()])
+                    .playlist_id(&playlist_id)
+                    .page_token(&next_page_token)
+                    .doit()
+                    .await
+                    .into_diagnostic()?,
+            )
+        } else {
+            None
+        };
+    })
 }
 
-async fn insert_playlist_page(
+async fn insert_playlist_items_page(
     db: &PgPool,
     youtube_playlist_id: Uuid,
     page: Option<Vec<PlaylistItem>>,

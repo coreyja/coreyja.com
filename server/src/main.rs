@@ -2,8 +2,6 @@
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use ::posts::past_streams::PastStreams;
-
 use clap::Parser;
 use commands::Command;
 

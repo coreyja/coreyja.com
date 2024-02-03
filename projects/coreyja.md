@@ -3,6 +3,7 @@ title: coreyja.com
 subtitle: Home for all things coreyja
 repo: https://github.com/coreyja/coreyja.com
 status: active
+youtube_playlist: PL0FtqJaYsqZ0hs2v0mkUM7BNbzDpq-C4g
 ---
 
 This is my Rust powered personal site. You are browsing it now!
