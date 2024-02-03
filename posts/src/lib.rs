@@ -16,8 +16,6 @@ pub mod til;
 pub mod date;
 pub mod title;
 
-pub mod past_streams;
-
 pub mod plain;
 
 pub mod projects;

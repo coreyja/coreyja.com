@@ -183,7 +183,7 @@ async fn insert_playlist_page(
         .await
         .into_diagnostic()?;
     let mut current_result = Some(page);
-    Ok(while let Some(result) = current_result {
+    while let Some(result) = current_result {
         let page = result.1.items;
         insert_playlist_items_page(&app_state.db, youtube_playlist_id, page).await?;
 
@@ -200,7 +200,8 @@ async fn insert_playlist_page(
         } else {
             None
         };
-    })
+    }
+    Ok(())
 }
 
 async fn insert_playlist_items_page(

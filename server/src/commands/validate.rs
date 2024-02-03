@@ -1,7 +1,7 @@
 use std::println;
 
 use miette::{IntoDiagnostic, Result};
-use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
+use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 
 use crate::{
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
@@ -23,10 +23,6 @@ pub(crate) async fn validate() -> Result<()> {
     let tils = TilPosts::from_static_dir()?;
 
     tils.validate()?;
-
-    println!("Validating Past Streams feed...");
-    let streams = PastStreams::from_static_dir()?;
-    streams.validate(&projects)?;
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig {

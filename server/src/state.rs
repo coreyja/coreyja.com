@@ -4,7 +4,7 @@ use cja::server::cookies::CookieKey;
 use db::setup_db_pool;
 use miette::{Context, IntoDiagnostic, Result};
 use openai::OpenAiConfig;
-use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
+use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::instrument;
@@ -68,7 +68,6 @@ pub(crate) struct AppState {
     pub markdown_to_html_context: SyntaxHighlightingContext,
     pub blog_posts: Arc<BlogPosts>,
     pub til_posts: Arc<TilPosts>,
-    pub streams: Arc<PastStreams>,
     pub projects: Arc<Projects>,
     pub versions: VersionInfo,
     pub db: PgPool,
@@ -85,9 +84,6 @@ impl AppState {
         let til_posts = TilPosts::from_static_dir()?;
         let til_posts = Arc::new(til_posts);
 
-        let streams = PastStreams::from_static_dir()?;
-        let streams = Arc::new(streams);
-
         let projects = Projects::from_static_dir()?;
         let projects = Arc::new(projects);
 
@@ -103,7 +99,6 @@ impl AppState {
             versions: VersionInfo::from_env(),
             blog_posts,
             til_posts,
-            streams,
             projects,
             db: setup_db_pool().await?,
             cookie_key,

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
-use posts::{blog::BlogPosts, past_streams::PastStreams, projects::Projects, til::TilPosts};
+use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 
 use crate::{google::GoogleConfig, twitch::TwitchConfig, AppConfig, AppState};
 
@@ -34,12 +34,6 @@ impl FromRef<AppState> for Arc<BlogPosts> {
 impl FromRef<AppState> for Arc<TilPosts> {
     fn from_ref(config: &AppState) -> Self {
         config.til_posts.clone()
-    }
-}
-
-impl FromRef<AppState> for Arc<PastStreams> {
-    fn from_ref(config: &AppState) -> Self {
-        config.streams.clone()
     }
 }
 

@@ -16,7 +16,7 @@ use crate::{
     *,
 };
 
-use super::{blog::md::IntoHtml, videos::YoutubeVideo};
+use super::blog::md::IntoHtml;
 
 #[instrument(skip_all)]
 pub(crate) async fn projects_index(
@@ -135,7 +135,7 @@ pub(crate) async fn projects_get(
         .map_err(|e| e.into_response())?;
 
     let youtube_videos = sqlx::query_as!(
-        YoutubeVideo,
+        crate::http_server::pages::videos::YoutubeVideo,
         r#"
         SELECT YoutubeVideos.*
         FROM YoutubeVideos

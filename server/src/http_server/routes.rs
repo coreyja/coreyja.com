@@ -27,8 +27,6 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/til", get(pages::til::til_index))
         .route("/til/rss.xml", get(pages::til::rss_feed))
         .route("/til/:slug", get(pages::til::til_get))
-        .route("/streams", get(pages::streams::streams_index))
-        .route("/streams/:date", get(pages::streams::stream_get))
         .route("/projects", get(pages::projects::projects_index))
         .route("/projects/:slug", get(pages::projects::projects_get))
         .route("/videos", get(pages::videos::video_index))

@@ -8,14 +8,12 @@ use transcribe::TranscribeVideos;
 
 use aws_sdk_s3 as s3;
 use miette::Result;
-use upload::Upload;
 use youtubize::Youtubize;
 
 mod blogify;
 mod single;
 mod summarize;
 mod transcribe;
-mod upload;
 mod youtubize;
 
 #[derive(Parser, Debug)]
@@ -30,7 +28,6 @@ enum Command {
     TranscribeVideos(TranscribeVideos),
     Summarize(Summarize),
     Youtubize(Youtubize),
-    Upload(Upload),
     Blogify(Blogify),
     Single(single::Single),
 }
@@ -48,7 +45,6 @@ async fn main() -> Result<()> {
         }
         Command::Summarize(s) => s.summarize().await?,
         Command::Youtubize(y) => y.youtubize().await?,
-        Command::Upload(u) => u.upload().await?,
         Command::Blogify(b) => b.blogify().await?,
         Command::Single(s) => s.process().await?,
     }

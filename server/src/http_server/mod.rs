@@ -11,7 +11,6 @@ use miette::{Context, IntoDiagnostic, Result};
 use posts::{
     blog::{BlogPost, ToCanonicalPath},
     date::PostedOn,
-    past_streams::PastStream,
     til::TilPost,
     title::Title,
     Post,
@@ -95,12 +94,6 @@ impl LinkTo for BlogPost {
 impl LinkTo for TilPost {
     fn relative_link(&self) -> String {
         format!("/til/{}", self.frontmatter.slug)
-    }
-}
-
-impl LinkTo for PastStream {
-    fn relative_link(&self) -> String {
-        format!("/streams/{}", self.frontmatter.date)
     }
 }
 

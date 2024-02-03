@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::extract::State;
 use maud::{html, Markup};
 use miette::IntoDiagnostic;
-use posts::{blog::BlogPosts, past_streams::PastStreams, til::TilPosts};
+use posts::{blog::BlogPosts, til::TilPosts};
 
 use crate::{
     http_server::{
@@ -23,16 +23,12 @@ pub(crate) async fn home_page(
     State(app_state): State<AppState>,
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
-    State(part_streams): State<Arc<PastStreams>>,
 ) -> Result<Markup, MietteError> {
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 
     let mut recent_posts = blog_posts.by_recency();
     recent_posts.truncate(3);
-
-    let mut recent_streams = part_streams.by_recency();
-    recent_streams.truncate(3);
 
     let recent_videos = sqlx::query_as!(
         YoutubeVideo,
