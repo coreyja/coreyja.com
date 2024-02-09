@@ -74,7 +74,7 @@ pub(crate) async fn home_page(
 
                     div class="w-[320px]" {
                         div ."mb-16" {
-                            h2 ."text-3xl" { a href="/streams" { "Recent Videos" } }
+                            h2 ."text-3xl" { a href="/videos" { "Recent Videos" } }
                             (VideoList(recent_videos))
                         }
                     }
