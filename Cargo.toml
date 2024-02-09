@@ -7,6 +7,7 @@ members = [
   "server",
   "tracing-common",
   "video-toolkit",
+  "leptos_site",
 ]
 resolver = "2"
 
