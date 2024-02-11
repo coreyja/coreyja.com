@@ -13,5 +13,5 @@ test("homepage mentions my username", async ({ page }) => {
 
   await expect(page).toHaveTitle("Welcome to Leptos");
 
-  await expect(page.locator("html")).toHaveText("coreyja");
+  await expect(page.locator("html")).toHaveText(/coreyja/);
 });
