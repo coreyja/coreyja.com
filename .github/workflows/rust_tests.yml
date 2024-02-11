@@ -134,7 +134,7 @@ jobs:
       - uses: JarvusInnovations/background-action@v1
         name: Build and Run Server
         with:
-          run: cargo leptos watch --release
+          run: cargo leptos serve --release
 
           wait-on: http://localhost:3000
 
