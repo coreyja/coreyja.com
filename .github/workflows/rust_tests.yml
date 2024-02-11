@@ -131,13 +131,16 @@ jobs:
         run: cd end2end && npm ci
       - name: Install Playwright Browsers
         run: cd end2end && npx playwright install --with-deps
+      - name: Build Server
+        run: cargo leptos build
       - uses: JarvusInnovations/background-action@v1
-        name: Build and Run Server
+        name: Run Server
         with:
           wait-on: |
             http://localhost:3000
           run: |
             cargo leptos serve &
+          wait-for: 30s
       - name: Run Playwright tests
         run: cd end2end && npx playwright test
       - uses: actions/upload-artifact@v3
