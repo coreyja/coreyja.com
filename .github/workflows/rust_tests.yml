@@ -124,7 +124,7 @@ jobs:
           node-version: 18
       - uses: dtolnay/rust-toolchain@nightly
       - name: Install cargo-leptos
-        run: cargo install cargo-leptos
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://leptos-rs.artifacts.axodotdev.host/cargo-leptos/v0.2.7/cargo-leptos-installer.sh | sh
       - name: Install wasm target
         run: rustup target add wasm32-unknown-unknown
       - name: Install dependencies
