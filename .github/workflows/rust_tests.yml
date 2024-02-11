@@ -131,8 +131,26 @@ jobs:
         run: cd end2end && npm ci
       - name: Install Playwright Browsers
         run: cd end2end && npx playwright install --with-deps
+      - uses: JarvusInnovations/background-action@v1
+        name: Build and Run Server
+        with:
+          run: cargo leptos watch --release
+
+          wait-on: http://localhost:3000
+
+          tail: true
+
+          log-output-resume: stderr
+          # Eliminates previosuly output stderr log entries from post-run output
+
+          wait-for: 5m
+
+          log-output: stderr,stdout # same as true
+
+          log-output-if: failure
+          # failure = exit-early or timeout
       - name: Run Playwright tests
-        run: cargo leptos end-to-end
+        run: cd end2end && npx playwright test
       - uses: actions/upload-artifact@v3
         if: always()
         with:
