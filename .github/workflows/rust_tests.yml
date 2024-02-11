@@ -125,6 +125,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - name: Install cargo-leptos
         run: cargo install cargo-leptos
+      - name: Install wasm target
+        run: rustup target add wasm32-unknown-unknown
       - name: Install dependencies
         run: cd end2end && npm ci
       - name: Install Playwright Browsers
