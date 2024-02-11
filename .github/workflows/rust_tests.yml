@@ -137,20 +137,20 @@ jobs:
           run: |
             cargo leptos serve
 
-          wait-on: |
-            http://localhost:3000
+          # wait-on: |
+          #   http://localhost:3000
 
-          tail: true
+          # tail: true
 
-          log-output-resume: stderr
-          # Eliminates previosuly output stderr log entries from post-run output
+          # log-output-resume: stderr
+          # # Eliminates previosuly output stderr log entries from post-run output
 
-          wait-for: 5m
+          # wait-for: 5m
 
-          log-output: stderr,stdout # same as true
+          # log-output: stderr,stdout # same as true
 
-          log-output-if: failure
-          # failure = exit-early or timeout
+          # log-output-if: failure
+          # # failure = exit-early or timeout
       - name: Run Playwright tests
         run: cd end2end && npx playwright test
       - uses: actions/upload-artifact@v3
