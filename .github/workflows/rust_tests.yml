@@ -134,10 +134,10 @@ jobs:
       - uses: JarvusInnovations/background-action@v1
         name: Build and Run Server
         with:
-          run: \
+          run: |
             cargo leptos serve
 
-          wait-on: \
+          wait-on: |
             http://localhost:3000
 
           tail: true
