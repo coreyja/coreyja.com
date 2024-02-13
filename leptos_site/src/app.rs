@@ -1,4 +1,7 @@
+use crate::components::header::Header;
 use crate::error_template::{AppError, ErrorTemplate};
+use crate::components::constrained_width::ConstrainedWidth;
+
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -9,8 +12,6 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
-
-
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/leptos_site.css"/>
@@ -27,10 +28,13 @@ pub fn App() -> impl IntoView {
             }
             .into_view()
         }>
-            <main>
-                <Routes>
-                    <Route path="" view=HomePage/>
-                </Routes>
+            <main class="text-text font-sans min-h-screen flex flex-col" >
+                <ConstrainedWidth>
+                    <Header />
+                    <Routes>
+                        <Route path="" view=HomePage ssr=SsrMode::Async />
+                    </Routes>
+                </ConstrainedWidth>
             </main>
         </Router>
     }
