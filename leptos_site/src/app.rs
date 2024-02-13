@@ -13,7 +13,7 @@ pub fn App() -> impl IntoView {
 
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/leptos.css"/>
+        <Stylesheet id="leptos" href="/pkg/leptos_site.css"/>
 
         // sets the document title
         <Title text="Welcome to Leptos"/>
@@ -45,7 +45,7 @@ fn HomePage() -> impl IntoView {
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
-        <h2>"coreyja"</h2>
+        <h2 class="text-red-500">"coreyja"</h2>
         <button on:click=on_click>"Click Me: " {count}</button>
     }
 }
