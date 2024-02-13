@@ -8,7 +8,7 @@ pub fn Header() -> impl IntoView {
         <div class="flex flex-grow justify-center">
           <div class="max-w-sm min-w-[200px] py-8 lg:py-12 flex-grow">
             <A href="/" >
-              <img src="/logo.svg" alt="Coreyja Logo" />
+              <img src="/logo.svg" alt="coreyja" />
             </A>
           </div>
         </div>
