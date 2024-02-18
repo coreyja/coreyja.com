@@ -11,10 +11,7 @@ pub fn LinkButton(href: &'static str, text: &'static str, primary: bool) -> impl
   let classes = format!("text-text px-8 py-4 rounded font-semibold my-2 inline-block {}", primary_classes);
 
     view! {
-        <A
-          href=href
-          class=classes
-          >
+        <A href=href class=classes>
             {text}
         </A>
     }

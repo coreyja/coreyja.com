@@ -14,5 +14,6 @@
     "UNNEST",
     "vergen"
   ],
-  "rust-analyzer.check.features": ["all", "ssr"]
+  "rust-analyzer.check.features": ["ssr"],
+  "rust-analyzer.rustfmt.overrideCommand": ["leptosfmt", "--stdin", "--rustfmt"]
 }
