@@ -15,7 +15,13 @@ async fn main() {
     let conf = get_configuration(None).await.unwrap();
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
+
+    // Disable query loading.
+    leptos_query::suppress_query_load(true);
+    // Introspect App Routes.
     let routes = generate_route_list(App);
+    // Enable query loading.
+    leptos_query::suppress_query_load(false);
 
     // build our application with a route
     let app = Router::new()

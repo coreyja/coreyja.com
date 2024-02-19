@@ -2836,6 +2836,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-timers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb143cf96099802033e0d4f4963b19fd2e0b728bcf076cd9cf7f6634f092994"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "gloo-utils"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3860,6 +3872,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptos_query"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cef1b5801bf461aac3b2c33c2714723d3802b08233c89b0716c132b394cfbd0"
+dependencies = [
+ "cfg-if",
+ "gloo-timers",
+ "js-sys",
+ "leptos",
+ "tokio",
+]
+
+[[package]]
 name = "leptos_reactive"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3945,7 +3970,10 @@ dependencies = [
  "leptos",
  "leptos_axum",
  "leptos_meta",
+ "leptos_query",
  "leptos_router",
+ "posts",
+ "serde",
  "thiserror",
  "tokio",
  "tower",
@@ -6815,9 +6843,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.34.0"
+version = "1.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0c014766411e834f7af5b8f4cf46257aab4036ca95e9d2c144a10f59ad6f5b9"
+checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
 dependencies = [
  "backtrace",
  "bytes",

@@ -9,14 +9,11 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 axum = { version = "0.7", optional = true }
 console_error_panic_hook = "0.1"
-leptos = { version = "0.6", features = ["nightly"] }
+leptos = { version = "0.6", features = ["nightly", "tracing"] }
 leptos_axum = { version = "0.6", optional = true }
 leptos_meta = { version = "0.6", features = ["nightly"] }
 leptos_router = { version = "0.6", features = ["nightly"] }
-tokio = { version = "1", features = [
-    "rt-multi-thread",
-    "full",
-], optional = true }
+tokio = { features = ["rt-multi-thread", "full"], optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.5", features = ["fs"], optional = true }
 wasm-bindgen = "=0.2.89"
@@ -24,8 +21,17 @@ thiserror = "1"
 tracing = { version = "0.1", optional = true }
 http = "1"
 
+posts = { path = "../posts", optional = true }
+serde = { version = "1", features = ["derive"] }
+leptos_query = "0.4.2"
+
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = [
+    "leptos/hydrate",
+    "leptos_meta/hydrate",
+    "leptos_router/hydrate",
+    "leptos_query/hydrate",
+]
 ssr = [
     "dep:axum",
     "dep:tokio",
@@ -36,6 +42,8 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "dep:tracing",
+    "dep:posts",
+    "leptos_query/ssr",
 ]
 
 [package.metadata.leptos]
