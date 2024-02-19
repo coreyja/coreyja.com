@@ -20,10 +20,30 @@ wasm-bindgen = "=0.2.89"
 thiserror = "1"
 tracing = { version = "0.1", optional = true }
 http = "1"
+miette = { workspace = true }
 
 posts = { path = "../posts", optional = true }
+cja = { path = "../cja", optional = true }
+db = { path = "../db", optional = true }
+openai = { path = "../openai", optional = true }
+sqlx = { workspace = true, optional = true }
+
 serde = { version = "1", features = ["derive"] }
 leptos_query = "0.4.2"
+
+syntect = { version = "5.0", optional = true }
+reqwest = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+jsonwebtoken = { version = "9.2.0", optional = true }
+serde_json.workspace = true
+graphql_client = { version = "0.13.0", features = [
+    "reqwest-rustls",
+], optional = true }
+age = { version = "0.9.2", features = ["async"], optional = true }
+
+[build-dependencies]
+vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
 
 [features]
 hydrate = [
@@ -43,6 +63,17 @@ ssr = [
     "leptos_router/ssr",
     "dep:tracing",
     "dep:posts",
+    "dep:cja",
+    "dep:db",
+    "dep:openai",
+    "dep:sqlx",
+    "dep:reqwest",
+    "dep:uuid",
+    "dep:chrono",
+    "dep:jsonwebtoken",
+    "dep:graphql_client",
+    "dep:syntect",
+    "dep:age",
     "leptos_query/ssr",
 ]
 

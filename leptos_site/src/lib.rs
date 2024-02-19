@@ -4,6 +4,9 @@ pub mod error_template;
 pub mod pages;
 
 #[cfg(feature = "ssr")]
+pub mod server;
+
+#[cfg(feature = "ssr")]
 pub mod fileserv;
 
 #[cfg(feature = "hydrate")]

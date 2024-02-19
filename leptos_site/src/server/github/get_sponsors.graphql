@@ -1,0 +1,31 @@
+query GetSponsors {
+  viewer {
+    sponsorshipsAsMaintainer(first: 100) {
+      edges {
+        node {
+          sponsorEntity {
+            __typename
+            ... on User {
+              login
+              name
+              id
+            }
+            ... on Organization {
+              login
+              name
+              id
+            }
+          }
+          createdAt
+          isActive
+          isOneTimePayment
+          tier {
+            name
+            monthlyPriceInCents
+          }
+          privacyLevel
+        }
+      }
+    }
+  }
+}

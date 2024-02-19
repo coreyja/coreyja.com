@@ -27,10 +27,8 @@ pub fn App() -> impl IntoView {
 
         <meta name="theme-color" content="#AE93ED"/>
 
-        // sets the document title
-        <Title text="Welcome to Leptos"/>
+        <Title text="coreyja.com"/>
 
-        // content for this welcome page
         <Router fallback=|| {
             let mut outside_errors = Errors::default();
             outside_errors.insert_with_default_key(AppError::NotFound);

@@ -34,7 +34,6 @@ fn Nav() -> impl IntoView {
     }
 }
 
-
 #[component]
 fn HeaderLink(href: &'static str, text: &'static str) -> impl IntoView {
     view! {
