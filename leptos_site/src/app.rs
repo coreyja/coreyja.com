@@ -38,7 +38,7 @@ pub fn App() -> impl IntoView {
                 <ConstrainedWidth>
                     <Header/>
                     <Routes>
-                        <Route path="" view=HomePage ssr=SsrMode::Async/>
+                        <Route path="" view=HomePage/>
                     </Routes>
                 </ConstrainedWidth>
             </main>

@@ -29,12 +29,25 @@ async fn main() -> miette::Result<()> {
     ) -> impl IntoResponse {
         leptos_axum::handle_server_fns_with_context(
             move || {
-                // provide_context(session.clone());
                 provide_context(app_state.clone());
             },
             request,
         )
         .await
+    }
+
+    async fn leptos_routes_handler(
+        State(app_state): State<AppState>,
+        req: Request<axum::body::Body>,
+    ) -> impl IntoResponse {
+        let handler = leptos_axum::render_app_to_stream_with_context(
+            app_state.leptos_options.clone(),
+            move || {
+                provide_context(app_state.clone());
+            },
+            || view! { <App/> },
+        );
+        handler(req).await.into_response()
     }
 
     // build our application with a route
@@ -43,7 +56,7 @@ async fn main() -> miette::Result<()> {
             "/api/*fn_name",
             axum::routing::get(server_fn_handler).post(server_fn_handler),
         )
-        .leptos_routes(&app_state, routes, App)
+        .leptos_routes_with_handler(routes, axum::routing::get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .with_state(app_state);
 

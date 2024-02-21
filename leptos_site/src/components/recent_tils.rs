@@ -2,16 +2,35 @@ use std::rc::Rc;
 
 use leptos::*;
 use leptos_query::QueryResult;
-use leptos_router::*;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Til {}
+pub struct Til {
+    slug: String,
+    href: String,
+    title: String,
+    date: String,
+}
 
-#[server(GetRecentTils, "/api")]
-async fn get_recent_tils(id: ()) -> Result<Vec<Til>, ServerFnError> {
-    use posts::til::TilPost;
+#[server]
+async fn get_recent_tils(_id: ()) -> Result<Vec<Til>, ServerFnError> {
+    impl From<&posts::til::TilPost> for Til {
+        fn from(post: &posts::til::TilPost) -> Self {
+            Self {
+                slug: post.frontmatter.slug.clone(),
+                href: format!("/til/{}", post.frontmatter.slug),
+                title: post.frontmatter.title.clone(),
+                date: post.frontmatter.date.to_string(),
+            }
+        }
+    }
 
-    Ok(vec![])
+    let state = crate::server::extractors::extract_state()?;
+    let mut recent_tils = state.til_posts.by_recency();
+    recent_tils.truncate(3);
+
+    let recent: Vec<_> = recent_tils.into_iter().map(|til| til.into()).collect();
+
+    Ok(recent)
 }
 
 fn use_get_recent_tils(
@@ -22,24 +41,35 @@ fn use_get_recent_tils(
 #[component]
 pub fn RecentTils() -> impl IntoView {
     let QueryResult { data, .. } = use_get_recent_tils();
+    let tils = move || data.get().map(|tils| tils.clone().unwrap_or_default());
 
     view! {
-      "List of recent TILs"
-      <Suspense
-        fallback=move || view! {  <p>"Loading..."</p>}
-      >
-        {move || {
-          data.get().map(|data| data
-            .iter()
-            .map(|src| {
-                view! {
-                  {format!("{:?}", src)}
-                }.into_view()
-            })
-            .collect_view())
-        }
-        }
-      </Suspense>
+        <Transition>
+            {move || {
+                tils()
+                    .map(|tils| {
+                        view! {
+                            <ul>
+                                <For
+                                    each=move || tils.clone()
+                                    key=move |data| data.slug.clone()
+                                    let:til
+                                >
+                                    <li class="my-4">
+                                        <a href=til.href>
+                                            <span class="text-subtitle text-sm inline-block w-[80px]">
+                                                {til.date.clone()}
+                                            </span>
+                                            " "
+                                            {til.title}
+                                        </a>
+                                    </li>
+                                </For>
+                            </ul>
+                        }
+                    })
+            }}
 
+        </Transition>
     }
 }
