@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::components::{buttons::LinkButton, recent_tils::RecentTils};
+use crate::components::{buttons::LinkButton, recent_posts::RecentPosts, recent_tils::RecentTils};
 
 #[component]
 pub fn HomePage() -> impl IntoView {
@@ -32,7 +32,7 @@ pub fn HomePage() -> impl IntoView {
                 <h2 class="text-3xl">
                     <a href="/posts">"Recent Blog Posts"</a>
                 </h2>
-            // <RecentTils/>
+                <RecentPosts/>
             </div>
         </div>
     }
