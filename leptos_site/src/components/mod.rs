@@ -5,3 +5,4 @@ pub mod recent_posts;
 pub mod recent_tils;
 pub mod recent_videos;
 pub mod footer;
+pub mod logos;

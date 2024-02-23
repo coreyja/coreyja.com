@@ -30,3 +30,42 @@ pub fn NewsletterSignup() -> impl IntoView {
         </div>
     }
 }
+
+#[component]
+pub fn Footer() -> impl IntoView {
+    use crate::components::logos::dark_on_light::*;
+
+    view! {
+        <footer class="min-h-[100px] bg-subtitle">
+            <div class="flex  max-w-5xl m-auto px-4">
+                <div class="max-w-[10rem] sm:max-w-[15rem] min-w-[100px] py-8 flex-grow">
+                    <a href="/">
+                        <MainLogo/>
+                    </a>
+                </div>
+                <div class="flex-grow"></div>
+                <ul class="flex flex-row items-center text-background space-x-4 sm:space-x-8 text-xl sm:text-2xl">
+                    <a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="https://twitch.tv/coreyja" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-brands fa-twitch"></i>
+                    </a>
+                    <a
+                        href="https://youtube.com/@coreyja"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <i class="fa-brands fa-youtube"></i>
+                    </a>
+                    <a href="https://toot.cat/@coreyja" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-brands fa-mastodon"></i>
+                    </a>
+                    <a href="/rss.xml" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-solid fa-rss"></i>
+                    </a>
+                </ul>
+            </div>
+        </footer>
+    }
+}

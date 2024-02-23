@@ -1,5 +1,5 @@
 use crate::components::constrained_width::ConstrainedWidth;
-use crate::components::footer::NewsletterSignup;
+use crate::components::footer::{Footer, NewsletterSignup};
 use crate::components::header::Header;
 use crate::error_template::{AppError, ErrorTemplate};
 
@@ -28,6 +28,8 @@ pub fn App() -> impl IntoView {
 
         <meta name="theme-color" content="#AE93ED"/>
 
+        <script src="https://kit.fontawesome.com/d4a1ffb2a0.js" crossorigin="anonymous"></script>
+
         <Title text="coreyja.com"/>
 
         <Router fallback=|| {
@@ -44,6 +46,7 @@ pub fn App() -> impl IntoView {
                 </ConstrainedWidth>
 
                 <NewsletterSignup/>
+                <Footer/>
             </main>
         </Router>
     }
