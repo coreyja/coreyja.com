@@ -1,6 +1,9 @@
 use leptos::*;
 
-use crate::components::{buttons::LinkButton, recent_posts::RecentPosts, recent_tils::RecentTils};
+use crate::components::{
+    buttons::LinkButton, recent_posts::RecentPosts, recent_tils::RecentTils,
+    recent_videos::RecentVideos,
+};
 
 #[component]
 pub fn HomePage() -> impl IntoView {
@@ -20,19 +23,29 @@ pub fn HomePage() -> impl IntoView {
                 </div>
             </div>
         </div>
-        <div class="flex-grow">
-            <div class="mb-16">
-                <h2 class="text-3xl">
-                    <a href="/til">"Recent TILs"</a>
-                </h2>
-                <RecentTils/>
+
+        <div class="flex flex-col md:flex-row md:space-x-8">
+            <div class="flex-grow">
+                <div class="mb-16">
+                    <h2 class="text-3xl">
+                        <a href="/til">"Recent TILs"</a>
+                    </h2>
+                    <RecentTils/>
+                </div>
+
+                <div class="mb-16">
+                    <h2 class="text-3xl">
+                        <a href="/posts">"Recent Blog Posts"</a>
+                    </h2>
+                    <RecentPosts/>
+                </div>
             </div>
 
-            <div class="mb-16">
+            <div class="w-[320px]">
                 <h2 class="text-3xl">
-                    <a href="/posts">"Recent Blog Posts"</a>
+                    <a href="/videos">"Recent Videos"</a>
                 </h2>
-                <RecentPosts/>
+                <RecentVideos/>
             </div>
         </div>
     }
