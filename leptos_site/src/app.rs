@@ -1,4 +1,5 @@
 use crate::components::constrained_width::ConstrainedWidth;
+use crate::components::footer::NewsletterSignup;
 use crate::components::header::Header;
 use crate::error_template::{AppError, ErrorTemplate};
 
@@ -41,6 +42,8 @@ pub fn App() -> impl IntoView {
                         <Route path="" view=HomePage/>
                     </Routes>
                 </ConstrainedWidth>
+
+                <NewsletterSignup/>
             </main>
         </Router>
     }
