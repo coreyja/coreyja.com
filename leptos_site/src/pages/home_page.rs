@@ -37,7 +37,7 @@ pub fn HomePage() -> impl IntoView {
                     <h2 class="text-3xl">
                         <a href="/posts">"Recent Blog Posts"</a>
                     </h2>
-                    <RecentPosts/>
+                    <RecentPosts limit=Some(3)/>
                 </div>
             </div>
 

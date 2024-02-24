@@ -11,7 +11,7 @@ pub struct Post {
 }
 
 #[server]
-async fn get_recent_posts(_id: ()) -> Result<Vec<Post>, ServerFnError> {
+async fn get_recent_posts(limit: Option<usize>) -> Result<Vec<Post>, ServerFnError> {
     use posts::blog::ToCanonicalPath;
 
     impl From<&posts::blog::BlogPost> for Post {
@@ -26,21 +26,20 @@ async fn get_recent_posts(_id: ()) -> Result<Vec<Post>, ServerFnError> {
 
     let state = crate::server::extractors::extract_state()?;
     let mut recent = state.blog_posts.by_recency();
-    recent.truncate(3);
+
+    if let Some(limit) = limit {
+        recent.truncate(limit);
+    }
 
     let recent: Vec<_> = recent.into_iter().map(|til| til.into()).collect();
 
     Ok(recent)
 }
 
-fn use_get_recent_posts(
-) -> QueryResult<Result<Vec<Post>, ServerFnError>, impl leptos_query::RefetchFn> {
-    leptos_query::use_query(|| (), get_recent_posts, Default::default())
-}
-
 #[component]
-pub fn RecentPosts() -> impl IntoView {
-    let QueryResult { data, .. } = use_get_recent_posts();
+pub fn RecentPosts(limit: Option<usize>) -> impl IntoView {
+    let QueryResult { data, .. } =
+        leptos_query::use_query(move || limit, get_recent_posts, Default::default());
     let posts = move || data.get().map(|posts| posts.clone().unwrap_or_default());
 
     view! {
