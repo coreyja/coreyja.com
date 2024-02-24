@@ -3979,6 +3979,7 @@ dependencies = [
  "leptos_meta",
  "leptos_query",
  "leptos_router",
+ "markdown",
  "miette",
  "openai",
  "posts",
@@ -4133,6 +4134,7 @@ version = "1.0.0-alpha.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff9c0d28952698a9accc957767f2bcad203ec10251601f89b9ddc82661c3a15a"
 dependencies = [
+ "serde",
  "unicode-id",
 ]
 

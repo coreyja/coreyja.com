@@ -4,7 +4,8 @@ async fn main() -> miette::Result<()> {
     use axum::extract::State;
     use axum::response::IntoResponse;
     use axum::Router;
-    use http::Request;
+    use http::{Request, StatusCode};
+    use leptos::server_fn::codec::IntoRes;
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
     use leptos_site::app::*;
@@ -50,8 +51,24 @@ async fn main() -> miette::Result<()> {
         handler(req).await.into_response()
     }
 
+    async fn blog_asset_handler(
+        State(app_state): State<AppState>,
+        axum::extract::Path(slug): axum::extract::Path<String>,
+    ) -> impl IntoResponse {
+        let path = posts::blog::BlogPostPath::new(slug.clone());
+        if path.file_exists() && !path.file_is_markdown() {
+            return path.raw_bytes().into_response();
+        }
+
+        return StatusCode::NOT_FOUND.into_response();
+    }
+
     // build our application with a route
     let app = Router::new()
+        .route(
+            "/assets/posts/*slug",
+            axum::routing::get(blog_asset_handler),
+        )
         .route(
             "/api/*fn_name",
             axum::routing::get(server_fn_handler).post(server_fn_handler),

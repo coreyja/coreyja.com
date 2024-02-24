@@ -7,6 +7,7 @@ private = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
 test_auth = []
+data = ["dep:path-absolutize"]
 
 [dependencies]
 rss = { workspace = true }
@@ -19,6 +20,6 @@ serde_yaml = "0.9"
 markdown = { workspace = true }
 include_dir = { workspace = true }
 
-path-absolutize = { workspace = true }
+path-absolutize = { workspace = true, optional = true }
 thiserror = "1.0.44"
 url = "2.5.0"

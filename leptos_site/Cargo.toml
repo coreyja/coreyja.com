@@ -22,7 +22,7 @@ tracing = { version = "0.1", optional = true }
 http = "1"
 miette = { workspace = true }
 
-posts = { path = "../posts", optional = true }
+posts = { path = "../posts" }
 cja = { path = "../cja", optional = true }
 db = { path = "../db", optional = true }
 openai = { path = "../openai", optional = true }
@@ -41,6 +41,7 @@ graphql_client = { version = "0.13.0", features = [
     "reqwest-rustls",
 ], optional = true }
 age = { version = "0.9.2", features = ["async"], optional = true }
+markdown.workspace = true
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
@@ -63,7 +64,7 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "dep:tracing",
-    "dep:posts",
+    "posts/data",
     "dep:cja",
     "dep:db",
     "dep:openai",

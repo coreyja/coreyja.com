@@ -6,7 +6,7 @@ use markdown::{
     to_mdast, ParseOptions,
 };
 use miette::{Context, ErrReport, IntoDiagnostic, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use self::{blog::PostMarkdown, date::PostedOn, title::Title};
 
@@ -20,14 +20,21 @@ pub mod plain;
 
 pub mod projects;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Post<FrontmatterType> {
     pub frontmatter: FrontmatterType,
-    pub ast: MarkdownAst,
+    // pub ast: MarkdownAst,
+    pub raw_markdown: String,
     pub path: PathBuf,
 }
 
-#[derive(Clone, Debug)]
+impl<T> Post<T> {
+    pub fn ast(&self) -> MarkdownAst {
+        MarkdownAst::from_str(&self.raw_markdown).unwrap()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MarkdownAst(pub Root);
 
 impl FromStr for MarkdownAst {
@@ -86,7 +93,7 @@ where
         PostMarkdown {
             title: self.title().to_string(),
             date: self.posted_on().to_string(),
-            ast: self.ast.clone(),
+            ast: self.ast().clone(),
         }
     }
 }

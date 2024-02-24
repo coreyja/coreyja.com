@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use crate::{MarkdownAst, Post};
 
 use super::{
-    blog::ValidateMarkdown,
     date::{ByRecency, PostedOn},
     title::Title,
 };
@@ -48,24 +47,33 @@ impl TilPost {
         let metadata: FrontMatter = ast.frontmatter()?;
         let path = file.path().to_owned();
 
+        let raw_markdown: String = file
+            .contents_utf8()
+            .ok_or_else(|| miette::miette!("No markdown found"))?
+            .to_string();
+
         Ok(Self {
-            ast,
+            raw_markdown,
             path,
             frontmatter: metadata,
         })
     }
 
+    #[cfg(feature = "data")]
     pub(crate) fn validate(&self) -> Result<()> {
         self.validate_images()?;
 
         Ok(())
     }
 
+    #[cfg(feature = "data")]
     fn validate_images(&self) -> Result<()> {
+        use crate::blog::ValidateMarkdown;
+
         let p = &self.frontmatter.slug;
         let p = PathBuf::from(p);
 
-        let root_node = Node::Root(self.ast.0.clone());
+        let root_node = Node::Root(self.ast().0.clone());
         root_node.validate_images(&p)?;
 
         Ok(())
@@ -89,6 +97,7 @@ impl TilPosts {
         Ok(Self { posts })
     }
 
+    #[cfg(feature = "data")]
     pub fn validate(&self) -> Result<()> {
         println!("Validating Slug Uniqueness");
         for slug in self.posts.iter().map(|til| &til.frontmatter.slug) {

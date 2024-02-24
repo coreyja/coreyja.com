@@ -1,6 +1,8 @@
 use miette::{Context, Result};
-use path_absolutize::Absolutize;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
@@ -15,6 +17,7 @@ use super::{
     title::Title,
 };
 
+#[cfg(feature = "data")]
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
 #[derive(Debug, Clone)]
@@ -31,11 +34,15 @@ impl BlogPost {
         let metadata: BlogFrontMatter = ast.frontmatter()?;
 
         let path = file.path().to_owned();
+        let raw_markdown: String = file
+            .contents_utf8()
+            .ok_or_else(|| miette::miette!("No markdown found"))?
+            .to_string();
 
         Ok(BlogPost {
             frontmatter: metadata,
             path,
-            ast,
+            raw_markdown,
         })
     }
 
@@ -47,25 +54,23 @@ impl BlogPost {
         &self.frontmatter.title
     }
 
-    pub fn ast(&self) -> &MarkdownAst {
-        &self.ast
-    }
-
     pub fn date(&self) -> &NaiveDate {
         &self.frontmatter.date
     }
 
+    #[cfg(feature = "data")]
     pub fn validate(&self) -> Result<()> {
         self.validate_images()?;
 
         Ok(())
     }
 
+    #[cfg(feature = "data")]
     fn validate_images(&self) -> Result<()> {
         let p = self.path.canonical_path();
         let p = PathBuf::from(p);
 
-        let root_node = Node::Root(self.ast.0.clone());
+        let root_node = Node::Root(self.ast().0.clone());
         root_node.validate_images(&p)?;
 
         Ok(())
@@ -107,12 +112,16 @@ pub enum MatchesPath {
     RedirectToCanonicalPath,
 }
 
+#[cfg(feature = "data")]
 pub trait ValidateMarkdown {
     fn validate_images(&self, path: &Path) -> Result<()>;
 }
 
+#[cfg(feature = "data")]
 impl ValidateMarkdown for Node {
     fn validate_images(&self, path: &Path) -> Result<()> {
+        use path_absolutize::Absolutize;
+
         if let Node::Image(image) = self {
             let mut image_path = path.to_path_buf();
             image_path.push(&image.url);
@@ -141,6 +150,7 @@ impl ValidateMarkdown for Node {
 }
 
 impl BlogPosts {
+    #[cfg(feature = "data")]
     pub fn from_static_dir() -> Result<Self> {
         Self::from_dir(&BLOG_DIR)
     }
@@ -176,10 +186,12 @@ impl<'a> BlogFileEntry<'a> {
     }
 }
 
+#[cfg(feature = "data")]
 pub struct BlogPostPath {
     pub path: String,
 }
 
+#[cfg(feature = "data")]
 impl BlogPostPath {
     pub fn new(path: String) -> Self {
         Self { path }
@@ -191,19 +203,6 @@ impl BlogPostPath {
 
     pub fn file_is_markdown(&self) -> bool {
         self.file_exists() && self.path.ends_with(".md")
-    }
-
-    pub fn to_markdown(&self) -> Option<PostMarkdown> {
-        let file = BLOG_DIR.get_file(&self.path)?;
-
-        let ast = MarkdownAst::from_file(file).expect("Should be able to parse markdown");
-        let metadata: BlogFrontMatter = ast.frontmatter().unwrap();
-
-        Some(PostMarkdown {
-            title: metadata.title,
-            date: metadata.date.to_string(),
-            ast,
-        })
     }
 
     pub fn raw_bytes(&self) -> &'static [u8] {

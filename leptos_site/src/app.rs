@@ -4,6 +4,7 @@ use crate::components::header::Header;
 use crate::error_template::{AppError, ErrorTemplate};
 
 use crate::pages::home_page::HomePage;
+use crate::pages::post::PostPage;
 use crate::pages::posts_index::PostsIndex;
 
 use leptos::*;
@@ -44,6 +45,7 @@ pub fn App() -> impl IntoView {
                     <Routes>
                         <Route path="" view=HomePage/>
                         <Route path="/posts" view=PostsIndex/>
+                        <Route path="/posts/*slug" view=PostPage/>
                     </Routes>
                 </ConstrainedWidth>
 

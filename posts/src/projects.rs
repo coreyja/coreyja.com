@@ -1,7 +1,7 @@
-use std::fmt::Display;
+use std::{fmt::Display, io::Read};
 
 use include_dir::{include_dir, Dir};
-use miette::{Context, Diagnostic, IntoDiagnostic, Result};
+use miette::{miette, Context, Diagnostic, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
@@ -152,8 +152,13 @@ impl Project {
         let pub_key_file = PROJECTS_DIR.get_file(pub_key_path);
         let pub_key = pub_key_file.map(|f| f.contents_utf8().unwrap().to_string());
 
+        let raw_markdown: String = file
+            .contents_utf8()
+            .ok_or_else(|| miette!("No markdown found"))?
+            .to_string();
+
         Ok(Self {
-            ast,
+            raw_markdown,
             path,
             frontmatter: FrontMatterWithKey::from_frontmatter(metadata, pub_key),
         })
