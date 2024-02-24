@@ -20,6 +20,7 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Stylesheet id="leptos" href="/pkg/leptos_site.css"/>
+        <Stylesheet id="syntax_styles" href="/styles/syntax.css"/>
 
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -45,7 +46,7 @@ pub fn App() -> impl IntoView {
                     <Routes>
                         <Route path="" view=HomePage/>
                         <Route path="/posts" view=PostsIndex/>
-                        <Route path="/posts/*slug" view=PostPage/>
+                        <Route path="/posts/*slug" view=PostPage ssr=SsrMode::Async/>
                     </Routes>
                 </ConstrainedWidth>
 

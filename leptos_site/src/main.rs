@@ -52,7 +52,6 @@ async fn main() -> miette::Result<()> {
     }
 
     async fn blog_asset_handler(
-        State(app_state): State<AppState>,
         axum::extract::Path(slug): axum::extract::Path<String>,
     ) -> impl IntoResponse {
         let path = posts::blog::BlogPostPath::new(slug.clone());
@@ -63,12 +62,23 @@ async fn main() -> miette::Result<()> {
         return StatusCode::NOT_FOUND.into_response();
     }
 
+    async fn get_syntax_styles(State(state): State<AppState>) -> impl IntoResponse {
+        let syntax_css = syntect::html::css_for_theme_with_class_style(
+            &state.markdown_to_html_context.theme,
+            syntect::html::ClassStyle::Spaced,
+        )
+        .unwrap();
+
+        syntax_css
+    }
+
     // build our application with a route
     let app = Router::new()
         .route(
             "/assets/posts/*slug",
             axum::routing::get(blog_asset_handler),
         )
+        .route("/styles/syntax.css", axum::routing::get(get_syntax_styles))
         .route(
             "/api/*fn_name",
             axum::routing::get(server_fn_handler).post(server_fn_handler),

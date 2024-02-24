@@ -13,8 +13,6 @@ Today I finally bit the bullet and transferred all my domains out of Google Doma
 
 Google Domains was my go to for a couple years, but recently Google announced that they were selling the whole domain business to SquareSpace.
 
-Screenshot 2023-08-18 at 10.38.45 AM 2.png
-
 I don't have any specific problem with SquareSpace, but I was already trying to use Google Domains less. And I tend to use more technical tools than SquareSpace, nothing wrong with them just different tools for different people.
 
 So today I transferred all my domains to Porkbun!

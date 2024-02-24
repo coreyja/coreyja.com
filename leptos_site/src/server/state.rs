@@ -60,8 +60,8 @@ impl VersionInfo {
 
 #[derive(Debug, Clone)]
 pub struct SyntaxHighlightingContext {
-    pub(crate) theme: syntect::highlighting::Theme,
-    pub(crate) syntax_set: syntect::parsing::SyntaxSet,
+    pub theme: syntect::highlighting::Theme,
+    pub syntax_set: syntect::parsing::SyntaxSet,
 }
 
 impl Default for SyntaxHighlightingContext {

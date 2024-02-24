@@ -6,3 +6,4 @@ pub mod recent_tils;
 pub mod recent_videos;
 pub mod footer;
 pub mod logos;
+pub mod markdown;

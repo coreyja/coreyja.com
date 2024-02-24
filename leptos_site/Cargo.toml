@@ -31,7 +31,9 @@ sqlx = { workspace = true, optional = true }
 serde = { version = "1", features = ["derive"] }
 leptos_query = "0.4.2"
 
-syntect = { version = "5.0", optional = true }
+syntect = { version = "5.0", default-features = false, features = [
+    "default-fancy",
+] }
 reqwest = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 chrono = { workspace = true }
@@ -73,7 +75,6 @@ ssr = [
     "dep:uuid",
     "dep:jsonwebtoken",
     "dep:graphql_client",
-    "dep:syntect",
     "dep:age",
     "leptos_query/ssr",
 ]
@@ -91,6 +92,7 @@ site-pkg-dir = "pkg"
 
 # [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
 tailwind-input-file = "style/tailwind.css"
+style-file = "style/main.scss"
 
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
