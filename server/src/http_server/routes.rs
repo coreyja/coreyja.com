@@ -1,4 +1,7 @@
+use std::{path::PathBuf, str::FromStr};
+
 use posts::blog::BlogPosts;
+use serde::{Deserialize, Serialize};
 
 use super::*;
 
@@ -33,6 +36,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/videos/:id", get(pages::videos::video_get))
         .route("/tags/*tag", get(redirect_to_posts_index))
         .route("/year/*year", get(redirect_to_posts_index))
+        .nest("/blog", old_blog_routes())
         .route("/newsletter", get(newsletter_get))
         .route("/auth/github", get(auth::github_oauth::github_oauth))
         .nest("/login", pages::login::routes())
@@ -49,6 +53,34 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .route("/admin", get(admin::dashboard))
         .fallback(fallback)
+}
+
+fn old_blog_routes() -> Router<AppState> {
+    #[derive(Serialize, Deserialize)]
+    struct OldRoutePath {
+        year: String,
+        month: String,
+        date: String,
+        slug: String,
+    }
+
+    Router::new()
+        .route(
+            "/:year/:month/:date/:slug",
+            get(
+                |Path(OldRoutePath { slug, .. }): Path<OldRoutePath>| async move {
+                    let slug = PathBuf::from_str(&slug);
+                    let Ok(mut slug) = slug else {
+                        return redirect_to_posts_index().await.into_response();
+                    };
+
+                    slug.set_extension("");
+
+                    Redirect::permanent(&format!("/posts/{}", slug.display())).into_response()
+                },
+            ),
+        )
+        .fallback(redirect_to_posts_index)
 }
 
 async fn redirect_to_posts_index() -> impl IntoResponse {
