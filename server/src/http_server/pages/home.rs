@@ -60,7 +60,7 @@ pub(crate) async fn home_page(
                     }
 
                     div class="hidden md:w-[35%] md:flex" {
-                        img src="/static/headshot-bg-removed.png" alt="Corey's Headshot" class="mt-auto" {}
+                        img src="/static/headshot-bg-removed.webp" alt="Corey's Headshot" class="mt-auto" {}
                     }
                 }
 
