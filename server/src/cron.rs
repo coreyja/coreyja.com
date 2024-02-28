@@ -14,8 +14,8 @@ fn one_hour() -> Duration {
 fn cron_registry() -> CronRegistry<AppState> {
     let mut registry = CronRegistry::new();
 
-    // registry.register_job(RefreshSponsors, one_hour());
-    // registry.register_job(RefreshVideos, one_hour());
+    registry.register_job(RefreshSponsors, one_hour());
+    registry.register_job(RefreshVideos, one_hour());
 
     registry
 }

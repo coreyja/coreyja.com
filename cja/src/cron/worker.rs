@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
+use chrono::{DateTime, Utc};
 use tokio::time::Instant;
 
 use crate::app_state::AppState as AS;
@@ -18,11 +19,26 @@ impl<AppState: AS> Worker<AppState> {
 
     pub async fn run(self) -> Result<(), TickError> {
         let worker_id = uuid::Uuid::new_v4();
-        let mut last_enqueue_map: HashMap<&str, Instant> = HashMap::new();
 
         tracing::debug!("Starting cron loop");
         loop {
-            self.tick(&worker_id, &mut last_enqueue_map).await?;
+            let last_runs = sqlx::query!(
+                "SELECT name, max(last_run_at) as last_run_at FROM Crons GROUP BY name"
+            )
+            .fetch_all(self.state.db())
+            .await
+            .map_err(TickError::SqlxError)?;
+
+            let last_run_map: HashMap<&str, DateTime<Utc>> = last_runs
+                .iter()
+                .map(|row| {
+                    (
+                        row.name.as_str(),
+                        row.last_run_at.unwrap_or_default().into(),
+                    )
+                })
+                .collect();
+            self.tick(&worker_id, &last_run_map).await?;
 
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
@@ -32,7 +48,7 @@ impl<AppState: AS> Worker<AppState> {
     async fn tick(
         &self,
         worker_id: &uuid::Uuid,
-        last_enqueue_map: &mut HashMap<&str, Instant>,
+        last_enqueue_map: &HashMap<&str, chrono::DateTime<Utc>>,
     ) -> Result<(), TickError> {
         for job in self.registry.jobs.values() {
             job.tick(self.state.clone(), last_enqueue_map).await?;
