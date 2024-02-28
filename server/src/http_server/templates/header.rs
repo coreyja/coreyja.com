@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 
 use maud::{html, Markup, PreEscaped, Render};
 
-use crate::http_server::templates::LOGO_SVG;
+use crate::http_server::templates::{LOGO_DARK_FLAT_SVG, LOGO_DARK_SVG, LOGO_SVG};
 
 pub struct OpenGraph {
     pub title: String,
@@ -62,7 +62,7 @@ pub fn head(og: impl Borrow<OpenGraph>) -> Markup {
 
         link rel="preconnect" href="https://fonts.googleapis.com" {}
         link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}
-        link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&&display=swap" rel="stylesheet" {}
+        link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&&display=block" rel="stylesheet" {}
 
         link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous";
 
@@ -98,13 +98,13 @@ pub fn header() -> Markup {
         div class="flex flex-grow justify-center" {
           div class="max-w-sm min-w-[200px] py-8 lg:py-12 flex-grow" {
             a href="/" {
-              (PreEscaped(LOGO_SVG))
+              (PreEscaped(LOGO_DARK_FLAT_SVG))
             }
           }
         }
 
         nav class="flex flex-grow w-full pb-4 sm:pb-8" {
-          ul class="flex flex-col sm:flex-row justify-center sm:items-center flex-grow space-y-4 sm:space-y-0" {
+          ul class="text-lg flex flex-col sm:flex-row justify-center sm:items-center flex-grow space-y-4 sm:space-y-0" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
             (HeaderLink { href: "/til", text: "TILs" })

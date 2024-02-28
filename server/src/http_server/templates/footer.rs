@@ -1,6 +1,8 @@
 use maud::{html, Markup, PreEscaped};
 
-use crate::http_server::templates::{LOGO_MONOCHROME_SVG, MAX_WIDTH_CONTAINER_CLASSES};
+use crate::http_server::templates::{
+    LOGO_FLAT_SVG, LOGO_MONOCHROME_SVG, LOGO_SVG, MAX_WIDTH_CONTAINER_CLASSES,
+};
 
 pub fn newsletter_signup_footer() -> Markup {
     html! {
@@ -28,7 +30,7 @@ pub fn newsletter_signup_footer() -> Markup {
             input
               type="submit"
               value="Subscribe"
-              class="bg-secondary-400 rounded-lg px-8 py-2"
+              class="bg-berryBlue rounded-lg px-8 py-2"
               ;
         }
       }
@@ -39,11 +41,11 @@ pub fn footer() -> Markup {
     html! {
       div class="flex-grow mb-24" {}
       (newsletter_signup_footer())
-      div ."min-h-[100px] bg-subtitle" {
+      div ."min-h-[100px] bg-footer" {
         div ."flex ".(MAX_WIDTH_CONTAINER_CLASSES) {
           div class="max-w-[10rem] sm:max-w-[15rem] min-w-[100px] py-8 flex-grow" {
             a href="/" {
-              (PreEscaped(LOGO_MONOCHROME_SVG))
+              (PreEscaped(LOGO_FLAT_SVG))
             }
           }
 

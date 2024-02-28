@@ -39,7 +39,7 @@ pub enum ButtonType {
 impl ButtonType {
     fn classes(&self) -> &str {
         match &self {
-            ButtonType::Primary => "bg-secondary-400",
+            ButtonType::Primary => "bg-berryBlue text-almostBackground",
             ButtonType::Secondary => "bg-background border",
         }
     }
@@ -48,7 +48,6 @@ impl ButtonType {
 impl Render for LinkButton {
     fn render(&self) -> Markup {
         let mut classes = vec![
-            "text-text",
             "px-8",
             "py-4",
             "rounded",
