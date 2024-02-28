@@ -6,11 +6,9 @@ mod footer;
 
 pub use footer::footer;
 
-const LOGO_SVG: &str = include_str!("../../../static/logo.svg");
 const LOGO_FLAT_SVG: &str = include_str!("../../../static/logo-flat.svg");
 const LOGO_DARK_SVG: &str = include_str!("../../../static/logo-dark.svg");
 const LOGO_DARK_FLAT_SVG: &str = include_str!("../../../static/logo-dark-flat.svg");
-const LOGO_MONOCHROME_SVG: &str = include_str!("../../../static/logo-monochrome.svg");
 
 const MAX_WIDTH_CONTAINER_CLASSES: &str = "max-w-5xl m-auto px-4";
 

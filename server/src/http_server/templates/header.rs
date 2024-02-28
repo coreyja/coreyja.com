@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 
 use maud::{html, Markup, PreEscaped, Render};
 
-use crate::http_server::templates::{LOGO_DARK_FLAT_SVG, LOGO_DARK_SVG, LOGO_SVG};
+use crate::http_server::templates::LOGO_DARK_FLAT_SVG;
 
 pub struct OpenGraph {
     pub title: String,

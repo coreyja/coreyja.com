@@ -1,8 +1,6 @@
 use maud::{html, Markup, PreEscaped};
 
-use crate::http_server::templates::{
-    LOGO_FLAT_SVG, LOGO_MONOCHROME_SVG, LOGO_SVG, MAX_WIDTH_CONTAINER_CLASSES,
-};
+use crate::http_server::templates::{LOGO_FLAT_SVG, MAX_WIDTH_CONTAINER_CLASSES};
 
 pub fn newsletter_signup_footer() -> Markup {
     html! {
