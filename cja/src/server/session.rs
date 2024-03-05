@@ -22,7 +22,7 @@ pub struct SessionRedirect {
 }
 
 impl SessionRedirect {
-    #[must_use] pub fn temporary(location: &str) -> Self {
+    pub fn temporary(location: &str) -> Self {
         Self {
             location: location.to_string(),
         }

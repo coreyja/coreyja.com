@@ -106,7 +106,7 @@ impl<AppState: AS> CronJob<AppState> {
 }
 
 impl<AppState: AS> CronRegistry<AppState> {
-    #[must_use] pub fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             jobs: HashMap::new(),
         }
