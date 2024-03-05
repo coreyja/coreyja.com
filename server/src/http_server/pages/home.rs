@@ -44,10 +44,10 @@ pub(crate) async fn home_page(
     Ok(base(
         html! {
             (constrained_width(html! {
-                ."md:bg-header-background bg-cover bg-left bg-no-repeat mb-24" {
+                ."flex bg-right-bottom bg-no-repeat mb-24 justify-between" {
                     ."md:w-[60%]" {
                         h1 class="text-2xl sm:text-4xl font-medium leading-tight pt-8 md:pt-16 pb-4" {
-                            "Educational & entertaining content for developers of all skill levels"
+                            "Learn, Code, Develop"
                         }
 
                         h3 class="text-lg sm:text-2xl text-subtitle leading-tight mb-8" {
@@ -57,6 +57,10 @@ pub(crate) async fn home_page(
                         div class="text-xl flex flex-row space-x-8" {
                             (LinkButton::primary(html!("View Posts"), "/posts"))
                         }
+                    }
+
+                    div class="hidden md:w-[35%] md:flex" {
+                        img src="/static/headshot-bg-removed.webp" alt="Corey's Headshot" class="mt-auto" {}
                     }
                 }
 

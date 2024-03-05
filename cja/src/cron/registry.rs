@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, pin::Pin, time::Duration};
 
+use chrono::{OutOfRangeError, Utc};
 use miette::Diagnostic;
-use tokio::time::Instant;
 use tracing::error;
 
 use crate::{app_state::AppState as AS, jobs::Job};
@@ -59,6 +59,7 @@ pub(super) struct CronJob<AppState: AS> {
 pub enum TickError {
     JobError(String),
     SqlxError(sqlx::Error),
+    NegativeDuration(OutOfRangeError),
 }
 
 impl<AppState: AS> CronJob<AppState> {
@@ -73,13 +74,15 @@ impl<AppState: AS> CronJob<AppState> {
     pub(crate) async fn tick(
         &self,
         app_state: AppState,
-        last_enqueue_map: &mut HashMap<&str, Instant>,
+        last_enqueue_map: &HashMap<&str, chrono::DateTime<Utc>>,
     ) -> Result<(), TickError> {
         let last_enqueue = last_enqueue_map.get(self.name);
         let context = format!("Cron@{}", app_state.version());
+        let now = Utc::now();
 
         if let Some(last_enqueue) = last_enqueue {
-            let elapsed = last_enqueue.elapsed();
+            let elapsed = now - last_enqueue;
+            let elapsed = elapsed.to_std().map_err(TickError::NegativeDuration)?;
             if elapsed > self.interval {
                 tracing::info!(
                     task_name = self.name,
@@ -87,19 +90,32 @@ impl<AppState: AS> CronJob<AppState> {
                     "Enqueuing Task"
                 );
                 (self.func)
-                    .run(app_state, context)
+                    .run(app_state.clone(), context)
                     .await
                     .map_err(TickError::JobError)?;
-                last_enqueue_map.insert(self.name, Instant::now());
             }
         } else {
             tracing::info!(task_name = self.name, "Enqueuing Task for first time");
             (self.func)
-                .run(app_state, context)
+                .run(app_state.clone(), context)
                 .await
                 .map_err(TickError::JobError)?;
-            last_enqueue_map.insert(self.name, Instant::now());
         }
+        sqlx::query!(
+            "INSERT INTO Crons (cron_id, name, last_run_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (name)
+            DO UPDATE SET
+            last_run_at = $3",
+            uuid::Uuid::new_v4(),
+            self.name,
+            now,
+            now,
+            now
+        )
+        .execute(app_state.db())
+        .await
+        .map_err(TickError::SqlxError)?;
 
         Ok(())
     }

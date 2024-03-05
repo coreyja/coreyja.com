@@ -100,7 +100,6 @@ pub(crate) async fn video_get(
     Ok(base_constrained(
         html! {
           @if let Some(video) = video {
-            (video.title)
             h1 class="text-2xl" { (video.title) }
             @if let Some(published_at) = video.published_at {
               subtitle class="block text-lg text-subtitle mb-8 " { (published_at.format("%Y-%m-%d")) }
