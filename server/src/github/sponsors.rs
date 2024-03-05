@@ -80,6 +80,7 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Sponsor {
+    #[allow(clippy::struct_field_names)]
     sponsor_type: SponsorType,
     id: String,
     login: String,

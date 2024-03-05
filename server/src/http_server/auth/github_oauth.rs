@@ -47,6 +47,7 @@ struct GitHubOAuthResponse {
     pub(crate) token_type: String,
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) async fn github_oauth(
     State(app_state): State<AppState>,
     Query(query): Query<GitHubOAuthCode>,

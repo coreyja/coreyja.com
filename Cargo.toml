@@ -18,7 +18,6 @@ module_name_repetitions = "allow"
 blocks_in_conditions = "allow"
 must_use_candidate = "allow"
 no-effect-underscore-binding = "allow"
-struct-field-names = "allow"
 items-after-statements = "allow"
 
 [workspace.lints.rust]

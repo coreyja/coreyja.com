@@ -91,6 +91,7 @@ pub(crate) async fn refresh_google_token(
 }
 
 pub(crate) struct GoogleUser {
+    #[allow(clippy::struct_field_names)]
     google_user_id: Uuid,
     encrypted_access_token: Vec<u8>,
     encrypted_refresh_token: Vec<u8>,
