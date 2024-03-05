@@ -6,7 +6,7 @@ use crate::{
     github::sponsors::GithubSponsorFromDB,
     http_server::{
         current_user::{self, CurrentUser},
-        templates::base_constrained,
+        templates::{base_constrained, header::OpenGraph},
         MietteError,
     },
     AppState,
@@ -24,7 +24,7 @@ pub(crate) async fn account_page(
             "You are logged in with Github as " (current_user.github_link.external_github_login) "."
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 
@@ -91,6 +91,6 @@ pub(crate) async fn sponsorship_page(
             }
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }

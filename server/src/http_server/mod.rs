@@ -2,11 +2,11 @@ use axum::{
     extract::{Path, State},
     http::Uri,
     response::{IntoResponse, Redirect, Response},
-    routing::*,
+    routing::{get, post},
     Router,
 };
 use chrono::{DateTime, NaiveTime, Utc};
-use include_dir::*;
+use include_dir::{include_dir, Dir};
 use miette::{Context, IntoDiagnostic, Result};
 use posts::{
     blog::{BlogPost, ToCanonicalPath},
@@ -21,7 +21,7 @@ use tower_cookies::CookieManagerLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::{AppConfig, AppState};
-use errors::*;
+use errors::MietteError;
 
 use self::{
     pages::blog::md::{IntoHtml, SyntaxHighlightingContext},

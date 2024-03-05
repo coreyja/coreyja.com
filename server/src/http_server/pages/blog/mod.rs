@@ -138,7 +138,7 @@ pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<M
           h1 class="text-3xl" { "Blog Posts" }
           (BlogPostList(posts.by_recency()))
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 

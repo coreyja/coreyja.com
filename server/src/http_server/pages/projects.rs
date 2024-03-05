@@ -8,12 +8,13 @@ use maud::{html, Markup, Render};
 use posts::projects::{Project, ProjectStatus, Projects};
 
 use crate::{
+    http_server,
     http_server::{
         errors::MietteError,
         templates::{base_constrained, header::OpenGraph},
         ResponseResult,
     },
-    *,
+    instrument, AppState, Arc, IntoDiagnostic, Result,
 };
 
 use super::blog::md::IntoHtml;

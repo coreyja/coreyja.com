@@ -1,6 +1,9 @@
 use std::unreachable;
 
-use markdown::mdast::*;
+use markdown::mdast::{
+    BlockQuote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link, List,
+    ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
+};
 use maud::{html, Markup, PreEscaped};
 use miette::{IntoDiagnostic, Result};
 use syntect::{
@@ -245,9 +248,11 @@ impl IntoHtml for Vec<Node> {
 impl IntoHtml for List {
     fn into_html(self, config: &AppConfig, context: &SyntaxHighlightingContext) -> Result<Markup> {
         Ok(html! {
-            @match self.ordered {
-                true => { ol class="max-w-prose" { (self.children.into_html(config, context)?) } },
-                false => { ul class="max-w-prose" { (self.children.into_html(config, context)?) } },
+            @let inner = self.children.into_html(config, context)?;
+            @if self.ordered {
+                ol class="max-w-prose" { (inner) }
+            } else {
+                ul class="max-w-prose" { (inner) }
             }
         })
     }
