@@ -1,7 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
 use chrono::{DateTime, Utc};
-use tokio::time::Instant;
 
 use crate::app_state::AppState as AS;
 
@@ -31,12 +30,7 @@ impl<AppState: AS> Worker<AppState> {
 
             let last_run_map: HashMap<&str, DateTime<Utc>> = last_runs
                 .iter()
-                .map(|row| {
-                    (
-                        row.name.as_str(),
-                        row.last_run_at.unwrap_or_default().into(),
-                    )
-                })
+                .map(|row| (row.name.as_str(), row.last_run_at.unwrap_or_default()))
                 .collect();
             self.tick(&worker_id, &last_run_map).await?;
 
