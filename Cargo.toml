@@ -14,6 +14,7 @@ resolver = "2"
 pedantic = "deny"
 missing_errors_doc = "allow"
 module_name_repetitions = "allow"
+blocks_in_conditions = "allow"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
