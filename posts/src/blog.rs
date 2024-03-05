@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
-use markdown::mdast::*;
+use markdown::mdast::Node;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
@@ -190,7 +190,10 @@ impl BlogPostPath {
     }
 
     pub fn file_is_markdown(&self) -> bool {
-        self.file_exists() && self.path.ends_with(".md")
+        self.file_exists()
+            && std::path::Path::new(&self.path)
+                .extension()
+                .map_or(false, |ext| ext.eq_ignore_ascii_case("md"))
     }
 
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
@@ -269,6 +272,8 @@ impl ToCanonicalPath for PathBuf {
 
 #[cfg(test)]
 mod test {
+    use markdown::mdast::Root;
+
     use super::*;
 
     #[test]
@@ -294,10 +299,12 @@ mod test {
 
     #[test]
     fn test_path_matching() {
+        use MatchesPath::*;
+
         let path = PathBuf::from("2020-01-01-test/index.md");
         let meta = BlogFrontMatter {
             title: "Sample Post".to_string(),
-            date: Default::default(),
+            date: NaiveDate::default(),
             is_newsletter: false,
         };
         let post = BlogPost {
@@ -308,8 +315,6 @@ mod test {
             }),
             frontmatter: meta,
         };
-
-        use MatchesPath::*;
 
         assert_eq!(post.matches_path("2020-01-01-test/"), Some(CanonicalPath));
         assert_eq!(

@@ -29,7 +29,7 @@ impl Default for Config {
 pub fn encrypt(data: &str, config: &Config) -> Result<Vec<u8>> {
     let encrypted = {
         let encryptor = age::Encryptor::with_user_passphrase(age::secrecy::Secret::new(
-            config.secret_key.to_owned(),
+            config.secret_key.clone(),
         ));
 
         let mut encrypted = vec![];
@@ -45,17 +45,14 @@ pub fn encrypt(data: &str, config: &Config) -> Result<Vec<u8>> {
 
 pub fn decrypt(data: &[u8], config: &Config) -> miette::Result<String> {
     let decrypted = {
-        let decryptor = match age::Decryptor::new(data).into_diagnostic()? {
-            age::Decryptor::Passphrase(d) => d,
-            _ => unreachable!(),
+        let age::Decryptor::Passphrase(decryptor) = age::Decryptor::new(data).into_diagnostic()?
+        else {
+            unreachable!()
         };
 
         let mut decrypted = vec![];
         let mut reader = decryptor
-            .decrypt(
-                &age::secrecy::Secret::new(config.secret_key.to_owned()),
-                None,
-            )
+            .decrypt(&age::secrecy::Secret::new(config.secret_key.clone()), None)
             .into_diagnostic()?;
         reader.read_to_end(&mut decrypted).into_diagnostic()?;
 

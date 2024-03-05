@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use maud::{html, Markup};
 
 mod footer;
@@ -20,7 +22,7 @@ use self::header::OpenGraph;
 
 use super::pages::blog::md::{IntoHtml, IntoPlainText, SyntaxHighlightingContext};
 
-pub fn base(inner: Markup, og: header::OpenGraph) -> Markup {
+pub fn base(inner: impl Borrow<Markup>, og: header::OpenGraph) -> Markup {
     html! {
       html prefix="og: https://ogp.me/ns#" {
         (head(og))
@@ -35,7 +37,7 @@ pub fn base(inner: Markup, og: header::OpenGraph) -> Markup {
         " {
           (constrained_width(header()))
 
-          (inner)
+          (inner.borrow())
 
           (footer())
         }
@@ -47,10 +49,10 @@ pub fn base_constrained(inner: Markup, og: OpenGraph) -> Markup {
     base(constrained_width(inner), og)
 }
 
-pub fn constrained_width(inner: Markup) -> Markup {
+pub fn constrained_width(inner: impl std::borrow::Borrow<Markup>) -> Markup {
     html! {
       div ."w-full ".(MAX_WIDTH_CONTAINER_CLASSES) {
-        (inner)
+        (inner.borrow())
       }
     }
 }

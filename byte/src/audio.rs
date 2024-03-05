@@ -7,7 +7,7 @@ use crate::Config;
 
 const PREFERRED_MIC_NAME: &str = "Samson G-Track Pro";
 
-fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> miette::Result<()> {
+fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> miette::Result<()> {
     let host = cpal::default_host();
 
     let device = host
@@ -67,7 +67,9 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
 
         if recorded_sample.len() >= 480_000 {
             let audio_data = &recorded_sample[..];
-            let audio_data = if config.sample_rate().0 != 16_000 {
+            let audio_data = if config.sample_rate().0 == 16_000 {
+                audio_data.to_vec()
+            } else {
                 samplerate::convert(
                     config.sample_rate().0,
                     16000,
@@ -77,8 +79,6 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
                 )
                 .into_diagnostic()
                 .wrap_err("Failed to convert to 16kHz")?
-            } else {
-                audio_data.to_vec()
             };
             let audio_data = match config.channels() {
                 1 => audio_data,
@@ -124,7 +124,7 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
 pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
     let (sender, mut reciever) = tokio::sync::mpsc::channel::<String>(32);
 
-    std::thread::spawn(|| recording_thread_main(sender));
+    std::thread::spawn(move || recording_thread_main(&sender));
 
     let (message_sender, mut message_reciever) = tokio::sync::mpsc::channel::<String>(32);
 

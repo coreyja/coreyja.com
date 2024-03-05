@@ -24,15 +24,15 @@ typify::import_types!("src/http_server/auth/github_token_response.schema.json");
 impl GithubUser {
     fn login(&self) -> &str {
         match &self {
-            GithubUser::PrivateUser { login, .. } => login,
-            GithubUser::PublicUser { login, .. } => login,
+            GithubUser::PrivateUser { login, .. } | GithubUser::PublicUser { login, .. } => login,
         }
     }
 
     fn id(&self) -> &str {
         match &self {
-            GithubUser::PrivateUser { node_id, .. } => node_id,
-            GithubUser::PublicUser { node_id, .. } => node_id,
+            GithubUser::PrivateUser { node_id, .. } | GithubUser::PublicUser { node_id, .. } => {
+                node_id
+            }
         }
     }
 }

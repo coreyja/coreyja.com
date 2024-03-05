@@ -77,7 +77,7 @@ pub(crate) async fn video_index(
             }
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 

@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use maud::{html, Markup, PreEscaped, Render};
 
 use crate::http_server::templates::LOGO_SVG;
@@ -42,14 +44,14 @@ impl Render for OpenGraph {
     }
 }
 
-pub fn head(og: OpenGraph) -> Markup {
-    let temporary_remove_service_worker_script = r#"
+pub fn head(og: impl Borrow<OpenGraph>) -> Markup {
+    let temporary_remove_service_worker_script = r"
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(let registration of registrations) {
             registration.unregister();
         } 
       });
-      "#;
+      ";
 
     html! {
       head {
@@ -66,7 +68,7 @@ pub fn head(og: OpenGraph) -> Markup {
 
         meta name="viewport" content="width=device-width, initial-scale=1";
 
-        (og)
+        (og.borrow())
 
         script type="text/javascript" {
           (PreEscaped(temporary_remove_service_worker_script))

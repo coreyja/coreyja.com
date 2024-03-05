@@ -3,7 +3,7 @@ use posts::blog::BlogPost;
 
 use crate::http_server::templates::post_templates::BlogPostList;
 
-use super::base_constrained;
+use super::{base_constrained, header::OpenGraph};
 
 pub(crate) fn newsletter_page(newsletters: Vec<&BlogPost>) -> Markup {
     base_constrained(
@@ -40,6 +40,6 @@ pub(crate) fn newsletter_page(newsletters: Vec<&BlogPost>) -> Markup {
             (BlogPostList(newsletters))
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     )
 }

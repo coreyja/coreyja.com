@@ -36,7 +36,8 @@ pub(crate) use state::{AppConfig, AppState};
 pub(crate) mod google;
 
 fn setup_sentry() -> Option<ClientInitGuard> {
-    let git_commit: Option<std::borrow::Cow<_>> = option_env!("VERGEN_GIT_SHA").map(|x| x.into());
+    let git_commit: Option<std::borrow::Cow<_>> =
+        option_env!("VERGEN_GIT_SHA").map(std::convert::Into::into);
     let release_name =
         git_commit.unwrap_or_else(|| sentry::release_name!().unwrap_or_else(|| "dev".into()));
 
@@ -151,8 +152,8 @@ async fn _main() -> Result<()> {
 #[cfg(test)]
 mod test {
 
-    #[tokio::test]
-    async fn validate() -> miette::Result<()> {
-        crate::commands::validate::validate().await
+    #[test]
+    fn validate() -> miette::Result<()> {
+        crate::commands::validate::validate()
     }
 }

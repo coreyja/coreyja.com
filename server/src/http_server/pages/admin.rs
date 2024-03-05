@@ -4,7 +4,7 @@ use maud::html;
 
 use crate::AppState;
 
-#[axum_macros::debug_handler]
+#[allow(clippy::unused_async)]
 pub(crate) async fn versions(
     State(app): State<AppState>,
     session: Option<DBSession>,

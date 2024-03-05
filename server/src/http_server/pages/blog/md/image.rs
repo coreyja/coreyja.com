@@ -6,13 +6,13 @@ pub(crate) trait FindCoverPhoto {
 
 impl FindCoverPhoto for Root {
     fn cover_photo(&self) -> Option<String> {
-        self.children.first().and_then(|n| n.cover_photo())
+        self.children.first().and_then(FindCoverPhoto::cover_photo)
     }
 }
 
 impl FindCoverPhoto for Paragraph {
     fn cover_photo(&self) -> Option<String> {
-        self.children.first().and_then(|n| n.cover_photo())
+        self.children.first().and_then(FindCoverPhoto::cover_photo)
     }
 }
 

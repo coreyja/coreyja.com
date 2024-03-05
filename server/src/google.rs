@@ -65,6 +65,12 @@ pub(crate) async fn refresh_google_token(
 
     let encrypted_access_token = app_state.encrypt_config.encrypt(&token_info.access_token)?;
 
+    let expires_in: u32 = token_info
+        .expires_in
+        .try_into()
+        .into_diagnostic()
+        .context("expires_in did not fit in a u32")?;
+    let expires_in: f64 = expires_in.into();
     sqlx::query!(
         "
     UPDATE GoogleUsers
@@ -75,7 +81,7 @@ pub(crate) async fn refresh_google_token(
     ",
         encrypted_access_token,
         google_user.google_user_id,
-        token_info.expires_in as f64,
+        expires_in,
     )
     .execute(&app_state.db)
     .await

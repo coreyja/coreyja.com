@@ -82,7 +82,7 @@ pub(crate) async fn projects_index(
             }
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 
@@ -132,7 +132,7 @@ pub(crate) async fn projects_get(
         .clone()
         .into_html(&state.app, &state.markdown_to_html_context)
         .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
-        .map_err(|e| e.into_response())?;
+        .map_err(axum::response::IntoResponse::into_response)?;
 
     let youtube_videos = sqlx::query_as!(
         crate::http_server::pages::videos::YoutubeVideo,
@@ -150,7 +150,7 @@ pub(crate) async fn projects_get(
     .await
     .into_diagnostic()
     .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
-    .map_err(|e| e.into_response())?;
+    .map_err(axum::response::IntoResponse::into_response)?;
 
     Ok(base_constrained(
         html! {

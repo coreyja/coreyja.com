@@ -187,9 +187,9 @@ pub(crate) async fn post_get(
     let image_defaulted_open_graph = match cover_photo {
         Some(cover_photo) => OpenGraph {
             image: Some(cover_photo),
-            ..Default::default()
+            ..OpenGraph::default()
         },
-        None => Default::default(),
+        None => OpenGraph::default(),
     };
 
     Ok(base_constrained(

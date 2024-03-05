@@ -21,8 +21,8 @@ impl Command {
     pub(crate) async fn run(&self) -> Result<()> {
         match &self {
             Command::Serve => crate::http_server::cmd::serve().await,
-            Command::Print => info::print_info().await,
-            Command::Validate => validate::validate().await,
+            Command::Print => info::print_info(),
+            Command::Validate => validate::validate(),
         }
     }
 }

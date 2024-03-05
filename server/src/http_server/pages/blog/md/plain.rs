@@ -7,48 +7,48 @@ pub trait IntoPlainText {
 impl IntoPlainText for Node {
     fn plain_text(&self) -> String {
         fn blank() -> String {
-            "".to_string()
+            String::new()
         }
 
-        fn surround_with(surround_token: &str, inner: String) -> String {
-            format!("{}{}{}", surround_token, inner, surround_token)
+        fn surround_with(surround_token: &str, inner: &str) -> String {
+            format!("{surround_token}{inner}{surround_token}")
         }
 
         match self {
             Node::Root(x) => x.children.plain_text(),
             Node::BlockQuote(x) => x.children.plain_text(),
             Node::FootnoteDefinition(x) => x.children.plain_text(),
-            Node::MdxJsxFlowElement(_) => blank(),
             Node::List(x) => x.children.plain_text(),
-            Node::MdxjsEsm(_) => blank(),
-            Node::Toml(_) => blank(),
-            Node::Yaml(_) => blank(),
-            Node::Break(_) => blank(),
-            Node::InlineCode(x) => x.value.to_owned(),
-            Node::InlineMath(x) => x.value.to_owned(),
-            Node::Delete(x) => surround_with("~", x.children.plain_text()),
-            Node::Emphasis(x) => surround_with("*", x.children.plain_text()),
-            Node::MdxTextExpression(_) => blank(),
-            Node::FootnoteReference(_) => blank(),
-            Node::Html(_) => blank(),
-            Node::Image(_) => blank(),
-            Node::ImageReference(_) => blank(),
-            Node::MdxJsxTextElement(_) => blank(),
+            Node::InlineCode(x) => x.value.clone(),
+            Node::InlineMath(x) => x.value.clone(),
+            Node::Delete(x) => surround_with("~", &x.children.plain_text()),
+            Node::Emphasis(x) => surround_with("*", &x.children.plain_text()),
             Node::Link(x) => x.children.plain_text(),
-            Node::LinkReference(_) => blank(),
-            Node::Strong(x) => surround_with("*", x.children.plain_text()),
+            Node::Strong(x) => surround_with("*", &x.children.plain_text()),
             Node::Text(x) => x.value.to_owned(),
-            Node::Code(x) => surround_with("\n```\n", x.value.to_owned()),
+            Node::Code(x) => surround_with("\n```\n", &x.value),
             Node::Math(x) => x.value.to_owned(),
-            Node::MdxFlowExpression(_) => blank(),
             Node::Heading(x) => x.children.plain_text(),
             Node::Table(x) => x.children.plain_text(),
-            Node::ThematicBreak(_) => blank(),
             Node::TableRow(x) => x.children.plain_text(),
             Node::TableCell(x) => x.children.plain_text(),
-            Node::ListItem(x) => x.children.iter().map(|x| x.plain_text()).collect(),
-            Node::Definition(_) => blank(),
+            Node::ListItem(x) => x.children.iter().map(IntoPlainText::plain_text).collect(),
             Node::Paragraph(x) => x.children.plain_text(),
+            Node::MdxJsxFlowElement(_)
+            | Node::MdxjsEsm(_)
+            | Node::Toml(_)
+            | Node::Yaml(_)
+            | Node::Break(_)
+            | Node::MdxTextExpression(_)
+            | Node::FootnoteReference(_)
+            | Node::Html(_)
+            | Node::Image(_)
+            | Node::ImageReference(_)
+            | Node::MdxJsxTextElement(_)
+            | Node::LinkReference(_)
+            | Node::MdxFlowExpression(_)
+            | Node::ThematicBreak(_)
+            | Node::Definition(_) => blank(),
         }
     }
 }
@@ -56,7 +56,7 @@ impl IntoPlainText for Node {
 impl IntoPlainText for Vec<Node> {
     fn plain_text(&self) -> String {
         self.iter()
-            .map(|x| x.plain_text())
+            .map(IntoPlainText::plain_text)
             .collect::<Vec<_>>()
             .join("\n")
     }

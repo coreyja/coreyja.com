@@ -13,8 +13,13 @@ resolver = "2"
 [workspace.lints.clippy]
 pedantic = "deny"
 missing_errors_doc = "allow"
+missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 blocks_in_conditions = "allow"
+must_use_candidate = "allow"
+no-effect-underscore-binding = "warn"
+struct-field-names = "warn"
+items-after-statements = "warn"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -115,7 +115,7 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     let Some(entry) = entry else {
         return Ok((
             axum::http::StatusCode::NOT_FOUND,
-            format!("Static asset {} not found", path),
+            format!("Static asset {path} not found"),
         )
             .into_response());
     };

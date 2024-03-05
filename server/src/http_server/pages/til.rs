@@ -34,7 +34,7 @@ pub(crate) async fn til_index(
           h1 class="text-3xl" { "Today I Learned" }
           (TilPostList(posts))
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 

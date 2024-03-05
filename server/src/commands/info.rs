@@ -2,7 +2,7 @@ use miette::Result;
 use posts::blog::BlogPosts;
 use syntect::parsing::SyntaxSet;
 
-pub(crate) async fn print_info() -> Result<()> {
+pub(crate) fn print_info() -> Result<()> {
     println!("\n\n");
     println!("Blog Posts:");
 

@@ -204,17 +204,17 @@ impl IntoHtml for Heading {
             .collect::<Result<String, _>>()
             .ok()
             .map(|x| x.to_lowercase().replace(' ', "-"));
-        let href_attr = id.as_ref().map(|x| format!("#{}", x));
+        let href_attr = id.as_ref().map(|x| format!("#{x}"));
 
-        let content = self.children.into_html(config, context)?;
+        let child_content = self.children.into_html(config, context)?;
         let inner = html! {
             @match self.depth {
-                1 => h1 id=[id] class="max-w-prose text-2xl" { (content) },
-                2 => h2 id=[id] class="max-w-prose text-xl" { (content) },
-                3 => h3 id=[id] class="max-w-prose text-lg" { (content) },
-                4 => h4 id=[id] class="max-w-prose text-lg text-subtitle" { (content) },
-                5 => h5 id=[id] class="max-w-prose text-lg text-subtitle font-light" { (content) },
-                6 => h6 id=[id] class="max-w-prose text-base text-subtitle" { (content) },
+                1 => h1 id=[id] class="max-w-prose text-2xl" { (child_content) },
+                2 => h2 id=[id] class="max-w-prose text-xl" { (child_content) },
+                3 => h3 id=[id] class="max-w-prose text-lg" { (child_content) },
+                4 => h4 id=[id] class="max-w-prose text-lg text-subtitle" { (child_content) },
+                5 => h5 id=[id] class="max-w-prose text-lg text-subtitle font-light" { (child_content) },
+                6 => h6 id=[id] class="max-w-prose text-base text-subtitle" { (child_content) },
                 #[allow(unreachable_code)]
                 _ => (unreachable!("Invalid heading depth")),
             }
