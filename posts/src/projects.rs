@@ -205,10 +205,10 @@ impl Project {
 
     pub fn login_callback(&self) -> Result<Url> {
         let login_callback = self.frontmatter.login_callback.clone().ok_or_else(|| {
-            let slug = self
-                .slug()
-                .map(|s| s.to_string())
-                .unwrap_or_else(|e| format!("unknown got error {e}"));
+            let slug = self.slug().map_or_else(
+                |e| format!("unknown got error {e}"),
+                std::string::ToString::to_string,
+            );
             miette::miette!("No login_callback found for {}", slug)
         })?;
 

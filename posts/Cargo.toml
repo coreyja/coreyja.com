@@ -22,3 +22,6 @@ include_dir = { workspace = true }
 path-absolutize = { workspace = true }
 thiserror = "1.0.44"
 url = "2.5.0"
+
+[lints]
+workspace = true

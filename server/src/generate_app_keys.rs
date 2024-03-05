@@ -7,7 +7,7 @@ use posts::{
     Post,
 };
 use rand::rngs::ThreadRng;
-use rsa::pkcs8::{EncodePrivateKey, EncodePublicKey};
+use rsa::pkcs8::{EncodePrivateKey, EncodePublicKey, LineEnding};
 use tokio::fs::create_dir_all;
 
 fn generate_keys_for_project(
@@ -23,8 +23,7 @@ fn generate_keys_for_project(
 
     let (private_pem, public_pem) = gen_keys(rng)?;
 
-    let mut public_key_file =
-        File::create(format!("projects/{}/key.pub.pem", project_slug)).unwrap();
+    let mut public_key_file = File::create(format!("projects/{project_slug}/key.pub.pem")).unwrap();
     public_key_file
         .write_all(public_pem.as_bytes())
         .into_diagnostic()?;
@@ -49,13 +48,13 @@ fn generate_testing_keys_for_project(
     let (testing_private_pem, testing_public_pem) = gen_keys(rng)?;
 
     let mut testing_public_key_file =
-        File::create(format!("projects/{}/testing.pub.pem", project_slug)).unwrap();
+        File::create(format!("projects/{project_slug}/testing.pub.pem")).unwrap();
     testing_public_key_file
         .write_all(testing_public_pem.as_bytes())
         .into_diagnostic()?;
 
     let mut testing_private_key_file =
-        File::create(format!("projects/{}/testing.private.pem", project_slug)).unwrap();
+        File::create(format!("projects/{project_slug}/testing.private.pem")).unwrap();
     testing_private_key_file
         .write_all(testing_private_pem.as_bytes())
         .into_diagnostic()?;
@@ -78,7 +77,7 @@ async fn main() -> Result<()> {
         .unwrap();
 
     let Some(fly_app_name) = project.frontmatter.fly_app_name.clone() else {
-        eprintln!("No fly app name found for {}", project_slug);
+        eprintln!("No fly app name found for {project_slug}");
         std::process::exit(1);
     };
 
@@ -99,8 +98,12 @@ fn gen_keys(rng: &mut ThreadRng) -> Result<(Zeroizing<String>, String)> {
     let priv_key = rsa::RsaPrivateKey::new(rng, bits).expect("failed to generate a key");
     let pub_key = rsa::RsaPublicKey::from(&priv_key);
 
-    let private_pem = priv_key.to_pkcs8_pem(Default::default()).unwrap();
-    let public_pem = pub_key.to_public_key_pem(Default::default()).unwrap();
+    let private_pem = priv_key
+        .to_pkcs8_pem(LineEnding::default())
+        .into_diagnostic()?;
+    let public_pem = pub_key
+        .to_public_key_pem(LineEnding::default())
+        .into_diagnostic()?;
 
     Ok((private_pem, public_pem))
 }

@@ -8,7 +8,7 @@ use crate::{
     AppConfig,
 };
 
-pub(crate) async fn validate() -> Result<()> {
+pub(crate) fn validate() -> Result<()> {
     let projects = Projects::from_static_dir()?;
     projects.validate()?;
 

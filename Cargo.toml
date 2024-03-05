@@ -10,6 +10,19 @@ members = [
 ]
 resolver = "2"
 
+[workspace.lints.clippy]
+pedantic = "deny"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+blocks_in_conditions = "allow"
+must_use_candidate = "allow"
+no-effect-underscore-binding = "allow"
+items-after-statements = "allow"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
 [workspace.dependencies]
 clap = { version = "4.2", features = ["derive"] }
 reqwest = { version = "0.11.12", features = [

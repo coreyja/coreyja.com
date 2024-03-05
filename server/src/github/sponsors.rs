@@ -25,7 +25,7 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
         .default_headers(
             std::iter::once((
                 reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", access_token))
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {access_token}"))
                     .into_diagnostic()?,
             ))
             .collect(),
@@ -73,23 +73,14 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
                 get_sponsors::SponsorshipPrivacy::Other(x) => x,
             }.to_owned();
 
-            Some(Sponsor {
-                sponsor_type,
-                login,
-                name,
-                id,
-                created_at,
-                is_active,
-                is_one_time_payment,
-                tier,
-                privacy_level,
-            })
+            Some(Sponsor { sponsor_type, id, login, name, created_at, is_active, is_one_time_payment, tier, privacy_level })
         })
         .collect())
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Sponsor {
+    #[allow(clippy::struct_field_names)]
     sponsor_type: SponsorType,
     id: String,
     login: String,
@@ -147,9 +138,9 @@ async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<
             .push_bind(sponsor.created_at)
             .push_bind(sponsor.is_active)
             .push_bind(sponsor.is_one_time_payment)
-            .push_bind(sponsor.tier.as_ref().map(|t| t.name.to_owned()))
+            .push_bind(sponsor.tier.as_ref().map(|t| t.name.clone()))
             .push_bind(sponsor.tier.as_ref().map(|t| t.monthly_price_in_cents))
-            .push_bind(sponsor.privacy_level.to_owned());
+            .push_bind(sponsor.privacy_level.clone());
     });
     query_builder.push(
         "ON CONFLICT (github_id) DO UPDATE SET (

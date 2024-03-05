@@ -7,7 +7,7 @@ use crate::Config;
 
 const PREFERRED_MIC_NAME: &str = "Samson G-Track Pro";
 
-fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> miette::Result<()> {
+fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> miette::Result<()> {
     let host = cpal::default_host();
 
     let device = host
@@ -16,7 +16,7 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
         .find(|device| match device.name() {
             Ok(name) => name == PREFERRED_MIC_NAME,
             Err(err) => {
-                eprintln!("Failed to get device name: {}", err);
+                eprintln!("Failed to get device name: {err}");
                 false
             }
         })
@@ -28,12 +28,12 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
         .default_input_config()
         .into_diagnostic()
         .wrap_err("Failed to get default input config")?;
-    println!("Default input config: {:?}", config);
+    println!("Default input config: {config:?}");
 
     println!("Begin recording...");
 
     let err_fn = move |err| {
-        eprintln!("an error occurred on stream: {}", err);
+        eprintln!("an error occurred on stream: {err}");
     };
 
     let (sender, receiver) = std::sync::mpsc::channel::<Vec<f32>>();
@@ -65,9 +65,11 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
     while let Ok(mut data) = receiver.recv() {
         recorded_sample.append(&mut data);
 
-        if recorded_sample.len() >= 480000 {
+        if recorded_sample.len() >= 480_000 {
             let audio_data = &recorded_sample[..];
-            let audio_data = if config.sample_rate().0 != 16_000 {
+            let audio_data = if config.sample_rate().0 == 16_000 {
+                audio_data.to_vec()
+            } else {
                 samplerate::convert(
                     config.sample_rate().0,
                     16000,
@@ -77,8 +79,6 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
                 )
                 .into_diagnostic()
                 .wrap_err("Failed to convert to 16kHz")?
-            } else {
-                audio_data.to_vec()
             };
             let audio_data = match config.channels() {
                 1 => audio_data,
@@ -109,7 +109,7 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
                 .expect("failed to get number of segments");
             for i in 0..num_segments {
                 if let Ok(segment) = state.full_get_segment_text(i) {
-                    println!("Segment {}: {}", i, segment);
+                    println!("Segment {i}: {segment}");
                     string_sender.blocking_send(segment).unwrap();
                 }
             }
@@ -124,14 +124,14 @@ fn recording_thread_main(string_sender: tokio::sync::mpsc::Sender<String>) -> mi
 pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
     let (sender, mut reciever) = tokio::sync::mpsc::channel::<String>(32);
 
-    std::thread::spawn(|| recording_thread_main(sender));
+    std::thread::spawn(move || recording_thread_main(&sender));
 
     let (message_sender, mut message_reciever) = tokio::sync::mpsc::channel::<String>(32);
 
     let _detecting = tokio::task::spawn(async move {
         while let Some(text) = reciever.recv().await {
             let text = text.to_lowercase();
-            println!("{}", text);
+            println!("{text}");
 
             if text.contains("bite") || text.contains("byte") {
                 println!("Bite detected!");
@@ -146,12 +146,12 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
     });
 
     while let Some(message) = message_reciever.recv().await {
-        println!("{}", message);
+        println!("{message}");
 
         let messages = vec![
             ChatMessage {
                 role: ChatRole::System,
-                content: r#"
+                content: r"
                 The following message was recorded and transcribed during a live chat.
                 I have a bot named Byte (or maybe Bite) that I might be trying to talk to.
                 Remeber this is a AI transcribed audio, so there may be errors in the transcription.
@@ -161,7 +161,7 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
                 Do NOT comment on the spelling of your name under any circumstances
 
                 If I didn't ask a question keep your answer short and consise
-                "#
+                "
                 .to_string(),
             },
             ChatMessage {

@@ -3,7 +3,11 @@ use std::{path::PathBuf, str::FromStr};
 use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
 
-use super::*;
+use super::{
+    admin, auth, get, pages, post, templates, AppState, Arc, IntoDiagnostic, IntoResponse,
+    MietteError, Path, Redirect, Response, ResponseResult, Result, Router, State, ToCanonicalPath,
+    Uri, COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
+};
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()
@@ -115,7 +119,7 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     let Some(entry) = entry else {
         return Ok((
             axum::http::StatusCode::NOT_FOUND,
-            format!("Static asset {} not found", path),
+            format!("Static asset {path} not found"),
         )
             .into_response());
     };

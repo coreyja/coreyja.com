@@ -5,7 +5,11 @@ use miette::IntoDiagnostic;
 
 use crate::state::AppState;
 
-use super::{auth::session::AdminUser, errors::MietteError, templates::base_constrained};
+use super::{
+    auth::session::AdminUser,
+    errors::MietteError,
+    templates::{base_constrained, header::OpenGraph},
+};
 
 pub(crate) mod auth;
 pub(crate) mod job_routes;
@@ -80,7 +84,7 @@ pub(crate) async fn dashboard(
                 a href="/admin/auth/google" { "Login now" }
             }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 

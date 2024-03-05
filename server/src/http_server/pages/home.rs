@@ -12,6 +12,7 @@ use crate::{
             base,
             buttons::LinkButton,
             constrained_width,
+            header::OpenGraph,
             post_templates::{BlogPostList, TilPostList},
         },
         MietteError,
@@ -83,6 +84,6 @@ pub(crate) async fn home_page(
             }))
 
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }

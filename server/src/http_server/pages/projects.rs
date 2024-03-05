@@ -8,12 +8,13 @@ use maud::{html, Markup, Render};
 use posts::projects::{Project, ProjectStatus, Projects};
 
 use crate::{
+    http_server,
     http_server::{
         errors::MietteError,
         templates::{base_constrained, header::OpenGraph},
         ResponseResult,
     },
-    *,
+    instrument, AppState, Arc, IntoDiagnostic, Result,
 };
 
 use super::blog::md::IntoHtml;
@@ -82,7 +83,7 @@ pub(crate) async fn projects_index(
             }
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 
@@ -132,7 +133,7 @@ pub(crate) async fn projects_get(
         .clone()
         .into_html(&state.app, &state.markdown_to_html_context)
         .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
-        .map_err(|e| e.into_response())?;
+        .map_err(axum::response::IntoResponse::into_response)?;
 
     let youtube_videos = sqlx::query_as!(
         crate::http_server::pages::videos::YoutubeVideo,
@@ -150,7 +151,7 @@ pub(crate) async fn projects_get(
     .await
     .into_diagnostic()
     .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
-    .map_err(|e| e.into_response())?;
+    .map_err(axum::response::IntoResponse::into_response)?;
 
     Ok(base_constrained(
         html! {

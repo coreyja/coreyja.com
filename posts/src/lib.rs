@@ -34,7 +34,7 @@ impl FromStr for MarkdownAst {
     type Err = ErrReport;
 
     fn from_str(contents: &str) -> Result<Self> {
-        let mut options: ParseOptions = Default::default();
+        let mut options: ParseOptions = ParseOptions::default();
         options.constructs.gfm_footnote_definition = true;
         options.constructs.frontmatter = true;
 

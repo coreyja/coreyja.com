@@ -97,6 +97,7 @@ pub(crate) async fn generate_server_token(
 
 #[derive(Debug, Clone)]
 pub struct GithubLink {
+    #[allow(clippy::struct_field_names)]
     pub github_link_id: uuid::Uuid,
     pub user_id: uuid::Uuid,
     pub external_github_login: String,

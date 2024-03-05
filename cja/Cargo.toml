@@ -24,3 +24,6 @@ async-trait = "0.1.77"
 thiserror = "1.0.56"
 tower-cookies = { version = "0.10.0", features = ["signed", "private"] }
 http = "1.0.0"
+
+[lints]
+workspace = true

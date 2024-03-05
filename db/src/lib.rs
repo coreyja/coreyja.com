@@ -9,6 +9,8 @@ pub use sqlx::PgPool;
 
 #[tracing::instrument(err)]
 pub async fn setup_db_pool() -> Result<PgPool> {
+    const MIGRATION_LOCK_ID: i64 = 0xDB_DB_DB_DB_DB_DB_DB;
+
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -16,7 +18,6 @@ pub async fn setup_db_pool() -> Result<PgPool> {
         .await
         .into_diagnostic()?;
 
-    const MIGRATION_LOCK_ID: i64 = 0xDB_DB_DB_DB_DB_DB_DB;
     sqlx::query!("SELECT pg_advisory_lock($1)", MIGRATION_LOCK_ID)
         .execute(&pool)
         .await

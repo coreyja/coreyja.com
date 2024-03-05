@@ -25,3 +25,6 @@ irc = { version = "0.15.0", default-features = false, features = ["tls-rust"] }
 samplerate = "0.2.4"
 whisper-rs = { version = "0.8.0" }
 futures = "0.3.28"
+
+[lints]
+workspace = true

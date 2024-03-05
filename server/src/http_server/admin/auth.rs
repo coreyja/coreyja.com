@@ -39,9 +39,8 @@ pub(crate) async fn google_auth_callback(
     admin: AdminUser,
 ) -> Result<impl IntoResponse, String> {
     // Extract the authorization code from the callback query parameters
-    let code = match params.get("code") {
-        Some(code) => code,
-        None => return Err("No code found in the query string".into()),
+    let Some(code) = params.get("code") else {
+        return Err("No code found in the query string".into());
     };
 
     // Prepare the request to exchange the code for an access token
@@ -62,9 +61,8 @@ pub(crate) async fn google_auth_callback(
         .send()
         .await;
 
-    let response = match response {
-        Ok(res) => res,
-        Err(_) => return Err("Failed to send request".into()),
+    let Ok(response) = response else {
+        return Err("Failed to send request".into());
     };
 
     // https://developers.google.com/identity/protocols/oauth2/web-server#httprest_3

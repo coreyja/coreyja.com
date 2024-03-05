@@ -12,12 +12,13 @@ use crate::{
 };
 
 pub(crate) struct YoutubeVideo {
-    pub(crate) title: String,
     pub(crate) description: Option<String>,
-    pub(crate) youtube_video_id: String,
     pub(crate) external_youtube_id: String,
-    pub(crate) thumbnail_url: Option<String>,
     pub(crate) published_at: Option<chrono::NaiveDateTime>,
+    pub(crate) thumbnail_url: Option<String>,
+    pub(crate) title: String,
+    #[allow(clippy::struct_field_names)]
+    pub(crate) youtube_video_id: String,
 }
 
 pub(crate) struct VideoList(pub(crate) Vec<YoutubeVideo>);
@@ -77,7 +78,7 @@ pub(crate) async fn video_index(
             }
           }
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 

@@ -138,7 +138,7 @@ pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<M
           h1 class="text-3xl" { "Blog Posts" }
           (BlogPostList(posts.by_recency()))
         },
-        Default::default(),
+        OpenGraph::default(),
     ))
 }
 
@@ -187,9 +187,9 @@ pub(crate) async fn post_get(
     let image_defaulted_open_graph = match cover_photo {
         Some(cover_photo) => OpenGraph {
             image: Some(cover_photo),
-            ..Default::default()
+            ..OpenGraph::default()
         },
-        None => Default::default(),
+        None => OpenGraph::default(),
     };
 
     Ok(base_constrained(

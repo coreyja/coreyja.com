@@ -88,3 +88,6 @@ rand = "0.8.5"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
+
+[lints]
+workspace = true

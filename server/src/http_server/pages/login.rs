@@ -162,9 +162,7 @@ async fn app_claim(
     .await
     .into_diagnostic()?;
 
-    let is_active_sponsor = sponsor
-        .map(|s| s.is_active && !s.is_one_time_payment)
-        .unwrap_or(false);
+    let is_active_sponsor = sponsor.is_some_and(|s| s.is_active && !s.is_one_time_payment);
 
     ResponseResult::Ok(Json(ClaimResponse {
         user_id: state.user_id,
