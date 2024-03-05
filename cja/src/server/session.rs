@@ -22,7 +22,7 @@ pub struct SessionRedirect {
 }
 
 impl SessionRedirect {
-    pub fn temporary(location: &str) -> Self {
+    #[must_use] pub fn temporary(location: &str) -> Self {
         Self {
             location: location.to_string(),
         }
@@ -63,12 +63,10 @@ impl<AppState: AS> FromRequestParts<AppState> for DBSession {
             let return_to_path = parts
                 .uri
                 .path_and_query()
-                .map(|x| x.as_str())
-                .unwrap_or("/");
+                .map_or("/", http::uri::PathAndQuery::as_str);
 
             Err(SessionRedirect::temporary(&format!(
-                "/login?return_to={}",
-                return_to_path
+                "/login?return_to={return_to_path}"
             )))?
         };
 
@@ -80,11 +78,11 @@ impl<AppState: AS> FromRequestParts<AppState> for DBSession {
         };
 
         let session = sqlx::query_as::<_, DBSession>(
-            r#"
+            r"
         SELECT *
         FROM Sessions
         WHERE session_id = $1
-        "#,
+        ",
         )
         .bind(session_id)
         .fetch_one(state.db())
@@ -106,11 +104,11 @@ impl DBSession {
         cookies: &Cookies,
     ) -> miette::Result<Self> {
         let session = sqlx::query_as::<_, DBSession>(
-            r#"
+            r"
         INSERT INTO Sessions (session_id, user_id)
         VALUES ($1, $2)
         RETURNING *
-        "#,
+        ",
         )
         .bind(uuid::Uuid::new_v4())
         .bind(user_id)

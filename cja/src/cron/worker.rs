@@ -34,7 +34,7 @@ impl<AppState: AS> Worker<AppState> {
         worker_id: &uuid::Uuid,
         last_enqueue_map: &mut HashMap<&str, Instant>,
     ) -> Result<(), TickError> {
-        for (_, job) in self.registry.jobs.iter() {
+        for (_, job) in &self.registry.jobs {
             job.tick(self.state.clone(), last_enqueue_map).await?;
         }
 

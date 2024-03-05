@@ -45,7 +45,7 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
                             respond_to_twitch_chat_prompt(),
                             ChatMessage {
                                 role: ChatRole::User,
-                                content: format!("{}: {}", preferred_name, chat_msg),
+                                content: format!("{preferred_name}: {chat_msg}"),
                             },
                         ];
                         let resp = complete_chat(&config.openai, "gpt-3.5-turbo", messages).await?;
@@ -94,8 +94,8 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
 
                     let preferred_name = preferred_twitch_name(&config.db, &nick).await?;
 
-                    let prompt = format!("{} has joined the channel", preferred_name);
-                    println!("{}", prompt);
+                    let prompt = format!("{preferred_name} has joined the channel");
+                    println!("{prompt}");
 
                     let resp = complete_chat(
                         &config.openai,
@@ -113,7 +113,7 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
                 };
             }
             _ => {
-                println!("Unhandled message: {:?}", message);
+                println!("Unhandled message: {message:?}");
             }
         }
     }

@@ -43,7 +43,7 @@ impl<
     async fn run(&self, app_state: AppState, context: String) -> Result<(), String> {
         (self.func)(app_state, context)
             .await
-            .map_err(|err| format!("{:?}", err))
+            .map_err(|err| format!("{err:?}"))
     }
 }
 
@@ -106,7 +106,7 @@ impl<AppState: AS> CronJob<AppState> {
 }
 
 impl<AppState: AS> CronRegistry<AppState> {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             jobs: HashMap::new(),
         }
