@@ -7,3 +7,4 @@ pub mod jobs;
 pub mod server;
 
 pub mod app_state;
+pub mod setup;

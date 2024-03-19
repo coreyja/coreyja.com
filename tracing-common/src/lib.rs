@@ -1,14 +1,41 @@
 use std::{collections::HashMap, time::Duration};
 
-use miette::{Context, IntoDiagnostic, Result};
+use miette::{Context as _, IntoDiagnostic as _};
 use opentelemetry_otlp::WithExportConfig;
+use sentry::ClientInitGuard;
 use tracing_opentelemetry::OpenTelemetryLayer;
-use tracing_subscriber::{prelude::*, EnvFilter, Registry};
+use tracing_subscriber::{
+    layer::SubscriberExt as _, util::SubscriberInitExt as _, EnvFilter, Registry,
+};
 use tracing_tree::HierarchicalLayer;
 
-pub fn setup_tracing() -> Result<()> {
-    let rust_log =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "warn,server=trace,tower_http=debug".into());
+pub fn setup_sentry() -> Option<ClientInitGuard> {
+    let git_commit: Option<std::borrow::Cow<_>> =
+        option_env!("VERGEN_GIT_SHA").map(std::convert::Into::into);
+    let release_name =
+        git_commit.unwrap_or_else(|| sentry::release_name!().unwrap_or_else(|| "dev".into()));
+
+    if let Ok(sentry_dsn) = std::env::var("SENTRY_DSN") {
+        println!("Sentry enabled");
+
+        Some(sentry::init((
+            sentry_dsn,
+            sentry::ClientOptions {
+                traces_sample_rate: 0.5,
+                release: Some(release_name),
+                ..Default::default()
+            },
+        )))
+    } else {
+        println!("Sentry not configured in this environment");
+
+        None
+    }
+}
+
+pub fn setup_tracing(crate_name: &str) -> miette::Result<()> {
+    let rust_log = std::env::var("RUST_LOG")
+        .unwrap_or_else(|_| format!("info,{crate_name}=trace,tower_http=debug"));
 
     let env_filter = EnvFilter::builder()
         .parse(&rust_log)
@@ -42,8 +69,8 @@ pub fn setup_tracing() -> Result<()> {
         None
     };
 
-    let heirarchical = {
-        let heirarchical = HierarchicalLayer::default()
+    let hierarchical = {
+        let hierarchical = HierarchicalLayer::default()
             .with_writer(std::io::stdout)
             .with_indent_lines(true)
             .with_indent_amount(2)
@@ -55,13 +82,14 @@ pub fn setup_tracing() -> Result<()> {
 
         println!("Let's also log to stdout.");
 
-        heirarchical
+        hierarchical
     };
 
     Registry::default()
-        .with(heirarchical)
+        .with(hierarchical)
         .with(opentelemetry_layer)
         .with(env_filter)
+        .with(sentry_tracing::layer())
         .try_init()
         .into_diagnostic()?;
 

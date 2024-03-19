@@ -36,7 +36,7 @@ enum Command {
 async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "info");
 
-    setup_tracing()?;
+    setup_tracing("video-toolkit")?;
     let cli = CliArgs::parse();
 
     match cli.command {

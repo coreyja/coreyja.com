@@ -21,7 +21,7 @@ pub(crate) struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    setup_tracing()?;
+    setup_tracing("byte")?;
 
     let (say_sender, say_reciever) = tokio::sync::mpsc::channel::<String>(32);
 

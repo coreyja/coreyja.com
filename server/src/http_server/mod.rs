@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::{DateTime, NaiveTime, Utc};
 use include_dir::{include_dir, Dir};
-use miette::{Context, IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result};
 use posts::{
     blog::{BlogPost, ToCanonicalPath},
     date::PostedOn,
@@ -15,10 +15,7 @@ use posts::{
     title::Title,
     Post,
 };
-use std::{net::SocketAddr, sync::Arc};
-use tokio::net::TcpListener;
-use tower_cookies::CookieManagerLayer;
-use tower_http::trace::TraceLayer;
+use std::sync::Arc;
 
 use crate::{AppConfig, AppState};
 use errors::MietteError;

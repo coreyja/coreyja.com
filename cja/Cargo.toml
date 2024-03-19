@@ -28,5 +28,7 @@ axum = "0.7.4"
 tower-service = "0.3.2"
 tower = "0.4.13"
 
+tracing-common = { path = "../tracing-common" }
+
 [lints]
 workspace = true

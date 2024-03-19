@@ -5,8 +5,8 @@ members = [
   "db",
   "posts",
   "server",
-  "tracing-common",
   "video-toolkit",
+  "tracing-common",
 ]
 resolver = "2"
 
