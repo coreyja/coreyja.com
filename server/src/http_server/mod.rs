@@ -50,33 +50,6 @@ const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 
 type ResponseResult<T = Response> = Result<T, MietteError>;
 
-pub(crate) async fn run_axum(config: AppState) -> miette::Result<()> {
-    let syntax_css = syntect::html::css_for_theme_with_class_style(
-        &config.markdown_to_html_context.theme,
-        syntect::html::ClassStyle::Spaced,
-    )
-    .into_diagnostic()?;
-
-    let tracer = server_tracing::Tracer;
-    let trace_layer = TraceLayer::new_for_http()
-        .make_span_with(tracer)
-        .on_response(tracer);
-
-    let app = routes::make_router(syntax_css)
-        .with_state(config)
-        .layer(trace_layer)
-        .layer(CookieManagerLayer::new());
-
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    let listener = TcpListener::bind(&addr).await.unwrap();
-    tracing::debug!("listening on {}", addr);
-
-    axum::serve(listener, app)
-        .await
-        .into_diagnostic()
-        .wrap_err("Failed to run server")
-}
-
 pub(crate) trait LinkTo {
     fn relative_link(&self) -> String;
 

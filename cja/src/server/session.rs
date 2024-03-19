@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use axum_core::{body::Body, extract::FromRequestParts, response::IntoResponse};
+use axum::{body::Body, extract::FromRequestParts, response::IntoResponse};
 use http::{header, Response};
 use miette::IntoDiagnostic as _;
 use serde::{Deserialize, Serialize};

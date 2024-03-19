@@ -19,11 +19,14 @@ chrono.workspace = true
 miette.workspace = true
 base64.workspace = true
 
-axum-core = "0.4.2"
 async-trait = "0.1.77"
 thiserror = "1.0.56"
 tower-cookies = { version = "0.10.0", features = ["signed", "private"] }
 http = "1.0.0"
+tower-http = { version = "0.5.2", features = ["trace"] }
+axum = "0.7.4"
+tower-service = "0.3.2"
+tower = "0.4.13"
 
 [lints]
 workspace = true
