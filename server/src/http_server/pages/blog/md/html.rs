@@ -287,13 +287,18 @@ impl IntoHtml for Emphasis {
 }
 
 impl IntoHtml for Image {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &SyntaxHighlightingContext,
-    ) -> Result<Markup> {
+    fn into_html(self, config: &AppConfig, _context: &SyntaxHighlightingContext) -> Result<Markup> {
+        let adjusted_url = if let Some(imgproxy_url) = config.imgproxy_url.as_ref() {
+            format!(
+                "{}/unsafe/rs:auto:1000:0:false:false/plain/{}",
+                imgproxy_url,
+                urlencoding::encode(&self.url)
+            )
+        } else {
+            self.url
+        };
         Ok(html! {
-          img src=(self.url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+          img src=(adjusted_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
         })
     }
 }
@@ -309,10 +314,10 @@ impl IntoHtml for Link {
             if let Ok(url) = url {
                 url.to_string()
             } else {
-                self.url.to_string()
+                self.url
             }
         } else {
-            self.url.to_string()
+            self.url
         };
 
         Ok(html! {
