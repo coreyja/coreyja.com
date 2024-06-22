@@ -56,7 +56,7 @@ pub fn setup_tracing(crate_name: &str) -> miette::Result<()> {
                     .with_timeout(Duration::from_secs(3))
                     .with_headers(map),
             )
-            .install_batch(opentelemetry::runtime::Tokio)
+            .install_batch(opentelemetry_sdk::runtime::Tokio)
             .into_diagnostic()?;
 
         let opentelemetry_layer = OpenTelemetryLayer::new(tracer);
