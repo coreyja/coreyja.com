@@ -17,6 +17,7 @@ use crate::{
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
     pub base_url: String,
+    pub imgproxy_url: Option<String>,
 }
 
 impl AppConfig {
@@ -26,6 +27,7 @@ impl AppConfig {
             base_url: std::env::var("APP_BASE_URL")
                 .into_diagnostic()
                 .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
+            imgproxy_url: std::env::var("IMGPROXY_URL").ok(),
         })
     }
 
