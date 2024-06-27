@@ -30,7 +30,7 @@ fn generate_keys_for_project(
 
     Command::new("fly")
         .arg("secrets")
-        .args(["--app", &fly_app_name])
+        .args(["--app", fly_app_name])
         .arg("set")
         .arg(format!("AUTH_PRIVATE_KEY={}", *private_pem))
         .status()
