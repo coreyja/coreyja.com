@@ -12,6 +12,7 @@ A manta I’ve repeated for a while in my software career has been “Make the C
 This phrase is about adding new features or options to your code, but what it really gets at is the constant need to refactor your code to make them amendable to changes.
 
 When you go to add a new feature to your codebase, you are often faced with a decision:
+
 - Hack in the needed functionality to the existing structure
 - Refactor some stuff to make the new feature fit nicely
 
@@ -21,3 +22,5 @@ By refactoring BEFORE you add a new feature your codebase is getting cleaner and
 In a messy codebase it’s common to find issues buried, or things that take longer to untangle than expected.
 
 Not only does cleaning up the codebase allow you to be more productive, it also helps be more predictable! And predictability is sometimes even more important than raw speed. Something being finished a day or two earlier is often not a deal breaker, but missing an agreed upon deadline because something unexpected came up can cause issues for the organization.
+
+I'm a firm believer that in 90% of circumstances its better to refactor the code ahead of an expected change, instead of hacking it in and just kicking the cleanup can down the road.
