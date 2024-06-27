@@ -3,7 +3,7 @@
 title: Make the Change Easy, Then Make the Easy Change
 subtitle: Refactoring
 author: Corey Alexander
-date: 2024-03-20
+date: 2024-06-26
 
 ---
 
