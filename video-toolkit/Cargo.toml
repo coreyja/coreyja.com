@@ -15,7 +15,6 @@ cacache = { workspace = true }
 clap = { workspace = true }
 ssri = { workspace = true }
 chrono = { workspace = true }
-miette = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 markdown = { workspace = true }
@@ -32,3 +31,4 @@ tokio-util = { version = "0.7.8", features = ["io", "io-util"] }
 
 posts = { path = "../posts" }
 srtlib = "0.1.7"
+color-eyre = "0.6.3"

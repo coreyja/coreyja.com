@@ -1,4 +1,3 @@
-use miette::IntoDiagnostic;
 use thiserror::Error;
 use tracing::Span;
 
@@ -33,7 +32,7 @@ pub struct JobFromDB {
 
 #[derive(Debug, Error)]
 #[error("JobError(id:${}) ${1}", self.0.job_id)]
-pub(crate) struct JobError(JobFromDB, miette::Report);
+pub(crate) struct JobError(JobFromDB, color_eyre::Report);
 
 struct Worker<AppState: AS, R: JobRegistry<AppState>> {
     id: uuid::Uuid,
@@ -64,11 +63,11 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         )
         err,
     )]
-    async fn run_job(&self, job: &JobFromDB) -> miette::Result<()> {
+    async fn run_job(&self, job: &JobFromDB) -> color_eyre::Result<()> {
         self.registry.run_job(job, self.state.clone()).await
     }
 
-    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> miette::Result<RunJobResult> {
+    pub(crate) async fn run_next_job(&self, job: JobFromDB) -> color_eyre::Result<RunJobResult> {
         let job_result = self.run_job(&job).await;
 
         if let Err(e) = job_result {
@@ -82,8 +81,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
             .bind(job.job_id)
             .bind(self.id.to_string())
             .execute(self.state.db())
-            .await
-            .into_diagnostic()?;
+            .await?;
 
             return Ok(Err(JobError(job, e)));
         }
@@ -97,8 +95,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         .bind(job.job_id)
         .bind(self.id.to_string())
         .execute(self.state.db())
-        .await
-        .into_diagnostic()?;
+        .await?;
 
         Ok(Ok(RunJobSuccess(job)))
     }
@@ -113,7 +110,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         ),
         err,
     )]
-    async fn fetch_next_job(&self) -> miette::Result<Option<JobFromDB>> {
+    async fn fetch_next_job(&self) -> color_eyre::Result<Option<JobFromDB>> {
         let job = sqlx::query_as::<_, JobFromDB>(
             "
             UPDATE jobs
@@ -131,8 +128,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
         )
         .bind(self.id.to_string())
         .fetch_optional(self.state.db())
-        .await
-        .into_diagnostic()?;
+        .await?;
 
         if let Some(job) = &job {
             let span = Span::current();
@@ -150,7 +146,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
             worker.id = %self.id,
         ),
     )]
-    async fn tick(&self) -> miette::Result<()> {
+    async fn tick(&self) -> color_eyre::Result<()> {
         let job = self.fetch_next_job().await?;
 
         let Some(job) = job else {
@@ -185,7 +181,7 @@ impl<AppState: AS, R: JobRegistry<AppState>> Worker<AppState, R> {
 pub async fn job_worker<AppState: AS>(
     app_state: AppState,
     registry: impl JobRegistry<AppState>,
-) -> miette::Result<()> {
+) -> color_eyre::Result<()> {
     let worker = Worker::new(app_state, registry);
 
     loop {

@@ -1,11 +1,9 @@
-use miette::{Context, Result};
 use path_absolutize::Absolutize;
 use std::path::{Path, PathBuf};
 
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::mdast::Node;
-use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 
 use crate::{MarkdownAst, Post};
@@ -14,6 +12,8 @@ use super::{
     date::{ByRecency, PostedOn},
     title::Title,
 };
+
+use color_eyre::{eyre::Context, Result};
 
 static BLOG_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
 
@@ -117,14 +117,14 @@ impl ValidateMarkdown for Node {
             let mut image_path = path.to_path_buf();
             image_path.push(&image.url);
 
-            let cleaned = image_path.absolutize_virtually("/").into_diagnostic()?;
+            let cleaned = image_path.absolutize_virtually("/")?;
             let cleaned = cleaned.to_string_lossy().to_string();
             let cleaned = cleaned.strip_prefix('/').unwrap().to_string();
 
             let post_path = BlogPostPath::new(cleaned.clone());
 
             if !post_path.file_exists() {
-                return Err(miette::miette!("Image {} does not exist", cleaned));
+                return Err(color_eyre::eyre::eyre!("Image {} does not exist", cleaned));
             }
 
             Ok(())
@@ -147,8 +147,7 @@ impl BlogPosts {
 
     pub fn from_dir(dir: &Dir) -> Result<Self> {
         let posts = dir
-            .find("**/*.md")
-            .into_diagnostic()?
+            .find("**/*.md")?
             .filter_map(|e| e.as_file())
             .map(BlogPost::from_file)
             .collect::<Result<Vec<_>>>()

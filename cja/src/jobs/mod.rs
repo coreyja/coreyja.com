@@ -1,12 +1,11 @@
 use crate::app_state::AppState as AS;
-use miette::{Diagnostic, IntoDiagnostic};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::instrument;
 
 pub mod registry;
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, Error)]
 pub enum EnqueueError {
     #[error("SqlxError: {0}")]
     SqlxError(#[from] sqlx::Error),
@@ -20,11 +19,14 @@ pub trait Job<AppState: AS>:
 {
     const NAME: &'static str;
 
-    async fn run(&self, app_state: AppState) -> miette::Result<()>;
+    async fn run(&self, app_state: AppState) -> color_eyre::Result<()>;
 
     #[instrument(name = "jobs.run_from_value", skip(app_state), fields(job.name = Self::NAME), err)]
-    async fn run_from_value(value: serde_json::Value, app_state: AppState) -> miette::Result<()> {
-        let job: Self = serde_json::from_value(value).into_diagnostic()?;
+    async fn run_from_value(
+        value: serde_json::Value,
+        app_state: AppState,
+    ) -> color_eyre::Result<()> {
+        let job: Self = serde_json::from_value(value)?;
 
         job.run(app_state).await
     }

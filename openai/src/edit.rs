@@ -44,7 +44,7 @@ pub async fn edit_prompt(
     config: &OpenAiConfig,
     prompt: impl Into<String>,
     instructions: impl Into<String>,
-) -> Result<String> {
+) -> color_eyre::Result<String> {
     let client = reqwest::Client::new();
 
     let body = EditRequest::new(prompt.into(), instructions.into());
@@ -53,9 +53,8 @@ pub async fn edit_prompt(
         .bearer_auth(&config.api_key)
         .json::<EditRequest>(&body)
         .send()
-        .await
-        .into_diagnostic()?;
-    let body = res.json::<EditResponse>().await.into_diagnostic()?;
+        .await?;
+    let body = res.json::<EditResponse>().await?;
 
     let text = body.choices.into_iter().next().unwrap().text;
     Ok(text)

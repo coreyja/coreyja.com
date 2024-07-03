@@ -1,5 +1,5 @@
+use color_eyre::eyre::Context;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use miette::{Context, IntoDiagnostic};
 use openai::chat::{complete_chat, ChatMessage, ChatRole};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
@@ -7,12 +7,13 @@ use crate::Config;
 
 const PREFERRED_MIC_NAME: &str = "Samson G-Track Pro";
 
-fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> miette::Result<()> {
+fn recording_thread_main(
+    string_sender: &tokio::sync::mpsc::Sender<String>,
+) -> color_eyre::Result<()> {
     let host = cpal::default_host();
 
     let device = host
-        .input_devices()
-        .into_diagnostic()?
+        .input_devices()?
         .find(|device| match device.name() {
             Ok(name) => name == PREFERRED_MIC_NAME,
             Err(err) => {
@@ -20,13 +21,14 @@ fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> m
                 false
             }
         })
-        .ok_or_else(|| miette::miette!("No input device found with name {}", PREFERRED_MIC_NAME))?;
+        .ok_or_else(|| {
+            color_eyre::eyre::eyre!("No input device found with name {}", PREFERRED_MIC_NAME)
+        })?;
 
-    println!("Input device: {}", device.name().into_diagnostic()?);
+    println!("Input device: {}", device.name()?);
 
     let config = device
         .default_input_config()
-        .into_diagnostic()
         .wrap_err("Failed to get default input config")?;
     println!("Default input config: {config:?}");
 
@@ -39,16 +41,14 @@ fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> m
     let (sender, receiver) = std::sync::mpsc::channel::<Vec<f32>>();
 
     let stream = match config.sample_format() {
-        cpal::SampleFormat::F32 => device
-            .build_input_stream(
-                &config.clone().into(),
-                move |data, _: &_| sender.send(data.to_vec()).unwrap(),
-                err_fn,
-                None,
-            )
-            .into_diagnostic()?,
+        cpal::SampleFormat::F32 => device.build_input_stream(
+            &config.clone().into(),
+            move |data, _: &_| sender.send(data.to_vec()).unwrap(),
+            err_fn,
+            None,
+        )?,
         sample_format => {
-            return Err(miette::miette!(
+            return Err(color_eyre::eyre::eyre!(
                 "Unsupported sample format '{sample_format}'"
             ))
         }
@@ -59,7 +59,7 @@ fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> m
     // load a context and model
     let ctx = WhisperContext::new(path_to_model).expect("failed to load model");
 
-    stream.play().into_diagnostic()?;
+    stream.play()?;
 
     let mut recorded_sample = vec![];
     while let Ok(mut data) = receiver.recv() {
@@ -77,14 +77,14 @@ fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> m
                     samplerate::ConverterType::SincBestQuality,
                     audio_data,
                 )
-                .into_diagnostic()
                 .wrap_err("Failed to convert to 16kHz")?
             };
             let audio_data = match config.channels() {
                 1 => audio_data,
-                2 => convert_stereo_to_mono_audio(&audio_data).map_err(|e| miette::miette!(e))?,
+                2 => convert_stereo_to_mono_audio(&audio_data)
+                    .map_err(|e| color_eyre::eyre::eyre!(e))?,
                 _ => {
-                    return Err(miette::miette!(
+                    return Err(color_eyre::eyre::eyre!(
                         "Unsupported number of channels: {}",
                         config.channels()
                     ))
@@ -121,7 +121,7 @@ fn recording_thread_main(string_sender: &tokio::sync::mpsc::Sender<String>) -> m
     unreachable!("The audio recording channel should never close");
 }
 
-pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
+pub(crate) async fn run_audio_loop(config: Config) -> color_eyre::Result<()> {
     let (sender, mut reciever) = tokio::sync::mpsc::channel::<String>(32);
 
     std::thread::spawn(move || recording_thread_main(&sender));
@@ -172,7 +172,7 @@ pub(crate) async fn run_audio_loop(config: Config) -> miette::Result<()> {
         let resp = complete_chat(&config.openai, "gpt-3.5-turbo", messages).await?;
         // println!("Response: {}", resp.content);
 
-        config.say.send(resp.content).await.into_diagnostic()?;
+        config.say.send(resp.content).await?;
     }
 
     unreachable!("The message channel should never close");

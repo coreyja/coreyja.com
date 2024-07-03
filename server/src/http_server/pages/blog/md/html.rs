@@ -1,11 +1,11 @@
 use std::unreachable;
 
+use cja::{color_eyre, Result};
 use markdown::mdast::{
     BlockQuote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link, List,
     ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
 };
 use maud::{html, Markup, PreEscaped};
-use miette::{IntoDiagnostic, Result};
 use syntect::{
     highlighting::ThemeSet,
     html::{ClassStyle, ClassedHTMLGenerator},
@@ -202,7 +202,7 @@ impl IntoHtml for Heading {
             .iter()
             .map(|x| match x {
                 Node::Text(t) => Ok(t.value.as_str()),
-                _ => Err(miette::miette!("Heading should only contain text")),
+                _ => Err(color_eyre::eyre::eyre!("Heading should only contain text")),
             })
             .collect::<Result<String, _>>()
             .ok()
@@ -346,9 +346,7 @@ impl IntoHtml for Code {
         );
 
         for line in LinesWithEndings::from(&self.value) {
-            html_generator
-                .parse_html_for_line_which_includes_newline(line)
-                .into_diagnostic()?;
+            html_generator.parse_html_for_line_which_includes_newline(line)?;
         }
 
         Ok(html! {

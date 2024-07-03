@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use miette::{Context as _, IntoDiagnostic as _};
+use color_eyre::eyre::Context;
 use opentelemetry_otlp::WithExportConfig;
 use sentry::ClientInitGuard;
 use tracing_opentelemetry::OpenTelemetryLayer;
@@ -33,14 +33,13 @@ pub fn setup_sentry() -> Option<ClientInitGuard> {
     }
 }
 
-pub fn setup_tracing(crate_name: &str) -> miette::Result<()> {
+pub fn setup_tracing(crate_name: &str) -> color_eyre::Result<()> {
     let rust_log = std::env::var("RUST_LOG")
         .unwrap_or_else(|_| format!("info,{crate_name}=trace,tower_http=debug"));
 
-    let env_filter = EnvFilter::builder()
-        .parse(&rust_log)
-        .into_diagnostic()
-        .wrap_err_with(|| miette::miette!("Couldn't create env filter from {}", rust_log))?;
+    let env_filter = EnvFilter::builder().parse(&rust_log).wrap_err_with(|| {
+        color_eyre::eyre::eyre!("Couldn't create env filter from {}", rust_log)
+    })?;
 
     let opentelemetry_layer = if let Ok(honeycomb_key) = std::env::var("HONEYCOMB_API_KEY") {
         let mut map = HashMap::<String, String>::new();
@@ -56,8 +55,7 @@ pub fn setup_tracing(crate_name: &str) -> miette::Result<()> {
                     .with_timeout(Duration::from_secs(3))
                     .with_headers(map),
             )
-            .install_batch(opentelemetry_sdk::runtime::Tokio)
-            .into_diagnostic()?;
+            .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
         let opentelemetry_layer = OpenTelemetryLayer::new(tracer);
         println!("Honeycomb layer configured");
@@ -90,8 +88,7 @@ pub fn setup_tracing(crate_name: &str) -> miette::Result<()> {
         .with(opentelemetry_layer)
         .with(env_filter)
         .with(sentry_tracing::layer())
-        .try_init()
-        .into_diagnostic()?;
+        .try_init()?;
 
     Ok(())
 }

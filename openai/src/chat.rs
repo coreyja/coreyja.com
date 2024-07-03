@@ -51,7 +51,7 @@ pub async fn complete_chat(
     config: &OpenAiConfig,
     model: &str,
     messages: Vec<ChatMessage>,
-) -> Result<ChatMessage> {
+) -> color_eyre::Result<ChatMessage> {
     let client = reqwest::Client::new();
 
     let body = ChatCompletionBody {
@@ -65,8 +65,7 @@ pub async fn complete_chat(
         .bearer_auth(&config.api_key)
         .json(&body)
         .send()
-        .await
-        .into_diagnostic()?;
+        .await?;
     if res.status() != 200 {
         println!("Status: {}", res.status());
         println!(
@@ -74,9 +73,9 @@ pub async fn complete_chat(
             res.json::<serde_json::Value>().await.unwrap()
         );
 
-        return Err(miette::miette!("Failed to complete chat"));
+        return Err(color_eyre::eyre::eyre!("Failed to complete chat"));
     }
-    let body = res.json::<CompletionResponse>().await.into_diagnostic()?;
+    let body = res.json::<CompletionResponse>().await?;
 
     let msg = body.choices.into_iter().next().unwrap().message;
 

@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 chrono.workspace = true
-miette = { workspace = true }
 sqlx = { workspace = true }
 tracing = { workspace = true }
+color-eyre = "0.6.3"
 
 [lints]
 workspace = true

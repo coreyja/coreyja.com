@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 tracing = { workspace = true }
 reqwest = { workspace = true }
-miette = { workspace = true }
+color-eyre = "0.6.3"
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -64,7 +64,7 @@ impl Summarize {
                 .key(transcript.key().unwrap())
                 .send()
                 .await
-                .into_diagnostic()?;
+                ?;
             let data = resp
                 .body
                 .collect()
@@ -147,7 +147,7 @@ Include any details about the project we are working on and any technologies use
                 .body(ByteStream::from(summary.as_bytes().to_vec()))
                 .send()
                 .await
-                .into_diagnostic()?;
+                ?;
 
             info!("Uploaded summary to {:?}", summary_path);
             // info!("Sleeping for 1 min to avoid Rate Limits");

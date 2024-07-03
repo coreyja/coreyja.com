@@ -2,6 +2,8 @@ use crate::*;
 
 const COMPLETION_MODEL: &str = "text-davinci-003";
 
+use color_eyre::Result;
+
 #[derive(Serialize, Deserialize)]
 struct CompletionBody {
     max_tokens: Option<i64>,
@@ -53,9 +55,8 @@ pub async fn complete_prompt(config: &OpenAiConfig, prompt: impl Into<String>) -
         .bearer_auth(&config.api_key)
         .json(&body)
         .send()
-        .await
-        .into_diagnostic()?;
-    let body = res.json::<CompletionResponse>().await.into_diagnostic()?;
+        .await?;
+    let body = res.json::<CompletionResponse>().await?;
 
     let text = body.choices.into_iter().next().unwrap().text;
     Ok(text)

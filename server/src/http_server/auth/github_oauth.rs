@@ -2,9 +2,8 @@ use axum::{
     extract::{Query, State},
     response::{IntoResponse, Redirect},
 };
-use cja::server::session::DBSession;
+use cja::{color_eyre::eyre::Context, server::session::DBSession};
 use db::users::UserFromDB;
-use miette::{Context, IntoDiagnostic};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tower_cookies::Cookies;
@@ -66,8 +65,7 @@ pub(crate) async fn github_oauth(
         state
     )
     .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     let client = reqwest::Client::new();
 
@@ -81,14 +79,11 @@ pub(crate) async fn github_oauth(
         ])
         .header("Accept", "application/json")
         .send()
-        .await
-        .into_diagnostic()?
+        .await?
         .json()
-        .await
-        .into_diagnostic()?;
+        .await?;
 
     let oauth_response: GitHubOAuthResponse = serde_json::from_value(oauth_response.clone())
-        .into_diagnostic()
         .wrap_err_with(|| {
             format!(
                 "Could not decode this JSON as a GithubOauthResponse: {:?}",
@@ -106,13 +101,11 @@ pub(crate) async fn github_oauth(
             format!("Bearer {}", oauth_response.access_token),
         )
         .send()
-        .await
-        .into_diagnostic()?
+        .await?
         .json::<Value>()
-        .await
-        .into_diagnostic()?;
+        .await?;
 
-    let user_info: GithubUser = serde_json::from_value(user_info).into_diagnostic()?;
+    let user_info: GithubUser = serde_json::from_value(user_info)?;
     let pool = &app_state.db;
 
     let (local_user, github_link_id): (UserFromDB, Uuid) = {
@@ -127,8 +120,7 @@ pub(crate) async fn github_oauth(
             github_user.id()
         )
         .fetch_optional(pool)
-        .await
-        .into_diagnostic()?;
+        .await?;
 
         if let Some(user) = user {
             sqlx::query!(
@@ -145,22 +137,16 @@ pub(crate) async fn github_oauth(
                 encrypt(&oauth_response.access_token, &app_state.encrypt_config)?,
                 encrypt(&oauth_response.refresh_token, &app_state.encrypt_config)?,
                 chrono::Utc::now()
-                    + chrono::Duration::seconds(
-                        oauth_response.expires_in.try_into().into_diagnostic()?
-                    ),
+                    + chrono::Duration::seconds(oauth_response.expires_in.try_into()?),
                 chrono::Utc::now()
                     + chrono::Duration::seconds(
-                        oauth_response
-                            .refresh_token_expires_in
-                            .try_into()
-                            .into_diagnostic()?
+                        oauth_response.refresh_token_expires_in.try_into()?
                     ),
                 github_user.login(),
                 user.github_link_id
             )
             .execute(pool)
-            .await
-            .into_diagnostic()?;
+            .await?;
 
             (
                 db::users::UserFromDB {
@@ -181,8 +167,7 @@ pub(crate) async fn github_oauth(
                 uuid::Uuid::new_v4()
             )
             .fetch_one(pool)
-            .await
-            .into_diagnostic()?;
+            .await?;
 
             let link = db::sqlx::query!(
                 r#"
@@ -206,20 +191,14 @@ pub(crate) async fn github_oauth(
                 encrypt(&oauth_response.access_token, &app_state.encrypt_config)?,
                 encrypt(&oauth_response.refresh_token, &app_state.encrypt_config)?,
                 chrono::Utc::now()
-                    + chrono::Duration::seconds(
-                        oauth_response.expires_in.try_into().into_diagnostic()?
-                    ),
+                    + chrono::Duration::seconds(oauth_response.expires_in.try_into()?),
                 chrono::Utc::now()
                     + chrono::Duration::seconds(
-                        oauth_response
-                            .refresh_token_expires_in
-                            .try_into()
-                            .into_diagnostic()?
+                        oauth_response.refresh_token_expires_in.try_into()?
                     ),
             )
             .fetch_one(pool)
-            .await
-            .into_diagnostic()?;
+            .await?;
 
             (user, link.github_link_id)
         }
@@ -239,8 +218,7 @@ pub(crate) async fn github_oauth(
         &state.github_login_state_id
     )
     .fetch_one(pool)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     let Some(app) = state.app else {
         let return_to = state.return_to.unwrap_or_else(|| "/".to_string());
@@ -250,7 +228,7 @@ pub(crate) async fn github_oauth(
     let projects = app_state.projects.clone();
     let project = projects.projects.iter().find(|p| p.slug().unwrap() == app);
     let Some(project) = project else {
-        return Err(miette::miette!("No project found for {}", app).into());
+        return Err(cja::color_eyre::eyre::eyre!("No project found for {}", app).into());
     };
 
     let mut login_callback = project.login_callback()?;

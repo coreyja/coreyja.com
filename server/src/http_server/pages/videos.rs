@@ -3,7 +3,6 @@ use axum::{
     response::IntoResponse,
 };
 use maud::{html, Markup, Render};
-use miette::IntoDiagnostic;
 use uuid::Uuid;
 
 use crate::{
@@ -57,7 +56,7 @@ impl<'video> Render for VideoThumbnailCard<'video> {
 
 pub(crate) async fn video_index(
     State(app_state): State<AppState>,
-) -> Result<impl IntoResponse, crate::http_server::errors::MietteError> {
+) -> Result<impl IntoResponse, crate::http_server::errors::ServerError> {
     let videos = sqlx::query_as!(
         YoutubeVideo,
         "SELECT *
@@ -65,8 +64,7 @@ pub(crate) async fn video_index(
       ORDER BY published_at DESC"
     )
     .fetch_all(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(base_constrained(
         html! {
@@ -85,7 +83,7 @@ pub(crate) async fn video_index(
 pub(crate) async fn video_get(
     Path(id): Path<Uuid>,
     State(app_state): State<AppState>,
-) -> Result<impl IntoResponse, crate::http_server::errors::MietteError> {
+) -> Result<impl IntoResponse, crate::http_server::errors::ServerError> {
     let video = sqlx::query_as!(
         YoutubeVideo,
         "SELECT *
@@ -94,8 +92,7 @@ pub(crate) async fn video_get(
         id
     )
     .fetch_optional(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(base_constrained(
         html! {
@@ -104,13 +101,6 @@ pub(crate) async fn video_get(
             @if let Some(published_at) = video.published_at {
               subtitle class="block text-lg text-subtitle mb-8 " { (published_at.format("%Y-%m-%d")) }
             }
-
-            // @if let Some(project) = project {
-            //   div class="mb-8" {
-            //     "Project: "
-            //     a href=(project.relative_link().map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR)).map_err(|e| e.into_response())?) { (project.frontmatter.title) }
-            //   }
-            // }
 
             iframe
               id="ytplayer"

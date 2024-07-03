@@ -10,7 +10,7 @@ test_auth = []
 
 [dependencies]
 rss = { workspace = true }
-miette = { workspace = true }
+color-eyre = "0.6.3"
 chrono = { workspace = true }
 
 serde = { workspace = true }

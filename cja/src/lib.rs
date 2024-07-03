@@ -8,3 +8,6 @@ pub mod server;
 
 pub mod app_state;
 pub mod setup;
+
+pub use color_eyre;
+pub use color_eyre::Result;

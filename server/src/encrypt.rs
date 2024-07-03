@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use miette::{Context, IntoDiagnostic, Result};
+use cja::{color_eyre::eyre::Context, Result};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -12,7 +12,6 @@ impl Config {
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             secret_key: std::env::var("ENCRYPTION_SECRET_KEY")
-                .into_diagnostic()
                 .wrap_err("Missing ENCRYPTION_SECRET_KEY, needed for encryption")?,
         })
     }
@@ -33,9 +32,9 @@ pub fn encrypt(data: &str, config: &Config) -> Result<Vec<u8>> {
         ));
 
         let mut encrypted = vec![];
-        let mut writer = encryptor.wrap_output(&mut encrypted).into_diagnostic()?;
-        writer.write_all(data.as_bytes()).into_diagnostic()?;
-        writer.finish().into_diagnostic()?;
+        let mut writer = encryptor.wrap_output(&mut encrypted)?;
+        writer.write_all(data.as_bytes())?;
+        writer.finish()?;
 
         encrypted
     };
@@ -43,23 +42,21 @@ pub fn encrypt(data: &str, config: &Config) -> Result<Vec<u8>> {
     Ok(encrypted)
 }
 
-pub fn decrypt(data: &[u8], config: &Config) -> miette::Result<String> {
+pub fn decrypt(data: &[u8], config: &Config) -> cja::Result<String> {
     let decrypted = {
-        let age::Decryptor::Passphrase(decryptor) = age::Decryptor::new(data).into_diagnostic()?
-        else {
+        let age::Decryptor::Passphrase(decryptor) = age::Decryptor::new(data)? else {
             unreachable!()
         };
 
         let mut decrypted = vec![];
-        let mut reader = decryptor
-            .decrypt(&age::secrecy::Secret::new(config.secret_key.clone()), None)
-            .into_diagnostic()?;
-        reader.read_to_end(&mut decrypted).into_diagnostic()?;
+        let mut reader =
+            decryptor.decrypt(&age::secrecy::Secret::new(config.secret_key.clone()), None)?;
+        reader.read_to_end(&mut decrypted)?;
 
         decrypted
     };
 
-    String::from_utf8(decrypted).into_diagnostic()
+    Ok(String::from_utf8(decrypted)?)
 }
 
 impl Config {

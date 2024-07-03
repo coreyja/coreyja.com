@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use axum::{body::Body, extract::FromRequestParts, response::IntoResponse};
 use http::{header, Response};
-use miette::IntoDiagnostic as _;
 use serde::{Deserialize, Serialize};
 use tower_cookies::Cookies;
 use uuid::Uuid;
@@ -102,7 +101,7 @@ impl DBSession {
         user_id: Uuid,
         app_state: &AppState,
         cookies: &Cookies,
-    ) -> miette::Result<Self> {
+    ) -> color_eyre::Result<Self> {
         let session = sqlx::query_as::<_, DBSession>(
             r"
         INSERT INTO Sessions (session_id, user_id)
@@ -113,8 +112,7 @@ impl DBSession {
         .bind(uuid::Uuid::new_v4())
         .bind(user_id)
         .fetch_one(app_state.db())
-        .await
-        .into_diagnostic()?;
+        .await?;
 
         let private = cookies.private(app_state.cookie_key());
 

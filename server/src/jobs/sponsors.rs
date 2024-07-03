@@ -10,7 +10,7 @@ pub struct RefreshSponsors;
 impl Job<AppState> for RefreshSponsors {
     const NAME: &'static str = "RefreshSponsors";
 
-    async fn run(&self, app_state: crate::AppState) -> miette::Result<()> {
+    async fn run(&self, app_state: crate::AppState) -> cja::Result<()> {
         refresh_db(&app_state).await?;
 
         Ok(())

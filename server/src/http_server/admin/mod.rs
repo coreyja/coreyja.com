@@ -1,13 +1,12 @@
 use axum::{extract::State, response::IntoResponse};
 use chrono::Utc;
 use maud::{html, Render};
-use miette::IntoDiagnostic;
 
 use crate::state::AppState;
 
 use super::{
     auth::session::AdminUser,
-    errors::MietteError,
+    errors::ServerError,
     templates::{base_constrained, header::OpenGraph},
 };
 
@@ -17,7 +16,7 @@ pub(crate) mod job_routes;
 pub(crate) async fn dashboard(
     admin: AdminUser,
     State(app_state): State<AppState>,
-) -> Result<impl IntoResponse, MietteError> {
+) -> Result<impl IntoResponse, ServerError> {
     let google_user = sqlx::query!(
         "
     SELECT *
@@ -26,13 +25,11 @@ pub(crate) async fn dashboard(
         admin.session.user_id
     )
     .fetch_optional(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     let last_refresh_ats = sqlx::query!("SELECT * FROM LastRefreshAts")
         .fetch_all(&app_state.db)
-        .await
-        .into_diagnostic()?;
+        .await?;
 
     let youtube_refresh_job = sqlx::query!(
         "
@@ -44,8 +41,7 @@ pub(crate) async fn dashboard(
             "
     )
     .fetch_optional(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(base_constrained(
         html! {

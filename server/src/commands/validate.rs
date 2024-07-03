@@ -1,6 +1,5 @@
 use std::println;
 
-use miette::{IntoDiagnostic, Result};
 use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 
 use crate::{
@@ -8,7 +7,7 @@ use crate::{
     AppConfig,
 };
 
-pub(crate) fn validate() -> Result<()> {
+pub(crate) fn validate() -> cja::Result<()> {
     let projects = Projects::from_static_dir()?;
     projects.validate()?;
 
@@ -31,7 +30,7 @@ pub(crate) fn validate() -> Result<()> {
     let render_context = SyntaxHighlightingContext::default();
     let rss = MyChannel::from_posts(&config, &render_context, &posts.by_recency())?;
 
-    rss.validate().into_diagnostic()?;
+    rss.validate()?;
 
     println!("Blog RSS Valid! ✅");
 
@@ -39,7 +38,7 @@ pub(crate) fn validate() -> Result<()> {
 
     let rss = MyChannel::from_posts(&config, &render_context, &tils.by_recency())?;
 
-    rss.validate().into_diagnostic()?;
+    rss.validate()?;
 
     println!("TIL RSS Valid! ✅");
 
