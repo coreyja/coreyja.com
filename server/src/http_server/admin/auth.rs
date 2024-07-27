@@ -17,7 +17,7 @@ pub(crate) async fn google_auth(State(app_state): State<AppState>, _: AdminUser)
             ("response_type", "code"),
             ("client_id", &app_state.google.client_id),
             ("redirect_uri", &redirect_uri),
-            ("scope", &scope),
+            ("scope", scope),
             ("access_type", "offline"),
             ("include_granted_scopes", "true"),
         ],
