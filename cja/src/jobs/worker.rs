@@ -5,15 +5,6 @@ use crate::app_state::AppState as AS;
 
 use super::registry::JobRegistry;
 
-#[derive(Debug, Clone)]
-pub struct JobId(uuid::Uuid);
-
-impl std::fmt::Display for JobId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.to_string().fmt(f)
-    }
-}
-
 pub(super) type RunJobResult = Result<RunJobSuccess, JobError>;
 
 #[derive(Debug)]

@@ -165,16 +165,6 @@ impl BlogPosts {
     }
 }
 
-pub struct BlogFileEntry<'a> {
-    entry: &'a File<'static>,
-}
-
-impl<'a> BlogFileEntry<'a> {
-    pub fn path(&self) -> &'a Path {
-        self.entry.path()
-    }
-}
-
 pub struct BlogPostPath {
     pub path: String,
 }

@@ -11,7 +11,7 @@ members = [
 resolver = "2"
 
 [workspace.lints.clippy]
-pedantic = "deny"
+pedantic = { level = "deny", priority = -1 }
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 module_name_repetitions = "allow"
