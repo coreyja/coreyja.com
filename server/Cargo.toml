@@ -32,7 +32,6 @@ markdown = { workspace = true }
 maud = { version = "0.25.0", features = [
   "axum",
 ], git = "https://github.com/lambda-fairy/maud", rev = "320add87a12d8e5be115de9e0fe3f4b331512a4a" }
-miette = { workspace = true }
 mime_guess = "2.0"
 opentelemetry = { workspace = true }
 opentelemetry-otlp = { workspace = true }

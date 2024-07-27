@@ -68,7 +68,7 @@ impl Youtubize {
                 .key(summary.key().unwrap())
                 .send()
                 .await
-                .into_diagnostic()?;
+                ?;
             let data = resp
                 .body
                 .collect()
@@ -120,7 +120,7 @@ Include the date of the recording in the description of the video
                 .body(ByteStream::from(youtube.as_bytes().to_vec()))
                 .send()
                 .await
-                .into_diagnostic()?;
+                ?;
 
             info!("Uploaded Youtube Info to {:?}", youtube_path);
             // info!("Sleeping for 30 seconds to avoid Rate Limits");

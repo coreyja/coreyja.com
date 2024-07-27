@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use miette::IntoDiagnostic;
 use openai::{
     chat::{complete_chat, ChatMessage},
     OpenAiConfig,
@@ -20,13 +19,13 @@ pub(crate) struct Single {
 }
 
 impl Single {
-    pub async fn process(&self) -> miette::Result<()> {
+    pub async fn process(&self) -> color_eyre::Result<()> {
         let openai_config = OpenAiConfig::from_env()?;
 
         // First we need to transcribe the video with Whisper
         let ctx = WhisperContext::new("./models/ggml-base.en.bin").expect("failed to load model");
 
-        create_dir_all("./tmp").await.into_diagnostic()?;
+        create_dir_all("./tmp").await?;
 
         Command::new("ffmpeg")
             .arg("-i")
@@ -38,7 +37,7 @@ impl Single {
             .arg("./tmp/audio.wav")
             .output()
             .await
-            .into_diagnostic()?;
+            ?;
 
         info!("Transcribing audio");
 
@@ -46,7 +45,7 @@ impl Single {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 5 });
         params.set_n_threads(
             std::thread::available_parallelism()
-                .into_diagnostic()?
+                ?
                 .get() as i32,
         );
         let params = params;
@@ -55,7 +54,7 @@ impl Single {
         let audio_data = reader
             .samples::<i16>()
             .collect::<Result<Vec<_>, _>>()
-            .into_diagnostic()?;
+            ?;
 
         // now we can run the model
         let mut state = ctx.create_state().expect("failed to create state");
@@ -101,13 +100,13 @@ impl Single {
         }
         tokio::fs::write("./tmp/transciption.txt", &buffer)
             .await
-            .into_diagnostic()?;
+            ?;
         tokio::fs::write("./tmp/transciption_text_only.txt", &text_only_buffer)
             .await
-            .into_diagnostic()?;
+            ?;
 
         subs.write_to_file("./tmp/subtitles.srt", None)
-            .into_diagnostic()?;
+            ?;
         info!("Wrote Transcription to Disk");
 
         let mut summaries: Vec<String> = vec![];
@@ -140,7 +139,7 @@ Include any details about the project we are working on and any technologies use
         let full_summary = summaries.join("\n");
         tokio::fs::write("./tmp/summary.txt", &full_summary)
             .await
-            .into_diagnostic()?;
+            ?;
 
         let date = &self.date;
         let resp = complete_chat(
@@ -176,7 +175,7 @@ full_summary
 
         tokio::fs::write("./tmp/youtube.txt", &resp.content)
             .await
-            .into_diagnostic()?;
+            ?;
 
         Ok(())
     }

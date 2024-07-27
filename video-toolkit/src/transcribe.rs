@@ -1,7 +1,6 @@
 use aws_sdk_s3 as s3;
 use clap::Args;
 use futures::TryStreamExt;
-use miette::IntoDiagnostic;
 use s3::primitives::ByteStream;
 use tokio::{io::AsyncWriteExt, process::Command};
 use tracing::info;
@@ -20,7 +19,7 @@ pub(crate) struct TranscribeVideos {
 }
 
 impl TranscribeVideos {
-    pub(crate) async fn transcribe_videos(&self) -> Result<(), miette::ErrReport> {
+    pub(crate) async fn transcribe_videos(&self) -> color_eyre::Result<()> {
         let config = ::aws_config::load_from_env().await;
         let client = s3::Client::new(&config);
 
@@ -71,8 +70,7 @@ impl TranscribeVideos {
                         .bucket(&self.bucket)
                         .key(&video.name)
                         .send()
-                        .await
-                        .into_diagnostic()?;
+                        .await?;
                     let mut stream = resp.body;
                     // let data = stream
                     //     .collect()
@@ -81,8 +79,8 @@ impl TranscribeVideos {
                     //     .into_bytes();
 
                     let mut fd = cacache::Writer::create(CACHE_DIR, &video.name).await?;
-                    while let Some(bytes) = stream.try_next().await.into_diagnostic()? {
-                        fd.write_all(&bytes).await.into_diagnostic()?;
+                    while let Some(bytes) = stream.try_next().await? {
+                        fd.write_all(&bytes).await?;
                     }
                     // for _ in 0..10 {
                     //     fd.write_all(b"very large data")
@@ -102,7 +100,7 @@ impl TranscribeVideos {
             info!("Transcribing video");
 
             info!("Converting video to audio");
-            tokio::fs::create_dir_all("./tmp").await.into_diagnostic()?;
+            tokio::fs::create_dir_all("./tmp").await?;
             cacache::hard_link(CACHE_DIR, metadata.key, "./tmp/video.mkv").await?;
 
             Command::new("ffmpeg")
@@ -114,25 +112,17 @@ impl TranscribeVideos {
                 .args(["-acodec", "pcm_s16le"])
                 .arg("./tmp/audio.wav")
                 .output()
-                .await
-                .into_diagnostic()?;
+                .await?;
 
             info!("Transcribing audio");
 
             // create a params object
             let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 5 });
-            params.set_n_threads(
-                std::thread::available_parallelism()
-                    .into_diagnostic()?
-                    .get() as i32,
-            );
+            params.set_n_threads(std::thread::available_parallelism()?.get() as i32);
             let params = params;
 
             let mut reader = hound::WavReader::open("./tmp/audio.wav").unwrap();
-            let audio_data = reader
-                .samples::<i16>()
-                .collect::<Result<Vec<_>, _>>()
-                .into_diagnostic()?;
+            let audio_data = reader.samples::<i16>().collect::<Result<Vec<_>, _>>()?;
 
             // now we can run the model
             let mut state = ctx.create_state().expect("failed to create state");
@@ -167,7 +157,7 @@ impl TranscribeVideos {
             }
 
             // Write buffer to tmp/transcription.txt
-            std::fs::write("./tmp/transciption.txt", &buffer).into_diagnostic()?;
+            std::fs::write("./tmp/transciption.txt", &buffer)?;
             info!("Wrote Transcription to Disk");
 
             let transcription_path = video.transcription_path().to_str().unwrap().to_string();
@@ -179,12 +169,11 @@ impl TranscribeVideos {
                 .key(transcription_path)
                 .body(ByteStream::from(bytes.to_vec()))
                 .send()
-                .await
-                .into_diagnostic()?;
+                .await?;
             info!("Uploaded transcription to S3");
 
             info!("Cleaning up tmp dir");
-            tokio::fs::remove_dir_all("./tmp").await.into_diagnostic()?;
+            tokio::fs::remove_dir_all("./tmp").await?;
 
             info!("Removing video from cache");
             cacache::remove(CACHE_DIR, &video.name).await?;
@@ -201,12 +190,12 @@ struct Video {
 }
 
 impl Video {
-    fn from_s3(obj: &s3::types::Object) -> Result<Self, miette::Report> {
+    fn from_s3(obj: &s3::types::Object) -> color_eyre::Result<Self> {
         Ok(Self {
             name: obj
                 .key
                 .as_ref()
-                .ok_or_else(|| miette::miette!("No key in S3 Object"))?
+                .ok_or_else(|| color_eyre::eyre::eyre!("No key in S3 Object"))?
                 .to_string(),
             size: obj.size,
         })

@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use cja::server::cookies::CookieKey;
+use cja::{color_eyre::eyre::Context, server::cookies::CookieKey};
 use db::setup_db_pool;
-use miette::{Context, IntoDiagnostic, Result};
 use openai::OpenAiConfig;
 use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 use serde::{Deserialize, Serialize};
@@ -21,10 +20,9 @@ pub struct AppConfig {
 
 impl AppConfig {
     #[instrument(name = "AppConfig::from_env")]
-    pub fn from_env() -> Result<Self> {
+    pub fn from_env() -> cja::Result<Self> {
         Ok(Self {
             base_url: std::env::var("APP_BASE_URL")
-                .into_diagnostic()
                 .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
         })
     }
@@ -77,7 +75,7 @@ pub(crate) struct AppState {
 
 impl AppState {
     #[instrument(name = "AppState::from_env", err)]
-    pub async fn from_env() -> Result<Self> {
+    pub async fn from_env() -> cja::Result<Self> {
         let blog_posts = BlogPosts::from_static_dir()?;
         let blog_posts = Arc::new(blog_posts);
 
@@ -87,7 +85,7 @@ impl AppState {
         let projects = Projects::from_static_dir()?;
         let projects = Arc::new(projects);
 
-        let cookie_key = CookieKey::from_env_or_generate().into_diagnostic()?;
+        let cookie_key = CookieKey::from_env_or_generate()?;
 
         let app_state = AppState {
             twitch: TwitchConfig::from_env()?,

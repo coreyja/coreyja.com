@@ -1,4 +1,4 @@
-use miette::{IntoDiagnostic, Result};
+use color_eyre::Result;
 use sqlx::postgres::PgPoolOptions;
 
 pub mod twitch_chatters;
@@ -15,20 +15,17 @@ pub async fn setup_db_pool() -> Result<PgPool> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
-        .await
-        .into_diagnostic()?;
+        .await?;
 
     sqlx::query!("SELECT pg_advisory_lock($1)", MIGRATION_LOCK_ID)
         .execute(&pool)
-        .await
-        .into_diagnostic()?;
+        .await?;
 
-    sqlx::migrate!().run(&pool).await.into_diagnostic()?;
+    sqlx::migrate!().run(&pool).await?;
 
     let unlock_result = sqlx::query!("SELECT pg_advisory_unlock($1)", MIGRATION_LOCK_ID)
         .fetch_one(&pool)
-        .await
-        .into_diagnostic()?
+        .await?
         .pg_advisory_unlock;
 
     match unlock_result {

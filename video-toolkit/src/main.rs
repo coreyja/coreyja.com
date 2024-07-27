@@ -1,13 +1,12 @@
 use blogify::Blogify;
 use clap::{Parser, Subcommand};
 use futures::StreamExt;
-use miette::IntoDiagnostic;
 use summarize::Summarize;
 use tracing_common::setup_tracing;
 use transcribe::TranscribeVideos;
 
 use aws_sdk_s3 as s3;
-use miette::Result;
+use color_eyre::Result;
 use youtubize::Youtubize;
 
 mod blogify;
@@ -36,7 +35,7 @@ enum Command {
 async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "info");
 
-    setup_tracing("video-toolkit")?;
+    setup_tracing("video-toolkit").unwrap();
     let cli = CliArgs::parse();
 
     match cli.command {
@@ -56,7 +55,7 @@ async fn get_all_objects_for_bucket(
     client: s3::Client,
     bucket: &str,
     prefix: &str,
-) -> Result<Vec<s3::types::Object>, miette::Report> {
+) -> color_eyre::Result<Vec<s3::types::Object>> {
     let resp = client
         .list_objects_v2()
         .bucket(bucket)
@@ -65,15 +64,12 @@ async fn get_all_objects_for_bucket(
         .send()
         .collect::<Vec<_>>()
         .await;
-    let pages = resp
-        .into_iter()
-        .collect::<Result<Vec<_>, _>>()
-        .into_diagnostic()?;
+    let pages = resp.into_iter().collect::<Result<Vec<_>, _>>()?;
     let objects = pages
         .into_iter()
         .map(|page| {
             page.contents
-                .ok_or_else(|| miette::miette!("No contents in page"))
+                .ok_or_else(|| color_eyre::eyre::eyre!("No contents in page"))
         })
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()

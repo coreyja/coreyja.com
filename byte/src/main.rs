@@ -1,8 +1,7 @@
 use audio::run_audio_loop;
 
+pub use color_eyre::Result;
 use db::{setup_db_pool, PgPool};
-use miette::IntoDiagnostic;
-pub use miette::Result;
 use openai::OpenAiConfig;
 use tracing_common::setup_tracing;
 use twitch::run_twitch_bot;
@@ -21,7 +20,7 @@ pub(crate) struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    setup_tracing("byte")?;
+    setup_tracing("byte").unwrap();
 
     let (say_sender, say_reciever) = tokio::sync::mpsc::channel::<String>(32);
 
@@ -39,9 +38,7 @@ async fn main() -> Result<()> {
         tokio::task::spawn(run_audio_loop(config.clone())),
     ];
 
-    futures::future::try_join_all(tasks)
-        .await
-        .into_diagnostic()?;
+    futures::future::try_join_all(tasks).await?;
 
     Ok(())
 }

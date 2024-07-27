@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use chrono::NaiveDate;
 use include_dir::{include_dir, Dir, File};
 use markdown::mdast::Node;
-use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::{MarkdownAst, Post};
@@ -13,6 +12,8 @@ use super::{
     date::{ByRecency, PostedOn},
     title::Title,
 };
+
+use color_eyre::{eyre::Context, Result};
 
 pub(crate) static TIL_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../til");
 
@@ -79,8 +80,7 @@ impl TilPosts {
 
     pub fn from_dir(dir: &Dir) -> Result<Self> {
         let posts = dir
-            .find("**/*.md")
-            .into_diagnostic()?
+            .find("**/*.md")?
             .filter_map(|e| e.as_file())
             .map(TilPost::from_file)
             .collect::<Result<Vec<_>>>()
@@ -103,7 +103,7 @@ impl TilPosts {
                     .map(|til| til.path.display().to_string())
                     .collect::<Vec<_>>()
                     .join(", ");
-                return Err(miette::miette!(
+                return Err(color_eyre::eyre::eyre!(
                     "Slug {} is not unique. Found these paths {}",
                     slug,
                     paths

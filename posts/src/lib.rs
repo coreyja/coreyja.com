@@ -1,12 +1,14 @@
 use std::{path::PathBuf, str::FromStr};
 
+use color_eyre::eyre::Context;
 use include_dir::File;
 use markdown::{
     mdast::{Node, Root},
     to_mdast, ParseOptions,
 };
-use miette::{Context, ErrReport, IntoDiagnostic, Result};
 use serde::Deserialize;
+
+use color_eyre::Result;
 
 use self::{blog::PostMarkdown, date::PostedOn, title::Title};
 
@@ -31,7 +33,7 @@ pub struct Post<FrontmatterType> {
 pub struct MarkdownAst(pub Root);
 
 impl FromStr for MarkdownAst {
-    type Err = ErrReport;
+    type Err = color_eyre::Report;
 
     fn from_str(contents: &str) -> Result<Self> {
         let mut options: ParseOptions = ParseOptions::default();
@@ -40,8 +42,11 @@ impl FromStr for MarkdownAst {
 
         match to_mdast(contents, &options) {
             Ok(Node::Root(ast)) => Ok(Self(ast)),
-            Ok(_) => Err(miette::miette!("Should be a root node")),
-            Err(e) => Err(miette::miette!("Could not make AST. Inner Error: {}", e)),
+            Ok(_) => Err(color_eyre::eyre::eyre!("Should be a root node")),
+            Err(e) => Err(color_eyre::eyre::eyre!(
+                "Could not make AST. Inner Error: {}",
+                e
+            )),
         }
     }
 }
@@ -49,9 +54,7 @@ impl FromStr for MarkdownAst {
 impl MarkdownAst {
     pub fn from_file(file: &File) -> Result<Self> {
         let contents = file.contents();
-        let contents = std::str::from_utf8(contents)
-            .into_diagnostic()
-            .wrap_err("File is not UTF8")?;
+        let contents = std::str::from_utf8(contents).wrap_err("File is not UTF8")?;
 
         Self::from_str(contents)
     }
@@ -59,7 +62,7 @@ impl MarkdownAst {
     fn frontmatter_yml(&self) -> Result<&str> {
         let children = &self.0.children;
         let Some(Node::Yaml(frontmatter)) = children.first() else {
-            return Err(miette::miette!(
+            return Err(color_eyre::eyre::eyre!(
                 "Should have a first child with YAML Frontmatter"
             ));
         };
@@ -72,9 +75,7 @@ impl MarkdownAst {
         T: for<'de> Deserialize<'de>,
     {
         let yaml = self.frontmatter_yml()?;
-        serde_yaml::from_str(yaml)
-            .into_diagnostic()
-            .wrap_err("Frontmatter should be valid YAML")
+        serde_yaml::from_str(yaml).wrap_err("Frontmatter should be valid YAML")
     }
 }
 

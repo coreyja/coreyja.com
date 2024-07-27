@@ -6,13 +6,11 @@ use cja::setup::{setup_sentry, setup_tracing};
 use clap::Parser;
 use commands::Command;
 
-use miette::IntoDiagnostic;
-
 use serde::{Deserialize, Serialize};
 
 use tracing::instrument;
 
-pub use miette::Result;
+pub use cja::Result;
 
 mod twitch;
 
@@ -44,8 +42,7 @@ fn main() -> Result<()> {
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .enable_all()
-        .build()
-        .into_diagnostic()?
+        .build()?
         .block_on(async { _main().await })
 }
 
@@ -62,7 +59,7 @@ async fn _main() -> Result<()> {
 mod test {
 
     #[test]
-    fn validate() -> miette::Result<()> {
+    fn validate() -> cja::Result<()> {
         crate::commands::validate::validate()
     }
 }

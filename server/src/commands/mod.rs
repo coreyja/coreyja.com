@@ -1,5 +1,5 @@
+use cja::Result;
 use clap::Subcommand;
-use miette::Result;
 
 pub(crate) mod info;
 pub(crate) mod validate;

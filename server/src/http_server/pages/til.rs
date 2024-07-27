@@ -6,14 +6,14 @@ use axum::{
     response::IntoResponse,
 };
 
+use cja::Result;
 use maud::{html, Markup};
-use miette::Result;
 use posts::til::TilPosts;
 use tracing::instrument;
 
 use crate::{
     http_server::{
-        errors::MietteError,
+        errors::ServerError,
         pages::blog::md::IntoHtml,
         templates::{base_constrained, header::OpenGraph, post_templates::TilPostList},
         ResponseResult,
@@ -64,8 +64,8 @@ pub(crate) async fn til_get(
         .iter()
         .find(|p| p.frontmatter.slug == slug)
         .ok_or_else(|| {
-            MietteError(
-                miette::miette!("No such post found"),
+            ServerError(
+                cja::color_eyre::eyre::eyre!("No such post found"),
                 StatusCode::INTERNAL_SERVER_ERROR,
             )
         })?;

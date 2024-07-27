@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::{DateTime, NaiveTime, Utc};
 use include_dir::{include_dir, Dir};
-use miette::{IntoDiagnostic, Result};
+
 use posts::{
     blog::{BlogPost, ToCanonicalPath},
     date::PostedOn,
@@ -17,8 +17,8 @@ use posts::{
 };
 use std::sync::Arc;
 
-use crate::{AppConfig, AppState};
-use errors::MietteError;
+use crate::{AppConfig, AppState, Result};
+use errors::ServerError;
 
 use self::{
     pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
@@ -45,7 +45,7 @@ const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");
 
 const STATIC_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 
-type ResponseResult<T = Response> = Result<T, MietteError>;
+type ResponseResult<T = Response> = Result<T, ServerError>;
 
 pub(crate) trait LinkTo {
     fn relative_link(&self) -> String;

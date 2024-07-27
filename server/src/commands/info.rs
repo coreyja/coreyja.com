@@ -1,4 +1,4 @@
-use miette::Result;
+use cja::Result;
 use posts::blog::BlogPosts;
 use syntect::parsing::SyntaxSet;
 

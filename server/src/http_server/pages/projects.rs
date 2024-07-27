@@ -10,11 +10,11 @@ use posts::projects::{Project, ProjectStatus, Projects};
 use crate::{
     http_server,
     http_server::{
-        errors::MietteError,
+        errors::ServerError,
         templates::{base_constrained, header::OpenGraph},
         ResponseResult,
     },
-    instrument, AppState, Arc, IntoDiagnostic, Result,
+    instrument, AppState, Arc, Result,
 };
 
 use super::blog::md::IntoHtml;
@@ -48,8 +48,7 @@ pub(crate) async fn projects_index(
     )
     .fetch_all(&state.db)
     .await
-    .into_diagnostic()
-    .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))?;
+    .map_err(|e| ServerError(e.into(), StatusCode::INTERNAL_SERVER_ERROR))?;
 
     Ok(base_constrained(
         html! {
@@ -132,7 +131,7 @@ pub(crate) async fn projects_get(
         .0
         .clone()
         .into_html(&state.app, &state.markdown_to_html_context)
-        .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(|e| ServerError(e, StatusCode::INTERNAL_SERVER_ERROR))
         .map_err(axum::response::IntoResponse::into_response)?;
 
     let youtube_videos = sqlx::query_as!(
@@ -149,8 +148,7 @@ pub(crate) async fn projects_get(
     )
     .fetch_all(&state.db)
     .await
-    .into_diagnostic()
-    .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+    .map_err(|e| ServerError(e.into(), StatusCode::INTERNAL_SERVER_ERROR))
     .map_err(axum::response::IntoResponse::into_response)?;
 
     Ok(base_constrained(

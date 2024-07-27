@@ -46,7 +46,7 @@ impl Blogify {
                 .key(info.key.as_ref().unwrap())
                 .send()
                 .await
-                .into_diagnostic()?;
+                ?;
             let youtube_info_data = resp
                 .body
                 .collect()
@@ -107,7 +107,7 @@ impl Blogify {
 
         tokio::fs::create_dir_all("./past_streams")
             .await
-            .into_diagnostic()?;
+            ?;
 
         for stream in videos {
             let mut file = tokio::fs::File::create(format!(
@@ -115,7 +115,7 @@ impl Blogify {
                 stream.date.format("%Y-%m-%d")
             ))
             .await
-            .into_diagnostic()?;
+            ?;
 
             let youtube_url = stream
                 .youtube_url
@@ -139,8 +139,8 @@ s3_url: "{}"
 
             println!("{}", content);
 
-            file.write_all(content.as_bytes()).await.into_diagnostic()?;
-            file.flush().await.into_diagnostic()?;
+            file.write_all(content.as_bytes()).await?;
+            file.flush().await?;
         }
 
         Ok(())

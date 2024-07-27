@@ -1,7 +1,9 @@
-use miette::IntoDiagnostic;
 use sqlx::PgPool;
 
-pub async fn preferred_twitch_name(pool: &PgPool, twitch_username: &str) -> miette::Result<String> {
+pub async fn preferred_twitch_name(
+    pool: &PgPool,
+    twitch_username: &str,
+) -> color_eyre::Result<String> {
     let user = get_or_create_twitch_chatter(pool, twitch_username).await?;
 
     Ok(user
@@ -17,7 +19,7 @@ pub struct TwitchChatter {
 pub async fn get_or_create_twitch_chatter(
     pool: &PgPool,
     twitch_username: &str,
-) -> miette::Result<TwitchChatter> {
+) -> color_eyre::Result<TwitchChatter> {
     let user = sqlx::query_as!(
         TwitchChatter,
         r#"
@@ -28,8 +30,7 @@ pub async fn get_or_create_twitch_chatter(
         twitch_username
     )
     .fetch_optional(pool)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     if let Some(user) = user {
         Ok(user)
@@ -44,8 +45,7 @@ pub async fn get_or_create_twitch_chatter(
             twitch_username
         )
         .fetch_one(pool)
-        .await
-        .into_diagnostic()?;
+        .await?;
 
         Ok(user)
     }
@@ -55,7 +55,7 @@ pub async fn update_twitch_chatter_nickname(
     db: &PgPool,
     user: &TwitchChatter,
     new_nickname: &str,
-) -> miette::Result<()> {
+) -> color_eyre::Result<()> {
     sqlx::query_as!(
         TwitchChatter,
         r#"
@@ -67,8 +67,7 @@ pub async fn update_twitch_chatter_nickname(
         user.twitch_username
     )
     .execute(db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(())
 }

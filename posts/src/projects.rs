@@ -1,12 +1,12 @@
 use std::fmt::Display;
 
 use include_dir::{include_dir, Dir};
-use miette::{Context, Diagnostic, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
 
 use crate::{title::Title, MarkdownAst, Post};
+use color_eyre::{eyre::Context, Result};
 
 pub(crate) static PROJECTS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../projects");
 
@@ -90,8 +90,7 @@ impl Projects {
 
     pub fn from_dir(dir: &Dir) -> Result<Self> {
         let projects = dir
-            .find("**/*.md")
-            .into_diagnostic()?
+            .find("**/*.md")?
             .filter_map(|e| e.as_file())
             .map(Project::from_file)
             .collect::<Result<Vec<_>>>()
@@ -110,9 +109,9 @@ impl Projects {
                 stream.path.display()
             );
 
-            let validation_reslut = stream.validate(self);
+            let validation_result = stream.validate(self);
 
-            if let Err(e) = validation_reslut {
+            if let Err(e) = validation_result {
                 errs.push(e);
             }
         }
@@ -161,14 +160,14 @@ impl Project {
 
     pub fn validate(&self, projects: &Projects) -> Result<()> {
         if self.frontmatter.title.chars().count() >= 100 {
-            return Err(miette::miette!(
+            return Err(color_eyre::eyre::eyre!(
                 "Title is too long: {}",
                 self.frontmatter.title.clone(),
             ));
         }
 
         if self.slug().is_err() {
-            return Err(miette::miette!(
+            return Err(color_eyre::eyre::eyre!(
                 "Could not get slug from path: {}",
                 self.path.display(),
             ));
@@ -180,7 +179,10 @@ impl Project {
                 .iter()
                 .any(|p| p.slug().unwrap() == parent_slug)
             {
-                return Err(miette::miette!("Parent project not found: {}", parent_slug,));
+                return Err(color_eyre::eyre::eyre!(
+                    "Parent project not found: {}",
+                    parent_slug,
+                ));
             }
         }
 
@@ -191,10 +193,10 @@ impl Project {
         let stem = self
             .path
             .file_stem()
-            .ok_or_else(|| miette::miette!("No file stem for {:?}", self.path))?;
+            .ok_or_else(|| color_eyre::eyre::eyre!("No file stem for {:?}", self.path))?;
         let s = stem
             .to_str()
-            .ok_or_else(|| miette::miette!("Couldn't create a String from {stem:?}"))?;
+            .ok_or_else(|| color_eyre::eyre::eyre!("Couldn't create a String from {stem:?}"))?;
 
         Ok(s)
     }
@@ -209,11 +211,11 @@ impl Project {
                 |e| format!("unknown got error {e}"),
                 std::string::ToString::to_string,
             );
-            miette::miette!("No login_callback found for {}", slug)
+            color_eyre::eyre::eyre!("No login_callback found for {}", slug)
         })?;
 
         #[allow(unused_mut)]
-        let mut login_callback = login_callback.parse::<url::Url>().into_diagnostic()?;
+        let mut login_callback = login_callback.parse::<url::Url>()?;
 
         #[cfg(feature = "test_auth")]
         {
@@ -223,17 +225,17 @@ impl Project {
 
             login_callback
                 .set_host(Some("localhost"))
-                .into_diagnostic()?;
+                ?;
             println!("After setting host");
 
             login_callback
                 .set_port(Some(local_port))
-                .map_err(|_| miette::miette!("Port could not be set"))?;
+                .map_err(|_| color_eyre::eyre::eyre!("Port could not be set"))?;
             println!("After setting port");
 
             login_callback
                 .set_scheme("http")
-                .map_err(|_| miette::miette!("Scheme could not be set"))?;
+                .map_err(|_| color_eyre::eyre::eyre!("Scheme could not be set"))?;
             println!("After setting scheme");
         }
         println!("After conditional block");
@@ -244,15 +246,14 @@ impl Project {
     pub fn local_port(&self) -> Result<u16> {
         self.frontmatter
             .local_port
-            .ok_or_else(|| miette::miette!("No local_port found"))
+            .ok_or_else(|| color_eyre::eyre::eyre!("No local_port found"))
     }
 }
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, Error)]
 #[error("The were errors validating the Projects")]
 struct ValidationError {
-    #[related]
-    others: Vec<miette::Report>,
+    others: Vec<color_eyre::Report>,
 }
 
 impl Title for Project {

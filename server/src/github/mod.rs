@@ -1,4 +1,3 @@
-use miette::{IntoDiagnostic, Result};
 use tracing::instrument;
 
 pub mod sponsors;
@@ -14,16 +13,13 @@ pub(crate) struct GithubConfig {
 
 impl GithubConfig {
     #[instrument(name = "GithubConfig::from_env")]
-    pub(crate) fn from_env() -> Result<Self> {
+    pub(crate) fn from_env() -> cja::Result<Self> {
         Ok(Self {
-            app_id: std::env::var("GITHUB_APP_ID")
-                .into_diagnostic()?
-                .parse()
-                .into_diagnostic()?,
-            client_id: std::env::var("GITHUB_APP_CLIENT_ID").into_diagnostic()?,
-            client_secret: std::env::var("GITHUB_APP_CLIENT_SECRET").into_diagnostic()?,
-            pat: std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN").into_diagnostic()?,
-            app_private_key: std::env::var("GITHUB_APP_PRIVATE_KEY").into_diagnostic()?,
+            app_id: std::env::var("GITHUB_APP_ID")?.parse()?,
+            client_id: std::env::var("GITHUB_APP_CLIENT_ID")?,
+            client_secret: std::env::var("GITHUB_APP_CLIENT_SECRET")?,
+            pat: std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN")?,
+            app_private_key: std::env::var("GITHUB_APP_PRIVATE_KEY")?,
         })
     }
 }
@@ -31,15 +27,14 @@ impl GithubConfig {
 pub(crate) async fn generate_server_token(
     config: &GithubConfig,
     installation_id: String,
-) -> Result<String> {
+) -> cja::Result<String> {
     #[derive(Debug, serde::Serialize)]
     struct Claims {
         iss: String,
         iat: i64,
         exp: i64,
     }
-    let key = jsonwebtoken::EncodingKey::from_rsa_pem(config.app_private_key.as_bytes())
-        .into_diagnostic()?;
+    let key = jsonwebtoken::EncodingKey::from_rsa_pem(config.app_private_key.as_bytes())?;
 
     let jwt = jsonwebtoken::encode(
         &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256),
@@ -49,48 +44,27 @@ pub(crate) async fn generate_server_token(
             exp: (chrono::Utc::now() + chrono::Duration::minutes(8)).timestamp(),
         },
         &key,
-    )
-    .into_diagnostic()?;
+    )?;
 
     let url = format!("https://api.github.com/app/installations/{installation_id}/access_tokens");
     dbg!(&url);
     let client = reqwest::Client::new();
     let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        "Accept",
-        "application/vnd.github+json".parse().into_diagnostic()?,
-    );
-    headers.insert(
-        "Authorization",
-        format!("Bearer {jwt}").parse().into_diagnostic()?,
-    );
-    headers.insert(
-        "X-GitHub-Api-Version",
-        "2022-11-28".parse().into_diagnostic()?,
-    );
-    headers.insert(
-        "User-Agent",
-        "github.com/coreyja/coreyja.com".parse().into_diagnostic()?,
-    );
+    headers.insert("Accept", "application/vnd.github+json".parse()?);
+    headers.insert("Authorization", format!("Bearer {jwt}").parse()?);
+    headers.insert("X-GitHub-Api-Version", "2022-11-28".parse()?);
+    headers.insert("User-Agent", "github.com/coreyja/coreyja.com".parse()?);
 
-    let token_response = client
-        .post(&url)
-        .headers(headers)
-        .send()
-        .await
-        .into_diagnostic()?;
+    let token_response = client.post(&url).headers(headers).send().await?;
     dbg!(&token_response);
 
-    let token_response = token_response
-        .json::<serde_json::Value>()
-        .await
-        .into_diagnostic()?;
+    let token_response = token_response.json::<serde_json::Value>().await?;
 
     dbg!(&token_response);
 
     let token = token_response["token"]
         .as_str()
-        .ok_or_else(|| miette::miette!("Token was not a string"))?;
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("Token was not a string"))?;
 
     Ok(token.to_string())
 }

@@ -1,5 +1,5 @@
 use axum::{extract::Request, response::Response, serve::IncomingStream};
-use miette::{Context, IntoDiagnostic};
+use color_eyre::eyre::WrapErr;
 use std::{convert::Infallible, net::SocketAddr};
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
@@ -10,7 +10,9 @@ pub mod session;
 
 pub mod trace;
 
-pub async fn run_server<AS: Clone + Sync + Send, S>(routes: axum::Router<AS>) -> miette::Result<()>
+pub async fn run_server<AS: Clone + Sync + Send, S>(
+    routes: axum::Router<AS>,
+) -> color_eyre::Result<()>
 where
     axum::Router<AS>:
         for<'a> Service<IncomingStream<'a>, Error = Infallible, Response = S> + Send + 'static,
@@ -25,12 +27,14 @@ where
 
     let app = routes.layer(trace_layer).layer(CookieManagerLayer::new());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let port: u16 = port.parse()?;
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let listener = TcpListener::bind(&addr).await.unwrap();
     tracing::debug!("listening on {}", addr);
 
     axum::serve(listener, app)
         .await
-        .into_diagnostic()
         .wrap_err("Failed to run server")
 }

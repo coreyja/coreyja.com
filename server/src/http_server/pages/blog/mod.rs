@@ -18,7 +18,7 @@ use tracing::instrument;
 
 use crate::{
     http_server::{
-        errors::MietteError,
+        errors::ServerError,
         pages::blog::md::IntoHtml,
         templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
         ToRssItem,
@@ -38,11 +38,11 @@ impl MyChannel {
         config: &AppConfig,
         context: &SyntaxHighlightingContext,
         posts: &[&Post<T>],
-    ) -> miette::Result<Self>
+    ) -> cja::Result<Self>
     where
         Post<T>: ToRssItem,
     {
-        let items: miette::Result<Vec<rss::Item>> = posts
+        let items: cja::Result<Vec<rss::Item>> = posts
             .iter()
             .map(|p| p.to_rss_item(config, context))
             .collect();
@@ -77,7 +77,7 @@ impl MyChannel {
 pub(crate) async fn rss_feed(
     State(state): State<AppState>,
     State(posts): State<Arc<BlogPosts>>,
-) -> Result<impl IntoResponse, MietteError> {
+) -> Result<impl IntoResponse, ServerError> {
     let channel = MyChannel::from_posts(
         &state.app,
         &state.markdown_to_html_context,
@@ -92,7 +92,7 @@ pub(crate) async fn full_rss_feed(
     State(state): State<AppState>,
     State(blog_posts): State<Arc<BlogPosts>>,
     State(til_posts): State<Arc<TilPosts>>,
-) -> Result<impl IntoResponse, MietteError> {
+) -> Result<impl IntoResponse, ServerError> {
     let mut items_with_date: Vec<(chrono::NaiveDate, rss::Item)> = vec![];
     for p in blog_posts.by_recency() {
         items_with_date.push((
@@ -125,7 +125,8 @@ impl IntoResponse for MyChannel {
         if let Ok(r) = r {
             r.into_response()
         } else {
-            let e: MietteError = miette::miette!("Failed to build RSS Feed response").into();
+            let e: ServerError =
+                cja::color_eyre::eyre::eyre!("Failed to build RSS Feed response").into();
             e.into_response()
         }
     }
@@ -177,10 +178,10 @@ pub(crate) async fn post_get(
     {
         Ok(html) => html,
         Err(e) => {
-            let miette_error = MietteError(e, StatusCode::INTERNAL_SERVER_ERROR);
-            sentry::capture_error(&miette_error);
+            let server_error = ServerError(e, StatusCode::INTERNAL_SERVER_ERROR);
+            tracing::error!(?server_error, "Failed to render markdown to html");
 
-            return Err(miette_error.1);
+            return Err(server_error.1);
         }
     };
 

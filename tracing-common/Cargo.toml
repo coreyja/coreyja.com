@@ -23,4 +23,4 @@ opentelemetry = { workspace = true }
 opentelemetry_sdk = { workspace = true }
 opentelemetry-otlp = { workspace = true }
 
-miette = { workspace = true }
+color-eyre = "0.6.3"

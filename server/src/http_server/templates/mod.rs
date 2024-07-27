@@ -69,7 +69,7 @@ impl IntoHtml for MarkdownAst {
         self,
         config: &AppConfig,
         context: &SyntaxHighlightingContext,
-    ) -> miette::Result<maud::Markup> {
+    ) -> cja::Result<maud::Markup> {
         self.0.into_html(config, context)
     }
 }

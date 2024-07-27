@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
-use miette::IntoDiagnostic;
 use posts::{blog::BlogPosts, til::TilPosts};
 
 use crate::{
@@ -15,7 +14,7 @@ use crate::{
             header::OpenGraph,
             post_templates::{BlogPostList, TilPostList},
         },
-        MietteError,
+        ServerError,
     },
     AppState,
 };
@@ -24,7 +23,7 @@ pub(crate) async fn home_page(
     State(app_state): State<AppState>,
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
-) -> Result<Markup, MietteError> {
+) -> Result<Markup, ServerError> {
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 
@@ -38,8 +37,7 @@ pub(crate) async fn home_page(
         ORDER BY published_at DESC LIMIT 3"
     )
     .fetch_all(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(base(
         html! {

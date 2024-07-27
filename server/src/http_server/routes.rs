@@ -4,9 +4,9 @@ use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    admin, auth, get, pages, post, templates, AppState, Arc, IntoDiagnostic, IntoResponse,
-    MietteError, Path, Redirect, Response, ResponseResult, Result, Router, State, ToCanonicalPath,
-    Uri, COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
+    admin, auth, get, pages, post, templates, AppState, Arc, IntoResponse, Path, Redirect,
+    Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
+    COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
@@ -91,9 +91,9 @@ async fn redirect_to_posts_index() -> impl IntoResponse {
     Redirect::permanent("/posts")
 }
 
-async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Result<Response, MietteError> {
+async fn fallback(uri: Uri, State(posts): State<Arc<BlogPosts>>) -> Result<Response, ServerError> {
     let path = uri.path();
-    let decoded = urlencoding::decode(path).into_diagnostic()?;
+    let decoded = urlencoding::decode(path)?;
     let key = decoded.as_ref();
     let key = key.strip_prefix('/').unwrap_or(key);
     let key = key.strip_suffix('/').unwrap_or(key);
@@ -127,10 +127,7 @@ async fn static_assets(Path(p): Path<String>) -> ResponseResult {
     let mime = mime_guess::from_path(path).first_or_octet_stream();
 
     let mut headers = axum::http::HeaderMap::new();
-    headers.insert(
-        axum::http::header::CONTENT_TYPE,
-        mime.to_string().parse().into_diagnostic()?,
-    );
+    headers.insert(axum::http::header::CONTENT_TYPE, mime.to_string().parse()?);
 
     Ok((headers, entry.contents()).into_response())
 }

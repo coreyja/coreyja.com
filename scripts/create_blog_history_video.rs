@@ -16,27 +16,25 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
-fn main() -> miette::Result<()> {
+fn main() -> color_eyre::Result<()> {
     let repo_path = "/Users/coreyja/Projects/coreyja.com";
     let file_path = "screenshots/4k.png";
     let out_dir = "out";
-    let repo = Repository::open(repo_path).into_diagnostic()?;
+    let repo = Repository::open(repo_path)?;
 
-    let mut revwalk = repo.revwalk().into_diagnostic()?;
-    revwalk.push_head().into_diagnostic()?;
+    let mut revwalk = repo.revwalk()?;
+    revwalk.push_head()?;
 
-    std::fs::create_dir_all(out_dir).into_diagnostic()?;
+    std::fs::create_dir_all(out_dir)?;
 
-    let mut ids = revwalk
-        .collect::<Result<Vec<_>, Error>>()
-        .into_diagnostic()?;
+    let mut ids = revwalk.collect::<Result<Vec<_>, Error>>()?;
 
     ids.reverse();
 
     for (i, id) in ids.into_iter().enumerate() {
-        // let id = id.into_diagnostic()?;
-        let commit = repo.find_commit(id).into_diagnostic()?;
-        let tree = commit.tree().into_diagnostic()?;
+        // let id = id?;
+        let commit = repo.find_commit(id)?;
+        let tree = commit.tree()?;
 
         let Ok(object) = tree.get_path(Path::new(file_path)) else {
             continue;
@@ -47,9 +45,8 @@ fn main() -> miette::Result<()> {
 
         if let Some(blob) = object.as_blob() {
             let content = blob.content();
-            let mut file =
-                File::create(format!("{out_dir}/image_version_{:0>5}.png", i)).into_diagnostic()?;
-            file.write_all(content).into_diagnostic()?;
+            let mut file = File::create(format!("{out_dir}/image_version_{:0>5}.png", i))?;
+            file.write_all(content)?;
         }
     }
 
@@ -63,15 +60,13 @@ fn main() -> miette::Result<()> {
         .arg("-i")
         .arg(&frame_glob)
         .arg(format!("{out_dir}/video.mp4"))
-        .spawn()
-        .into_diagnostic()?
-        .wait()
-        .into_diagnostic()?;
+        .spawn()?
+        .wait()?;
 
-    for entry in glob(&frame_glob).into_diagnostic()? {
+    for entry in glob(&frame_glob)? {
         match entry {
             Ok(path) => {
-                fs::remove_file(path).into_diagnostic()?;
+                fs::remove_file(path)?;
             }
             Err(e) => println!("Error reading file: {:?}", e),
         }

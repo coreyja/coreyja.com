@@ -1,5 +1,5 @@
+use cja::Result;
 use cja::{jobs::worker::job_worker, server::run_server};
-use miette::{IntoDiagnostic, Result};
 use tokio::task::JoinError;
 use tracing::info;
 
@@ -13,8 +13,7 @@ pub(crate) async fn serve() -> Result<()> {
     let syntax_css = syntect::html::css_for_theme_with_class_style(
         &app_state.markdown_to_html_context.theme,
         syntect::html::ClassStyle::Spaced,
-    )
-    .into_diagnostic()?;
+    )?;
 
     info!("Spawning Tasks");
     let futures = vec![
@@ -28,10 +27,7 @@ pub(crate) async fn serve() -> Result<()> {
 
     let results = futures::future::join_all(futures).await;
     let results: Result<Vec<Result<()>>, JoinError> = results.into_iter().collect();
-    results
-        .into_diagnostic()?
-        .into_iter()
-        .collect::<Result<Vec<()>>>()?;
+    results?.into_iter().collect::<Result<Vec<()>>>()?;
 
     info!("Main Returning");
 

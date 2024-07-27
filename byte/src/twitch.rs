@@ -1,3 +1,4 @@
+use color_eyre::Result;
 use db::twitch_chatters::{
     get_or_create_twitch_chatter, preferred_twitch_name, update_twitch_chatter_nickname,
 };
@@ -6,7 +7,6 @@ use irc::{
     client::{prelude::Config, Client},
     proto::{Capability, Prefix},
 };
-use miette::{IntoDiagnostic, Result};
 use openai::chat::{complete_chat, ChatMessage, ChatRole};
 
 use crate::personality::{base, respond_to_twitch_chat_prompt};
@@ -16,23 +16,21 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
         nickname: Some("coreyja_bot".to_owned()),
         password: Some(format!(
             "oauth:{}",
-            std::env::var("TWITCH_BOT_ACCESS_TOKEN").into_diagnostic()?
+            std::env::var("TWITCH_BOT_ACCESS_TOKEN")?
         )),
         server: Some("irc.chat.twitch.tv".to_owned()),
         channels: vec!["#coreyja".to_owned()],
         ..Config::default()
     };
 
-    let mut client = Client::from_config(irc_config).await.into_diagnostic()?;
-    client.identify().into_diagnostic()?;
+    let mut client = Client::from_config(irc_config).await?;
+    client.identify()?;
 
-    let mut stream = client.stream().into_diagnostic()?;
+    let mut stream = client.stream()?;
 
-    client
-        .send_cap_req(&[Capability::Custom("twitch.tv/membership")])
-        .into_diagnostic()?;
+    client.send_cap_req(&[Capability::Custom("twitch.tv/membership")])?;
 
-    while let Some(message) = stream.next().await.transpose().into_diagnostic()? {
+    while let Some(message) = stream.next().await.transpose()? {
         match &message.command {
             irc::proto::Command::PRIVMSG(_target, msg) => {
                 if msg.starts_with("!byte") {
@@ -50,7 +48,7 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
                         ];
                         let resp = complete_chat(&config.openai, "gpt-3.5-turbo", messages).await?;
 
-                        config.say.send(resp.content).await.into_diagnostic()?;
+                        config.say.send(resp.content).await?;
                     }
                 } else if msg.starts_with("!nickname") {
                     let chat_msg = msg.strip_prefix("!nickname").unwrap();
@@ -67,7 +65,7 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
                                 None => "You don't have a nickname set".to_string(),
                             };
 
-                            client.send_privmsg("#coreyja", msg).into_diagnostic()?;
+                            client.send_privmsg("#coreyja", msg)?;
                         } else {
                             let user = get_or_create_twitch_chatter(&config.db, nickname).await?;
                             let old_nickname = &user.preferred_name;
@@ -81,7 +79,7 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
                                 old_nickname.as_ref().unwrap_or(&user.twitch_username),
                                 new_nickname
                             );
-                            client.send_privmsg("#coreyja", msg).into_diagnostic()?;
+                            client.send_privmsg("#coreyja", msg)?;
                         }
                     }
                 }
@@ -109,7 +107,7 @@ pub(crate) async fn run_twitch_bot(config: super::Config) -> Result<()> {
                         ],
                     )
                     .await?;
-                    config.say.send(resp.content).await.into_diagnostic()?;
+                    config.say.send(resp.content).await?;
                 };
             }
             _ => {

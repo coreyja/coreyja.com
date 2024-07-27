@@ -1,6 +1,6 @@
 use chrono::DateTime as ChronoDateTime;
+use cja::Result;
 use graphql_client::{reqwest::post_graphql, GraphQLQuery};
-use miette::{IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres, QueryBuilder};
 use uuid::Uuid;
@@ -19,19 +19,17 @@ type DateTime = ChronoDateTime<chrono::Utc>;
 )]
 pub struct GetSponsors;
 
-pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
+pub async fn get_sponsors(access_token: &str) -> cja::Result<Vec<Sponsor>> {
     let client = reqwest::Client::builder()
         .user_agent("github.com/coreyja/coreyja.com")
         .default_headers(
             std::iter::once((
                 reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {access_token}"))
-                    .into_diagnostic()?,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {access_token}"))?,
             ))
             .collect(),
         )
-        .build()
-        .into_diagnostic()?;
+        .build()?;
 
     let response =
         post_graphql::<GetSponsors, _>(&client, "https://api.github.com/graphql", Variables {})
@@ -39,7 +37,7 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
             .unwrap();
 
     let response_body = response.data.ok_or_else(|| {
-        miette::miette!(
+        cja::color_eyre::eyre::eyre!(
             "No data was returned in the query for Sponsors: {:?}",
             &response.errors
         )
@@ -49,7 +47,7 @@ pub async fn get_sponsors(access_token: &str) -> Result<Vec<Sponsor>> {
         .viewer
         .sponsorships_as_maintainer
         .edges
-        .ok_or_else(|| miette::miette!("There were no edges"))?
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("There were no edges"))?
         .into_iter()
         .filter_map(|edge| {
             let node = edge?.node?;
@@ -167,7 +165,7 @@ async fn insert_sponsors(sponsors: &[Sponsor], pool: &Pool<Postgres>) -> Result<
 
     let query = query_builder.build();
 
-    query.execute(pool).await.into_diagnostic()?;
+    query.execute(pool).await?;
 
     Ok(())
 }
@@ -185,8 +183,7 @@ pub(crate) async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
         &sponsors.iter().map(|s| s.id.clone()).collect::<Vec<_>>()
     )
     .execute(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     set_last_refresh_at(app_state, "github_sponsors").await?;
 
@@ -196,7 +193,7 @@ pub(crate) async fn refresh_db(app_state: &crate::AppState) -> Result<()> {
 pub(crate) async fn set_last_refresh_at(
     app_state: &crate::state::AppState,
     key: &str,
-) -> Result<(), miette::ErrReport> {
+) -> Result<()> {
     sqlx::query!(
         "
         INSERT INTO LastRefreshAts (
@@ -211,8 +208,7 @@ pub(crate) async fn set_last_refresh_at(
         key
     )
     .execute(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(())
 }

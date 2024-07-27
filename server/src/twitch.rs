@@ -1,4 +1,4 @@
-use crate::{Deserialize, IntoDiagnostic, Result, Serialize};
+use crate::{Deserialize, Result, Serialize};
 use tracing::instrument;
 
 #[derive(Debug, Deserialize)]
@@ -40,11 +40,11 @@ impl TwitchConfig {
     #[instrument(name = "TwitchConfig::from_env")]
     pub(crate) fn from_env() -> Result<Self> {
         Ok(Self {
-            client_id: std::env::var("TWITCH_CLIENT_ID").into_diagnostic()?,
-            client_secret: std::env::var("TWITCH_CLIENT_SECRET").into_diagnostic()?,
+            client_id: std::env::var("TWITCH_CLIENT_ID")?,
+            client_secret: std::env::var("TWITCH_CLIENT_SECRET")?,
             bot_access_token: std::env::var("TWITCH_BOT_ACCESS_TOKEN").ok(),
-            bot_user_id: std::env::var("TWITCH_BOT_USER_ID").into_diagnostic()?,
-            channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID").into_diagnostic()?,
+            bot_user_id: std::env::var("TWITCH_BOT_USER_ID")?,
+            channel_user_id: std::env::var("TWITCH_CHANNEL_USER_ID")?,
         })
     }
 }
@@ -68,13 +68,10 @@ pub(crate) async fn get_chatters(config: &TwitchConfig) -> Result<TwitchChatters
         .bearer_auth(config.bot_access_token.as_ref().expect("We need a bot access token here. This was required and then it was hard to generate for prod and I was lazy and we aren't using this yet so :shrug:"))
         .header("Client-Id", &config.client_id)
         .send()
-        .await.into_diagnostic()
+        .await
         ?;
 
-    response
-        .json::<TwitchChattersPage>()
-        .await
-        .into_diagnostic()
+    Ok(response.json::<TwitchChattersPage>().await?)
 }
 
 #[derive(Serialize, Deserialize, Debug)]

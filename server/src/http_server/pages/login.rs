@@ -7,9 +7,9 @@ use axum::{
     Json,
 };
 use jsonwebtoken::{Algorithm, Validation};
-use miette::IntoDiagnostic;
 
 use crate::{http_server::ResponseResult, state::AppState};
+use cja::color_eyre;
 
 pub(crate) fn routes() -> axum::Router<AppState> {
     axum::Router::new()
@@ -32,8 +32,7 @@ async fn login(
         queries.get("return_to"),
     )
     .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     ResponseResult::Ok(Redirect::temporary(&format!(
         "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
@@ -52,7 +51,7 @@ async fn app_login(
         .projects
         .iter()
         .find(|p| p.slug().unwrap() == from_app)
-        .ok_or_else(|| miette::miette!("Project does not exist"))?;
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("Project does not exist"))?;
 
     let state = sqlx::query!(
         r#"
@@ -64,8 +63,7 @@ async fn app_login(
         from_app,
     )
     .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     ResponseResult::Ok(Redirect::temporary(&format!(
         "https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}",
@@ -107,12 +105,11 @@ async fn app_claim(
     let jwt = body.jwt;
     let jwt = jsonwebtoken::decode::<JWTClaim>(
         &jwt,
-        &jsonwebtoken::DecodingKey::from_rsa_pem(auth_public_key.as_bytes()).into_diagnostic()?,
+        &jsonwebtoken::DecodingKey::from_rsa_pem(auth_public_key.as_bytes())?,
         &Validation::new(Algorithm::RS256),
-    )
-    .into_diagnostic()?;
+    )?;
 
-    let github_login_state_id = jwt.claims.sub.parse::<uuid::Uuid>().into_diagnostic()?;
+    let github_login_state_id = jwt.claims.sub.parse::<uuid::Uuid>()?;
     let state = sqlx::query!(
         r#"
        SELECT state, Users.user_id
@@ -124,15 +121,14 @@ async fn app_claim(
         github_login_state_id
     )
     .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     if state.state == "claimed" {
-        return Err(miette::miette!("This Login has already been claimed").into());
+        return Err(cja::color_eyre::eyre::eyre!("This Login has already been claimed").into());
     }
 
     if state.state != "github_completed" {
-        return Err(miette::miette!("This login is not in the correct state").into());
+        return Err(color_eyre::eyre::eyre!("This login is not in the correct state").into());
     }
 
     debug_assert_eq!(state.state, "github_completed");
@@ -147,8 +143,7 @@ async fn app_claim(
         github_login_state_id
     )
     .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     let sponsor = sqlx::query!(
         r#"
@@ -159,8 +154,7 @@ async fn app_claim(
         state.user_id
     )
     .fetch_optional(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     let is_active_sponsor = sponsor.is_some_and(|s| s.is_active && !s.is_one_time_payment);
 

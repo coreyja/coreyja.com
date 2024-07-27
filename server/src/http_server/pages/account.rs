@@ -7,14 +7,14 @@ use crate::{
     http_server::{
         current_user::{self, CurrentUser},
         templates::{base_constrained, header::OpenGraph},
-        MietteError,
+        ServerError,
     },
     AppState,
 };
 
 pub(crate) async fn account_page(
     current_user: CurrentUser,
-) -> Result<impl IntoResponse, MietteError> {
+) -> Result<impl IntoResponse, ServerError> {
     Ok(base_constrained(
         html! {
           h1 class="text-2xl mb-4" { "Account" }
@@ -67,7 +67,7 @@ impl FromRequestParts<AppState> for Sponsor {
 pub(crate) async fn sponsorship_page(
     current_user: CurrentUser,
     sponsor: Option<Sponsor>,
-) -> Result<impl IntoResponse, MietteError> {
+) -> Result<impl IntoResponse, ServerError> {
     Ok(base_constrained(
         html! {
           h1 class="text-xl mb-4" { "Hey "  (current_user.github_link.external_github_login) }

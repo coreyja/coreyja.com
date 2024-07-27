@@ -1,5 +1,5 @@
 use chrono::Utc;
-use miette::{Context, IntoDiagnostic};
+use cja::color_eyre::eyre::Context;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -13,13 +13,11 @@ pub struct GoogleConfig {
 
 impl GoogleConfig {
     #[tracing::instrument(name = "GoogleConfig::from_env")]
-    pub fn from_env() -> miette::Result<Self> {
+    pub fn from_env() -> cja::Result<Self> {
         Ok(Self {
             client_id: std::env::var("GOOGLE_CLIENT_ID")
-                .into_diagnostic()
                 .context("GOOGLE_CLIENT_ID env var missing")?,
             client_secret: std::env::var("GOOGLE_CLIENT_SECRET")
-                .into_diagnostic()
                 .context("GOOGLE_CLIENT_SECRET env var missing")?,
         })
     }
@@ -41,7 +39,7 @@ pub(crate) struct GitHubTokenResponse {
 pub(crate) async fn refresh_google_token(
     app_state: &AppState,
     google_user: &GoogleUser,
-) -> miette::Result<String> {
+) -> cja::Result<String> {
     let refresh_token = app_state
         .encrypt_config
         .decrypt(&google_user.encrypted_refresh_token)?;
@@ -58,17 +56,15 @@ pub(crate) async fn refresh_google_token(
         .post("https://oauth2.googleapis.com/token")
         .form(&params)
         .send()
-        .await
-        .into_diagnostic()?;
+        .await?;
 
-    let token_info: GitHubTokenResponse = res.json().await.into_diagnostic()?;
+    let token_info: GitHubTokenResponse = res.json().await?;
 
     let encrypted_access_token = app_state.encrypt_config.encrypt(&token_info.access_token)?;
 
     let expires_in: u32 = token_info
         .expires_in
         .try_into()
-        .into_diagnostic()
         .context("expires_in did not fit in a u32")?;
     let expires_in: f64 = expires_in.into();
     sqlx::query!(
@@ -84,8 +80,7 @@ pub(crate) async fn refresh_google_token(
         expires_in,
     )
     .execute(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     Ok(token_info.access_token)
 }
@@ -98,7 +93,7 @@ pub(crate) struct GoogleUser {
     access_token_expires_at: chrono::DateTime<chrono::Utc>,
 }
 
-pub(crate) async fn get_valid_google_token(app_state: &AppState) -> miette::Result<String> {
+pub(crate) async fn get_valid_google_token(app_state: &AppState) -> cja::Result<String> {
     let google_user = sqlx::query_as!(
         GoogleUser,
         "
@@ -112,8 +107,7 @@ pub(crate) async fn get_valid_google_token(app_state: &AppState) -> miette::Resu
         "
     )
     .fetch_one(&app_state.db)
-    .await
-    .into_diagnostic()?;
+    .await?;
 
     if google_user.access_token_expires_at < Utc::now() {
         return refresh_google_token(app_state, &google_user).await;

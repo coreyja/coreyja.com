@@ -1,7 +1,6 @@
-use std::{collections::HashMap, future::Future, pin::Pin, time::Duration};
+use std::{collections::HashMap, error::Error, future::Future, pin::Pin, time::Duration};
 
 use chrono::{OutOfRangeError, Utc};
-use miette::Diagnostic;
 use tracing::error;
 
 use crate::{app_state::AppState as AS, jobs::Job};
@@ -20,7 +19,7 @@ pub trait CronFn<AppState: AS> {
 
 pub struct CronFnClosure<
     AppState: AS,
-    FnError: Diagnostic + Send + Sync + 'static,
+    FnError: Error + Send + Sync + 'static,
     F: Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<(), FnError>> + Send>>
         + Send
         + Sync
@@ -33,7 +32,7 @@ pub struct CronFnClosure<
 #[async_trait::async_trait]
 impl<
         AppState: AS,
-        FnError: Diagnostic + Send + Sync + 'static,
+        FnError: Error + Send + Sync + 'static,
         F: Fn(AppState, String) -> Pin<Box<dyn Future<Output = Result<(), FnError>> + Send>>
             + Send
             + Sync
@@ -54,7 +53,7 @@ pub(super) struct CronJob<AppState: AS> {
     interval: Duration,
 }
 
-#[derive(Debug, thiserror::Error, Diagnostic)]
+#[derive(Debug, thiserror::Error)]
 #[error("TickError: {0}")]
 pub enum TickError {
     JobError(String),
@@ -129,7 +128,7 @@ impl<AppState: AS> CronRegistry<AppState> {
     }
 
     #[tracing::instrument(name = "cron.register", skip_all, fields(cron_job.name = name, cron_job.interval = ?interval))]
-    pub fn register<FnError: Diagnostic + Send + Sync + 'static>(
+    pub fn register<FnError: Error + Send + Sync + 'static>(
         &mut self,
         name: &'static str,
         interval: Duration,
