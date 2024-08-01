@@ -27,7 +27,7 @@ pub(crate) async fn serve() -> Result<()> {
         tokio::spawn(job_worker(app_state.clone(), job_registry)),
     ];
 
-    if std::env::var("CRON_DISABLED").unwrap_or_else(|_| "false".to_string()) != "true" {
+    if std::env::var("CRON_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Cron Enabled");
         futures.push(tokio::spawn(run_cron(app_state.clone())));
     } else {
