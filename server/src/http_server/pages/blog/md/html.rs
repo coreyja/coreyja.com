@@ -28,7 +28,6 @@ impl Default for SyntaxHighlightingContext {
         let ps = SyntaxSet::load_defaults_newlines();
         let ts = ThemeSet::load_defaults();
 
-
         SyntaxHighlightingContext {
             syntax_set: ps,
             theme: ts
@@ -293,7 +292,8 @@ impl IntoHtml for Emphasis {
 
 impl IntoHtml for Image {
     fn into_html(self, config: &AppConfig, context: &SyntaxHighlightingContext) -> Result<Markup> {
-        let article_path = context.current_article_path
+        let article_path = context
+            .current_article_path
             .as_deref()
             .unwrap_or("unknown")
             .split('/')
@@ -301,8 +301,8 @@ impl IntoHtml for Image {
             .unwrap_or("unknown")
             .replace(' ', "-"); // Replace spaces with hyphens
 
-        // Construct the image URL in the desired format
-        let image_url = format!("{}/posts/{}/{}",
+        let image_url = format!(
+            "{}/posts/{}/{}",
             config.base_url.trim_end_matches('/'),
             article_path,
             self.url.trim_start_matches("../")

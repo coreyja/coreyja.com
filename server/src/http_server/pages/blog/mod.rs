@@ -172,14 +172,11 @@ pub(crate) async fn post_get(
 
     let cover_photo = markdown.ast.0.cover_photo();
 
-    // creating some context for the article_path 
+    // creating some context for the article_path
     let mut context = state.markdown_to_html_context.clone();
     context.current_article_path = Some(post.path.canonical_path());
 
-    let html = match markdown
-        .ast
-        .into_html(&state.app, &context)
-    {
+    let html = match markdown.ast.into_html(&state.app, &context) {
         Ok(html) => html,
         Err(e) => {
             let server_error = ServerError(e, StatusCode::INTERNAL_SERVER_ERROR);
