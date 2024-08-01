@@ -3,7 +3,12 @@ use cja::{jobs::worker::job_worker, server::run_server};
 use tokio::task::JoinError;
 use tracing::info;
 
-use crate::{cron::{self, run_cron}, http_server::routes, jobs::Jobs, AppState};
+use crate::{
+    cron::{self, run_cron},
+    http_server::routes,
+    jobs::Jobs,
+    AppState,
+};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_state = AppState::from_env().await?;
@@ -15,13 +20,13 @@ pub(crate) async fn serve() -> Result<()> {
     )?;
 
     info!("Spawning Tasks");
-    let mut futures: Vec<tokio::task::JoinHandle<std::prelude::v1::Result<(), miette::Error>>> = vec![
+    let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![
         tokio::spawn(run_server(
             routes::make_router(syntax_css).with_state(app_state.clone()),
         )),
         tokio::spawn(job_worker(app_state.clone(), job_registry)),
     ];
-    
+
     if std::env::var("CRON_DISABLED").unwrap_or_else(|_| "false".to_string()) != "true" {
         info!("Cron Enabled");
         futures.push(tokio::spawn(run_cron(app_state.clone())));
