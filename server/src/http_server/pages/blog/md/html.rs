@@ -11,6 +11,7 @@ use syntect::{
     html::{ClassStyle, ClassedHTMLGenerator},
     parsing::SyntaxSet,
 };
+use tracing::info;
 use url::Url;
 
 use crate::AppConfig;
@@ -19,12 +20,14 @@ use crate::AppConfig;
 pub struct SyntaxHighlightingContext {
     pub(crate) theme: syntect::highlighting::Theme,
     pub(crate) syntax_set: syntect::parsing::SyntaxSet,
+    pub(crate) current_article_path: Option<String>,
 }
 
 impl Default for SyntaxHighlightingContext {
     fn default() -> Self {
         let ps = SyntaxSet::load_defaults_newlines();
         let ts = ThemeSet::load_defaults();
+
 
         SyntaxHighlightingContext {
             syntax_set: ps,
@@ -33,9 +36,11 @@ impl Default for SyntaxHighlightingContext {
                 .get("base16-ocean.dark")
                 .expect("This theme exists in the defaults")
                 .clone(),
+            current_article_path: None,
         }
     }
 }
+
 pub(crate) trait IntoHtml {
     fn into_html(self, config: &AppConfig, context: &SyntaxHighlightingContext) -> Result<Markup>;
 }
@@ -287,18 +292,24 @@ impl IntoHtml for Emphasis {
 }
 
 impl IntoHtml for Image {
-    fn into_html(self, config: &AppConfig, _context: &SyntaxHighlightingContext) -> Result<Markup> {
-        let adjusted_url = if let Some(imgproxy_url) = config.imgproxy_url.as_ref() {
-            format!(
-                "{}/unsafe/rs:auto:1000:0:false:false/plain/{}",
-                imgproxy_url,
-                urlencoding::encode(&self.url)
-            )
-        } else {
-            self.url
-        };
+    fn into_html(self, config: &AppConfig, context: &SyntaxHighlightingContext) -> Result<Markup> {
+        let article_path = context.current_article_path
+            .as_deref()
+            .unwrap_or("unknown")
+            .split('/')
+            .next()
+            .unwrap_or("unknown")
+            .replace(' ', "-"); // Replace spaces with hyphens
+
+        // Construct the image URL in the desired format
+        let image_url = format!("{}/posts/{}/{}",
+            config.base_url.trim_end_matches('/'),
+            article_path,
+            self.url.trim_start_matches("../")
+        );
+
         Ok(html! {
-          img src=(adjusted_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+            img src=(image_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
         })
     }
 }
