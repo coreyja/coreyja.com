@@ -7,6 +7,8 @@ use crate::{google::GoogleConfig, twitch::TwitchConfig, AppConfig, AppState};
 
 use super::pages::blog::md::SyntaxHighlightingContext;
 
+
+
 impl FromRef<AppState> for TwitchConfig {
     fn from_ref(config: &AppState) -> Self {
         config.twitch.clone()
@@ -21,7 +23,7 @@ impl FromRef<AppState> for AppConfig {
 
 impl FromRef<AppState> for SyntaxHighlightingContext {
     fn from_ref(config: &AppState) -> Self {
-        config.markdown_to_html_context.clone()
+        config.syntax_highlighting_context.clone()
     }
 }
 

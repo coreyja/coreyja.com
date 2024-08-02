@@ -17,5 +17,3 @@ models
 tmp_base_model
 
 server/src/local.rs
-
-CRON_DISABLED=true

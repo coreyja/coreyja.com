@@ -15,7 +15,7 @@ pub(crate) async fn serve() -> Result<()> {
     let job_registry = Jobs;
 
     let syntax_css = syntect::html::css_for_theme_with_class_style(
-        &app_state.markdown_to_html_context.theme,
+        &app_state.syntax_highlighting_context.theme,
         syntect::html::ClassStyle::Spaced,
     )?;
 
