@@ -1,4 +1,5 @@
 use std::unreachable;
+use std::path::PathBuf;
 
 use cja::{color_eyre, Result};
 use markdown::mdast::{
@@ -300,18 +301,17 @@ impl IntoHtml for Image {
         let article_path = context
             .current_article_path
             .as_deref()
-            .unwrap_or("unknown")
-            .split('/')
-            .next()
-            .unwrap_or("unknown")
-            .replace(' ', "-"); // Replace spaces with hyphens
+            .unwrap_or("unknown");
 
-        let image_url = format!(
-            "{}/posts/{}/{}",
-            config.base_url.trim_end_matches('/'),
-            article_path,
-            self.url.trim_start_matches("../")
-        );
+        let base_url = PathBuf::from(config.base_url.trim_end_matches('/'));
+        let image_path = PathBuf::from(self.url.trim_start_matches("./"));
+
+        let image_url = base_url
+            .join("posts")
+            .join(article_path)
+            .join(image_path)
+            .to_string_lossy()
+            .into_owned();
 
         Ok(html! {
             img src=(image_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
