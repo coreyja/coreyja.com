@@ -13,8 +13,8 @@ use tracing::instrument;
 
 use crate::{
     http_server::{
-        errors::ServerError,
-        pages::blog::md::IntoHtml,
+        errors::MietteError,
+        pages::blog::md::{html::MarkdownRenderContext, IntoHtml},
         templates::{base_constrained, header::OpenGraph, post_templates::TilPostList},
         ResponseResult,
     },
@@ -45,7 +45,7 @@ pub(crate) async fn rss_feed(
 ) -> ResponseResult {
     let channel = MyChannel::from_posts(
         &state.app,
-        &state.markdown_to_html_context,
+        &state.syntax_highlighting_context,
         &posts.by_recency(),
     )?;
 
@@ -77,7 +77,7 @@ pub(crate) async fn til_get(
           subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state.app, &state.markdown_to_html_context)?)
+            (markdown.ast.into_html(&state.app, &MarkdownRenderContext { syntax_highlighting: state.syntax_highlighting_context.clone(), current_article_path: None })?)
           }
         },
         OpenGraph {

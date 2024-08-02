@@ -16,19 +16,20 @@ use posts::{
 use rss::validation::Validate;
 use tracing::instrument;
 
+pub(crate) mod md;
+
 use crate::{
     http_server::{
-        errors::ServerError,
-        pages::blog::md::IntoHtml,
+        errors::MietteError,
+        pages::blog::md::{IntoHtml, FindCoverPhoto, SyntaxHighlightingContext, html::MarkdownRenderContext},
         templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
         ToRssItem,
     },
     AppConfig, AppState,
 };
 
-use self::md::{FindCoverPhoto, SyntaxHighlightingContext};
 
-pub(crate) mod md;
+
 
 pub(crate) struct MyChannel(rss::Channel);
 
@@ -80,7 +81,7 @@ pub(crate) async fn rss_feed(
 ) -> Result<impl IntoResponse, ServerError> {
     let channel = MyChannel::from_posts(
         &state.app,
-        &state.markdown_to_html_context,
+        &state.syntax_highlighting_context,
         &posts.by_recency(),
     )?;
 
@@ -97,13 +98,13 @@ pub(crate) async fn full_rss_feed(
     for p in blog_posts.by_recency() {
         items_with_date.push((
             p.posted_on(),
-            p.to_rss_item(&state.app, &state.markdown_to_html_context)?,
+            p.to_rss_item(&state.app, &state.syntax_highlighting_context)?,
         ));
     }
     for p in til_posts.by_recency() {
         items_with_date.push((
             p.posted_on(),
-            p.to_rss_item(&state.app, &state.markdown_to_html_context)?,
+            p.to_rss_item(&state.app, &state.syntax_highlighting_context)?,
         ));
     }
 
@@ -111,7 +112,7 @@ pub(crate) async fn full_rss_feed(
 
     let items: Vec<rss::Item> = items_with_date.into_iter().map(|(_, i)| i).collect();
 
-    let channel = MyChannel::from_items(&state.app, &state.markdown_to_html_context, &items);
+    let channel = MyChannel::from_items(&state.app, &state.syntax_highlighting_context, &items);
 
     Ok(channel.into_response())
 }
@@ -168,15 +169,20 @@ pub(crate) async fn post_get(
         );
     }
 
-    let markdown = post.markdown();
+    // let markdown = post.markdown();
 
-    let cover_photo = markdown.ast.0.cover_photo();
+    // let cover_photo = markdown.ast.0.cover_photo();
 
-    // creating some context for the article_path
-    let mut context = state.markdown_to_html_context.clone();
-    context.current_article_path = Some(post.path.canonical_path());
+    // // creating some context for the article_path
+    // let mut context = state.markdown_to_html_context.clone();
+    // context.current_article_path = Some(post.path.canonical_path());
 
-    let html = match markdown.ast.into_html(&state.app, &context) {
+    let context = MarkdownRenderContext {
+    syntax_highlighting: state.syntax_highlighting_context.clone(),
+    current_article_path: Some(post.path.canonical_path()),
+};
+
+    let html = match post.markdown().ast.into_html(&state.app, &context) {
         Ok(html) => html,
         Err(e) => {
             let server_error = ServerError(e, StatusCode::INTERNAL_SERVER_ERROR);
@@ -186,7 +192,7 @@ pub(crate) async fn post_get(
         }
     };
 
-    let image_defaulted_open_graph = match cover_photo {
+    let image_defaulted_open_graph = match post.markdown().ast.0.cover_photo() {
         Some(cover_photo) => OpenGraph {
             image: Some(cover_photo),
             ..OpenGraph::default()
@@ -196,15 +202,15 @@ pub(crate) async fn post_get(
 
     Ok(base_constrained(
         html! {
-          h1 class="text-2xl" { (markdown.title) }
-          subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
+          h1 class="text-2xl" { (post.markdown().title) }
+          subtitle class="block text-lg text-subtitle mb-8" { (post.markdown().date) }
 
           div {
             (html)
           }
         },
         OpenGraph {
-            title: markdown.title,
+            title: post.markdown().title,
             r#type: "article".to_string(),
             description: post.short_description(),
             ..image_defaulted_open_graph
