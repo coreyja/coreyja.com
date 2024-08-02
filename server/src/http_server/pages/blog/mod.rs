@@ -20,10 +20,7 @@ pub(crate) mod md;
 
 use crate::{
     http_server::{
-        errors::MietteError,
-        pages::blog::md::{IntoHtml, FindCoverPhoto, SyntaxHighlightingContext, html::MarkdownRenderContext},
-        templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
-        ToRssItem,
+        errors::ServerError, pages::blog::md::{html::MarkdownRenderContext, FindCoverPhoto, IntoHtml, SyntaxHighlightingContext}, templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc}, ToRssItem
     },
     AppConfig, AppState,
 };
@@ -77,12 +74,11 @@ impl MyChannel {
 #[instrument(skip_all)]
 pub(crate) async fn rss_feed(
     State(state): State<AppState>,
-    State(posts): State<Arc<BlogPosts>>,
 ) -> Result<impl IntoResponse, ServerError> {
     let channel = MyChannel::from_posts(
         &state.app,
         &state.syntax_highlighting_context,
-        &posts.by_recency(),
+        &state.blog_posts.by_recency(),
     )?;
 
     Ok(channel.into_response())
