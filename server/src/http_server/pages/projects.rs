@@ -132,7 +132,7 @@ pub(crate) async fn projects_get(
         .0
         .clone()
         .into_html(&state.app, &MarkdownRenderContext { syntax_highlighting: state.syntax_highlighting_context.clone(), current_article_path: None })
-        .map_err(|e| MietteError(e, StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(|e| ServerError(e.into(), StatusCode::INTERNAL_SERVER_ERROR))
         .map_err(axum::response::IntoResponse::into_response)?;
 
     let youtube_videos = sqlx::query_as!(

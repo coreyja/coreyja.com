@@ -17,6 +17,9 @@ use ::posts::MarkdownAst;
 pub use header::{head, header};
 use posts::Post;
 
+use color_eyre;
+
+
 use crate::AppConfig;
 
 use self::header::OpenGraph;
@@ -66,12 +69,13 @@ pub(crate) mod post_templates;
 
 pub(crate) mod newsletter;
 
+
 impl IntoHtml for MarkdownAst {
     fn into_html(
         self,
         config: &AppConfig,
         context: &MarkdownRenderContext,
-    ) -> miette::Result<maud::Markup> {
+    ) -> color_eyre::Result<maud::Markup> {
         self.0.into_html(config, context)
     }
 }
