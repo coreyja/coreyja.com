@@ -11,9 +11,9 @@ use crate::{
     http_server,
     http_server::{
         errors::ServerError,
+        pages::blog::md::html::MarkdownRenderContext,
         templates::{base_constrained, header::OpenGraph},
         ResponseResult,
-        pages::blog::md::html::MarkdownRenderContext,
     },
     instrument, AppState, Arc, Result,
 };
@@ -131,8 +131,17 @@ pub(crate) async fn projects_get(
         .ast
         .0
         .clone()
-        .into_html(&state.app, &MarkdownRenderContext { syntax_highlighting: state.syntax_highlighting_context.clone(), current_article_path: None })
-        .map_err(|e| ServerError(e.into(), StatusCode::INTERNAL_SERVER_ERROR))
+        .into_html(
+            &state.app,
+            &MarkdownRenderContext {
+                syntax_highlighting: state.syntax_highlighting_context.clone(),
+                current_article_path: project
+                    .relative_link()
+                    .map_err(|e| ServerError(e, StatusCode::INTERNAL_SERVER_ERROR))
+                    .map_err(axum::response::IntoResponse::into_response)?,
+            },
+        )
+        .map_err(|e| ServerError(e, StatusCode::INTERNAL_SERVER_ERROR))
         .map_err(axum::response::IntoResponse::into_response)?;
 
     let youtube_videos = sqlx::query_as!(

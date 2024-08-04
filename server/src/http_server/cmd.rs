@@ -3,12 +3,7 @@ use cja::{jobs::worker::job_worker, server::run_server};
 use tokio::task::JoinError;
 use tracing::info;
 
-use crate::{
-    cron::{self, run_cron},
-    http_server::routes,
-    jobs::Jobs,
-    AppState,
-};
+use crate::{cron::run_cron, http_server::routes, jobs::Jobs, AppState};
 
 pub(crate) async fn serve() -> Result<()> {
     let app_state = AppState::from_env().await?;
