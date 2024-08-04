@@ -50,3 +50,9 @@ jobs:
         with:
           name: coreyja-com-pr-${{ github.event.number }}
           secrets: APP_BASE_URL="https://coreyja.com" DATABASE_URL="${{ steps.create-branch.outputs.db_url }}?sslmode=require" TWITCH_CLIENT_ID="FAKE" TWITCH_CLIENT_SECRET="FAKE" TWITCH_BOT_ACCESS_TOKEN="FAKE" TWITCH_BOT_USER_ID="FAKE" TWITCH_CHANNEL_USER_ID="FAKE" GITHUB_APP_ID="123" GITHUB_APP_CLIENT_ID="FAKE" GITHUB_APP_CLIENT_SECRET="FAKE" GITHUB_APP_PRIVATE_KEY="FAKE" GITHUB_PERSONAL_ACCESS_TOKEN="FAKE" OPEN_AI_API_KEY="FAKE" GOOGLE_CLIENT_ID="FAKE" GOOGLE_CLIENT_SECRET="FAKE" ENCRYPTION_SECRET_KEY="FAKE"
+
+      - name: Install Fly CLI
+        run: curl -L https://fly.io/install.sh | FLYCTL_INSTALL=/usr/local sh
+
+      - name: Set APP_BASE_URL
+        run: flyctl secrets set APP_BASE_URL=${{ steps.deploy.outputs.url }} -a coreyja-com-pr-${{ github.event.number }}
