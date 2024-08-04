@@ -36,12 +36,21 @@ jobs:
 
       - name: Create Neon Branch
         id: create-branch
+        if: github.event.action != 'closed'
         uses: neondatabase/create-branch-action@v4
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           database: coreyja
           branch_name: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
           username: coreyja
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Delete Neon Branch
+        id: delete-branch
+        if: github.event.action == 'closed'
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
       - name: Deploy PR app to Fly.io
@@ -52,6 +61,8 @@ jobs:
           secrets: APP_BASE_URL="https://coreyja.com" DATABASE_URL="${{ steps.create-branch.outputs.db_url }}?sslmode=require" TWITCH_CLIENT_ID="FAKE" TWITCH_CLIENT_SECRET="FAKE" TWITCH_BOT_ACCESS_TOKEN="FAKE" TWITCH_BOT_USER_ID="FAKE" TWITCH_CHANNEL_USER_ID="FAKE" GITHUB_APP_ID="123" GITHUB_APP_CLIENT_ID="FAKE" GITHUB_APP_CLIENT_SECRET="FAKE" GITHUB_APP_PRIVATE_KEY="FAKE" GITHUB_PERSONAL_ACCESS_TOKEN="FAKE" OPEN_AI_API_KEY="FAKE" GOOGLE_CLIENT_ID="FAKE" GOOGLE_CLIENT_SECRET="FAKE" ENCRYPTION_SECRET_KEY="FAKE"
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: github.event.action != 'closed'
 
       - name: Set APP_BASE_URL
+        if: github.event.action != 'closed'
         run: flyctl secrets set APP_BASE_URL=${{ steps.deploy.outputs.url }} -a coreyja-com-pr-${{ github.event.number }}
