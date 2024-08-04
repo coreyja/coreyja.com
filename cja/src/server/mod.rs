@@ -31,7 +31,9 @@ where
     let port: u16 = port.parse()?;
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let listener = TcpListener::bind(&addr).await.unwrap();
+    let listener = TcpListener::bind(&addr)
+        .await
+        .wrap_err("Failed to open port")?;
     tracing::debug!("listening on {}", addr);
 
     axum::serve(listener, app)

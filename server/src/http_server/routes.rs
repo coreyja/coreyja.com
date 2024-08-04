@@ -56,6 +56,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             post(admin::job_routes::refresh_youtube),
         )
         .route("/admin", get(admin::dashboard))
+        .route("/cookd_demo", get(pages::cookd::cookd_index))
+        .route("/cookd_demo/:slug", get(pages::cookd::cookd_get))
         .fallback(fallback)
 }
 
