@@ -58,7 +58,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .route("/admin", get(admin::dashboard))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
-        .route("/cookd_demo", get(pages::cookd::iframe_demo))
+        .route("/cookd_demo", get(pages::cookd::cookd_index))
+        .route("/cookd_demo/:slug", get(pages::cookd::cookd_get))
         .fallback(fallback)
 }
 
