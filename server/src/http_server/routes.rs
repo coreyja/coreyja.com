@@ -3,11 +3,10 @@ use std::{path::PathBuf, str::FromStr};
 use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
 
-
 use super::{
-    admin, auth, get, pages, post, templates, webhooks, AppState, Arc,
-    IntoResponse, Path, Redirect, Response, ResponseResult, Result, Router, ServerError, State,
-    ToCanonicalPath, Uri, COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
+    admin, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
+    Redirect, Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
+    COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
@@ -59,6 +58,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .route("/admin", get(admin::dashboard))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
+        .route("/cookd_demo", get(pages::cookd::iframe_demo))
         .fallback(fallback)
 }
 

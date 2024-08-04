@@ -1,6 +1,7 @@
 pub mod account;
 pub mod admin;
 pub mod blog;
+pub mod cookd;
 pub mod home;
 pub mod login;
 pub mod projects;
