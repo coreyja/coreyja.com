@@ -14,7 +14,7 @@ use syntect::{
 };
 use url::Url;
 
-use crate::{http_server::LinkTo, AppConfig};
+use crate::AppConfig;
 
 #[derive(Debug, Clone)]
 pub struct SyntaxHighlightingContext {
