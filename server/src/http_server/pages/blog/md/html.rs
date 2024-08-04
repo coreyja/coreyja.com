@@ -274,30 +274,15 @@ impl IntoHtml for Emphasis {
     }
 }
 
-struct RenderingImage<'img> {
-    image: &'img Image,
-    context: MarkdownRenderContext,
-}
-
-impl<'img> LinkTo for RenderingImage<'img> {
-    fn relative_link(&self) -> String {
-        let RenderingImage { context, image } = self;
-
-        PathBuf::new()
-            .join(&context.current_article_path)
-            .join(&image.url)
-            .to_string_lossy()
-            .to_string()
-    }
-}
-
 impl IntoHtml for Image {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
-        let image = RenderingImage {
-            image: &self,
-            context: context.clone(),
-        };
-        let src = image.absolute_link(config);
+        let relative_url = PathBuf::new()
+            .join(&context.current_article_path)
+            .join(&self.url)
+            .to_string_lossy()
+            .to_string();
+
+        let src = config.app_url(&relative_url);
 
         Ok(html! {
             img src=(&src) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
