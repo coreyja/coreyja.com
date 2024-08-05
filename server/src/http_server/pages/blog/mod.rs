@@ -20,13 +20,15 @@ pub(crate) mod md;
 
 use crate::{
     http_server::{
-        errors::ServerError, pages::blog::md::{html::MarkdownRenderContext, FindCoverPhoto, IntoHtml, SyntaxHighlightingContext}, templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc}, ToRssItem
+        errors::ServerError,
+        pages::blog::md::{
+            html::MarkdownRenderContext, FindCoverPhoto, IntoHtml, SyntaxHighlightingContext,
+        },
+        templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
+        LinkTo, ToRssItem,
     },
     AppConfig, AppState,
 };
-
-
-
 
 pub(crate) struct MyChannel(rss::Channel);
 
@@ -174,9 +176,9 @@ pub(crate) async fn post_get(
     // context.current_article_path = Some(post.path.canonical_path());
 
     let context = MarkdownRenderContext {
-    syntax_highlighting: state.syntax_highlighting_context.clone(),
-    current_article_path: Some(post.path.canonical_path()),
-};
+        syntax_highlighting: state.syntax_highlighting_context.clone(),
+        current_article_path: post.relative_link(),
+    };
 
     let html = match post.markdown().ast.into_html(&state.app, &context) {
         Ok(html) => html,

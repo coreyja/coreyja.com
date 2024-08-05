@@ -99,7 +99,13 @@ where
                 self.markdown()
                     .ast
                     .0
-                    .into_html(config, &MarkdownRenderContext { syntax_highlighting: context.clone(), current_article_path: None })?
+                    .into_html(
+                        config,
+                        &MarkdownRenderContext {
+                            syntax_highlighting: context.clone(),
+                            current_article_path: self.relative_link(),
+                        },
+                    )?
                     .into_string(),
             ))
             .build())

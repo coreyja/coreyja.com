@@ -1,7 +1,6 @@
-use std::unreachable;
 use std::path::PathBuf;
+use std::unreachable;
 
-use cja::{color_eyre, Result};
 use markdown::mdast::{
     BlockQuote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link, List,
     ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
@@ -14,6 +13,8 @@ use syntect::{
 };
 use tracing::info;
 use url::Url;
+
+use color_eyre::Result;
 
 use crate::AppConfig;
 
@@ -41,9 +42,10 @@ impl Default for SyntaxHighlightingContext {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct MarkdownRenderContext {
     pub syntax_highlighting: SyntaxHighlightingContext,
-    pub current_article_path: Option<String>,
+    pub current_article_path: String,
 }
 
 pub(crate) trait IntoHtml {
@@ -100,31 +102,19 @@ impl IntoHtml for Node {
 }
 
 impl IntoHtml for Html {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &MarkdownRenderContext,
-    ) -> Result<Markup> {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! { (PreEscaped(self.value)) })
     }
 }
 
 impl IntoHtml for Break {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &MarkdownRenderContext,
-    ) -> Result<Markup> {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! { br; })
     }
 }
 
 impl IntoHtml for Yaml {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &MarkdownRenderContext,
-    ) -> Result<Markup> {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
         // We get Yaml in the Frontmatter, so we don't want to render it
         // to our HTML
         Ok(html! {})
@@ -298,43 +288,28 @@ impl IntoHtml for Emphasis {
 
 impl IntoHtml for Image {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
-        let article_path = context
-            .current_article_path
-            .as_deref()
-            .unwrap_or("unknown");
-
-        let base_url = PathBuf::from(config.base_url.trim_end_matches('/'));
-        let image_path = PathBuf::from(self.url.trim_start_matches("./"));
-
-        let image_url = base_url
-            .join("posts")
-            .join(article_path)
-            .join(image_path)
+        let relative_url = PathBuf::new()
+            .join(&context.current_article_path)
+            .join(&self.url)
             .to_string_lossy()
-            .into_owned();
+            .to_string();
+
+        let src = config.app_url(&relative_url);
 
         Ok(html! {
-            img src=(image_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+            img src=(&src) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
         })
     }
 }
 
 impl IntoHtml for Link {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
-        let parsed_base = Url::parse(&config.base_url);
+        let parsed_base = config.base_url.clone();
 
-        let replaced_url = if let Ok(parsed_base) = parsed_base {
-            let parse_options = Url::options().base_url(Some(&parsed_base));
-            let url = parse_options.parse(&self.url);
+        let parse_options = Url::options().base_url(Some(&parsed_base));
+        let url = parse_options.parse(&self.url);
 
-            if let Ok(url) = url {
-                url.to_string()
-            } else {
-                self.url
-            }
-        } else {
-            self.url
-        };
+        let replaced_url = url.map_or_else(|_| self.url.clone(), |url| url.to_string());
 
         Ok(html! {
           a href=(replaced_url) title=[self.title] class="underline" { (self.children.into_html(config, context)?) }
@@ -377,11 +352,7 @@ impl IntoHtml for Code {
 }
 
 impl IntoHtml for ThematicBreak {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &MarkdownRenderContext,
-    ) -> Result<Markup> {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! {
           hr class="my-8 opacity-20";
         })

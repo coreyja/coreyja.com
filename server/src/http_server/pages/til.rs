@@ -13,7 +13,10 @@ use tracing::instrument;
 
 use crate::{
     http_server::{
-        errors::ServerError, pages::blog::md::html::{IntoHtml, MarkdownRenderContext}, templates::{base_constrained, header::OpenGraph, post_templates::TilPostList}, ResponseResult
+        errors::ServerError,
+        pages::blog::md::html::{IntoHtml, MarkdownRenderContext},
+        templates::{base_constrained, header::OpenGraph, post_templates::TilPostList},
+        LinkTo, ResponseResult,
     },
     AppState,
 };
@@ -74,7 +77,7 @@ pub(crate) async fn til_get(
           subtitle class="block text-lg text-subtitle mb-8 " { (markdown.date) }
 
           div {
-            (markdown.ast.into_html(&state.app, &MarkdownRenderContext { syntax_highlighting: state.syntax_highlighting_context.clone(), current_article_path: None })?)
+            (markdown.ast.into_html(&state.app, &MarkdownRenderContext { syntax_highlighting: state.syntax_highlighting_context.clone(), current_article_path: til.relative_link() })?)
           }
         },
         OpenGraph {

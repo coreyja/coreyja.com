@@ -7,6 +7,7 @@ use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::instrument;
+use url::Url;
 
 use crate::{
     encrypt, github::GithubConfig, google::GoogleConfig,
@@ -15,30 +16,32 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub base_url: String,
+    pub base_url: Url,
     pub imgproxy_url: Option<String>,
 }
 
 impl AppConfig {
     #[instrument(name = "AppConfig::from_env")]
     pub fn from_env() -> cja::Result<Self> {
+        let base_url = std::env::var("APP_BASE_URL")
+            .wrap_err("Missing APP_BASE_URL, needed for app launch")?;
+        let base_url = Url::parse(&base_url).wrap_err("Invalid APP_BASE_URL not parsable")?;
         Ok(Self {
-            base_url: std::env::var("APP_BASE_URL")
-                .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
+            base_url,
             imgproxy_url: std::env::var("IMGPROXY_URL").ok(),
         })
     }
 
     pub fn app_url(&self, path: &str) -> String {
-        if path.starts_with('/') {
-            format!("{}{}", self.base_url, path)
-        } else {
-            format!("{}/{}", self.base_url, path)
-        }
+        let mut url = self.base_url.clone();
+
+        url.set_path(path);
+
+        url.into()
     }
 
     pub fn home_page(&self) -> String {
-        self.base_url.clone()
+        self.base_url.to_string()
     }
 }
 
