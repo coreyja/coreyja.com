@@ -18,6 +18,16 @@ use color_eyre::Result;
 
 use crate::AppConfig;
 
+use urlencoding::encode;
+
+fn generate_imgproxy_url(base_url: &str, image_url: &str, width: u32, height: u32) -> String {
+    format!(
+        "{}/unsafe/rs:fit:{width}:{height}/plain/{}",
+        base_url,
+        encode(image_url)
+    )
+}
+
 #[derive(Debug, Clone)]
 pub struct SyntaxHighlightingContext {
     pub(crate) theme: syntect::highlighting::Theme,
@@ -294,10 +304,20 @@ impl IntoHtml for Image {
             .to_string_lossy()
             .to_string();
 
-        let src = config.app_url(&relative_url);
+        let img_src = config.app_url(&relative_url);
+
+        let base_url = "https://imgproxy-cja.fly.dev";
+
+        let small_url = generate_imgproxy_url(base_url, &img_src, 300, 300);
+        let medium_url = generate_imgproxy_url(base_url, &img_src, 600, 600);
+        let large_url = generate_imgproxy_url(base_url, &img_src, 1200, 1200);
 
         Ok(html! {
-            img src=(&src) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+            picture {
+                source srcset=(small_url) media="(max-width: 600px)" type="image/avif";
+                source srcset=(medium_url) media="(max-width: 1200px)" type="image/avif";
+                img src=(large_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+            }
         })
     }
 }
