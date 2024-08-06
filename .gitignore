@@ -17,4 +17,3 @@ models
 tmp_base_model
 
 server/src/local.rs
-tailwindcss
