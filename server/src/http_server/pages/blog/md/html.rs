@@ -20,9 +20,9 @@ use crate::AppConfig;
 
 use urlencoding::encode;
 
-fn generate_imgproxy_url(base_url: &str, image_url: &str, width: u32, height: u32) -> String {
+fn generate_imgproxy_url(base_url: &str, image_url: &str, width: u32) -> String {
     format!(
-        "{}/unsafe/rs:fit:{width}:{height}/plain/{}",
+        "{}/unsafe/rs:fit:{width}:0/plain/{}",
         base_url,
         encode(image_url)
     )
@@ -308,9 +308,9 @@ impl IntoHtml for Image {
 
         let base_url = "https://imgproxy-cja.fly.dev";
 
-        let small_url = generate_imgproxy_url(base_url, &img_src, 300, 300);
-        let medium_url = generate_imgproxy_url(base_url, &img_src, 600, 600);
-        let large_url = generate_imgproxy_url(base_url, &img_src, 1200, 1200);
+        let small_url = generate_imgproxy_url(base_url, &img_src, 300);
+        let medium_url = generate_imgproxy_url(base_url, &img_src, 600);
+        let large_url = generate_imgproxy_url(base_url, &img_src, 1200);
 
         Ok(html! {
             picture {
