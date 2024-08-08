@@ -26,16 +26,20 @@ pub(crate) async fn handler(
         .context("Could not parse payload into expected JSON")
         .with_status(StatusCode::UNPROCESSABLE_ENTITY)?;
 
+    let now = chrono::Utc::now();
+
     let db_result = sqlx::query!(
         r#"
-        INSERT INTO CookdWebhooks (subdomain, slug, player_github_email, player_github_username, score)
-        VALUES ($1, $2, $3, $4, $5) RETURNING cookd_webhook_id
+        INSERT INTO CookdWebhooks (subdomain, slug, player_github_email, player_github_username, score, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING cookd_webhook_id
         "#,
         payload.subdomain,
         payload.slug,
         payload.player_github_email,
         payload.player_github_username,
         payload.score,
+        now,
+        now
     ).fetch_one(state.db()).await.context("Could not insert webhook payload into database")?;
 
     Ok(Json(
