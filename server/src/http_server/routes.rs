@@ -4,8 +4,8 @@ use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    admin, auth, get, pages, post, templates, AppState, Arc, IntoResponse, Path, Redirect,
-    Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
+    admin, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
+    Redirect, Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
     COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
@@ -56,7 +56,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             post(admin::job_routes::refresh_youtube),
         )
         .route("/admin", get(admin::dashboard))
-        .route("/webhooks/cookd", post(webhooks::cookd))
+        .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .fallback(fallback)
 }
 

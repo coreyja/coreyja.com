@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use cja::{app_state::AppState as _, color_eyre::eyre::Context};
 use serde_json::{json, Value};
 
@@ -17,10 +17,11 @@ struct Payload {
     score: i32,
 }
 
+#[axum_macros::debug_handler]
 pub(crate) async fn handler(
     State(state): State<AppState>,
     Json(webhook_payload): Json<Value>,
-) -> ResponseResult<Value> {
+) -> ResponseResult<impl IntoResponse> {
     let payload: Payload = serde_json::from_value(webhook_payload)
         .context("Could not parse payload into expected JSON")
         .with_status(StatusCode::UNPROCESSABLE_ENTITY)?;
@@ -37,5 +38,7 @@ pub(crate) async fn handler(
         payload.score,
     ).fetch_one(state.db()).await.context("Could not insert webhook payload into database")?;
 
-    Ok(json!({ "cookd_webhook_id": db_result.cookd_webhook_id }))
+    Ok(Json(
+        json!({ "cookd_webhook_id": db_result.cookd_webhook_id }),
+    ))
 }
