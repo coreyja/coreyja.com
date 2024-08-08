@@ -1,6 +1,7 @@
 use std::println;
 
 use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
+use url::Url;
 
 use crate::{
     http_server::pages::blog::{md::SyntaxHighlightingContext, MyChannel},
@@ -25,7 +26,8 @@ pub(crate) fn validate() -> cja::Result<()> {
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig {
-        base_url: "http://localhost:3000".to_string(),
+        base_url: Url::parse("http://localhost:3000").unwrap(),
+        imgproxy_url: None,
     };
     let render_context = SyntaxHighlightingContext::default();
     let rss = MyChannel::from_posts(&config, &render_context, &posts.by_recency())?;

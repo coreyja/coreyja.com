@@ -7,6 +7,7 @@ use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::instrument;
+use url::Url;
 
 use crate::{
     encrypt, github::GithubConfig, google::GoogleConfig,
@@ -15,28 +16,32 @@ use crate::{
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub base_url: String,
+    pub base_url: Url,
+    pub imgproxy_url: Option<String>,
 }
 
 impl AppConfig {
     #[instrument(name = "AppConfig::from_env")]
     pub fn from_env() -> cja::Result<Self> {
+        let base_url = std::env::var("APP_BASE_URL")
+            .wrap_err("Missing APP_BASE_URL, needed for app launch")?;
+        let base_url = Url::parse(&base_url).wrap_err("Invalid APP_BASE_URL not parsable")?;
         Ok(Self {
-            base_url: std::env::var("APP_BASE_URL")
-                .wrap_err("Missing APP_BASE_URL, needed for app launch")?,
+            base_url,
+            imgproxy_url: std::env::var("IMGPROXY_URL").ok(),
         })
     }
 
     pub fn app_url(&self, path: &str) -> String {
-        if path.starts_with('/') {
-            format!("{}{}", self.base_url, path)
-        } else {
-            format!("{}/{}", self.base_url, path)
-        }
+        let mut url = self.base_url.clone();
+
+        url.set_path(path);
+
+        url.into()
     }
 
     pub fn home_page(&self) -> String {
-        self.base_url.clone()
+        self.base_url.to_string()
     }
 }
 
@@ -63,7 +68,7 @@ pub(crate) struct AppState {
     pub open_ai: OpenAiConfig,
     pub google: GoogleConfig,
     pub app: AppConfig,
-    pub markdown_to_html_context: SyntaxHighlightingContext,
+    pub syntax_highlighting_context: SyntaxHighlightingContext,
     pub blog_posts: Arc<BlogPosts>,
     pub til_posts: Arc<TilPosts>,
     pub projects: Arc<Projects>,
@@ -93,7 +98,7 @@ impl AppState {
             app: AppConfig::from_env()?,
             open_ai: OpenAiConfig::from_env()?,
             google: GoogleConfig::from_env()?,
-            markdown_to_html_context: SyntaxHighlightingContext::default(),
+            syntax_highlighting_context: SyntaxHighlightingContext::default(),
             versions: VersionInfo::from_env(),
             blog_posts,
             til_posts,

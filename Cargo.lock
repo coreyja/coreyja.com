@@ -5099,6 +5099,7 @@ dependencies = [
  "chrono-humanize",
  "cja",
  "clap",
+ "color-eyre",
  "db",
  "debug-ignore",
  "futures",

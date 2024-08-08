@@ -11,6 +11,7 @@ use crate::{
     http_server,
     http_server::{
         errors::ServerError,
+        pages::blog::md::html::MarkdownRenderContext,
         templates::{base_constrained, header::OpenGraph},
         ResponseResult,
     },
@@ -130,7 +131,16 @@ pub(crate) async fn projects_get(
         .ast
         .0
         .clone()
-        .into_html(&state.app, &state.markdown_to_html_context)
+        .into_html(
+            &state.app,
+            &MarkdownRenderContext {
+                syntax_highlighting: state.syntax_highlighting_context.clone(),
+                current_article_path: project
+                    .relative_link()
+                    .map_err(|e| ServerError(e, StatusCode::INTERNAL_SERVER_ERROR))
+                    .map_err(axum::response::IntoResponse::into_response)?,
+            },
+        )
         .map_err(|e| ServerError(e, StatusCode::INTERNAL_SERVER_ERROR))
         .map_err(axum::response::IntoResponse::into_response)?;
 
