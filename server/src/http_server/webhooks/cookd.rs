@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[derive(serde::Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct Payload {
     subdomain: String,
     slug: String,
