@@ -28,3 +28,16 @@ where
         ServerError(err.into(), StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
+
+pub(crate) trait WithStatus<T> {
+    fn with_status(self, status: StatusCode) -> Result<T, ServerError>;
+}
+
+impl<T> WithStatus<T> for Result<T, cja::color_eyre::Report> {
+    fn with_status(self, status: StatusCode) -> Result<T, ServerError> {
+        match self {
+            Ok(val) => Ok(val),
+            Err(err) => Err(ServerError(err, status)),
+        }
+    }
+}
