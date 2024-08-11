@@ -21,7 +21,7 @@ use crate::{AppConfig, AppState, Result};
 use errors::ServerError;
 
 use self::{
-    pages::blog::md::{IntoHtml, SyntaxHighlightingContext},
+    pages::blog::md::{html::MarkdownRenderContext, IntoHtml, SyntaxHighlightingContext},
     templates::ShortDesc,
 };
 
@@ -101,7 +101,13 @@ where
                 self.markdown()
                     .ast
                     .0
-                    .into_html(config, context)?
+                    .into_html(
+                        config,
+                        &MarkdownRenderContext {
+                            syntax_highlighting: context.clone(),
+                            current_article_path: self.relative_link(),
+                        },
+                    )?
                     .into_string(),
             ))
             .build())

@@ -21,7 +21,9 @@ use crate::AppConfig;
 
 use self::header::OpenGraph;
 
-use super::pages::blog::md::{IntoHtml, IntoPlainText, SyntaxHighlightingContext};
+use crate::http_server::MarkdownRenderContext;
+
+use super::pages::blog::md::{IntoHtml, IntoPlainText};
 
 pub fn base(inner: impl Borrow<Markup>, og: header::OpenGraph) -> Markup {
     html! {
@@ -68,8 +70,8 @@ impl IntoHtml for MarkdownAst {
     fn into_html(
         self,
         config: &AppConfig,
-        context: &SyntaxHighlightingContext,
-    ) -> cja::Result<maud::Markup> {
+        context: &MarkdownRenderContext,
+    ) -> color_eyre::Result<maud::Markup> {
         self.0.into_html(config, context)
     }
 }
