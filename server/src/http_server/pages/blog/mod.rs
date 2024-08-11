@@ -167,14 +167,6 @@ pub(crate) async fn post_get(
         );
     }
 
-    // let markdown = post.markdown();
-
-    // let cover_photo = markdown.ast.0.cover_photo();
-
-    // // creating some context for the article_path
-    // let mut context = state.markdown_to_html_context.clone();
-    // context.current_article_path = Some(post.path.canonical_path());
-
     let context = MarkdownRenderContext {
         syntax_highlighting: state.syntax_highlighting_context.clone(),
         current_article_path: post.relative_link(),
