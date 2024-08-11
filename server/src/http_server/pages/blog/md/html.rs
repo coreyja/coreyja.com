@@ -11,7 +11,6 @@ use syntect::{
     html::{ClassStyle, ClassedHTMLGenerator},
     parsing::SyntaxSet,
 };
-use tracing::info;
 use url::Url;
 
 use color_eyre::Result;
@@ -32,7 +31,6 @@ fn generate_imgproxy_url(base_url: &str, image_url: &str, width: u32) -> String 
 pub struct SyntaxHighlightingContext {
     pub(crate) theme: syntect::highlighting::Theme,
     pub(crate) syntax_set: syntect::parsing::SyntaxSet,
-    pub(crate) current_article_path: Option<String>,
 }
 
 impl Default for SyntaxHighlightingContext {
@@ -47,7 +45,6 @@ impl Default for SyntaxHighlightingContext {
                 .get("base16-ocean.dark")
                 .expect("This theme exists in the defaults")
                 .clone(),
-            current_article_path: None,
         }
     }
 }
@@ -194,11 +191,7 @@ impl IntoHtml for BlockQuote {
 }
 
 impl IntoHtml for Text {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &MarkdownRenderContext,
-    ) -> Result<Markup> {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! {
             (self.value)
         })
@@ -269,11 +262,7 @@ impl IntoHtml for List {
 }
 
 impl IntoHtml for InlineCode {
-    fn into_html(
-        self,
-        _config: &AppConfig,
-        _context: &MarkdownRenderContext,
-    ) -> Result<Markup> {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! {
           code { (self.value) }
         })
@@ -306,19 +295,24 @@ impl IntoHtml for Image {
 
         let img_src = config.app_url(&relative_url);
 
-        let base_url = "https://imgproxy-cja.fly.dev";
+        if let Some(imgproxy_base) = config.imgproxy_url.as_ref() {
+            let small_url = generate_imgproxy_url(imgproxy_base, &img_src, 300);
+            let medium_url = generate_imgproxy_url(imgproxy_base, &img_src, 600);
+            let large_url = generate_imgproxy_url(imgproxy_base, &img_src, 1200);
 
-        let small_url = generate_imgproxy_url(base_url, &img_src, 300);
-        let medium_url = generate_imgproxy_url(base_url, &img_src, 600);
-        let large_url = generate_imgproxy_url(base_url, &img_src, 1200);
-
-        Ok(html! {
-            picture {
-                source srcset=(small_url) media="(max-width: 600px)" type="image/avif";
-                source srcset=(medium_url) media="(max-width: 1200px)" type="image/avif";
-                img src=(large_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
-            }
-        })
+            Ok(html! {
+                picture {
+                    source srcset=(small_url) media="(max-width: 600px)";
+                    source srcset=(medium_url) media="(max-width: 1200px)";
+                    source srcset=(large_url) media="(max-width: 1200px)";
+                    img src=(large_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+                }
+            })
+        } else {
+            Ok(html! {
+                img src=(img_src) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+            })
+        }
     }
 }
 
