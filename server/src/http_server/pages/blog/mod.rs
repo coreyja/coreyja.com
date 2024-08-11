@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 
+use chrono::Duration;
 use maud::{html, Markup};
 use posts::{
     blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
@@ -151,7 +152,11 @@ pub(crate) async fn post_get(
     {
         let path = BlogPostPath::new(key.clone());
         if path.file_exists() && !path.file_is_markdown() {
-            return Ok(path.raw_bytes().into_response());
+            let value = format!("public, max-age={}", Duration::days(7).num_seconds());
+            let headers = [(axum::http::header::CACHE_CONTROL, value)];
+            let resp = (headers, path.raw_bytes());
+
+            return Ok(resp.into_response());
         }
     }
 
