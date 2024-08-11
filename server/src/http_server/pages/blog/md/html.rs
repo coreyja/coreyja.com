@@ -296,18 +296,14 @@ impl IntoHtml for Image {
         if let Some(imgproxy_base) = config.imgproxy_url.as_ref() {
             let img_src = config.app_url(&relative_url);
 
-            let small_url = generate_imgproxy_url(imgproxy_base, &img_src, 300);
-            let medium_url = generate_imgproxy_url(imgproxy_base, &img_src, 600);
+            let small_url = generate_imgproxy_url(imgproxy_base, &img_src, 600);
+            let med_url = generate_imgproxy_url(imgproxy_base, &img_src, 900);
             let large_url = generate_imgproxy_url(imgproxy_base, &img_src, 1200);
 
-            Ok(html! {
-                picture {
-                    source srcset=(small_url) media="(max-width: 600px)";
-                    source srcset=(medium_url) media="(max-width: 1200px)";
-                    source srcset=(large_url) media="(max-width: 1200px)";
+            let srcset = format!("{small_url}, {med_url} 1.5x, {large_url} 2x");
 
-                    img src=(large_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
-                }
+            Ok(html! {
+                img srcset=(srcset) src=(small_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
             })
         } else {
             Ok(html! {
