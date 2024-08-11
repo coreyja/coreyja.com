@@ -167,12 +167,15 @@ pub(crate) async fn post_get(
         );
     }
 
+    let markdown = post.markdown();
+    let cover_photo = markdown.ast.0.cover_photo();
+
     let context = MarkdownRenderContext {
         syntax_highlighting: state.syntax_highlighting_context.clone(),
         current_article_path: post.relative_link(),
     };
 
-    let html = match post.markdown().ast.into_html(&state.app, &context) {
+    let html = match markdown.ast.into_html(&state.app, &context) {
         Ok(html) => html,
         Err(e) => {
             let server_error = ServerError(e, StatusCode::INTERNAL_SERVER_ERROR);
@@ -182,7 +185,7 @@ pub(crate) async fn post_get(
         }
     };
 
-    let image_defaulted_open_graph = match post.markdown().ast.0.cover_photo() {
+    let image_defaulted_open_graph = match cover_photo {
         Some(cover_photo) => OpenGraph {
             image: Some(cover_photo),
             ..OpenGraph::default()
