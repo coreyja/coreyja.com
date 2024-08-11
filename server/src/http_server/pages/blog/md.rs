@@ -1,4 +1,4 @@
-mod html;
+pub mod html;
 
 pub(crate) use html::IntoHtml;
 pub(crate) use html::SyntaxHighlightingContext;
