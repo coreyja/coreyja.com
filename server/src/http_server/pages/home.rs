@@ -24,9 +24,6 @@ pub(crate) async fn home_page(
     State(til_posts): State<Arc<TilPosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
 ) -> Result<Markup, ServerError> {
-    tracing::info!("Rendering Home Page");
-    tracking::posthog::capture_event(&app_state, "home_page_view", None, None).await?;
-
     let mut recent_tils = til_posts.by_recency();
     recent_tils.truncate(3);
 

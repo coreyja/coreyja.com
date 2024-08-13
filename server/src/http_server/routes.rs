@@ -1,12 +1,18 @@
 use std::{path::PathBuf, str::FromStr};
 
+use axum::{
+    extract::Request,
+    middleware::{from_fn, from_fn_with_state, Next},
+};
 use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
 
+use crate::tracking;
+
 use super::{
-    admin, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
-    Redirect, Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
-    COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
+    admin, auth, current_user::CurrentUser, get, pages, post, templates, webhooks, AppState, Arc,
+    IntoResponse, Path, Redirect, Response, ResponseResult, Result, Router, ServerError, State,
+    ToCanonicalPath, Uri, COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
