@@ -47,6 +47,14 @@ async fn pageview_middleware(
     props.insert("$current_url".to_string(), uri.to_string().into());
     props.insert("$host".to_string(), hostname.into());
 
+    let fly_region = request
+        .headers()
+        .get("fly-region")
+        .and_then(|h| h.to_str().ok());
+    if let Some(fly_region) = fly_region {
+        props.insert("fly-region".to_string(), fly_region.into());
+    }
+
     let mut user_id = current_user.map(|u| u.user.user_id.to_string());
 
     let user_agent = request
