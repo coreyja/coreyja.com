@@ -5,6 +5,7 @@ use crate::http_server::{
     templates::{base_constrained, header::OpenGraph},
 };
 
+#[allow(clippy::too_many_lines)]
 pub(crate) async fn privacy_policy() -> Result<Markup, ServerError> {
     Ok(base_constrained(
         html! {
@@ -48,6 +49,27 @@ pub(crate) async fn privacy_policy() -> Result<Markup, ServerError> {
               " to manage this list and send emails. "
               "You can sign up for my newsletter at the bottom of each page on this site. "
               "This form submits directly to ConvertKit who will store your email address."
+            }
+
+            h3 class="my-4 text-xl" {
+              "Embedded Content"
+            }
+
+            p class="my-4" {
+              "While I do not run any Javascript on this site, I do embed content from other sites which may. Each embedded "
+              "service is described below."
+            }
+
+            h4 class="my-2 text-lg" {
+              "Youtube"
+            }
+
+            p class="my-4" {
+              "I embed my Youtube videos on this site. Youtube may collect data about you, use cookies, "
+              "embed additional third-party tracking, and monitor your interaction with that embedded content. "
+              "You can view their privacy policy at "
+              a href="https://policies.google.com/privacy" target="_blank" class="underline" { "https://policies.google.com/privacy" }
+              "."
             }
 
             h3 class="my-4 text-xl" {
