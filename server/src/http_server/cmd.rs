@@ -86,6 +86,8 @@ async fn pageview_middleware(
             } else {
                 props.insert("$referrer_host".to_string(), "$direct".into());
             }
+        } else {
+            props.insert("$referrer_host".to_string(), "$direct".into());
         }
     } else {
         props.insert("$referrer".to_string(), "$direct".into());
