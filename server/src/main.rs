@@ -22,6 +22,8 @@ mod commands;
 
 mod encrypt;
 
+pub mod tracking;
+
 pub mod cron;
 pub mod jobs;
 pub mod state;

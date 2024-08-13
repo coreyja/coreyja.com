@@ -33,7 +33,6 @@ mod config;
 pub mod current_user;
 pub mod errors;
 mod routes;
-mod server_tracing;
 mod templates;
 
 pub(crate) mod auth;
