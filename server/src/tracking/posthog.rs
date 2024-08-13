@@ -15,7 +15,7 @@ struct Event {
 pub(crate) async fn capture_event(
     state: &AppState,
     event_name: &str,
-    user_id: Option<Uuid>,
+    user_id: Option<String>,
     properties: Option<serde_json::Map<String, serde_json::Value>>,
 ) -> color_eyre::Result<()> {
     let Some(posthog_key) = state.posthog_key.clone() else {
