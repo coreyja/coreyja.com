@@ -39,6 +39,18 @@ pub(crate) async fn privacy_policy() -> Result<Markup, ServerError> {
             }
 
             h3 class="my-4 text-xl" {
+              "Newsletter"
+            }
+
+            p class="my-4" {
+              "I have a newsletter that you can subscribe to. I use "
+              a href="https://convertkit.com" target="_blank"  class="underline" { "ConvertKit" }
+              " to manage this list and send emails. "
+              "You can sign up for my newsletter at the bottom of each page on this site. "
+              "This form submits directly to ConvertKit who will store your email address."
+            }
+
+            h3 class="my-4 text-xl" {
               "Hosting"
             }
 

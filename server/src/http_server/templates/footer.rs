@@ -49,6 +49,9 @@ pub fn footer() -> Markup {
 
           ul ."flex-grow flex flex-row justify-center items-center text-background space-x-4 sm:space-x-8" {
             li {
+              a href="/" class="text-background" { "Home" }
+            }
+            li {
               a href="/privacy" class="text-background" { "Privacy Policy" }
             }
           }
