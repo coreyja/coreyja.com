@@ -15,8 +15,7 @@ use crate::{
             post_templates::{BlogPostList, TilPostList},
         },
         ServerError,
-    },
-    tracking, AppState,
+    }, AppState,
 };
 
 pub(crate) async fn home_page(

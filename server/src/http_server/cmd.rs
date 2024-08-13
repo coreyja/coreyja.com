@@ -6,7 +6,6 @@ use cja::{jobs::worker::job_worker, server::run_server};
 use serde_json::Map;
 use tokio::task::JoinError;
 use tracing::info;
-use url::Url;
 
 use crate::tracking;
 use crate::{cron::run_cron, http_server::routes, jobs::Jobs, AppState};
