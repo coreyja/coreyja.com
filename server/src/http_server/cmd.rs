@@ -47,14 +47,32 @@ async fn pageview_middleware(
     props.insert("$current_url".to_string(), uri.to_string().into());
     props.insert("$host".to_string(), hostname.into());
 
-    if tracking::posthog::capture_event(
-        &state,
-        "$pageview",
-        current_user.map(|u| u.user.user_id),
-        Some(props),
-    )
-    .await
-    .is_err()
+    let fly_region = request
+        .headers()
+        .get("fly-region")
+        .and_then(|h| h.to_str().ok());
+    if let Some(fly_region) = fly_region {
+        props.insert("fly-region".to_string(), fly_region.into());
+    }
+
+    let mut user_id = current_user.map(|u| u.user.user_id.to_string());
+
+    let user_agent = request
+        .headers()
+        .get("user-agent")
+        .and_then(|h| h.to_str().ok());
+
+    if let Some(user_agent) = user_agent {
+        if user_agent.contains("DigitalOcean Uptime Probe") {
+            user_id = Some("service:digitalocean-uptime-probe".to_string());
+        }
+
+        props.insert("$user_agent".to_string(), user_agent.into());
+    }
+
+    if tracking::posthog::capture_event(&state, "$pageview", user_id, Some(props))
+        .await
+        .is_err()
     {
         tracing::error!("Failed to capture pageview event");
     }
