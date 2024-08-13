@@ -47,7 +47,11 @@ pub fn footer() -> Markup {
             }
           }
 
-          div ."flex-grow" {}
+          ul ."flex-grow flex flex-row justify-center items-center text-background space-x-4 sm:space-x-8" {
+            li {
+              a href="/privacy" class="text-background" { "Privacy Policy" }
+            }
+          }
 
           ul class="flex flex-row items-center text-background space-x-4 sm:space-x-8 text-xl sm:text-2xl" {
             a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {

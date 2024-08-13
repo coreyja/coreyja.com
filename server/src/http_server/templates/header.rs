@@ -45,14 +45,6 @@ impl Render for OpenGraph {
 }
 
 pub fn head(og: impl Borrow<OpenGraph>) -> Markup {
-    let temporary_remove_service_worker_script = r"
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-            registration.unregister();
-        } 
-      });
-      ";
-
     html! {
       head {
         title { "coreyja.com" }
@@ -78,12 +70,7 @@ pub fn head(og: impl Borrow<OpenGraph>) -> Markup {
         meta name="msapplication-config" content="/static/icons/browserconfig.xml";
         meta name="theme-color" content="#401f74";
 
-
         (og.borrow())
-
-        script type="text/javascript" {
-          (PreEscaped(temporary_remove_service_worker_script))
-        }
       }
     }
 }
