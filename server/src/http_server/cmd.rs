@@ -70,6 +70,30 @@ async fn pageview_middleware(
         props.insert("$user_agent".to_string(), user_agent.into());
     }
 
+    let referrer = request
+        .headers()
+        .get("referer")
+        .and_then(|h| h.to_str().ok());
+    if let Some(referrer) = referrer {
+        props.insert("$referrer".to_string(), referrer.into());
+
+        let parsed_referer = url::Url::parse(referrer);
+        if let Ok(parsed_referer) = parsed_referer {
+            let host = parsed_referer.host_str();
+
+            if let Some(host) = host {
+                props.insert("$referrer_host".to_string(), host.into());
+            } else {
+                props.insert("$referrer_host".to_string(), "$direct".into());
+            }
+        } else {
+            props.insert("$referrer_host".to_string(), "$direct".into());
+        }
+    } else {
+        props.insert("$referrer".to_string(), "$direct".into());
+        props.insert("$referrer_host".to_string(), "$direct".into());
+    }
+
     if tracking::posthog::capture_event(&state, "$pageview", user_id, Some(props))
         .await
         .is_err()
