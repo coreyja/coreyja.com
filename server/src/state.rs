@@ -76,6 +76,7 @@ pub(crate) struct AppState {
     pub db: PgPool,
     pub cookie_key: CookieKey,
     pub encrypt_config: encrypt::Config,
+    pub posthog_key: Option<String>,
 }
 
 impl AppState {
@@ -106,6 +107,7 @@ impl AppState {
             db: setup_db_pool().await?,
             cookie_key,
             encrypt_config: encrypt::Config::from_env()?,
+            posthog_key: std::env::var("POSTHOG_KEY").ok(),
         };
 
         Ok(app_state)
