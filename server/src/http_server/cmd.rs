@@ -82,16 +82,16 @@ async fn pageview_middleware(
             let host = parsed_referer.host_str();
 
             if let Some(host) = host {
-                props.insert("$referrer_host".to_string(), host.into());
+                props.insert("$referring_domain".to_string(), host.into());
             } else {
-                props.insert("$referrer_host".to_string(), "$direct".into());
+                props.insert("$referring_domain".to_string(), "$direct".into());
             }
         } else {
-            props.insert("$referrer_host".to_string(), "$direct".into());
+            props.insert("$referring_domain".to_string(), "$direct".into());
         }
     } else {
         props.insert("$referrer".to_string(), "$direct".into());
-        props.insert("$referrer_host".to_string(), "$direct".into());
+        props.insert("$referring_domain".to_string(), "$direct".into());
     }
 
     if tracking::posthog::capture_event(&state, "$pageview", user_id, Some(props))
