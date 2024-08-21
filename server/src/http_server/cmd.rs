@@ -114,17 +114,21 @@ pub(crate) async fn serve() -> Result<()> {
     )?;
 
     info!("Spawning Tasks");
-    let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![
-        tokio::spawn(run_server(
-            routes::make_router(syntax_css)
-                .layer(axum::middleware::from_fn_with_state(
-                    app_state.clone(),
-                    pageview_middleware,
-                ))
-                .with_state(app_state.clone()),
-        )),
-        tokio::spawn(job_worker(app_state.clone(), job_registry)),
-    ];
+    let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![tokio::spawn(run_server(
+        routes::make_router(syntax_css)
+            .layer(axum::middleware::from_fn_with_state(
+                app_state.clone(),
+                pageview_middleware,
+            ))
+            .with_state(app_state.clone()),
+    ))];
+
+    if std::env::var("JOBS_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
+        info!("Jobs Enabled");
+        futures.push(tokio::spawn(job_worker(app_state.clone(), job_registry)));
+    } else {
+        info!("Jobs Disabled");
+    }
 
     if std::env::var("CRON_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Cron Enabled");
