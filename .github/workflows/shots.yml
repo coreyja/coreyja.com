@@ -61,6 +61,7 @@ jobs:
           body: "Automated daily screenshot update for ${{ steps.date.outputs.date }}"
           branch: update-screenshot
           branch-suffix: timestamp
+          base: main
 
   approve-and-merge:
     runs-on: ubuntu-latest
