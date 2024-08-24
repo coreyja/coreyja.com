@@ -68,6 +68,7 @@ jobs:
     needs: shot-scraper
     env:
       PR_NUMBER: ${{ needs.shot-scraper.outputs.pr_number }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
