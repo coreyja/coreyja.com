@@ -2,7 +2,7 @@ name: Take screenshots
 
 on:
   schedule:
-    - cron:  '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -13,46 +13,56 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v2
-      with:
-        python-version: "3.10"
-    - uses: actions/cache@v3
-      name: Configure pip caching
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache Playwright browsers
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/ms-playwright/
-        key: ${{ runner.os }}-browsers
-    - name: Cache OxiPNG
-      uses: actions/cache@v3
-      with:
-        path: ~/.cargo/
-        key: ${{ runner.os }}-cargo
-    - name: Install dependencies
-      run: |
-        pip install shot-scraper
-        which oxipng || cargo install oxipng
-        shot-scraper install
-    - name: Take retina shots
-      run: |
-        shot-scraper multi live.shots.yml --retina
-    - name: Optimize PNGs
-      run: |-
-        oxipng -o 4 -i 0 --strip safe screenshots/*.png
-    - name: Commit and push
-      if: github.ref == 'refs/heads/main'
-      run: |-
-        git config user.name "Automated"
-        git config user.email "actions@users.noreply.github.com"
-        git add -A
-        timestamp=$(date -u)
-        git commit -m "Screenshots Updated at ${timestamp}" || exit 0
-        git pull --rebase
-        git push
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - uses: actions/cache@v3
+        name: Configure pip caching
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright/
+          key: ${{ runner.os }}-browsers
+      - name: Cache OxiPNG
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/
+          key: ${{ runner.os }}-cargo
+      - name: Install dependencies
+        run: |
+          pip install shot-scraper
+          which oxipng || cargo install oxipng
+          shot-scraper install
+      - name: Take retina shots
+        run: |
+          shot-scraper multi live.shots.yml --retina
+      - name: Optimize PNGs
+        run: |-
+          oxipng -o 4 -i 0 --strip safe screenshots/*.png
+      - name: Create new branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@users.noreply.github.com"
+          current_date=$(date +%Y-%m-%d)
+          branch_name="update-screenshots-${current_date}"
+          git checkout -b $branch_name
+      - name: Commit changes
+        run: |
+          git add -A
+          git commit -m "Screenshots Updated at ${timestamp}" || exit 0
+
+      - name: Push changes
+        run: git push origin HEAD
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          current_date=$(date +%Y-%m-%d)
+          gh pr create --title "Update Daily Screenshot ${current_date}" --body "Automated PR to update screenshots" --base main
