@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   shot-scraper:
@@ -73,10 +74,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Approve Pull Request
-        run: |
-          gh pr review --approve "$PR_NUMBER"
-
       - name: Enable Auto-merge
         run: |
-          gh pr merge --auto --merge "$PR_NUMBER"
+          gh pr merge --auto --squash "$PR_NUMBER"
