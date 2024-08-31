@@ -13,6 +13,7 @@
         },
         "id": {
           "type": "integer",
+          "format": "int64",
           "examples": [1]
         },
         "node_id": {
@@ -107,6 +108,11 @@
           "examples": ["San Francisco"]
         },
         "email": {
+          "type": ["string", "null"],
+          "format": "email",
+          "examples": ["octocat@github.com"]
+        },
+        "notification_email": {
           "type": ["string", "null"],
           "format": "email",
           "examples": ["octocat@github.com"]
@@ -250,7 +256,8 @@
           "type": "string"
         },
         "id": {
-          "type": "integer"
+          "type": "integer",
+          "format": "int64"
         },
         "node_id": {
           "type": "string"
@@ -321,6 +328,10 @@
           "type": ["string", "null"]
         },
         "email": {
+          "type": ["string", "null"],
+          "format": "email"
+        },
+        "notification_email": {
           "type": ["string", "null"],
           "format": "email"
         },
