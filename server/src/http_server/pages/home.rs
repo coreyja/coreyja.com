@@ -15,7 +15,8 @@ use crate::{
             post_templates::{BlogPostList, TilPostList},
         },
         ServerError,
-    }, AppState,
+    },
+    AppState,
 };
 
 pub(crate) async fn home_page(
@@ -57,7 +58,7 @@ pub(crate) async fn home_page(
                     }
 
                     div class="hidden md:w-[35%] md:flex" {
-                        img src="/static/headshot-bg-removed.webp" alt="Corey's Headshot" class="mt-auto" {}
+                        img src="/static/corey_8x_flipped.png" alt="Corey's Pixel Avatar Headshot" class="mt-auto" {}
                     }
                 }
 
