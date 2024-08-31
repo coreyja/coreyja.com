@@ -1,6 +1,7 @@
 use cja::Result;
 use posts::blog::BlogPosts;
-use syntect::parsing::SyntaxSet;
+
+use crate::http_server::pages::blog::md::SyntaxHighlightingContext;
 
 pub(crate) fn print_info() -> Result<()> {
     println!("\n\n");
@@ -17,7 +18,8 @@ pub(crate) fn print_info() -> Result<()> {
     println!("\n\n");
     println!("Recognized Syntax:");
 
-    let ps = SyntaxSet::load_defaults_newlines();
+    let context = SyntaxHighlightingContext::default();
+    let ps = context.syntax_set;
     for syntax in ps.syntaxes() {
         println!("{}", syntax.name);
     }

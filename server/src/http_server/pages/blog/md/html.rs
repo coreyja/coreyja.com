@@ -9,7 +9,6 @@ use maud::{html, Markup, PreEscaped};
 use syntect::{
     highlighting::ThemeSet,
     html::{ClassStyle, ClassedHTMLGenerator},
-    parsing::SyntaxSet,
 };
 use url::Url;
 
@@ -35,7 +34,7 @@ pub struct SyntaxHighlightingContext {
 
 impl Default for SyntaxHighlightingContext {
     fn default() -> Self {
-        let ps = SyntaxSet::load_defaults_newlines();
+        let ps = two_face::syntax::extra_newlines();
         let ts = ThemeSet::load_defaults();
 
         SyntaxHighlightingContext {

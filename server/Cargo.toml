@@ -85,6 +85,7 @@ chrono-humanize = "0.2.3"
 rsa = "0.9.4"
 rand = "0.8.5"
 color-eyre = "0.6.3"
+two-face = "0.4.0"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
