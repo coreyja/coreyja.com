@@ -8,3 +8,11 @@
     min-height: -webkit-fill-available;
   }
 }
+
+.source.toml .table {
+  display: unset;
+}
+
+.source.rust .block {
+  display: unset;
+}

@@ -6,10 +6,7 @@ use markdown::mdast::{
     ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
 };
 use maud::{html, Markup, PreEscaped};
-use syntect::{
-    highlighting::ThemeSet,
-    html::{ClassStyle, ClassedHTMLGenerator},
-};
+use syntect::html::{ClassStyle, ClassedHTMLGenerator};
 use url::Url;
 
 use color_eyre::Result;
@@ -35,14 +32,12 @@ pub struct SyntaxHighlightingContext {
 impl Default for SyntaxHighlightingContext {
     fn default() -> Self {
         let ps = two_face::syntax::extra_newlines();
-        let ts = ThemeSet::load_defaults();
+        let ts = two_face::theme::extra();
 
         SyntaxHighlightingContext {
             syntax_set: ps,
             theme: ts
-                .themes
-                .get("base16-ocean.dark")
-                .expect("This theme exists in the defaults")
+                .get(two_face::theme::EmbeddedThemeName::OneHalfDark)
                 .clone(),
         }
     }
