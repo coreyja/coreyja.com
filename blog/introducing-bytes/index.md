@@ -72,9 +72,13 @@ Don’t be the reason I need to implement safe guards to keep this fun for every
 And this is the part of the blog where I kinda want you to click away.
 
 To try this first challenge click here: <https://coreyja.com/bytes/level-0-0>
+
 Or to view the leaderboards head over here:<https://coreyja.com/bytes/level-0-0/leaderboard>
+
 If you want to sponsor my check out my Github Sponsors Profile: <https://github.com/sponsors/coreyja>
+
 And if you have feedback reach out! You can join my Discord sever and we can chat live: <https://coreyja.club>
+
 Or you can send me an [email](mailto:bytes-feedback@coreyja.com) or send a toot via one of my social media channels. I’ll be most active on Mastodon, but will do my best to respond on all platforms! <https://toot.cat/@coreyja>
 
 And don’t forget to come back for the wrap-up video this Friday! If you want to be notified for each future Byte challenge, consider subscribing to my newsletter and each new challenge will land right in your inbox every Monday morning!

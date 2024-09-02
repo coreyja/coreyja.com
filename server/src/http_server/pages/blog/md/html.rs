@@ -310,14 +310,23 @@ impl IntoHtml for Image {
 impl IntoHtml for Link {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
         let parsed_base = config.base_url.clone();
+        let parsed_base_host = parsed_base.host_str();
 
         let parse_options = Url::options().base_url(Some(&parsed_base));
         let url = parse_options.parse(&self.url);
 
+        let is_external = url
+            .as_ref()
+            .map_or(false, |url| url.host_str() != parsed_base_host);
+
         let replaced_url = url.map_or_else(|_| self.url.clone(), |url| url.to_string());
 
         Ok(html! {
-          a href=(replaced_url) title=[self.title] class="underline" { (self.children.into_html(config, context)?) }
+            @if is_external {
+                a href=(replaced_url) title=[self.title] class="underline" target="_blank" rel="noopener noreferrer" { (self.children.into_html(config, context)?) }
+            } @else {
+                a href=(replaced_url) title=[self.title] class="underline" { (self.children.into_html(config, context)?) }
+            }
         })
     }
 }
