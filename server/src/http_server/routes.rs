@@ -60,6 +60,11 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .route("/cookd_demo", get(pages::cookd::cookd_index))
         .route("/cookd_demo/:slug", get(pages::cookd::cookd_get))
+        .route(
+            "/cookd_demo/:slug/leaderboard",
+            get(pages::cookd::single_leaderboard),
+        )
+        .route("/cookd_leaderboard", get(pages::cookd::overall_leaderboard))
         .fallback(fallback)
 }
 
