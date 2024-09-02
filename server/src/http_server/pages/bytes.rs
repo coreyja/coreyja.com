@@ -18,16 +18,16 @@ use crate::{
     AppState,
 };
 
-struct Byte {
-    slug: String,
-    subdomain: String,
-    display_name: String,
-    release_date: NaiveDate,
-    short_description: String,
+pub(crate) struct Byte {
+    pub slug: String,
+    pub subdomain: String,
+    pub display_name: String,
+    pub release_date: NaiveDate,
+    pub short_description: String,
 }
 
 impl Byte {
-    fn cookd_url(&self) -> String {
+    pub fn cookd_url(&self) -> String {
         format!("https://{}.cookd.dev/{}", self.subdomain, self.slug)
     }
 }
@@ -42,7 +42,7 @@ fn get_levels() -> Vec<Byte> {
     }]
 }
 
-fn get_most_recent_bytes() -> Vec<Byte> {
+pub(crate) fn get_most_recent_bytes() -> Vec<Byte> {
     get_levels()
         .into_iter()
         .sorted_by_key(|b| b.release_date)
