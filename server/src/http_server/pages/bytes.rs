@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use chrono::{Date, NaiveDate};
+use chrono::{NaiveDate};
 use cja::{app_state::AppState as _, color_eyre::eyre::eyre};
 use color_eyre::eyre::{Context as _, ContextCompat};
 use itertools::Itertools;
