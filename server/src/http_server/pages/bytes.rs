@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use chrono::{NaiveDate};
+use chrono::NaiveDate;
 use cja::{app_state::AppState as _, color_eyre::eyre::eyre};
 use color_eyre::eyre::{Context as _, ContextCompat};
 use itertools::Itertools;
@@ -56,9 +56,7 @@ impl LinkTo for Byte {
     }
 }
 
-pub(crate) async fn bytes_index(
-    State(app_state): State<AppState>,
-) -> Result<impl IntoResponse, ServerError> {
+pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
     Ok(base_constrained(
         maud::html! {
           h1 class="text-3xl mb-4" { "Bytes - Coding Challenges" }
@@ -96,10 +94,7 @@ pub(crate) async fn bytes_index(
     ))
 }
 
-pub(crate) async fn byte_get(
-    Path(slug): Path<String>,
-    State(app_state): State<AppState>,
-) -> Result<impl IntoResponse, ServerError> {
+pub(crate) async fn byte_get(Path(slug): Path<String>) -> Result<impl IntoResponse, ServerError> {
     let cookd_levels = get_levels();
     let byte = cookd_levels.into_iter().find(|c| c.slug == slug);
     let byte =
