@@ -38,6 +38,7 @@ pub fn base(inner: impl Borrow<Markup>, og: header::OpenGraph) -> Markup {
         min-h-screen
         flex
         flex-col
+        overflow-y-scroll
         " {
           (constrained_width(header()))
 

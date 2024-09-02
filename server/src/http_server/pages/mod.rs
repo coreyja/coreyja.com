@@ -1,10 +1,10 @@
 pub mod account;
 pub mod admin;
 pub mod blog;
-pub mod cookd;
+pub mod bytes;
 pub mod home;
+pub mod legal;
 pub mod login;
 pub mod projects;
 pub mod til;
 pub mod videos;
-pub mod legal;
