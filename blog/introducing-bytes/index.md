@@ -18,12 +18,12 @@ And today I’m super excited to introduce one of the things that got be back an
 
 Today I’m launching Byte Challenges, or Bytes for short! These are going to be short ‘games’, designed to test your programming and code review skills. We are launching with a “Bug Hunt” but hope to have different formats in the future.
 
-If you want to skip right to the game you can find the [first Byte here](TODO ADD LINK)!
+If you want to skip right to the game you can find the [first Byte here](/bytes/level-0-0)!
 Be sure to checkout the leaderboard too, and see how you stack up.
 
 ## Background and Concept
 
-These challenges are using a platform one of my friends, Ali, is working on called, `cookd`!
+These challenges are using a platform one of my friends, [Ali](https://x.com/alialobai1), is working on called, `cookd`!
 `cookd` as a platform currently focuses on code review and reviewing diffs. It’s built as an interviewing tool, and it thats interesting to you definitely reach out to Ali, he’d love to give you a demo!
 But the interviewing angle isn’t as fun to me personally, I’m here for the games!
 
@@ -51,7 +51,7 @@ The first puzzle is titled `Level 0-0` and I think its a great into to the platf
 
 I don’t want to spoil too much about this puzzle, you’ll just have to play it for yourself!
 
-You can try your Bug Hunting skills on this first challenge here: TODO ADD LINK
+You can try your Bug Hunting skills on this first challenge here: <https://coreyja.com/bytes/level-0-0>
 And after you’ve given it your best shot, check out the Leaderboard to see how others have done!
 
 ## Plans for “Bytes”
@@ -71,12 +71,11 @@ Don’t be the reason I need to implement safe guards to keep this fun for every
 
 And this is the part of the blog where I kinda want you to click away.
 
-TODO ADD LINKS
-To try this first challenge click here:
-Or to view the leaderboards head over here:
-If you want to sponsor my check out my Github Sponsors Profile:
-And if you have feedback reach out! You can join my Discord sever and we can chat live:
-Or you can send me an [email](mailto:bytes-feedback@coreyja.com) or send a toot via one of my social media channels. I’ll be most active on Mastodon, but will do my best to respond on all platforms!
+To try this first challenge click here: <https://coreyja.com/bytes/level-0-0>
+Or to view the leaderboards head over here:<https://coreyja.com/bytes/level-0-0/leaderboard>
+If you want to sponsor my check out my Github Sponsors Profile: <https://github.com/sponsors/coreyja>
+And if you have feedback reach out! You can join my Discord sever and we can chat live: <https://coreyja.club>
+Or you can send me an [email](mailto:bytes-feedback@coreyja.com) or send a toot via one of my social media channels. I’ll be most active on Mastodon, but will do my best to respond on all platforms! <https://toot.cat/@coreyja>
 
 And don’t forget to come back for the wrap-up video this Friday! If you want to be notified for each future Byte challenge, consider subscribing to my newsletter and each new challenge will land right in your inbox every Monday morning!
 
