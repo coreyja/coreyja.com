@@ -72,6 +72,18 @@ pub(crate) async fn privacy_policy() -> Result<Markup, ServerError> {
               "."
             }
 
+            h4 class="my-2 text-lg" {
+              "Cookd"
+            }
+
+            p class="my-4" {
+              "I embed content from Cookd.dev to power the Interactive Byte Challenges. This is done by "
+              "adding an iframe that loads content from cookd.dev."
+              "You can view their privacy policy at "
+              a href="https://cookd.dev/privacy-policy" target="_blank" rel="noopener noreferrer" class="underline" { "https://cookd.dev/privacy-policy" }
+              "."
+            }
+
             h3 class="my-4 text-xl" {
               "Hosting"
             }

@@ -223,19 +223,17 @@ impl Project {
             let local_port = self.local_port()?;
             println!("After getting local port");
 
-            login_callback
-                .set_host(Some("localhost"))
-                ?;
+            login_callback.set_host(Some("localhost"))?;
             println!("After setting host");
 
             login_callback
                 .set_port(Some(local_port))
-                .map_err(|_| color_eyre::eyre::eyre!("Port could not be set"))?;
+                .map_err(|()| color_eyre::eyre::eyre!("Port could not be set"))?;
             println!("After setting port");
 
             login_callback
                 .set_scheme("http")
-                .map_err(|_| color_eyre::eyre::eyre!("Scheme could not be set"))?;
+                .map_err(|()| color_eyre::eyre::eyre!("Scheme could not be set"))?;
             println!("After setting scheme");
         }
         println!("After conditional block");

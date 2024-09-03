@@ -6,7 +6,10 @@ use posts::{blog::BlogPosts, til::TilPosts};
 
 use crate::{
     http_server::{
-        pages::videos::{VideoList, YoutubeVideo},
+        pages::{
+            bytes::get_most_recent_bytes,
+            videos::{VideoList, YoutubeVideo},
+        },
         templates::{
             base,
             buttons::LinkButton,
@@ -14,8 +17,9 @@ use crate::{
             header::OpenGraph,
             post_templates::{BlogPostList, TilPostList},
         },
-        ServerError,
-    }, AppState,
+        LinkTo, ServerError,
+    },
+    AppState,
 };
 
 pub(crate) async fn home_page(
@@ -38,6 +42,9 @@ pub(crate) async fn home_page(
     .fetch_all(&app_state.db)
     .await?;
 
+    let bytes = get_most_recent_bytes();
+    let most_recent_byte = bytes.first();
+
     Ok(base(
         html! {
             (constrained_width(html! {
@@ -53,11 +60,29 @@ pub(crate) async fn home_page(
 
                         div class="text-xl flex flex-row space-x-8" {
                             (LinkButton::primary(html!("View Posts"), "/posts"))
+                            @if let Some(most_recent_byte) = most_recent_byte {
+                                (LinkButton::primary(html!("Play Latest Byte"), most_recent_byte.relative_link()))
+                            }
                         }
                     }
 
                     div class="hidden md:w-[35%] md:flex" {
-                        img src="/static/headshot-bg-removed.webp" alt="Corey's Headshot" class="mt-auto" {}
+                        img src="/static/corey_8x_flipped.png" alt="Corey's Pixel Avatar Headshot" class="mt-auto" {}
+                    }
+                }
+
+                div class="mb-8" {
+                    h2 ."text-3xl" { a href="/bytes" { "Recent Bytes" } }
+                    h3 class="text-xl mb-4 text-gray-500" { "Code Review Challenges" }
+
+                    ul {
+                        @for level in get_most_recent_bytes() {
+                          li {
+                            a class="text-xl mb-4 block underline" href=(level.relative_link()) { (level.display_name) }
+
+                            p class="text-gray-500" { (level.short_description) }
+                          }
+                        }
                     }
                 }
 

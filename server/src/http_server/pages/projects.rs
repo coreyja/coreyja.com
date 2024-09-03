@@ -176,9 +176,11 @@ pub(crate) async fn projects_get(
 
           (markdown)
 
-          h3 class="text-lg mt-8" { "Videos" }
-          // (http_server::pages::streams::StreamPostList(streams))
-          (http_server::pages::videos::VideoList(youtube_videos))
+          @if !youtube_videos.is_empty() {
+            h3 class="text-lg mt-8" { "Videos" }
+            // (http_server::pages::streams::StreamPostList(streams))
+            (http_server::pages::videos::VideoList(youtube_videos))
+          }
         },
         OpenGraph {
             title: project.frontmatter.title.clone(),

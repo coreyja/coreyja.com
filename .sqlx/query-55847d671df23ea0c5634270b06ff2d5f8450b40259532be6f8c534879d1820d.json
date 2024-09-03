@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT player_github_username, sum(score), count(*)\n            FROM CookdWebhooks\n            GROUP BY player_github_username\n            ORDER BY sum(score) DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "player_github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sum",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "55847d671df23ea0c5634270b06ff2d5f8450b40259532be6f8c534879d1820d"
+}
