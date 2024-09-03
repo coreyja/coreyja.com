@@ -12,8 +12,7 @@ use crate::{
 struct Payload {
     subdomain: String,
     slug: String,
-    player_github_email: Option<String>,
-    player_github_username: Option<String>,
+    player_response: Option<String>,
     score: i32,
 }
 
@@ -30,13 +29,12 @@ pub(crate) async fn handler(
 
     let db_result = sqlx::query!(
         r#"
-        INSERT INTO CookdWebhooks (subdomain, slug, player_github_email, player_github_username, score, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING cookd_webhook_id
+        INSERT INTO CookdWebhooks (subdomain, slug, player_github_username, score, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING cookd_webhook_id
         "#,
         payload.subdomain,
         payload.slug,
-        payload.player_github_email,
-        payload.player_github_username,
+        payload.player_response,
         payload.score,
         now,
         now
