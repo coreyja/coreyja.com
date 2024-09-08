@@ -14,7 +14,7 @@ permissions:
 jobs:
   shot-scraper:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    # if: ${{ github.ref == 'refs/heads/main' }}
     outputs:
       pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
     steps:
