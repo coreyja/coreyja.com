@@ -54,7 +54,7 @@ jobs:
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-      - run: git branch -b update-screenshot-${{ steps.date.outputs.date }}
+      - run: git checkout -b update-screenshot-${{ steps.date.outputs.date }}
       - run: git push --set-upstream origin update-screenshot-${{ steps.date.outputs.date }}
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
