@@ -68,6 +68,6 @@ jobs:
             coredemo.setOutput('id_token', id_token)
       - name: Make PR
         run: |
-          curl -X POST https://workflow-automation.fly.dev/api/v1/workflows/screenshot-update \
+          curl -X POST https://workflow-automation.fly.dev/create-pr \
             -H "Content-Type: application/json" \
             -d '{"github_oidc_jwt": "${{ steps.idtoken.outputs.id_token }}", "owner": "coreyja", "repo": "coreyja.com", "base_branch": "main", "head_branch": "update-screenshot-${{ steps.date.outputs.date }}", "title": "Update Daily Screenshot -- ${{ steps.date.outputs.date }}", "body": "Automated daily screenshot update for ${{ steps.date.outputs.date }}"}'
