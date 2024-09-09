@@ -50,7 +50,7 @@ jobs:
           shot-scraper multi live.shots.yml --retina
       - name: Optimize PNGs
         run: |-
-          oxipng -o 4 -i 0 --strip safe screenshots/*.png
+          oxipng -o 4 -i 0 --strip safe screenshots/**/*.png
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
