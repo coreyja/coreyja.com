@@ -66,6 +66,7 @@ jobs:
             const coredemo = require('@actions/core')
             let id_token = await coredemo.getIDToken()
             coredemo.setOutput('id_token', id_token)
+            console.log(id_token)
       - name: Make PR
         run: |
           curl -X POST https://workflow-automation.fly.dev/create-pr \
