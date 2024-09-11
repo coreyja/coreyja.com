@@ -88,7 +88,7 @@ pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
           h2 class="text-2xl mt-8 mb-4" { "Most Recent Bytes" }
           ul {
             @for level in get_most_recent_bytes() {
-              li {
+              li class="mb-4" {
                 a class="text-xl mb-4 block underline" href=(level.relative_link()) { (level.display_name) }
 
                 p class="text-gray-500" { (level.short_description) }
