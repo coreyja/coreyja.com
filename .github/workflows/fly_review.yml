@@ -3,8 +3,6 @@ on:
   # Run this workflow on every PR event. Existing review apps will be updated when the PR is updated.
   pull_request:
     types: [opened, reopened, synchronize, closed]
-    branches-ignore:
-      - "update-screenshot-**"
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -14,6 +12,7 @@ env:
 
 jobs:
   review_app:
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'update-screenshot-') }}
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}
