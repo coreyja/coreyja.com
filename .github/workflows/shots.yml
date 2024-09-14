@@ -14,7 +14,7 @@ permissions:
 jobs:
   shot-scraper:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    # if: ${{ github.ref == 'refs/heads/main' }}
     outputs:
       pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
     steps:
@@ -50,11 +50,11 @@ jobs:
           shot-scraper multi live.shots.yml --retina
       - name: Optimize PNGs
         run: |-
-          oxipng -o 4 -i 0 --strip safe screenshots/*.png
+          oxipng -o 4 -i 0 --strip safe screenshots/**/*.png
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-      - run: git branch -b update-screenshot-${{ steps.date.outputs.date }}
+      - run: git checkout -b update-screenshot-${{ steps.date.outputs.date }}
       - run: git push --set-upstream origin update-screenshot-${{ steps.date.outputs.date }}
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
@@ -66,8 +66,9 @@ jobs:
             const coredemo = require('@actions/core')
             let id_token = await coredemo.getIDToken()
             coredemo.setOutput('id_token', id_token)
+            console.log(id_token)
       - name: Make PR
         run: |
-          curl -X POST https://workflow-automation.fly.dev/api/v1/workflows/screenshot-update \
+          curl -X POST https://workflow-automation.fly.dev/create-pr \
             -H "Content-Type: application/json" \
             -d '{"github_oidc_jwt": "${{ steps.idtoken.outputs.id_token }}", "owner": "coreyja", "repo": "coreyja.com", "base_branch": "main", "head_branch": "update-screenshot-${{ steps.date.outputs.date }}", "title": "Update Daily Screenshot -- ${{ steps.date.outputs.date }}", "body": "Automated daily screenshot update for ${{ steps.date.outputs.date }}"}'
