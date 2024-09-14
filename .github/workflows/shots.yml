@@ -56,6 +56,8 @@ jobs:
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
       - run: git checkout -b update-screenshot-${{ steps.date.outputs.date }}
       - run: git add screenshots
+      - run: git config --global user.email "workflow-automation@coreyja.com"
+      - run: git config --global user.name "Coreyja Workflow Automation"
       - run: git commit -m "Update daily screenshots for ${{ steps.date.outputs.date }}"
       - run: git push --set-upstream origin update-screenshot-${{ steps.date.outputs.date }}
       - name: Install OIDC Client from Core Package
