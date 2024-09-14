@@ -25,7 +25,7 @@ jobs:
       name: review
       # The script in the `deploy` sets the URL output for each review app.
       url: ${{ steps.deploy.outputs.url }}
-
+    if: ${{ !startsWith(github.ref, 'update-screenshot-') }}
     steps:
       - name: Get code
         uses: actions/checkout@v4
