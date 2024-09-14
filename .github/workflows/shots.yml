@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
   actions: write
   id-token: write
 
@@ -15,8 +14,6 @@ jobs:
   shot-scraper:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
-    outputs:
-      pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.10
@@ -55,7 +52,6 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
       - run: git checkout -b update-screenshot-${{ steps.date.outputs.date }}
-      - run: git add screenshots
       - name: Check for changes
         id: git-check
         run: |
