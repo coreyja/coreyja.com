@@ -277,6 +277,7 @@ pub(crate) async fn overall_leaderboard(
         r#"
             SELECT player_github_username, sum(score), count(*)
             FROM CookdWebhooks
+            WHERE player_github_username != 'anonymous'
             GROUP BY player_github_username
             ORDER BY sum(score) DESC
             "#
