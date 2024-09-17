@@ -144,6 +144,10 @@ impl ScoreEntry {
     fn avatar(&self) -> Option<maud::Markup> {
         let username = self.player_github_username.as_ref()?;
 
+        if username == "anonymous" {
+            return None;
+        }
+
         Some(html! {
             img."h-11 w-11 rounded-full" src=(format!("https://github.com/{username}.png")) alt=(format!("Github Avatar for {username}")) {}
         })
