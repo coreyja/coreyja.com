@@ -287,7 +287,7 @@ impl IntoHtml for Image {
             .to_string_lossy()
             .to_string();
 
-        if let Some(imgproxy_base) = config.imgproxy_url.as_ref() {
+        let img_tag: Result<Markup> = if let Some(imgproxy_base) = config.imgproxy_url.as_ref() {
             let img_src = config.app_url(&relative_url);
 
             let small_url = generate_imgproxy_url(imgproxy_base, &img_src, 600);
@@ -297,13 +297,23 @@ impl IntoHtml for Image {
             let srcset = format!("{small_url}, {med_url} 1.5x, {large_url} 2x");
 
             Ok(html! {
-                img srcset=(srcset) src=(small_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+                img srcset=(srcset) src=(small_url) alt=(self.alt) title=[self.title] loading="lazy" {}
             })
         } else {
             Ok(html! {
-                img src=(relative_url) alt=(self.alt) title=[self.title] class="px-8 my-8" loading="lazy" {}
+                img src=(relative_url) alt=(self.alt) title=[self.title] loading="lazy" {}
             })
-        }
+        };
+        let img_tag = img_tag?;
+
+        Ok(html! {
+            figure class="px-8 my-8" {
+                (img_tag)
+                figcaption class="px-4 py-1 text-sm italic" {
+                    (self.alt)
+                }
+            }
+        })
     }
 }
 

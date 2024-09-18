@@ -1,7 +1,7 @@
 ---
 title: Automating Screenshots and Github Actions
 author: Corey Alexander
-date: 2023-09-18
+date: 2024-09-18
 tags:
   - github-actions
   - oidc
