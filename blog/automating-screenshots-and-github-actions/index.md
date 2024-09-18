@@ -14,13 +14,13 @@ While tinkering at my family's lake house, I discovered my automated screenshots
 
 ## Introduction
 
-I’ve been using [`shot-scraper`](https://github.com/simonw/shot-scraper?tab=readme-ov-file#shot-scraper) by [Simin Willson](https://simonwillison.net/) to take screenshots of my blog everyday, and commit them back to my blogs git repo. This makes it easy to check what my site looks like currently on a few screen sizes, and gives me a way to see how my blog has changed over time!
+I’ve been using [`shot-scraper`](https://github.com/simonw/shot-scraper?tab=readme-ov-file#shot-scraper) by [Simon Willison](https://simonwillison.net/) to take screenshots of my blog everyday, and commit them back to my blogs git repo. This makes it easy to check what my site looks like currently on a few screen sizes, and gives me a way to see how my blog has changed over time!
 
 For example [here is a quick video](https://coreyja.com/til/video-from-screenshot-history) I made about a year ago showing how my Blog had changed since I launched its latest iteration.
 
 This is all setup using an [scheduled Github Action](https://github.com/coreyja/coreyja.com/blob/3b913cb09fa1a2ad44fe47b3a284a78c25b13fdb/.github/workflows/shots.yml). Every day it would dutifully kick off and take screenshots and commit them back to the main branch.
 
-This was working great! Until, all of a sudden, it wasn’t :sadnerd:
+This was working great! Until, all of a sudden, it wasn’t.
 
 ## The Problem
 
@@ -48,7 +48,7 @@ Both of which allow you to setup rules for when Pull Requests can be merged into
 
 In single player repos like my blog I set these up as a matter of best practices. I have Admin rights to the repo, meaning I can override the rules no matter what. But in multi-player repos, like all the ones at work, these protection rules can be great for aligning the whole team on PR practices and standards!
 
-Aside: The new Rulesets fix one of my longest standing gripes with Branch Protection Rules. It’s now possible to stop Admins from pushing to `main` while continuing to let them force merge PRs when needed! :tada:
+Aside: The new Rulesets fix one of my longest standing gripes with Branch Protection Rules. It’s now possible to stop Admins from pushing to `main` while continuing to let them force merge PRs when needed! 🎉
 
 But anyways, back to our story.
 
