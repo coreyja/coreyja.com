@@ -39,6 +39,20 @@ fn get_levels() -> Vec<Byte> {
         display_name: "Level 0-0".to_string(),
         release_date: NaiveDate::from_ymd_opt(2024, 9, 3).unwrap(),
         short_description: "First ever Byte Challenge! A simple CLI Todo list to get you started. Written in Rust but don't worry its pretty language agnostic.".to_string(),
+    },
+    Byte {
+        slug: "cdn".to_string(),
+        subdomain: "coreyja".to_string(),
+        display_name: "CDN".to_string(),
+        release_date: NaiveDate::from_ymd_opt(2024, 9, 10).unwrap(),
+        short_description: "This is a 'real life' bug! This is an actual diff from my sites repo! I was trying to integrate ImgProxy to serve different sizes and formats of my images and ran into the following bug, and thought it would make for a fun challenge! Hope you enjoy it!".to_string(),
+    },
+    Byte {
+        slug: "websocket-chat".to_string(),
+        subdomain: "coreyja".to_string(),
+        display_name: "Websocket Chat".to_string(),
+        release_date: NaiveDate::from_ymd_opt(2024, 9, 17).unwrap(),
+        short_description: "Build a websocket chat server and client! We wanted to build a simple chat app and use websockets to sync messages across clients. But there are a few bugs to find and fix along the way!".to_string(),
     }]
 }
 
@@ -81,7 +95,7 @@ pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
           h2 class="text-2xl mt-8 mb-4" { "Most Recent Bytes" }
           ul {
             @for level in get_most_recent_bytes() {
-              li {
+              li class="mb-4" {
                 a class="text-xl mb-4 block underline" href=(level.relative_link()) { (level.display_name) }
 
                 p class="text-gray-500" { (level.short_description) }
@@ -129,6 +143,10 @@ impl ScoreEntry {
 
     fn avatar(&self) -> Option<maud::Markup> {
         let username = self.player_github_username.as_ref()?;
+
+        if username == "anonymous" {
+            return None;
+        }
 
         Some(html! {
             img."h-11 w-11 rounded-full" src=(format!("https://github.com/{username}.png")) alt=(format!("Github Avatar for {username}")) {}
@@ -263,6 +281,7 @@ pub(crate) async fn overall_leaderboard(
         r#"
             SELECT player_github_username, sum(score), count(*)
             FROM CookdWebhooks
+            WHERE player_github_username != 'anonymous'
             GROUP BY player_github_username
             ORDER BY sum(score) DESC
             "#

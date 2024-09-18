@@ -12,6 +12,7 @@ env:
 
 jobs:
   review_app:
+    if: ${{ !startsWith(github.head_ref || github.ref_name, 'update-screenshot-') }}
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}
@@ -25,8 +26,12 @@ jobs:
       name: review
       # The script in the `deploy` sets the URL output for each review app.
       url: ${{ steps.deploy.outputs.url }}
-
     steps:
+      - name: Debug
+        run: |
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
+          echo "github.head_ref: ${{ github.head_ref }}"
       - name: Get code
         uses: actions/checkout@v4
 

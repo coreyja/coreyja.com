@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT player_github_username, sum(score), count(*)\n            FROM CookdWebhooks\n            GROUP BY player_github_username\n            ORDER BY sum(score) DESC\n            ",
+  "query": "\n            SELECT player_github_username, sum(score), count(*)\n            FROM CookdWebhooks\n            WHERE player_github_username != 'anonymous'\n            GROUP BY player_github_username\n            ORDER BY sum(score) DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       null
     ]
   },
-  "hash": "55847d671df23ea0c5634270b06ff2d5f8450b40259532be6f8c534879d1820d"
+  "hash": "771cd4a8d0fc17b1cedc4cac45ccd38646345744bbd507798b463ee1a5db984e"
 }
