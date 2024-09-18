@@ -8,6 +8,10 @@ tags:
   - automating
 ---
 
+### TLDR
+
+While tinkering at my family's lake house, I discovered my automated screenshots were broken. Instead of using a Personal Access Token (blegh), I roped in a friend for some "research" that turned into launching a whole new crate. Now I've got a custom OIDC server handling my GitHub automations, and I can say goodbye to PAT headaches!
+
 ## Introduction
 
 I’ve been using [`shot-scraper`](https://github.com/simonw/shot-scraper?tab=readme-ov-file#shot-scraper) by [Simin Willson](https://simonwillison.net/) to take screenshots of my blog everyday, and commit them back to my blogs git repo. This makes it easy to check what my site looks like currently on a few screen sizes, and gives me a way to see how my blog has changed over time!
