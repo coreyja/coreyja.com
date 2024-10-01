@@ -7,7 +7,7 @@ use chrono::NaiveDate;
 use cja::{app_state::AppState as _, color_eyre::eyre::eyre};
 use color_eyre::eyre::{Context as _, ContextCompat};
 use itertools::Itertools;
-use maud::html;
+use maud::{html, Render};
 
 use crate::{
     http_server::{
@@ -18,6 +18,7 @@ use crate::{
     AppState,
 };
 
+#[derive(Debug, Clone)]
 pub(crate) struct Byte {
     pub slug: String,
     pub subdomain: String,
@@ -77,6 +78,32 @@ impl LinkTo for Byte {
     }
 }
 
+pub(crate) struct ByteList(Vec<Byte>);
+
+impl ByteList {
+    pub fn new(bytes: Vec<Byte>) -> Self {
+        Self(bytes)
+    }
+}
+
+impl Render for ByteList {
+    fn render(&self) -> maud::Markup {
+        maud::html! {
+            ul {
+                @for level in &self.0 {
+                  li class="mb-4" {
+                    a class="text-xl block underline" href=(level.relative_link()) { (level.display_name) }
+                    p class="text-sm text-gray-500 mb-4 " { (level.release_date.format("%B %d, %Y").to_string()) }
+
+                    p class="text-gray-500" { (level.short_description) }
+
+                  }
+                }
+              }
+        }
+    }
+}
+
 pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
     Ok(base_constrained(
         maud::html! {
@@ -100,16 +127,7 @@ pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
           }
 
           h2 class="text-2xl mt-8 mb-4" { "Most Recent Bytes" }
-          ul {
-            @for level in get_most_recent_bytes() {
-              li class="mb-4" {
-                a class="text-xl mb-4 block underline" href=(level.relative_link()) { (level.display_name) }
-
-                p class="text-gray-500" { (level.short_description) }
-
-              }
-            }
-          }
+          (ByteList::new(get_most_recent_bytes()))
         },
         OpenGraph::default(),
     ))

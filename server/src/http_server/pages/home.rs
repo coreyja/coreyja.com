@@ -7,7 +7,7 @@ use posts::{blog::BlogPosts, til::TilPosts};
 use crate::{
     http_server::{
         pages::{
-            bytes::get_most_recent_bytes,
+            bytes::{get_most_recent_bytes, ByteList},
             videos::{VideoList, YoutubeVideo},
         },
         templates::{
@@ -21,6 +21,8 @@ use crate::{
     },
     AppState,
 };
+
+use super::bytes::Byte;
 
 pub(crate) async fn home_page(
     State(app_state): State<AppState>,
@@ -44,6 +46,8 @@ pub(crate) async fn home_page(
 
     let bytes = get_most_recent_bytes();
     let most_recent_byte = bytes.first();
+
+    let top_3_bytes: Vec<Byte> = bytes.iter().take(3).cloned().collect();
 
     Ok(base(
         html! {
@@ -75,15 +79,9 @@ pub(crate) async fn home_page(
                     h2 ."text-3xl" { a href="/bytes" { "Recent Bytes" } }
                     h3 class="text-xl mb-4 text-gray-500" { "Code Review Challenges" }
 
-                    ul {
-                        @for level in get_most_recent_bytes() {
-                          li {
-                            a class="text-xl mb-4 block underline" href=(level.relative_link()) { (level.display_name) }
+                    (ByteList::new(top_3_bytes))
 
-                            p class="text-gray-500" { (level.short_description) }
-                          }
-                        }
-                    }
+                    (LinkButton::primary(html!("View All Bytes"), "/bytes"))
                 }
 
                 div class="flex flex-col md:flex-row md:space-x-8" {
