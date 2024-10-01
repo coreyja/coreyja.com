@@ -38,7 +38,7 @@ jobs:
           mv tailwindcss-linux-x64 tailwindcss && \
           ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Build | Lint
-        run: cargo clippy --all-targets --no-deps
+        run: cargo clippy --all-targets --no-deps -- -Dwarnings
   doc:
     name: Doc
     runs-on: ubuntu-latest

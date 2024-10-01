@@ -7,7 +7,7 @@ use chrono::NaiveDate;
 use cja::{app_state::AppState as _, color_eyre::eyre::eyre};
 use color_eyre::eyre::{Context as _, ContextCompat};
 use itertools::Itertools;
-use maud::html;
+use maud::{html, Render};
 
 use crate::{
     http_server::{
@@ -18,6 +18,7 @@ use crate::{
     AppState,
 };
 
+#[derive(Debug, Clone)]
 pub(crate) struct Byte {
     pub slug: String,
     pub subdomain: String,
@@ -53,6 +54,13 @@ fn get_levels() -> Vec<Byte> {
         display_name: "Websocket Chat".to_string(),
         release_date: NaiveDate::from_ymd_opt(2024, 9, 17).unwrap(),
         short_description: "Build a websocket chat server and client! We wanted to build a simple chat app and use websockets to sync messages across clients. But there are a few bugs to find and fix along the way!".to_string(),
+    },
+    Byte {
+        slug: "color-blending".to_string(),
+        subdomain: "coreyja".to_string(),
+        display_name: "Color Blending".to_string(),
+        release_date: NaiveDate::from_ymd_opt(2024, 10, 1).unwrap(),
+        short_description: "Build a color blending CLI! Given two colors we want to blend them together to produce a color that is a mix of the two. We've already got the start of the CLI built out for you, but there are a few bugs to find and fix along the way!".to_string(),
     }]
 }
 
@@ -67,6 +75,32 @@ pub(crate) fn get_most_recent_bytes() -> Vec<Byte> {
 impl LinkTo for Byte {
     fn relative_link(&self) -> String {
         format!("/bytes/{}", self.slug)
+    }
+}
+
+pub(crate) struct ByteList(Vec<Byte>);
+
+impl ByteList {
+    pub fn new(bytes: Vec<Byte>) -> Self {
+        Self(bytes)
+    }
+}
+
+impl Render for ByteList {
+    fn render(&self) -> maud::Markup {
+        maud::html! {
+            ul {
+                @for level in &self.0 {
+                  li class="mb-4" {
+                    a class="text-xl block underline" href=(level.relative_link()) { (level.display_name) }
+                    p class="text-sm text-gray-500 mb-4 " { (level.release_date.format("%B %d, %Y").to_string()) }
+
+                    p class="text-gray-500" { (level.short_description) }
+
+                  }
+                }
+              }
+        }
     }
 }
 
@@ -93,16 +127,7 @@ pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
           }
 
           h2 class="text-2xl mt-8 mb-4" { "Most Recent Bytes" }
-          ul {
-            @for level in get_most_recent_bytes() {
-              li class="mb-4" {
-                a class="text-xl mb-4 block underline" href=(level.relative_link()) { (level.display_name) }
-
-                p class="text-gray-500" { (level.short_description) }
-
-              }
-            }
-          }
+          (ByteList::new(get_most_recent_bytes()))
         },
         OpenGraph::default(),
     ))
