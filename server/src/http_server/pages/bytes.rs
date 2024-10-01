@@ -146,7 +146,7 @@ pub(crate) async fn byte_get(Path(slug): Path<String>) -> Result<impl IntoRespon
 
           p class="mb-4" { (byte.short_description) }
 
-          a class="text-xl mb-4 block underline" href=(format!("/bytes/{slug}/leaderboard")) { "View Leadboard" }
+          a class="text-xl mb-4 block underline" href=(format!("/bytes/{slug}/leaderboard")) { "View Leaderboard" }
 
           iframe class="w-full min-h-screen" src=(byte.cookd_url()) {}
         },
