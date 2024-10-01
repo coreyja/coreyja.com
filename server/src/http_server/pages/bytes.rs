@@ -53,6 +53,13 @@ fn get_levels() -> Vec<Byte> {
         display_name: "Websocket Chat".to_string(),
         release_date: NaiveDate::from_ymd_opt(2024, 9, 17).unwrap(),
         short_description: "Build a websocket chat server and client! We wanted to build a simple chat app and use websockets to sync messages across clients. But there are a few bugs to find and fix along the way!".to_string(),
+    },
+    Byte {
+        slug: "color-blending".to_string(),
+        subdomain: "coreyja".to_string(),
+        display_name: "Color Blending".to_string(),
+        release_date: NaiveDate::from_ymd_opt(2024, 10, 01).unwrap(),
+        short_description: "Build a color blending CLI! Given two colors we want to blend them together to produce a color that is a mix of the two. We've already got the start of the CLI built out for you, but there are a few bugs to find and fix along the way!".to_string(),
     }]
 }
 
