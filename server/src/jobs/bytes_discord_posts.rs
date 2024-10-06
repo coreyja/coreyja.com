@@ -3,7 +3,7 @@ use cja::jobs::Job;
 use color_eyre::eyre::{Context as _, ContextCompat as _};
 use db::DiscordChannel;
 use serde::{Deserialize, Serialize};
-use serenity::all::{ChannelId, MessageBuilder};
+use serenity::all::ChannelId;
 use uuid::Uuid;
 
 use crate::{
@@ -18,6 +18,7 @@ pub struct PostByteSubmission {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct CookdWebhook {
+    #[allow(clippy::struct_field_names)]
     cookd_webhook_id: Uuid,
     player_github_username: Option<String>,
     player_github_email: Option<String>,

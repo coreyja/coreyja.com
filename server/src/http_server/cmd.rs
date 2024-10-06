@@ -4,7 +4,6 @@ use axum::response::Response;
 use cja::Result;
 use cja::{jobs::worker::job_worker, server::run_server};
 use serde_json::Map;
-use serenity::all::{ChannelId, MessageBuilder};
 use tokio::task::JoinError;
 use tracing::info;
 
