@@ -116,15 +116,6 @@ pub(crate) async fn serve() -> Result<()> {
         syntect::html::ClassStyle::Spaced,
     )?;
 
-    let msg = MessageBuilder::new().push("Hello").push("World").build();
-
-    let create_message = serenity::all::CreateMessage::new().content(msg);
-    let channel_id = ChannelId::new(1_041_140_878_917_513_329);
-    channel_id
-        .send_message(&app_state.discord, create_message)
-        .await
-        .unwrap();
-
     info!("Spawning Tasks");
     let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![tokio::spawn(run_server(
         routes::make_router(syntax_css)

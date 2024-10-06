@@ -33,7 +33,7 @@ impl Byte {
     }
 }
 
-fn get_levels() -> Vec<Byte> {
+pub fn get_levels() -> Vec<Byte> {
     vec![Byte {
         slug: "level-0-0".to_string(),
         subdomain: "coreyja".to_string(),
@@ -299,10 +299,17 @@ struct OverallScoreEntry {
     count: i64,
 }
 
-pub(crate) async fn overall_leaderboard(
-    State(app_state): State<AppState>,
-) -> Result<impl IntoResponse, ServerError> {
-    let scores = sqlx::query!(
+pub struct OverallLeaderboardEntry {
+    pub player_github_username: Option<String>,
+    pub sum: Option<i64>,
+    pub count: Option<i64>,
+}
+
+pub async fn fetch_overall_leaderboard(
+    app_state: &AppState,
+) -> cja::Result<Vec<OverallLeaderboardEntry>> {
+    let scores = sqlx::query_as!(
+        OverallLeaderboardEntry,
         r#"
             SELECT player_github_username, sum(score), count(*)
             FROM CookdWebhooks
@@ -314,6 +321,14 @@ pub(crate) async fn overall_leaderboard(
     .fetch_all(app_state.db())
     .await
     .context("Could not fetch scores")?;
+
+    Ok(scores)
+}
+
+pub(crate) async fn overall_leaderboard(
+    State(app_state): State<AppState>,
+) -> Result<impl IntoResponse, ServerError> {
+    let scores = fetch_overall_leaderboard(&app_state).await?;
 
     let scores = scores
         .into_iter()

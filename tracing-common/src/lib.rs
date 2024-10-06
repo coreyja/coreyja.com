@@ -35,7 +35,7 @@ pub fn setup_sentry() -> Option<ClientInitGuard> {
 
 pub fn setup_tracing(crate_name: &str) -> color_eyre::Result<()> {
     let rust_log = std::env::var("RUST_LOG")
-        .unwrap_or_else(|_| format!("info,{crate_name}=trace,tower_http=debug"));
+        .unwrap_or_else(|_| format!("info,{crate_name}=trace,tower_http=debug,serenity=error"));
 
     let env_filter = EnvFilter::builder().parse(&rust_log).wrap_err_with(|| {
         color_eyre::eyre::eyre!("Couldn't create env filter from {}", rust_log)
