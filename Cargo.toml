@@ -1,13 +1,5 @@
 [workspace]
-members = [
-  "byte",
-  "cja",
-  "db",
-  "posts",
-  "server",
-  "video-toolkit",
-  "tracing-common",
-]
+members = ["cja", "db", "posts", "server", "tracing-common"]
 resolver = "2"
 
 [workspace.lints.clippy]
