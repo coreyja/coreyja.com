@@ -28,7 +28,7 @@ pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
 
 #[derive(Clone, Debug)]
 pub(crate) struct DiscordClient {
-    http: Arc<serenity::Http>,
+    pub http: Arc<serenity::Http>,
     cache: Arc<serenity::Cache>,
 }
 

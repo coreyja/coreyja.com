@@ -4,6 +4,7 @@ use axum::response::Response;
 use cja::Result;
 use cja::{jobs::worker::job_worker, server::run_server};
 use serde_json::Map;
+use serenity::all::{ChannelId, MessageBuilder};
 use tokio::task::JoinError;
 use tracing::info;
 
@@ -114,6 +115,15 @@ pub(crate) async fn serve() -> Result<()> {
         &app_state.syntax_highlighting_context.theme,
         syntect::html::ClassStyle::Spaced,
     )?;
+
+    let msg = MessageBuilder::new().push("Hello").push("World").build();
+
+    let create_message = serenity::all::CreateMessage::new().content(msg);
+    let channel_id = ChannelId::new(1_041_140_878_917_513_329);
+    channel_id
+        .send_message(&app_state.discord, create_message)
+        .await
+        .unwrap();
 
     info!("Spawning Tasks");
     let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![tokio::spawn(run_server(
