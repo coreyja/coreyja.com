@@ -49,6 +49,7 @@ pub async fn setup_db_pool() -> Result<PgPool> {
 pub struct DiscordChannel {
     pub discord_channel_id: Uuid,
     pub channel_name: Option<String>,
+    pub channel_topic: Option<String>,
     pub channel_id: String,
     pub purpose: String,
     pub created_at: DateTime<Utc>,
