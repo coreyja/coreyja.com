@@ -31,6 +31,8 @@ pub(crate) use state::{AppConfig, AppState};
 
 pub(crate) mod google;
 
+pub(crate) mod discord;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct CliArgs {

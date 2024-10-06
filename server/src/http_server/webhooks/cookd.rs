@@ -1,9 +1,10 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use cja::{app_state::AppState as _, color_eyre::eyre::Context};
+use cja::{app_state::AppState as _, color_eyre::eyre::Context, jobs::Job as _};
 use serde_json::{json, Value};
 
 use crate::{
     http_server::{errors::WithStatus as _, ResponseResult},
+    jobs::bytes_discord_posts::PostByteSubmission,
     AppState,
 };
 
@@ -39,6 +40,14 @@ pub(crate) async fn handler(
         now,
         now
     ).fetch_one(state.db()).await.context("Could not insert webhook payload into database")?;
+
+    let job = PostByteSubmission {
+        cookd_webhook_id: db_result.cookd_webhook_id,
+    };
+
+    job.enqueue(state.clone(), "Cookd Webhook".to_string())
+        .await
+        .context("Could not enqueue job")?;
 
     Ok(Json(
         json!({ "cookd_webhook_id": db_result.cookd_webhook_id }),

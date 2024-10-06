@@ -10,7 +10,7 @@ use tracing::instrument;
 use url::Url;
 
 use crate::{
-    encrypt, github::GithubConfig, google::GoogleConfig,
+    discord::DiscordClient, encrypt, github::GithubConfig, google::GoogleConfig,
     http_server::pages::blog::md::SyntaxHighlightingContext, twitch::TwitchConfig,
 };
 
@@ -77,11 +77,12 @@ pub(crate) struct AppState {
     pub cookie_key: CookieKey,
     pub encrypt_config: encrypt::Config,
     pub posthog_key: Option<String>,
+    pub discord: DiscordClient,
 }
 
 impl AppState {
     #[instrument(name = "AppState::from_env", err)]
-    pub async fn from_env() -> cja::Result<Self> {
+    pub async fn from_env(discord: DiscordClient) -> cja::Result<Self> {
         let blog_posts = BlogPosts::from_static_dir()?;
         let blog_posts = Arc::new(blog_posts);
 
@@ -108,6 +109,7 @@ impl AppState {
             cookie_key,
             encrypt_config: encrypt::Config::from_env()?,
             posthog_key: std::env::var("POSTHOG_KEY").ok(),
+            discord,
         };
 
         Ok(app_state)

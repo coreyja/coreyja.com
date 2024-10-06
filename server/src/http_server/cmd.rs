@@ -105,7 +105,9 @@ async fn pageview_middleware(
 }
 
 pub(crate) async fn serve() -> Result<()> {
-    let app_state = AppState::from_env().await?;
+    let discord = crate::discord::setup().await?;
+
+    let app_state = AppState::from_env(discord.client).await?;
     let job_registry = Jobs;
 
     let syntax_css = syntect::html::css_for_theme_with_class_style(
@@ -135,6 +137,13 @@ pub(crate) async fn serve() -> Result<()> {
         futures.push(tokio::spawn(run_cron(app_state.clone())));
     } else {
         info!("Cron Disabled");
+    }
+
+    if std::env::var("DISCORD_BOT_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
+        info!("Discord Bot Enabled");
+        futures.push(tokio::spawn(discord.bot.run()));
+    } else {
+        info!("Discord Bot Disabled");
     }
 
     info!("Tasks Spawned");

@@ -1,4 +1,6 @@
+use chrono::{DateTime, Utc};
 use color_eyre::Result;
+use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 
 pub mod twitch_chatters;
@@ -6,6 +8,7 @@ pub mod users;
 
 pub use sqlx;
 pub use sqlx::PgPool;
+use uuid::Uuid;
 
 #[tracing::instrument(err)]
 pub async fn setup_db_pool() -> Result<PgPool> {
@@ -40,4 +43,15 @@ pub async fn setup_db_pool() -> Result<PgPool> {
     }
 
     Ok(pool)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscordChannel {
+    pub discord_channel_id: Uuid,
+    pub channel_name: Option<String>,
+    pub channel_topic: Option<String>,
+    pub channel_id: String,
+    pub purpose: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }

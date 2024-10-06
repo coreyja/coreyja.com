@@ -3,7 +3,10 @@ use std::time::Duration;
 use cja::cron::{CronRegistry, Worker};
 
 use crate::{
-    jobs::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos},
+    jobs::{
+        refresh_discord::RefreshDiscordChannels, sponsors::RefreshSponsors,
+        youtube_videos::RefreshVideos,
+    },
     state::AppState,
 };
 
@@ -16,6 +19,7 @@ fn cron_registry() -> CronRegistry<AppState> {
 
     registry.register_job(RefreshSponsors, one_hour());
     registry.register_job(RefreshVideos, one_hour());
+    registry.register_job(RefreshDiscordChannels, one_hour());
 
     registry
 }
