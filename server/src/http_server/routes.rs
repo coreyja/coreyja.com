@@ -82,10 +82,7 @@ fn old_blog_routes() -> Router<AppState> {
             "/:year/:month/:date/:slug",
             get(
                 |Path(OldRoutePath { slug, .. }): Path<OldRoutePath>| async move {
-                    let slug = PathBuf::from_str(&slug);
-                    let Ok(mut slug) = slug else {
-                        return redirect_to_posts_index().await.into_response();
-                    };
+                    let Ok(mut slug) = PathBuf::from_str(&slug);
 
                     slug.set_extension("");
 
