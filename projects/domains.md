@@ -4,6 +4,8 @@ subtitle: Domain and Redirect Manager for all my domains
 repo: https://github.com/coreyja/domains
 status: active
 fly_app_name: coreyja-domains
+login_callback: https://coreyja.domains/login/callback
+local_port: 3002
 ---
 
 This is a simple Rust application that manages my domains and redirects.
