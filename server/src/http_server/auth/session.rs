@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use axum::{extract::FromRequestParts, http};
 use cja::server::session::{DBSession, SessionRedirect};
+use uuid::Uuid;
 
 use crate::{github::GithubLink, AppState};
 
@@ -11,6 +12,22 @@ pub struct AdminUser {
 }
 
 const COREYJA_PERSONAL_GITHUB_ID: &str = "MDQ6VXNlcjk2NDc3MQ==";
+
+pub async fn is_admin_user(user_id: Uuid, state: &AppState) -> cja::Result<bool> {
+    let github_link = sqlx::query_as!(
+        GithubLink,
+        r#"SELECT * FROM GithubLinks WHERE user_id = $1"#,
+        user_id,
+    )
+    .fetch_optional(&state.db)
+    .await?;
+
+    let Some(github_link) = github_link else {
+        return Ok(false);
+    };
+
+    Ok(github_link.external_github_id == COREYJA_PERSONAL_GITHUB_ID)
+}
 
 #[async_trait]
 impl FromRequestParts<AppState> for AdminUser {

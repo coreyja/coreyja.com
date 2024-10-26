@@ -16,6 +16,9 @@
           "format": "int64",
           "examples": [1]
         },
+        "user_view_type": {
+          "type": "string"
+        },
         "node_id": {
           "type": "string",
           "examples": ["MDQ6VXNlcjE="]
@@ -196,10 +199,6 @@
           },
           "required": ["collaborators", "name", "space", "private_repos"]
         },
-        "suspended_at": {
-          "type": ["string", "null"],
-          "format": "date-time"
-        },
         "business_plus": {
           "type": "boolean"
         },
@@ -258,6 +257,9 @@
         "id": {
           "type": "integer",
           "format": "int64"
+        },
+        "user_view_type": {
+          "type": "string"
         },
         "node_id": {
           "type": "string"
@@ -381,10 +383,6 @@
             }
           },
           "required": ["collaborators", "name", "space", "private_repos"]
-        },
-        "suspended_at": {
-          "type": ["string", "null"],
-          "format": "date-time"
         },
         "private_gists": {
           "type": "integer",

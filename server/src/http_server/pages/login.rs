@@ -8,7 +8,10 @@ use axum::{
 };
 use jsonwebtoken::{Algorithm, Validation};
 
-use crate::{http_server::ResponseResult, state::AppState};
+use crate::{
+    http_server::{auth::session::is_admin_user, ResponseResult},
+    state::AppState,
+};
 use cja::color_eyre;
 
 pub(crate) fn routes() -> axum::Router<AppState> {
@@ -87,6 +90,7 @@ struct JWTClaim {
 struct ClaimResponse {
     user_id: uuid::Uuid,
     is_active_sponsor: bool,
+    is_admin: bool,
 }
 
 async fn app_claim(
@@ -157,9 +161,11 @@ async fn app_claim(
     .await?;
 
     let is_active_sponsor = sponsor.is_some_and(|s| s.is_active && !s.is_one_time_payment);
+    let is_admin = is_admin_user(state.user_id, &app_state).await?;
 
     ResponseResult::Ok(Json(ClaimResponse {
         user_id: state.user_id,
         is_active_sponsor,
+        is_admin,
     }))
 }
