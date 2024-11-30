@@ -33,6 +33,8 @@ pub(crate) mod google;
 
 pub(crate) mod discord;
 
+pub(crate) mod bsky;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct CliArgs {

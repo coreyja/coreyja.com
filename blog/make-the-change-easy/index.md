@@ -3,6 +3,7 @@ title: Make the Change Easy, Then Make the Easy Change
 subtitle: Refactoring
 author: Corey Alexander
 date: 2024-07-26
+bsky_url: https://bsky.app/profile/coreyja.com/post/3l3nruhvrah2q
 ---
 
 A manta I’ve repeated for a while in my software career has been **Make the Change Easy, Then make the Easy Change**.

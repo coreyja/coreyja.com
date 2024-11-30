@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "bsky",
     "chrono",
     "jsonwebtoken",
     "openai",
@@ -8,6 +9,7 @@
     "otlp",
     "proto",
     "reqwest",
+    "rsky",
     "rustc",
     "syntect",
     "thiserror",
