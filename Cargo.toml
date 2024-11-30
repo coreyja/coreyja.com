@@ -38,6 +38,11 @@ opentelemetry-otlp = { version = "0.16.0", features = [
   "reqwest-client",
 ], default-features = false }
 
+cacache = { version = "11.6.0", default-features = false, features = [
+  "tokio-runtime",
+] }
+ssri = "9.0.0"
+
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
