@@ -9,6 +9,7 @@
     "otlp",
     "proto",
     "reqwest",
+    "rsky",
     "rustc",
     "syntect",
     "thiserror",

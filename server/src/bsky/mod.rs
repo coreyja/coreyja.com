@@ -16,8 +16,6 @@ pub async fn fetch_thread(post_url: &str) -> cja::Result<ThreadViewPost> {
     let mut url = Url::parse("https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread")?;
     url.set_query(Some(&format!("uri={at_proto_uri}")));
 
-    println!("{url}");
-
     let res = reqwest::get(url).await?;
     let data = res.json::<GetPostThreadData>().await?;
 
