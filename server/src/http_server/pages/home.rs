@@ -6,10 +6,7 @@ use posts::{blog::BlogPosts, til::TilPosts};
 
 use crate::{
     http_server::{
-        pages::{
-            bytes::{get_most_recent_bytes, ByteList},
-            videos::{VideoList, YoutubeVideo},
-        },
+        pages::videos::{VideoList, YoutubeVideo},
         templates::{
             base,
             buttons::LinkButton,
@@ -17,12 +14,10 @@ use crate::{
             header::OpenGraph,
             post_templates::{BlogPostList, TilPostList},
         },
-        LinkTo, ServerError,
+        ServerError,
     },
     AppState,
 };
-
-use super::bytes::Byte;
 
 pub(crate) async fn home_page(
     State(app_state): State<AppState>,
@@ -44,10 +39,10 @@ pub(crate) async fn home_page(
     .fetch_all(&app_state.db)
     .await?;
 
-    let bytes = get_most_recent_bytes();
-    let most_recent_byte = bytes.first();
+    // let bytes = get_most_recent_bytes();
+    // let most_recent_byte = bytes.first();
 
-    let top_3_bytes: Vec<Byte> = bytes.iter().take(3).cloned().collect();
+    // let top_3_bytes: Vec<Byte> = bytes.iter().take(3).cloned().collect();
 
     Ok(base(
         html! {
@@ -64,9 +59,9 @@ pub(crate) async fn home_page(
 
                         div class="text-xl flex flex-row space-x-8" {
                             (LinkButton::primary(html!("View Posts"), "/posts"))
-                            @if let Some(most_recent_byte) = most_recent_byte {
-                                (LinkButton::primary(html!("Play Latest Byte"), most_recent_byte.relative_link()))
-                            }
+                            // @if let Some(most_recent_byte) = most_recent_byte {
+                            //     (LinkButton::primary(html!("Play Latest Byte"), most_recent_byte.relative_link()))
+                            // }
                         }
                     }
 
@@ -75,14 +70,14 @@ pub(crate) async fn home_page(
                     }
                 }
 
-                div class="mb-8" {
-                    h2 ."text-3xl" { a href="/bytes" { "Recent Bytes" } }
-                    h3 class="text-xl mb-4 text-gray-500" { "Code Review Challenges" }
+                // div class="mb-8" {
+                //     h2 ."text-3xl" { a href="/bytes" { "Recent Bytes" } }
+                //     h3 class="text-xl mb-4 text-gray-500" { "Code Review Challenges" }
 
-                    (ByteList::new(top_3_bytes))
+                //     (ByteList::new(top_3_bytes))
 
-                    (LinkButton::primary(html!("View All Bytes"), "/bytes"))
-                }
+                //     (LinkButton::primary(html!("View All Bytes"), "/bytes"))
+                // }
 
                 div class="flex flex-col md:flex-row md:space-x-8" {
                     div class="flex-grow" {

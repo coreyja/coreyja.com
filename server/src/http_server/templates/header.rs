@@ -104,7 +104,6 @@ pub fn header() -> Markup {
         nav class="flex flex-grow w-full pb-4 sm:pb-8" {
           ul class="text-lg flex flex-wrap flex-row justify-center sm:items-center flex-grow" {
             (HeaderLink { href: "/", text: "Home" })
-            (HeaderLink { href: "/bytes", text: "Bytes" })
             (HeaderLink { href: "/posts", text: "Posts" })
             (HeaderLink { href: "/til", text: "TILs" })
             (HeaderLink { href: "/videos", text: "Videos" })

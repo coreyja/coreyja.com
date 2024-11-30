@@ -11,7 +11,8 @@
     "rustc",
     "syntect",
     "thiserror",
+    "tils",
     "UNNEST",
     "vergen"
-  ],
+  ]
 }
