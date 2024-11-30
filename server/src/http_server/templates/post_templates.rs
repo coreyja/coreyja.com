@@ -5,7 +5,7 @@ use crate::http_server::LinkTo;
 
 pub(crate) struct TilPostList<'a>(pub(crate) Vec<&'a TilPost>);
 
-impl<'a> Render for TilPostList<'a> {
+impl Render for TilPostList<'_> {
     fn render(&self) -> Markup {
         html! {
           ul {
@@ -26,7 +26,7 @@ impl<'a> Render for TilPostList<'a> {
 
 pub(crate) struct BlogPostList<'a>(pub(crate) Vec<&'a BlogPost>);
 
-impl<'a> Render for BlogPostList<'a> {
+impl Render for BlogPostList<'_> {
     fn render(&self) -> Markup {
         html! {
           ul {

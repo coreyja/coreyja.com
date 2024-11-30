@@ -47,10 +47,10 @@ fn main() -> Result<()> {
         .worker_threads(4)
         .enable_all()
         .build()?
-        .block_on(async { _main().await })
+        .block_on(async { async_main().await })
 }
 
-async fn _main() -> Result<()> {
+async fn async_main() -> Result<()> {
     setup_tracing("server")?;
 
     let cli = CliArgs::parse();
