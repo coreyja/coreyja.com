@@ -1,9 +1,6 @@
 use regex::Regex;
-use rsky_lexicon::app::bsky::feed::{ThreadViewPost, ThreadViewPostEnum};
-use types::GetPostThreadData;
+use rsky_lexicon::app::bsky::feed::{GetPostThreadOutput, ThreadViewPost, ThreadViewPostEnum};
 use url::Url;
-
-pub mod types;
 
 pub async fn fetch_thread(post_url: &str) -> cja::Result<ThreadViewPost> {
     let re = Regex::new(r"/profile/([\w.:]+)/post/([\w]+)").unwrap();
@@ -17,7 +14,7 @@ pub async fn fetch_thread(post_url: &str) -> cja::Result<ThreadViewPost> {
     url.set_query(Some(&format!("uri={at_proto_uri}")));
 
     let res = reqwest::get(url).await?;
-    let data = res.json::<GetPostThreadData>().await?;
+    let data = res.json::<GetPostThreadOutput>().await?;
 
     let ThreadViewPostEnum::ThreadViewPost(thread) = data.thread else {
         return Err(cja::color_eyre::eyre::eyre!("Expected thread view post"));
