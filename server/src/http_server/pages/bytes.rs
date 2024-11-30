@@ -104,10 +104,36 @@ impl Render for ByteList {
     }
 }
 
+fn bytes_warning() -> maud::Markup {
+    maud::html! {
+        div."rounded-md bg-yellow-50 p-4 my-4" {
+            div."flex" {
+                div."shrink-0" {
+                    svg."size-5 text-yellow-400" fill="currentColor" aria-hidden="true" viewBox="0 0 20 20" data-slot="icon" {
+                        path fill-rule="evenodd" clip-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" {}
+                    }
+                }
+                div."ml-3" {
+                    h3."text-sm font-medium text-yellow-800" {
+                        "Bytes are currently disabled"
+                    }
+                    div."mt-2 text-sm text-yellow-700" {
+                        p {
+                            "Bytes are currently broken, due to losing a DB that didn't have backups. I'm working on rebuilding them, but in the meantime they will break below and have been removed from the homepage."
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub(crate) async fn bytes_index() -> Result<impl IntoResponse, ServerError> {
     Ok(base_constrained(
         maud::html! {
           h1 class="text-3xl mb-4" { "Bytes - Coding Challenges" }
+
+          (bytes_warning())
 
           p class="mb-4" {
             "Bytes are bite-sized coding challenges that are designed to be fun and educational. "
