@@ -36,7 +36,7 @@ impl Render for VideoList {
 
 pub(crate) struct VideoThumbnailCard<'a>(pub(crate) &'a YoutubeVideo);
 
-impl<'video> Render for VideoThumbnailCard<'video> {
+impl Render for VideoThumbnailCard<'_> {
     fn render(&self) -> Markup {
         let video = &self.0;
 
