@@ -217,6 +217,7 @@ pub struct BlogFrontMatter {
     pub date: NaiveDate,
     #[serde(default = "default_is_newsletter")]
     pub is_newsletter: bool,
+    pub bsky_url: Option<String>,
 }
 
 impl PostedOn for BlogFrontMatter {
@@ -295,6 +296,7 @@ mod test {
             title: "Sample Post".to_string(),
             date: NaiveDate::default(),
             is_newsletter: false,
+            bsky_url: None,
         };
         let post = BlogPost {
             path,

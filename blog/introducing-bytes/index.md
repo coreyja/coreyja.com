@@ -6,6 +6,7 @@ tags:
   - bytes
   - challenges
   - rust
+bsky_url: https://bsky.app/profile/coreyja.com/post/3l3df7rtvjh2g
 ---
 
 ## Introduction

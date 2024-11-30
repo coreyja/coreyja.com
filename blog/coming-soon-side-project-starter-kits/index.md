@@ -2,6 +2,7 @@
 title: Coming Soon - Side Project Starter Kits
 author: Corey Alexander
 date: 2024-11-30
+bsky_url: https://bsky.app/profile/coreyja.com/post/3lc6q4roqrr2p
 ---
 
 For close to the last year I’ve been brainstorming about courses I could produce. I have one that I’m excited about, where we build a Rust Web Server from scratch, but it’s going to take me a sec to develop. In the meantime, I’ve been doing my research to understand better what junior developers are itching for in their learning. And I think I stumbled upon something that you all will love; Side Project Starter Kits!

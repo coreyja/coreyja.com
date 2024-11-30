@@ -6,6 +6,7 @@ tags:
   - github-actions
   - oidc
   - automating
+bsky_url: https://bsky.app/profile/coreyja.com/post/3l4otpq7myc24
 ---
 
 ### TLDR
