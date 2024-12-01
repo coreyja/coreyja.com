@@ -2,6 +2,7 @@
 title: Implementing Bluesky Comments
 author: Corey Alexander
 date: 2024-12-01
+bsky_url: https://bsky.app/profile/coreyja.com/post/3lcbharoxea2n
 ---
 
 Yesterday I did the not super original thing of adding Bluesky comments to my blog! Now when I post a new post (including this one!), you can leave comments by responding to my Bluesky post.
