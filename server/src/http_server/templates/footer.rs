@@ -57,6 +57,10 @@ pub fn footer() -> Markup {
           }
 
           ul class="flex flex-row items-center text-background space-x-4 sm:space-x-8 text-xl sm:text-2xl" {
+            a href="https://bsky.app/profile/coreyja.com" target="_blank" rel="noopener noreferrer" {
+              i class="fa-brands fa-bluesky" {}
+            }
+
             a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {
               i class="fa-brands fa-github" {}
             }
