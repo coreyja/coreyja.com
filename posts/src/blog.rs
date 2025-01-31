@@ -182,7 +182,7 @@ impl BlogPostPath {
         self.file_exists()
             && std::path::Path::new(&self.path)
                 .extension()
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("md"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
     }
 
     pub fn to_markdown(&self) -> Option<PostMarkdown> {
