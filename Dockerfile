@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
   protobuf-compiler libasound2-dev clang cmake \
   && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/v3.4.17/download/tailwindcss-linux-x64 && \
   chmod +x tailwindcss-linux-x64 && \
   mv tailwindcss-linux-x64 tailwindcss
 
