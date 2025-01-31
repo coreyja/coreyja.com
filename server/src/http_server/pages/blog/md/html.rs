@@ -327,7 +327,7 @@ impl IntoHtml for Link {
 
         let is_external = url
             .as_ref()
-            .map_or(false, |url| url.host_str() != parsed_base_host);
+            .is_ok_and(|url| url.host_str() != parsed_base_host);
 
         let replaced_url = url.map_or_else(|_| self.url.clone(), |url| url.to_string());
 
