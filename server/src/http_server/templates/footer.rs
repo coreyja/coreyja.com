@@ -13,23 +13,32 @@ pub fn newsletter_signup_footer() -> Markup {
         }
 
         form
-          action="https://app.convertkit.com/forms/5312462/subscriptions"
+          action="https://buttondown.com/api/emails/embed-subscribe/coreyja"
           method="post"
-          class="w-full max-w-md flex flex-row gap-4"
+          target="popupwindow"
+          class="w-full max-w-md flex flex-col gap-4"
           {
             input
-              type="email"
-              name="email_address"
-              class="flex-grow py-2 px-2 rounded-md text-grey-999"
-              placeholder="Enter your email address"
-              required="required"
+              type="hidden"
+              name="metadata__source"
+              value="coreyja.com"
               ;
 
-            input
-              type="submit"
-              value="Subscribe"
-              class="bg-berryBlue rounded-lg px-8 py-2"
+            div class="flex flex-row gap-4" {
+              input
+                type="email"
+                name="email"
+                class="flex-grow py-2 px-2 rounded-md text-grey-999"
+                placeholder="Enter your email address"
+                required="required"
               ;
+
+              input
+                type="submit"
+                value="Subscribe"
+                class="bg-berryBlue rounded-lg px-8 py-2"
+                ;
+            }
         }
       }
     }
