@@ -21,12 +21,13 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .route("/", get(pages::home::home_page))
         .route("/privacy", get(pages::legal::privacy_policy))
+        .route("/contact", get(pages::contact::contact))
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/rss.xml", get(pages::blog::full_rss_feed))
         .route("/posts", get(pages::blog::posts_index))
         .route(
             "/posts/weekly/",
-            // I accidently published by first newsletter under this path
+            // I accidentally published by first newsletter under this path
             // so I'm redirecting it to the newsletter home page. I'll
             // update the few links I made outside this blog to the correct link
             get(|| async { Redirect::permanent("/newsletter") }),
