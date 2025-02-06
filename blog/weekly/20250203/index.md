@@ -1,5 +1,5 @@
 ---
-title: February 3 Updates
+title: February Updates
 author: Corey Alexander
 date: 2025-02-03
 is_newsletter: true
