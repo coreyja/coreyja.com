@@ -2,6 +2,7 @@ pub mod account;
 pub mod admin;
 pub mod blog;
 pub mod bytes;
+pub mod contact;
 pub mod home;
 pub mod legal;
 pub mod login;

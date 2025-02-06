@@ -49,7 +49,7 @@ pub fn footer() -> Markup {
       div class="flex-grow mb-24" {}
       (newsletter_signup_footer())
       div ."min-h-[100px] bg-footer" {
-        div ."flex flex-wrap justify-center ".(MAX_WIDTH_CONTAINER_CLASSES) {
+        div ."flex flex-wrap justify-center mb-8 ".(MAX_WIDTH_CONTAINER_CLASSES) {
           div class="max-w-[10rem] sm:max-w-[15rem] min-w-[100px] py-8 flex-grow" {
             a href="/" {
               (PreEscaped(LOGO_FLAT_SVG))
@@ -62,6 +62,9 @@ pub fn footer() -> Markup {
             }
             li {
               a href="/privacy" class="text-background" { "Privacy Policy" }
+            }
+            li {
+              a href="/contact" class="text-background" { "Contact" }
             }
           }
 
