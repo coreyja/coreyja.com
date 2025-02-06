@@ -3,6 +3,7 @@ title: February Updates
 author: Corey Alexander
 date: 2025-02-03
 is_newsletter: true
+bsky_url: https://bsky.app/profile/coreyja.com/post/3lhjpun2rmk2h
 ---
 
 Hey Team!
