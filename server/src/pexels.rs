@@ -30,12 +30,12 @@ pub(crate) struct PhotoSources {
 }
 
 pub(crate) async fn fetch_user_photos(
-    username: &str,
+    _username: &str,
     api_key: &str,
     page: i32,
 ) -> cja::Result<PexelsResponse> {
     let client = reqwest::Client::new();
-    let url = format!("https://api.pexels.com/v1/users/{username}/photos?page={page}&per_page=20");
+    let url = format!("https://api.pexels.com/v1/curated?page={page}&per_page=20");
 
     let response = client
         .get(&url)
