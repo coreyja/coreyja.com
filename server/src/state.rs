@@ -11,7 +11,8 @@ use url::Url;
 
 use crate::{
     discord::DiscordClient, encrypt, github::GithubConfig, google::GoogleConfig,
-    http_server::pages::blog::md::SyntaxHighlightingContext, twitch::TwitchConfig,
+    http_server::pages::blog::md::SyntaxHighlightingContext, pexels::PexelsConfig,
+    twitch::TwitchConfig,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -78,6 +79,7 @@ pub(crate) struct AppState {
     pub encrypt_config: encrypt::Config,
     pub posthog_key: Option<String>,
     pub discord: DiscordClient,
+    pub pexels: PexelsConfig,
 }
 
 impl AppState {
@@ -110,6 +112,7 @@ impl AppState {
             encrypt_config: encrypt::Config::from_env()?,
             posthog_key: std::env::var("POSTHOG_KEY").ok(),
             discord,
+            pexels: PexelsConfig::from_env()?,
         };
 
         Ok(app_state)

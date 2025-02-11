@@ -24,6 +24,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/contact", get(pages::contact::contact))
         .route("/posts/rss.xml", get(pages::blog::rss_feed))
         .route("/rss.xml", get(pages::blog::full_rss_feed))
+        .route("/pexels", get(pages::pexels::pexels_index))
         .route("/posts", get(pages::blog::posts_index))
         .route(
             "/posts/weekly/",
