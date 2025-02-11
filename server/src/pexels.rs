@@ -26,7 +26,7 @@ pub(crate) struct PhotoSources {
     pub large: String,
     pub medium: String,
     pub small: String,
-    pub thumbnail: String,
+    pub thumbnail: Option<String>,
 }
 
 pub(crate) async fn fetch_user_photos(

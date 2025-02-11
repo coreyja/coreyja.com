@@ -64,7 +64,7 @@ fn render_grid(
                     div class="flex justify-center gap-4 mt-8" {
                         @if current_page > 1 {
                             a
-                                href=(format!("/?page={}", current_page - 1))
+                                href=(format!("?page={}", current_page - 1))
                                 class="bg-white hover:bg-gray-50 text-gray-800 font-semibold py-2 px-6 rounded-lg border transition-colors duration-300"
                             {
                                 "Previous Page"
@@ -73,7 +73,7 @@ fn render_grid(
 
                         @if has_next_page {
                             a
-                                href=(format!("/?page={}", current_page + 1))
+                                href=(format!("?page={}", current_page + 1))
                                 class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-300"
                             {
                                 "Next Page"
