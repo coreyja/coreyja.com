@@ -21,7 +21,7 @@ So what is the distraction that I’m currently exploring you ask?
 
 It’s currently called pfp.blue, and it’s going to be a Bluesky Profile Picture app. The idea came from [this skeet](https://bsky.app/profile/cam.fyi/post/3lhzlgtcgqc2n) on Bsky from [@cam.fyi](https://bsky.app/profile/cam.fyi)
 
-![postspark_export_2025-02-19_16-04-22.png](./postspark_export_2025-02-19_16-04-22.png)
+![Screenshot of the above linked skeet, rendered with Postspark. It reads "sorry by app i mean like, oauth'd website for setting up the feature it can programmatically download your pfp, draw on a circle, and reupload it every hour or what have you!"](./postspark_export_2025-02-19_16-04-22.png)
 
 The basic idea is that we want an app that can update your profile picture automatically. The MVP is going to be adding a progress bar circle around the profile picture, that will automatically update as you update a fraction/percent in your display name.
 
