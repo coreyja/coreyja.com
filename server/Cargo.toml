@@ -68,7 +68,8 @@ db = { path = "../db" }
 cja = { git = "https://github.com/coreyja/cja", branch = "main" }
 
 
-+axum-extra = "0.10.1"sqlx = { workspace = true }
+axum-extra = "0.10.1"
+sqlx = { workspace = true }
 itertools = "0.12.0"
 sentry-tracing = "0.31.8"
 typify = "0.0.14"

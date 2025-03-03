@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT skeet_id FROM Skeets WHERE bsky_url = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "skeet_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8bcdd973da17c69d6d8e61a057a7005855963c46229733af5c35b4ecdb1fd615"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "TRUNCATE TABLE skeets",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "222bffa1ab28e0a1288e176f19bf05f9b92efffe2faaa4a18fe80e07027afb9d"
+}

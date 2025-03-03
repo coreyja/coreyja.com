@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO BlueskyJetstreamCursor (cursor_value, updated_at) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ba34483a79f7763d9b71bb2387896c16e271fe95508aeccc17f75c5355604111"
+}
