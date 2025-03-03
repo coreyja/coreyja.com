@@ -34,10 +34,26 @@ impl Render for SkeetCard<'_> {
             li class="border border-neutral-700 rounded-lg p-4" {
                 p class="whitespace-pre-wrap" { (skeet.content) }
                 
-                @if let Some(published_at) = skeet.published_at {
-                    p class="text-subtitle text-sm mt-2" { 
-                        "Posted: " (published_at.format("%Y-%m-%d %H:%M")) 
+                div class="flex flex-row items-center justify-between mt-2 text-sm text-subtitle">
+                    @if let Some(published_at) = skeet.published_at {
+                        p { 
+                            "Posted: " (published_at.format("%Y-%m-%d %H:%M")) 
+                        }
                     }
+                    
+                    @if let Some(bsky_url) = &skeet.bsky_url {
+                        a href=(bsky_url) target="_blank" rel="noopener noreferrer" class="flex items-center">
+                            "View on Bluesky" 
+                            // Simple arrow icon
+                            span class="ml-1" { "→" }
+                        }
+                    }
+                </div>
+                
+                @if skeet.imported_from_bluesky_at.is_some() {
+                    p class="text-xs text-subtitle mt-1">
+                        "Imported from Bluesky"
+                    </p>
                 }
             }
         }

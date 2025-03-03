@@ -2,6 +2,8 @@ use regex::Regex;
 use rsky_lexicon::app::bsky::feed::{GetPostThreadOutput, ThreadViewPost, ThreadViewPostEnum};
 use url::Url;
 
+pub mod firehose;
+
 pub async fn fetch_thread(post_url: &str) -> cja::Result<ThreadViewPost> {
     let re = Regex::new(r"/profile/([\w.:]+)/post/([\w]+)").unwrap();
     let caps = re.captures(post_url).unwrap();
