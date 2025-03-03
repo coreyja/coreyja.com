@@ -41,13 +41,15 @@ impl Skeet {
         self.published_at.is_some()
     }
     
-    pub fn from_bluesky(content: String, bsky_url: String) -> Self {
+    pub fn from_bluesky(content: String, bsky_url: String, original_published_at: Option<DateTime<Utc>>) -> Self {
         let now = Utc::now();
         let mut skeet = Self::new(content);
         
         skeet.imported_from_bluesky_at = Some(now);
         skeet.bsky_url = Some(bsky_url);
-        skeet.published_at = Some(now); // Auto-publish imported skeets
+        
+        // Use the original publication date if available, otherwise use current time
+        skeet.published_at = original_published_at.or(Some(now));
         
         skeet
     }

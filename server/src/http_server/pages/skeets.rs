@@ -50,9 +50,9 @@ impl Render for SkeetCard<'_> {
                     }
                 </div>
                 
-                @if skeet.imported_from_bluesky_at.is_some() {
+                @if let Some(imported_at) = skeet.imported_from_bluesky_at {
                     p class="text-xs text-subtitle mt-1">
-                        "Imported from Bluesky"
+                        "Imported from Bluesky on " (imported_at.format("%Y-%m-%d"))
                     </p>
                 }
             }

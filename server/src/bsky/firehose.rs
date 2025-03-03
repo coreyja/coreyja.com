@@ -250,6 +250,20 @@ async fn handle_jetstream_message(
         return Ok(cursor);
     }
     
+    // Extract original creation date
+    let created_at = match record.get("createdAt") {
+        Some(Value::String(created_at_str)) => {
+            match chrono::DateTime::parse_from_rfc3339(created_at_str) {
+                Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
+                Err(e) => {
+                    warn!("Failed to parse createdAt date: {}", e);
+                    None
+                }
+            }
+        },
+        _ => None,
+    };
+    
     // Create the Bluesky URL for the post
     let post_id = commit.operation.rkey;
     let bsky_url = format!("https://bsky.app/profile/{}/post/{}", handle, post_id);
@@ -267,8 +281,8 @@ async fn handle_jetstream_message(
         return Ok(cursor);
     }
     
-    // Create and save the skeet
-    let skeet = Skeet::from_bluesky(content, bsky_url);
+    // Create and save the skeet with the original publication date
+    let skeet = Skeet::from_bluesky(content, bsky_url, created_at);
     skeet.insert(pool).await?;
     
     info!("Imported new post from Bluesky: {}", post_id);
