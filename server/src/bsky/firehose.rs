@@ -1,91 +1,212 @@
 use chrono::Utc;
 use db::skeets::Skeet;
-use regex::Regex;
-use rsky_lexicon::app::bsky::feed::Post;
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use sqlx::PgPool;
-use tokio::time::{self, Duration};
-use tracing::{info, error, warn};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream};
+use tracing::{error, info, warn};
 use url::Url;
 
 use crate::state::AppState;
 
+// Simplified Jetstream model structures
+#[derive(Debug, Deserialize)]
+struct CommitOperation {
+    operation: String,
+    collection: String,
+    rkey: String,
+    record: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CommitEvent {
+    rev: String,
+    #[serde(flatten)]
+    operation: CommitOperation,
+}
+
+#[derive(Debug, Deserialize)]
+struct JetstreamEvent {
+    did: String,
+    time_us: u64,
+    kind: String,
+    #[serde(default)]
+    commit: Option<CommitEvent>,
+}
+
+#[derive(Debug, Serialize)]
+struct OptionsUpdate {
+    #[serde(rename = "type")]
+    message_type: String,
+    payload: OptionsUpdatePayload,
+}
+
+#[derive(Debug, Serialize)]
+struct OptionsUpdatePayload {
+    wantedCollections: Vec<String>,
+    wantedDids: Vec<String>,
+    maxMessageSizeBytes: i32,
+}
+
 pub async fn start_bluesky_firehose(app_state: AppState) -> cja::Result<()> {
-    // Poll Bluesky API every 5 minutes for new posts
-    let interval = Duration::from_secs(5 * 60);
-    let mut interval = time::interval(interval);
-
     let coreyja_handle = "coreyja.bsky.social"; // Your Bluesky handle
-    let did_regex = Regex::new(r"^did:plc:([a-z0-9]+)$").unwrap();
+    let my_did = get_did_for_handle(coreyja_handle).await?;
     
-    info!("Starting Bluesky firehose for handle: {}", coreyja_handle);
-
+    // Use one of the official Jetstream instances
+    let jetstream_url = "wss://jetstream2.us-west.bsky.network/subscribe";
+    
+    info!("Starting Bluesky Jetstream connection for DID: {}", my_did);
+    
+    // Start the WebSocket connection loop
     loop {
-        interval.tick().await;
-        
-        match fetch_recent_posts(&app_state.db, coreyja_handle, &did_regex).await {
-            Ok(num_posts) => {
-                if num_posts > 0 {
-                    info!("Imported {} posts from Bluesky", num_posts);
-                }
+        match connect_to_jetstream(jetstream_url, &app_state, &my_did, coreyja_handle).await {
+            Ok(_) => {
+                info!("Bluesky Jetstream connection closed, reconnecting in 5 seconds...");
             }
             Err(e) => {
-                error!("Error fetching posts from Bluesky: {}", e);
+                error!("Error in Bluesky Jetstream connection: {}", e);
+                info!("Reconnecting in 5 seconds...");
             }
         }
+        
+        // Wait before reconnecting
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
     }
 }
 
-async fn fetch_recent_posts(pool: &PgPool, handle: &str, did_regex: &Regex) -> cja::Result<usize> {
-    // Get author DID
-    let author_did = get_did_for_handle(handle).await?;
+async fn connect_to_jetstream(
+    base_url: &str, 
+    app_state: &AppState, 
+    my_did: &str,
+    handle: &str,
+) -> cja::Result<()> {
+    // Build the URL with query parameters to filter for our user
+    let mut url = Url::parse(base_url)?;
     
-    // Fetch recent posts for this author
-    let posts = fetch_author_posts(&author_did).await?;
+    // We only want post records from our user
+    url.query_pairs_mut()
+        .append_pair("wantedCollections", "app.bsky.feed.post")
+        .append_pair("wantedDids", my_did);
     
-    if posts.is_empty() {
-        return Ok(0);
+    // Connect to the Jetstream WebSocket
+    info!("Connecting to Jetstream at: {}", url);
+    let (ws_stream, _) = connect_async(url).await?;
+    
+    info!("Connected to Bluesky Jetstream");
+    
+    // Process messages
+    process_jetstream(ws_stream, app_state, my_did, handle).await
+}
+
+async fn process_jetstream(
+    mut ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    app_state: &AppState,
+    my_did: &str,
+    handle: &str,
+) -> cja::Result<()> {
+    // Process incoming messages
+    while let Some(msg) = ws_stream.next().await {
+        match msg {
+            Ok(Message::Text(text)) => {
+                if let Err(e) = handle_jetstream_message(text, &app_state.db, my_did, handle).await {
+                    error!("Error processing Jetstream message: {}", e);
+                }
+            }
+            Ok(Message::Ping(data)) => {
+                // Respond to ping with pong
+                if let Err(e) = ws_stream.send(Message::Pong(data)).await {
+                    error!("Error sending pong: {}", e);
+                }
+            }
+            Ok(Message::Close(_)) => {
+                info!("Jetstream WebSocket connection closed");
+                break;
+            }
+            Err(e) => {
+                error!("Jetstream WebSocket error: {}", e);
+                break;
+            }
+            _ => {} // Ignore other message types
+        }
     }
     
-    let mut imported_count = 0;
+    Ok(())
+}
+
+async fn handle_jetstream_message(
+    message: String, 
+    pool: &PgPool, 
+    my_did: &str,
+    handle: &str,
+) -> cja::Result<()> {
+    // Parse the Jetstream event
+    let event: JetstreamEvent = match serde_json::from_str(&message) {
+        Ok(event) => event,
+        Err(e) => {
+            error!("Failed to parse Jetstream event: {}\nMessage: {}", e, message);
+            return Ok(());
+        }
+    };
     
-    // Process posts
-    for post in posts {
-        // Skip replies and reposts for now, only import original posts
-        if post.reply.is_some() {
-            continue;
-        }
-        
-        let content = post.text.clone();
-        
-        // Skip if this is just a URL without any text
-        if content.trim().is_empty() {
-            continue;
-        }
-        
-        // Check if we already have this post by Bluesky URL
-        let post_id = post.ref_to_uri(author_did.as_str()).split('/').last().unwrap_or_default();
-        let bsky_url = format!("https://bsky.app/profile/{}/post/{}", handle, post_id);
-        
-        let existing = sqlx::query!(
-            "SELECT skeet_id FROM Skeets WHERE bsky_url = $1",
-            bsky_url
-        )
-        .fetch_optional(pool)
-        .await?;
-        
-        if existing.is_some() {
-            // Skip if we've already imported this post
-            continue;
-        }
-        
-        // Create and save the skeet
-        let skeet = Skeet::from_bluesky(content, bsky_url);
-        skeet.insert(pool).await?;
-        
-        imported_count += 1;
+    // We're only interested in commit events from our user
+    if event.kind != "commit" || event.did != my_did {
+        return Ok(());
     }
     
-    Ok(imported_count)
+    let Some(commit) = event.commit else {
+        return Ok(());
+    };
+    
+    // We only want create operations for posts
+    if commit.operation.operation != "create" || commit.operation.collection != "app.bsky.feed.post" {
+        return Ok(());
+    }
+    
+    // The post record should be present for create operations
+    let Some(record) = &commit.operation.record else {
+        return Ok(());
+    };
+    
+    // Extract the post content
+    let content = match record.get("text") {
+        Some(Value::String(text)) => text.clone(),
+        _ => {
+            warn!("Post record doesn't have text field: {:?}", record);
+            return Ok(());
+        }
+    };
+    
+    // Skip empty posts or posts that just contain a URL
+    if content.trim().is_empty() {
+        return Ok(());
+    }
+    
+    // Create the Bluesky URL for the post
+    let post_id = commit.operation.rkey;
+    let bsky_url = format!("https://bsky.app/profile/{}/post/{}", handle, post_id);
+    
+    // Check if we already have this post
+    let existing = sqlx::query!(
+        "SELECT skeet_id FROM Skeets WHERE bsky_url = $1",
+        bsky_url
+    )
+    .fetch_optional(pool)
+    .await?;
+    
+    if existing.is_some() {
+        // Skip if already imported
+        return Ok(());
+    }
+    
+    // Create and save the skeet
+    let skeet = Skeet::from_bluesky(content, bsky_url);
+    skeet.insert(pool).await?;
+    
+    info!("Imported new post from Bluesky: {}", post_id);
+    
+    Ok(())
 }
 
 async fn get_did_for_handle(handle: &str) -> cja::Result<String> {
@@ -100,31 +221,4 @@ async fn get_did_for_handle(handle: &str) -> cja::Result<String> {
         .to_string();
     
     Ok(did)
-}
-
-async fn fetch_author_posts(author_did: &str) -> cja::Result<Vec<Post>> {
-    let url = format!(
-        "https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor={}&limit=20", 
-        author_did
-    );
-    
-    let response = reqwest::get(url).await?
-        .json::<serde_json::Value>()
-        .await?;
-    
-    let posts = response["feed"].as_array()
-        .ok_or_else(|| cja::color_eyre::eyre::eyre!("Failed to get feed array"))?;
-    
-    let mut result = Vec::new();
-    
-    for feed_item in posts {
-        if let Some(post) = feed_item["post"]["record"].as_object() {
-            // Parse the raw post JSON into our Post struct
-            if let Ok(parsed_post) = serde_json::from_value::<Post>(feed_item["post"]["record"].clone()) {
-                result.push(parsed_post);
-            }
-        }
-    }
-    
-    Ok(result)
 }

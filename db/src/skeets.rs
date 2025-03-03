@@ -82,27 +82,4 @@ impl Skeet {
         Ok(())
     }
     
-    // Function to seed test data
-    pub async fn seed_test_data(pool: &PgPool) -> Result<(), sqlx::Error> {
-        // Create a few published skeets with different dates
-        let mut skeet1 = Self::new("Just launched the POSSE system for my blog! Now my posts will automatically syndicate to different platforms.".to_string());
-        skeet1.publish();
-        
-        let mut skeet2 = Self::new("Working on a new Rust project this weekend. Excited to share more soon!".to_string());
-        skeet2.publish();
-        
-        let mut skeet3 = Self::new("TIL about the new Rust 1.77 features. The let-else improvements are particularly nice.".to_string());
-        skeet3.publish();
-        
-        // Also create an unpublished skeet (this won't show up on the public page)
-        let skeet4 = Self::new("This is a draft skeet that isn't published yet.".to_string());
-        
-        // Insert all skeets
-        skeet1.insert(pool).await?;
-        skeet2.insert(pool).await?;
-        skeet3.insert(pool).await?;
-        skeet4.insert(pool).await?;
-        
-        Ok(())
-    }
 }

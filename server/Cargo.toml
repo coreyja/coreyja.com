@@ -67,7 +67,8 @@ posts = { path = "../posts" }
 db = { path = "../db" }
 cja = { git = "https://github.com/coreyja/cja", branch = "main" }
 
-sqlx = { workspace = true }
+
++axum-extra = "0.10.1"sqlx = { workspace = true }
 itertools = "0.12.0"
 sentry-tracing = "0.31.8"
 typify = "0.0.14"
@@ -80,6 +81,7 @@ age = { version = "0.9.2", features = ["async"] }
 graphql_client = { version = "0.13.0", features = ["reqwest-rustls"] }
 google-youtube3 = "5.0.3"
 futures = "0.3.29"
+futures-util = "0.3.28"
 chrono-humanize = "0.2.3"
 rsa = "0.9.4"
 rand = "0.8.5"
@@ -89,7 +91,7 @@ poise = "0.6.1"
 serenity = "0.12.2"
 regex = "1.11.1"
 rsky-lexicon = { git = "https://github.com/blacksky-algorithms/rsky" }
-axum-extra = "0.10.1"
+tokio-tungstenite = { version = "0.20.0", features = ["native-tls"] }
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
