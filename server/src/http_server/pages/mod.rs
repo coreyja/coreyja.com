@@ -7,5 +7,6 @@ pub mod home;
 pub mod legal;
 pub mod login;
 pub mod projects;
+pub mod skeets;
 pub mod til;
 pub mod videos;
