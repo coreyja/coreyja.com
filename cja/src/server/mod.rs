@@ -30,11 +30,24 @@ where
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let port: u16 = port.parse()?;
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let listener = TcpListener::bind(&addr)
-        .await
-        .wrap_err("Failed to open port")?;
-    tracing::debug!("listening on {}", addr);
+    // Check if we're being run under systemfd (LISTEN_FD will be set)
+    let listener = if let Ok(listener) = std::env::var("LISTEN_FD") {
+        // Get the listener provided by systemfd
+        tracing::info!("Using socket provided by systemfd (LISTEN_FD={})", listener);
+        let listener_index = listener.parse::<usize>().unwrap_or(3);
+        let std_listener = unsafe { listenfd::ListenFd::from_env().take_tcp_listener(listener_index)? };
+        TcpListener::from_std(std_listener)?
+    } else {
+        // Otherwise, create our own listener
+        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+        tracing::info!("Starting server on port {}", port);
+        TcpListener::bind(&addr)
+            .await
+            .wrap_err("Failed to open port")?
+    };
+    
+    let addr = listener.local_addr()?;
+    tracing::info!("listening on {}", addr);
 
     axum::serve(listener, app)
         .await
