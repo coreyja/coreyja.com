@@ -50,6 +50,38 @@ struct OptionsUpdatePayload {
     maxMessageSizeBytes: i32,
 }
 
+// Get the most recent cursor value from the database, or return 0 to start from beginning
+async fn get_stored_cursor(pool: &sqlx::PgPool) -> cja::Result<i64> {
+    // Check if we have any cursor stored
+    let result = sqlx::query!(
+        "SELECT cursor_value FROM BlueskyJetstreamCursor ORDER BY updated_at DESC LIMIT 1"
+    )
+    .fetch_optional(pool)
+    .await?;
+    
+    match result {
+        Some(record) => Ok(record.cursor_value),
+        None => {
+            // No cursor found, start from beginning (0)
+            info!("No previous cursor found, starting from beginning of Bluesky history");
+            Ok(0)
+        }
+    }
+}
+
+// Store the cursor value to the database
+async fn store_cursor(pool: &sqlx::PgPool, cursor_value: i64) -> cja::Result<()> {
+    sqlx::query!(
+        "INSERT INTO BlueskyJetstreamCursor (cursor_value, updated_at) VALUES ($1, $2)",
+        cursor_value,
+        chrono::Utc::now()
+    )
+    .execute(pool)
+    .await?;
+    
+    Ok(())
+}
+
 pub async fn start_bluesky_firehose(app_state: AppState) -> cja::Result<()> {
     let coreyja_handle = "coreyja.bsky.social"; // Your Bluesky handle
     let my_did = get_did_for_handle(coreyja_handle).await?;
@@ -59,18 +91,28 @@ pub async fn start_bluesky_firehose(app_state: AppState) -> cja::Result<()> {
     
     info!("Starting Bluesky Jetstream connection for DID: {}", my_did);
     
+    // Get initial cursor from database
+    let mut cursor = get_stored_cursor(&app_state.db).await?;
+    info!("Starting with cursor: {}", cursor);
+    
     // Start the WebSocket connection loop
     loop {
-        match connect_to_jetstream(jetstream_url, &app_state, &my_did, coreyja_handle).await {
-            Ok(_) => {
-                info!("Bluesky Jetstream connection closed, reconnecting in 5 seconds...");
+        match connect_to_jetstream(jetstream_url, &app_state, &my_did, coreyja_handle, cursor).await {
+            Ok(new_cursor) => {
+                info!("Bluesky Jetstream connection closed, last cursor: {}", new_cursor);
+                // Update our cursor for the next connection
+                cursor = new_cursor;
+                // Store cursor in database for persistence across restarts
+                if let Err(e) = store_cursor(&app_state.db, cursor).await {
+                    error!("Failed to store cursor: {}", e);
+                }
             }
             Err(e) => {
                 error!("Error in Bluesky Jetstream connection: {}", e);
-                info!("Reconnecting in 5 seconds...");
             }
         }
         
+        info!("Reconnecting in 5 seconds...");
         // Wait before reconnecting
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
     }
@@ -81,7 +123,8 @@ async fn connect_to_jetstream(
     app_state: &AppState, 
     my_did: &str,
     handle: &str,
-) -> cja::Result<()> {
+    cursor: i64,
+) -> cja::Result<i64> {
     // Build the URL with query parameters to filter for our user
     let mut url = Url::parse(base_url)?;
     
@@ -89,6 +132,11 @@ async fn connect_to_jetstream(
     url.query_pairs_mut()
         .append_pair("wantedCollections", "app.bsky.feed.post")
         .append_pair("wantedDids", my_did);
+    
+    // Add cursor if it's not zero (zero is default for starting from beginning)
+    if cursor > 0 {
+        url.query_pairs_mut().append_pair("cursor", &cursor.to_string());
+    }
     
     // Connect to the Jetstream WebSocket
     info!("Connecting to Jetstream at: {}", url);
@@ -105,13 +153,28 @@ async fn process_jetstream(
     app_state: &AppState,
     my_did: &str,
     handle: &str,
-) -> cja::Result<()> {
+) -> cja::Result<i64> {
+    // Keep track of the most recent cursor
+    let mut latest_cursor: i64 = 0;
+    
     // Process incoming messages
     while let Some(msg) = ws_stream.next().await {
         match msg {
             Ok(Message::Text(text)) => {
-                if let Err(e) = handle_jetstream_message(text, &app_state.db, my_did, handle).await {
-                    error!("Error processing Jetstream message: {}", e);
+                if let Ok(cursor) = handle_jetstream_message(text, &app_state.db, my_did, handle).await {
+                    // Update our latest cursor if this event has a newer one
+                    if cursor > latest_cursor {
+                        latest_cursor = cursor;
+                        
+                        // Store cursor periodically (every 100 events)
+                        if latest_cursor % 100 == 0 {
+                            if let Err(e) = store_cursor(&app_state.db, latest_cursor).await {
+                                error!("Failed to store cursor: {}", e);
+                            } else {
+                                info!("Stored cursor: {}", latest_cursor);
+                            }
+                        }
+                    }
                 }
             }
             Ok(Message::Ping(data)) => {
@@ -132,7 +195,8 @@ async fn process_jetstream(
         }
     }
     
-    Ok(())
+    // Return the latest cursor we've seen
+    Ok(latest_cursor)
 }
 
 async fn handle_jetstream_message(
@@ -140,33 +204,36 @@ async fn handle_jetstream_message(
     pool: &PgPool, 
     my_did: &str,
     handle: &str,
-) -> cja::Result<()> {
+) -> cja::Result<i64> {
     // Parse the Jetstream event
     let event: JetstreamEvent = match serde_json::from_str(&message) {
         Ok(event) => event,
         Err(e) => {
             error!("Failed to parse Jetstream event: {}\nMessage: {}", e, message);
-            return Ok(());
+            return Ok(0);
         }
     };
     
+    // Always return the cursor timestamp regardless of whether we process the message
+    let cursor = event.time_us as i64;
+    
     // We're only interested in commit events from our user
     if event.kind != "commit" || event.did != my_did {
-        return Ok(());
+        return Ok(cursor);
     }
     
     let Some(commit) = event.commit else {
-        return Ok(());
+        return Ok(cursor);
     };
     
     // We only want create operations for posts
     if commit.operation.operation != "create" || commit.operation.collection != "app.bsky.feed.post" {
-        return Ok(());
+        return Ok(cursor);
     }
     
     // The post record should be present for create operations
     let Some(record) = &commit.operation.record else {
-        return Ok(());
+        return Ok(cursor);
     };
     
     // Extract the post content
@@ -174,13 +241,13 @@ async fn handle_jetstream_message(
         Some(Value::String(text)) => text.clone(),
         _ => {
             warn!("Post record doesn't have text field: {:?}", record);
-            return Ok(());
+            return Ok(cursor);
         }
     };
     
     // Skip empty posts or posts that just contain a URL
     if content.trim().is_empty() {
-        return Ok(());
+        return Ok(cursor);
     }
     
     // Create the Bluesky URL for the post
@@ -197,7 +264,7 @@ async fn handle_jetstream_message(
     
     if existing.is_some() {
         // Skip if already imported
-        return Ok(());
+        return Ok(cursor);
     }
     
     // Create and save the skeet
@@ -206,7 +273,7 @@ async fn handle_jetstream_message(
     
     info!("Imported new post from Bluesky: {}", post_id);
     
-    Ok(())
+    Ok(cursor)
 }
 
 async fn get_did_for_handle(handle: &str) -> cja::Result<String> {

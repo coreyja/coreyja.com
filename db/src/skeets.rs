@@ -66,6 +66,7 @@ impl Skeet {
                 updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (skeet_id) DO NOTHING
             "#,
             self.skeet_id,
             self.content,
@@ -82,4 +83,56 @@ impl Skeet {
         Ok(())
     }
     
+    // Find a skeet by bsky_url
+    pub async fn find_by_bsky_url(pool: &PgPool, bsky_url: &str) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as!(
+            Self,
+            r#"
+            SELECT * FROM Skeets WHERE bsky_url = $1
+            "#,
+            bsky_url
+        )
+        .fetch_optional(pool)
+        .await
+    }
+    
+    // Bulk insert Skeets efficiently
+    pub async fn bulk_insert(skeets: &[Self], pool: &PgPool) -> Result<(), sqlx::Error> {
+        // Start a transaction
+        let mut tx = pool.begin().await?;
+        
+        for skeet in skeets {
+            sqlx::query!(
+                r#"
+                INSERT INTO Skeets (
+                    skeet_id, 
+                    content, 
+                    published_at, 
+                    imported_from_bluesky_at, 
+                    published_on_bsky_at,
+                    bsky_url,
+                    created_at, 
+                    updated_at
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (bsky_url) DO NOTHING
+                "#,
+                skeet.skeet_id,
+                skeet.content,
+                skeet.published_at,
+                skeet.imported_from_bluesky_at,
+                skeet.published_on_bsky_at,
+                skeet.bsky_url,
+                skeet.created_at,
+                skeet.updated_at
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+        
+        // Commit transaction
+        tx.commit().await?;
+        
+        Ok(())
+    }
 }
