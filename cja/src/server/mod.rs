@@ -29,17 +29,35 @@ where
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let port: u16 = port.parse()?;
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
 
     // Check if we're being run under systemfd (LISTEN_FD will be set)
-    let listener = if let Ok(listener) = std::env::var("LISTEN_FD") {
-        // Get the listener provided by systemfd
-        tracing::info!("Using socket provided by systemfd (LISTEN_FD={})", listener);
-        let listener_index = listener.parse::<usize>().unwrap_or(3);
-        let std_listener = unsafe { listenfd::ListenFd::from_env().take_tcp_listener(listener_index)? };
+    let listener = if let Ok(listener_env) = std::env::var("LISTEN_FD") {
+        // Use the socket2 crate for socket reuse
+        let builder = socket2::Socket::new(
+            socket2::Domain::IPV4,
+            socket2::Type::STREAM,
+            Some(socket2::Protocol::TCP),
+        )?;
+
+        // Set reuse options
+        builder.set_reuse_address(true)?;
+        #[cfg(unix)]
+        builder.set_reuse_port(true)?;
+        
+        // Bind to the address
+        let socket_addr = addr.into();
+        builder.bind(&socket_addr)?;
+        builder.listen(1024)?;
+
+        tracing::info!("Zero-downtime reloading enabled (LISTEN_FD={})", listener_env);
+        tracing::info!("Using reusable socket on port {}", port);
+        
+        // Convert to a TcpListener
+        let std_listener = builder.into();
         TcpListener::from_std(std_listener)?
     } else {
         // Otherwise, create our own listener
-        let addr = SocketAddr::from(([0, 0, 0, 0], port));
         tracing::info!("Starting server on port {}", port);
         TcpListener::bind(&addr)
             .await
@@ -47,7 +65,7 @@ where
     };
     
     let addr = listener.local_addr()?;
-    tracing::info!("listening on {}", addr);
+    tracing::info!("Listening on {}", addr);
 
     axum::serve(listener, app)
         .await
