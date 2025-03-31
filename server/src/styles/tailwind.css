@@ -16,3 +16,7 @@
 .source.rust .block {
   display: unset;
 }
+
+.source.sql .block {
+  display: unset;
+}
