@@ -171,7 +171,7 @@ impl Project {
                 "Could not get slug from path: {}",
                 self.path.display(),
             ));
-        };
+        }
 
         if let Some(parent_slug) = &self.frontmatter.parent_project {
             if !projects

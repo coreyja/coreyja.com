@@ -12,7 +12,7 @@ pub(crate) fn print_info() -> Result<()> {
         let path = p.path();
         let date = p.date();
 
-        println!("{title} | {date}: {path:?}");
+        println!("{title} | {date}: {}", path.display());
     }
 
     println!("\n\n");
