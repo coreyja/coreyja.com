@@ -48,7 +48,7 @@ pub(crate) async fn capture_event(
             "$process_person_profile".to_string(),
             serde_json::Value::Bool(false),
         );
-    };
+    }
 
     let event = Event {
         api_key: posthog_key,

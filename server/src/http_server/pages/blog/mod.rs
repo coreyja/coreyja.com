@@ -308,7 +308,7 @@ fn bsky_comment(comment: ThreadViewPost) -> Markup {
                         }
                     }
                 }
-                a href=(format!("//bsky.app/profile/{}/post/{}", author.did, comment.post.uri.split('/').last().unwrap())) target="_blank" rel="noreferrer noopener" {
+                a href=(format!("//bsky.app/profile/{}/post/{}", author.did, comment.post.uri.split('/').next_back().unwrap())) target="_blank" rel="noreferrer noopener" {
                     p {
                         (comment.post.record.get("text").unwrap_or(&serde_json::Value::String(String::new())).as_str().unwrap_or(""))
                     }
