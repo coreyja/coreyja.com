@@ -26,6 +26,7 @@ use self::{
 };
 
 pub(crate) mod cmd;
+pub(crate) mod components;
 
 pub(crate) mod pages;
 

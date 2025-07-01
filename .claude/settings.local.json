@@ -6,10 +6,14 @@
       "Bash(cargo check:*)",
       "mcp__Linear__list_issue_statuses",
       "Bash(cargo clippy:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo fmt:*)",
       "Bash(jj status:*)",
       "Bash(find:*)",
       "Bash(jj describe:*)",
-      "Bash(jj new:*)"
+      "Bash(jj new:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": []
   }

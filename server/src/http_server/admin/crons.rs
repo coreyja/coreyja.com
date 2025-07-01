@@ -8,6 +8,7 @@ use crate::state::AppState;
 use super::{
     super::{
         auth::session::AdminUser,
+        components::AutoRefreshButton,
         errors::ServerError,
         templates::{base_constrained, header::OpenGraph},
     },
@@ -28,14 +29,7 @@ pub(crate) async fn list_crons(
         html! {
             div class="flex items-center justify-between mb-4" {
                 h1 class="text-xl" { "Cron Management" }
-                div class="flex flex-col items-center" {
-                    button id="refresh-button" class="text-gray-600 hover:text-gray-800 transition-colors" title="Refreshes every 10 seconds. Next refresh in 10 seconds. Click to refresh now." {
-                        i class="fas fa-sync-alt text-lg" {}
-                    }
-                    div class="w-12 h-1 bg-gray-200 rounded-full mt-2 overflow-hidden" {
-                        div id="progress-bar" class="h-full bg-gray-400 rounded-full transition-none" style="width: 100%;" {}
-                    }
-                }
+                (AutoRefreshButton::new("#cron-table", Some("/admin/crons")).render())
             }
 
             a href="/admin" class="text-blue-500 hover:underline mb-4 inline-block" { "← Back to Admin Dashboard" }
@@ -68,144 +62,6 @@ pub(crate) async fn list_crons(
                         }
                     }
                 }
-            }
-
-            style {
-                (maud::PreEscaped(r"
-                    @keyframes spin-slow {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                    }
-                    
-                    .spinning {
-                        animation: spin-slow 10s linear infinite;
-                    }
-                    
-                    @keyframes deplete {
-                        from { width: 100%; }
-                        to { width: 0%; }
-                    }
-                    
-                    .depleting {
-                        animation: deplete 10s linear;
-                    }
-                "))
-            }
-
-            script {
-                (maud::PreEscaped(r"
-                    const refreshButton = document.getElementById('refresh-button');
-                    const refreshIcon = refreshButton.querySelector('i');
-                    const progressBar = document.getElementById('progress-bar');
-                    let refreshInterval;
-                    let countdownInterval;
-                    let timeoutId;
-                    let secondsRemaining = 10;
-                    const REFRESH_INTERVAL_SECONDS = 10;
-                    
-                    // Function to update the title text
-                    function updateTitle() {
-                        return `Refreshes every ${REFRESH_INTERVAL_SECONDS} seconds. Next refresh in ${secondsRemaining} seconds. Click to refresh now.`;
-                    }
-                    
-                    // Update title on hover
-                    refreshButton.addEventListener('mouseenter', () => {
-                        refreshButton.title = updateTitle();
-                    });
-                    
-                    // Function to refresh the table
-                    async function refreshTable() {
-                        try {
-                            const response = await fetch('/admin/crons');
-                            const html = await response.text();
-                            
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(html, 'text/html');
-                            const newTable = doc.getElementById('cron-table');
-                            
-                            if (!newTable) return;
-                            
-                            const currentTable = document.getElementById('cron-table');
-                            if (currentTable && currentTable.parentNode) {
-                                currentTable.parentNode.replaceChild(newTable.cloneNode(true), currentTable);
-                            }
-                        } catch (error) {
-                            console.error('Failed to refresh table:', error);
-                        }
-                    }
-                    
-                    // Function to start the refresh cycle
-                    function startRefreshCycle() {
-                        // Reset countdown
-                        secondsRemaining = REFRESH_INTERVAL_SECONDS;
-                        
-                        // Add spinning animation
-                        refreshIcon.classList.add('spinning');
-                        
-                        // Reset and start progress bar animation
-                        progressBar.classList.remove('depleting');
-                        progressBar.style.width = '100%';
-                        void progressBar.offsetWidth; // Force reflow
-                        progressBar.classList.add('depleting');
-                        
-                        // Clear any existing intervals
-                        if (refreshInterval) clearInterval(refreshInterval);
-                        if (countdownInterval) clearInterval(countdownInterval);
-                        
-                        // Set up countdown interval (every second)
-                        countdownInterval = setInterval(() => {
-                            secondsRemaining--;
-                            
-                            if (secondsRemaining <= 0) {
-                                secondsRemaining = REFRESH_INTERVAL_SECONDS;
-                            }
-                        }, 1000);
-                        
-                        // Set up refresh interval
-                        refreshInterval = setInterval(async () => {
-                            await refreshTable();
-                            // Restart the animations
-                            refreshIcon.classList.remove('spinning');
-                            void refreshIcon.offsetWidth; // Force reflow
-                            refreshIcon.classList.add('spinning');
-                            
-                            progressBar.classList.remove('depleting');
-                            progressBar.style.width = '100%';
-                            void progressBar.offsetWidth; // Force reflow
-                            progressBar.classList.add('depleting');
-                            
-                            // Reset countdown
-                            secondsRemaining = REFRESH_INTERVAL_SECONDS;
-                        }, REFRESH_INTERVAL_SECONDS * 1000);
-                    }
-                    
-                    // Manual refresh on button click
-                    refreshButton.addEventListener('click', async () => {
-                        // Clear existing timers
-                        if (refreshInterval) clearInterval(refreshInterval);
-                        if (countdownInterval) clearInterval(countdownInterval);
-                        if (timeoutId) clearTimeout(timeoutId);
-                        
-                        // Remove and re-add animations to restart them
-                        refreshIcon.classList.remove('spinning');
-                        void refreshIcon.offsetWidth; // Force reflow
-                        refreshIcon.classList.add('spinning');
-                        
-                        progressBar.classList.remove('depleting');
-                        progressBar.style.width = '100%';
-                        void progressBar.offsetWidth; // Force reflow
-                        progressBar.classList.add('depleting');
-                        
-                        // Refresh immediately
-                        await refreshTable();
-                        
-                        // Start the cycle again
-                        startRefreshCycle();
-                    });
-                    
-                    // Start the initial refresh cycle
-                    startRefreshCycle();
-                "))
             }
         },
         OpenGraph::default(),
