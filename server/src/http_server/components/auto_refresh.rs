@@ -36,7 +36,7 @@ impl AutoRefreshButton {
         Self {
             target_selector: target_selector.into(),
             interval_seconds: 10,
-            fetch_url: fetch_url.map(|url| url.into()),
+            fetch_url: fetch_url.map(Into::into),
         }
     }
 
@@ -53,8 +53,8 @@ impl AutoRefreshButton {
                 data-url=[self.fetch_url.as_ref()]
                 data-interval=(self.interval_seconds) {
                 button class="auto-refresh-button text-gray-600 hover:text-gray-800 transition-colors"
-                    title=(format!("Refreshes every {} seconds. Next refresh in {} seconds. Click to refresh now.", self.interval_seconds, self.interval_seconds)) {
-                    i class="fas fa-sync-alt text-lg auto-refresh-icon" {}
+                    aria-label=(format!("Auto-refresh content every {} seconds. Click to refresh now.", self.interval_seconds)) {
+                    i class="fas fa-sync-alt text-lg auto-refresh-icon" aria-hidden="true" {}
                 }
                 div class="w-12 h-1 bg-gray-200 rounded-full mt-2 overflow-hidden" {
                     div class="auto-refresh-progress h-full bg-gray-400 rounded-full transition-none" style="width: 100%;" {}
@@ -72,6 +72,21 @@ impl AutoRefreshButton {
                         animation: spin-slow {}s linear infinite;
                     }}
                     
+                    @keyframes pulse-spin {{
+                        0%, 100% {{ 
+                            transform: rotate(0deg) scale(1);
+                            opacity: 1;
+                        }}
+                        50% {{ 
+                            transform: rotate(180deg) scale(1.1);
+                            opacity: 0.8;
+                        }}
+                    }}
+                    
+                    .refreshing {{
+                        animation: pulse-spin 0.8s ease-in-out;
+                    }}
+                    
                     @keyframes deplete {{
                         from {{ width: 100%; }}
                         to {{ width: 0%; }}
@@ -79,6 +94,15 @@ impl AutoRefreshButton {
                     
                     .depleting {{
                         animation: deplete {}s linear;
+                    }}
+                    
+                    @keyframes flash {{
+                        0%, 100% {{ opacity: 1; }}
+                        50% {{ opacity: 0.6; }}
+                    }}
+                    
+                    .progress-flash {{
+                        animation: flash 0.8s ease-in-out;
                     }}
                 ", self.interval_seconds, self.interval_seconds)))
             }
@@ -100,18 +124,7 @@ impl AutoRefreshButton {
                         let countdownInterval;
                         let cycleStartTime = Date.now();
                         
-                        // Function to calculate seconds remaining
-                        function getSecondsRemaining() {{
-                            const elapsed = (Date.now() - cycleStartTime) / 1000;
-                            const remaining = Math.max(0, REFRESH_INTERVAL_SECONDS - elapsed);
-                            return Math.ceil(remaining);
-                        }}
-                        
-                        // Function to update the title text
-                        function updateTitle() {{
-                            const secondsRemaining = getSecondsRemaining();
-                            return `Refreshes every ${{REFRESH_INTERVAL_SECONDS}} seconds. Next refresh in ${{secondsRemaining}} seconds. Click to refresh now.`;
-                        }}
+                        let isRefreshing = false;
                         
                         // Function to restart animations
                         function restartAnimations() {{
@@ -127,13 +140,16 @@ impl AutoRefreshButton {
                             progressBar.classList.add('depleting');
                         }}
                         
-                        // Update title on hover
-                        refreshButton.addEventListener('mouseenter', () => {{
-                            refreshButton.title = updateTitle();
-                        }});
                         
                         // Function to refresh the content
                         async function refreshContent() {{
+                            if (isRefreshing) return;
+                            isRefreshing = true;
+                            
+                            // Add refreshing animations
+                            refreshIcon.classList.add('refreshing');
+                            progressBar.classList.add('progress-flash');
+                            
                             try {{
                                 const response = await fetch(fetchUrl);
                                 const html = await response.text();
@@ -150,6 +166,13 @@ impl AutoRefreshButton {
                                 }}
                             }} catch (error) {{
                                 console.error('Failed to refresh content:', error);
+                            }} finally {{
+                                // Remove refreshing animations after a delay
+                                setTimeout(() => {{
+                                    refreshIcon.classList.remove('refreshing');
+                                    progressBar.classList.remove('progress-flash');
+                                    isRefreshing = false;
+                                }}, 800);
                             }}
                         }}
                         
