@@ -7,7 +7,9 @@
       "mcp__Linear__list_issue_statuses",
       "Bash(cargo clippy:*)",
       "Bash(jj status:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(jj describe:*)",
+      "Bash(jj new:*)"
     ],
     "deny": []
   }
