@@ -30,7 +30,7 @@ impl StandupConfig {
         let discord_channel_id = std::env::var("DAILY_MESSAGE_DISCORD_CHANNEL_ID")
             .ok()
             .and_then(|id| id.parse::<u64>().ok());
-        
+
         Ok(Self { discord_channel_id })
     }
 }

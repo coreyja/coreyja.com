@@ -58,6 +58,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             post(admin::job_routes::refresh_youtube),
         )
         .route("/admin", get(admin::dashboard))
+        .route("/admin/crons", get(admin::crons::list_crons))
+        .route("/admin/crons/reset", post(admin::crons::reset_cron))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .route("/bytes", get(pages::bytes::bytes_index))
         .route("/bytes/:slug", get(pages::bytes::byte_get))
