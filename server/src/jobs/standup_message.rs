@@ -17,7 +17,7 @@ impl Job<AppState> for StandupMessage {
         // Get current time in Eastern timezone
         let now_utc = Utc::now();
         let now_eastern = now_utc.with_timezone(&Eastern);
-        
+
         // Check if we're in the 7-8am Eastern time window
         let hour = now_eastern.hour();
         if hour != 7 {
@@ -29,10 +29,9 @@ impl Job<AppState> for StandupMessage {
         }
 
         // Get the channel ID from app state config
-        let channel_id = app_state
-            .standup
-            .discord_channel_id
-            .ok_or_else(|| cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured"))?;
+        let channel_id = app_state.standup.discord_channel_id.ok_or_else(|| {
+            cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured")
+        })?;
 
         // Create the standup message with Discord mention
         let message_content = format!(
@@ -49,7 +48,10 @@ impl Job<AppState> for StandupMessage {
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to send Discord message: {}", e))?;
 
-        tracing::info!("Standup message sent successfully to channel {}", channel_id);
+        tracing::info!(
+            "Standup message sent successfully to channel {}",
+            channel_id
+        );
 
         Ok(())
     }

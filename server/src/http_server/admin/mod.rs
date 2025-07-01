@@ -11,6 +11,7 @@ use super::{
 };
 
 pub(crate) mod auth;
+pub(crate) mod crons;
 pub(crate) mod job_routes;
 
 pub(crate) async fn dashboard(
@@ -46,6 +47,10 @@ pub(crate) async fn dashboard(
     Ok(base_constrained(
         html! {
             h1 class="text-xl" { "Admin Dashboard" }
+
+            div class="my-4" {
+                a href="/admin/crons" class="text-blue-500 hover:underline" { "Manage Crons →" }
+            }
 
             h3 class="py-2 text-lg" { "Last Refresh Ats" }
             @for last_refresh_at in last_refresh_ats {
