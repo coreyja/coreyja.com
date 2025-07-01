@@ -20,6 +20,21 @@ pub struct AppConfig {
     pub imgproxy_url: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct StandupConfig {
+    pub discord_channel_id: Option<u64>,
+}
+
+impl StandupConfig {
+    pub fn from_env() -> cja::Result<Self> {
+        let discord_channel_id = std::env::var("DAILY_MESSAGE_DISCORD_CHANNEL_ID")
+            .ok()
+            .and_then(|id| id.parse::<u64>().ok());
+        
+        Ok(Self { discord_channel_id })
+    }
+}
+
 impl AppConfig {
     #[instrument(name = "AppConfig::from_env")]
     pub fn from_env() -> cja::Result<Self> {
@@ -68,6 +83,7 @@ pub(crate) struct AppState {
     pub open_ai: OpenAiConfig,
     pub google: GoogleConfig,
     pub app: AppConfig,
+    pub standup: StandupConfig,
     pub syntax_highlighting_context: SyntaxHighlightingContext,
     pub blog_posts: Arc<BlogPosts>,
     pub til_posts: Arc<TilPosts>,
@@ -98,6 +114,7 @@ impl AppState {
             twitch: TwitchConfig::from_env()?,
             github: GithubConfig::from_env()?,
             app: AppConfig::from_env()?,
+            standup: StandupConfig::from_env()?,
             open_ai: OpenAiConfig::from_env()?,
             google: GoogleConfig::from_env()?,
             syntax_highlighting_context: SyntaxHighlightingContext::default(),

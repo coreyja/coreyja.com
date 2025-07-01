@@ -5,7 +5,7 @@ use cja::cron::{CronRegistry, Worker};
 use crate::{
     jobs::{
         refresh_discord::RefreshDiscordChannels, sponsors::RefreshSponsors,
-        youtube_videos::RefreshVideos,
+        standup_message::StandupMessage, youtube_videos::RefreshVideos,
     },
     state::AppState,
 };
@@ -20,6 +20,7 @@ fn cron_registry() -> CronRegistry<AppState> {
     registry.register_job(RefreshSponsors, one_hour());
     registry.register_job(RefreshVideos, one_hour());
     registry.register_job(RefreshDiscordChannels, one_hour());
+    registry.register_job(StandupMessage, one_hour());
 
     registry
 }
