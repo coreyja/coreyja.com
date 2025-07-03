@@ -1,13 +1,80 @@
-use async_trait::async_trait;
-use axum::{extract::FromRequestParts, http};
-use cja::server::session::{DBSession, SessionRedirect};
+use axum::{
+    extract::FromRequestParts,
+    http::{self, StatusCode},
+};
+use cja::server::session::{AppSession, CJASession, Session};
+use color_eyre::eyre::{eyre, Context};
 use uuid::Uuid;
 
 use crate::{github::GithubLink, AppState};
 
 #[derive(Debug, Clone)]
+pub struct DBSession {
+    pub user_id: Option<Uuid>,
+    cja_session: CJASession,
+}
+
+#[async_trait::async_trait]
+impl AppSession for DBSession {
+    async fn from_db(pool: &sqlx::PgPool, session_id: uuid::Uuid) -> crate::Result<Self> {
+        let session = sqlx::query!("SELECT * FROM Sessions where session_id = $1", session_id)
+            .fetch_one(pool)
+            .await
+            .wrap_err_with(|| eyre!("Failed to fetch session from database"))?;
+        let inner = CJASession {
+            session_id: session.session_id,
+            created_at: session.created_at,
+            updated_at: session.updated_at,
+        };
+        Ok(DBSession {
+            user_id: session.user_id,
+            cja_session: inner,
+        })
+    }
+
+    /// Create a new session in the database.
+    ///
+    /// This method should insert a new session record with default values
+    /// and return the created session.
+    async fn create(pool: &sqlx::PgPool) -> crate::Result<Self> {
+        let session = sqlx::query!("INSERT INTO Sessions DEFAULT VALUES RETURNING *")
+            .fetch_one(pool)
+            .await?;
+
+        let inner = CJASession {
+            session_id: session.session_id,
+            created_at: session.created_at,
+            updated_at: session.updated_at,
+        };
+        Ok(DBSession {
+            user_id: session.user_id,
+            cja_session: inner,
+        })
+    }
+
+    /// Create a session instance from the inner `CJASession`.
+    ///
+    /// This is used internally when reconstructing sessions. Custom fields
+    /// should be initialized with default values.
+    fn from_inner(inner: CJASession) -> Self {
+        DBSession {
+            user_id: None,
+            cja_session: inner,
+        }
+    }
+
+    /// Get a reference to the inner `CJASession`.
+    ///
+    /// This provides access to the core session fields like ID and timestamps.
+    fn inner(&self) -> &CJASession {
+        &self.cja_session
+    }
+}
+
+#[derive(Clone)]
 pub struct AdminUser {
-    pub session: DBSession,
+    pub session: Session<DBSession>,
+    pub user_id: Uuid,
     pub github_link: GithubLink,
 }
 
@@ -29,15 +96,17 @@ pub async fn is_admin_user(user_id: Uuid, state: &AppState) -> cja::Result<bool>
     Ok(github_link.external_github_id == COREYJA_PERSONAL_GITHUB_ID)
 }
 
-#[async_trait]
 impl FromRequestParts<AppState> for AdminUser {
-    type Rejection = cja::server::session::SessionRedirect;
+    type Rejection = StatusCode;
 
     async fn from_request_parts(
         parts: &mut http::request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let db_session = DBSession::from_request_parts(parts, state).await?;
+        let db_session = Session::<DBSession>::from_request_parts(parts, state).await?;
+        let Some(user_id) = db_session.0.user_id else {
+            return Err(StatusCode::UNAUTHORIZED);
+        };
 
         let github_link = sqlx::query_as!(
             GithubLink,
@@ -46,7 +115,7 @@ impl FromRequestParts<AppState> for AdminUser {
             FROM GithubLinks
             WHERE user_id = $1 AND external_github_id = $2
             "#,
-            db_session.user_id,
+            user_id,
             COREYJA_PERSONAL_GITHUB_ID
         )
         .fetch_optional(&state.db)
@@ -55,13 +124,14 @@ impl FromRequestParts<AppState> for AdminUser {
         match github_link {
             Ok(Some(github_link)) => Ok(AdminUser {
                 session: db_session,
+                user_id,
                 github_link,
             }),
-            Ok(None) => Err(SessionRedirect::temporary("/")),
+            Ok(None) => Err(StatusCode::UNAUTHORIZED),
             Err(e) => {
                 sentry::capture_error(&e);
 
-                Err(SessionRedirect::temporary("/"))
+                Err(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }

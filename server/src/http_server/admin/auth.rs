@@ -111,7 +111,7 @@ pub(crate) async fn google_auth_callback(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         "#,
         uuid::Uuid::new_v4(),
-        admin.session.user_id,
+        admin.session.0.user_id,
         user_info.id,
         user_info.email,
         app_state.encrypt_config.encrypt(&token_data.access_token).unwrap(),

@@ -22,17 +22,15 @@ test_auth = ["posts/test_auth"]
 
 [dependencies]
 async-trait = "0.1.60"
-axum = "0.7.1"
-axum-macros = "0.4.0"
+axum = "0.8.4"
+axum-macros = "0.5.0"
 chrono = { workspace = true }
 chrono-tz = "0.9"
 clap = { workspace = true }
 include_dir = { workspace = true }
 indoc = "2.0"
 markdown = { workspace = true }
-maud = { version = "0.25.0", features = [
-  "axum",
-], git = "https://github.com/lambda-fairy/maud", rev = "320add87a12d8e5be115de9e0fe3f4b331512a4a" }
+maud = { version = "0.27.0", features = ["axum"] }
 mime_guess = "2.0"
 opentelemetry = { workspace = true }
 opentelemetry-otlp = { workspace = true }
@@ -67,13 +65,13 @@ uuid.workspace = true
 openai = { path = "../openai" }
 posts = { path = "../posts" }
 db = { path = "../db" }
-cja = { path = "../cja" }
+cja = { git = "https://github.com/coreyja/cja", branch = "main" }
 
 sqlx = { workspace = true }
 itertools = "0.12.0"
 sentry-tracing = "0.31.8"
 typify = "0.0.14"
-tower-cookies = { version = "0.10.0", features = ["private", "signed"] }
+tower-cookies = { version = "0.11.0", features = ["private", "signed"] }
 debug-ignore = "1.0.5"
 base64.workspace = true
 gql_client = { git = "https://github.com/coreyja/gql-client-rs", rev = "d3bcd33" }
@@ -91,6 +89,7 @@ poise = "0.6.1"
 serenity = "0.12.2"
 regex = "1.11.1"
 rsky-lexicon = { git = "https://github.com/blacksky-algorithms/rsky" }
+axum-extra = "0.10.1"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }

@@ -2,15 +2,21 @@ use axum::{
     extract::{Query, State},
     response::{IntoResponse, Redirect},
 };
-use cja::{color_eyre::eyre::Context, server::session::DBSession};
+use cja::{
+    color_eyre::eyre::Context,
+    server::session::{AppSession as _, Session},
+};
 use db::users::UserFromDB;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tower_cookies::Cookies;
 use tracing::warn;
 use uuid::Uuid;
 
-use crate::{encrypt::encrypt, http_server::ResponseResult, AppState};
+use crate::{
+    encrypt::encrypt,
+    http_server::{auth::session::DBSession, ResponseResult},
+    AppState,
+};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GitHubOAuthCode {
@@ -47,10 +53,11 @@ struct GitHubOAuthResponse {
 }
 
 #[allow(clippy::too_many_lines)]
+#[axum_macros::debug_handler(state = AppState)]
 pub(crate) async fn github_oauth(
     State(app_state): State<AppState>,
     Query(query): Query<GitHubOAuthCode>,
-    cookies: Cookies,
+    Session(session): Session<DBSession>,
 ) -> impl IntoResponse {
     let Some(state) = query.state else {
         warn!("No state provided in Github Oauth Redirect");
@@ -204,7 +211,17 @@ pub(crate) async fn github_oauth(
         }
     };
 
-    DBSession::create(local_user.user_id, &app_state, &cookies).await?;
+    sqlx::query!(
+        r#"
+        UPDATE Sessions
+        SET user_id = $1
+        WHERE session_id = $2
+        "#,
+        local_user.user_id,
+        session.session_id()
+    )
+    .execute(pool)
+    .await?;
 
     let state = sqlx::query!(
         r#"
