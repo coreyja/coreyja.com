@@ -12,7 +12,7 @@ use super::{
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()
         .route("/_", get(pages::admin::versions))
-        .route("/static/*path", get(static_assets))
+        .route("/static/{*path}", get(static_assets))
         .route("/styles/syntax.css", get(|| async move { syntax_css }))
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
         .route(
@@ -32,16 +32,16 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             // update the few links I made outside this blog to the correct link
             get(|| async { Redirect::permanent("/newsletter") }),
         )
-        .route("/posts/*key", get(pages::blog::post_get))
+        .route("/posts/{*key}", get(pages::blog::post_get))
         .route("/til", get(pages::til::til_index))
         .route("/til/rss.xml", get(pages::til::rss_feed))
-        .route("/til/:slug", get(pages::til::til_get))
+        .route("/til/{slug}", get(pages::til::til_get))
         .route("/projects", get(pages::projects::projects_index))
-        .route("/projects/:slug", get(pages::projects::projects_get))
+        .route("/projects/{slug}", get(pages::projects::projects_get))
         .route("/videos", get(pages::videos::video_index))
-        .route("/videos/:id", get(pages::videos::video_get))
-        .route("/tags/*tag", get(redirect_to_posts_index))
-        .route("/year/*year", get(redirect_to_posts_index))
+        .route("/videos/{id}", get(pages::videos::video_get))
+        .route("/tags/{*tag}", get(redirect_to_posts_index))
+        .route("/year/{*year}", get(redirect_to_posts_index))
         .nest("/blog", old_blog_routes())
         .route("/newsletter", get(newsletter_get))
         .route("/auth/github", get(auth::github_oauth::github_oauth))
@@ -62,9 +62,9 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/crons/reset", post(admin::crons::reset_cron))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .route("/bytes", get(pages::bytes::bytes_index))
-        .route("/bytes/:slug", get(pages::bytes::byte_get))
+        .route("/bytes/{slug}", get(pages::bytes::byte_get))
         .route(
-            "/bytes/:slug/leaderboard",
+            "/bytes/{slug}/leaderboard",
             get(pages::bytes::single_leaderboard),
         )
         .route("/bytes_leaderboard", get(pages::bytes::overall_leaderboard))
@@ -82,7 +82,7 @@ fn old_blog_routes() -> Router<AppState> {
 
     Router::new()
         .route(
-            "/:year/:month/:date/:slug",
+            "/{year}/{month}/{date}/{slug}",
             get(
                 |Path(OldRoutePath { slug, .. }): Path<OldRoutePath>| async move {
                     let Ok(mut slug) = PathBuf::from_str(&slug);
