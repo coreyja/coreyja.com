@@ -17,7 +17,7 @@ use cja::color_eyre;
 pub(crate) fn routes() -> axum::Router<AppState> {
     axum::Router::new()
         .route("/", get(login))
-        .route("/:from_app", get(app_login).post(app_claim))
+        .route("/{from_app}", get(app_login).post(app_claim))
 }
 
 async fn login(
