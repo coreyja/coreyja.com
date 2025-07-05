@@ -147,6 +147,13 @@ pub(crate) async fn serve() -> Result<()> {
     } else {
         info!("Discord Bot Disabled");
     }
+    
+    if std::env::var("BLUESKY_FIREHOSE_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
+        info!("Bluesky Firehose Enabled");
+        futures.push(tokio::spawn(crate::bsky::firehose::start_bluesky_firehose(app_state.clone())));
+    } else {
+        info!("Bluesky Firehose Disabled");
+    }
 
     info!("Tasks Spawned");
 

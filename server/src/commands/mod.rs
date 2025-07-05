@@ -9,6 +9,7 @@ pub(crate) enum Command {
     Serve,
     Print,
     Validate,
+    TestBluesky,
 }
 
 impl Default for Command {
@@ -23,6 +24,7 @@ impl Command {
             Command::Serve => crate::http_server::cmd::serve().await,
             Command::Print => info::print_info(),
             Command::Validate => validate::validate(),
+            Command::TestBluesky => crate::bsky::test_connect().await,
         }
     }
 }

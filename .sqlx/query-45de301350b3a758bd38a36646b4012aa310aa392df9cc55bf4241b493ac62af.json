@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO Skeets (\n                    skeet_id, \n                    content, \n                    published_at, \n                    imported_from_bluesky_at, \n                    published_on_bsky_at,\n                    bsky_url,\n                    created_at, \n                    updated_at\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n                ON CONFLICT (bsky_url) DO NOTHING\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "45de301350b3a758bd38a36646b4012aa310aa392df9cc55bf4241b493ac62af"
+}
