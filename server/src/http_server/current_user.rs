@@ -1,14 +1,13 @@
-use async_trait::async_trait;
 use axum::{
     body::Body,
     extract::FromRequestParts,
     http::{Response, StatusCode},
-    response::IntoResponse,
+    response::{IntoResponse, Redirect},
 };
-use cja::server::session::{self, DBSession, SessionRedirect};
+use cja::server::session::Session;
 use db::users::UserFromDB;
 
-use crate::{github::GithubLink, AppState};
+use crate::{github::GithubLink, http_server::auth::session::DBSession, AppState};
 
 pub struct CurrentUser {
     pub user: UserFromDB,
@@ -17,12 +16,13 @@ pub struct CurrentUser {
 }
 
 pub enum CurrentUserError {
-    SessionRedirect(session::SessionRedirect),
+    SessionRedirect(Redirect),
+    Unauthorized(StatusCode),
     DBError(sqlx::Error),
 }
 
-impl From<SessionRedirect> for CurrentUserError {
-    fn from(value: SessionRedirect) -> Self {
+impl From<Redirect> for CurrentUserError {
+    fn from(value: Redirect) -> Self {
         Self::SessionRedirect(value)
     }
 }
@@ -33,7 +33,12 @@ impl From<sqlx::Error> for CurrentUserError {
     }
 }
 
-#[async_trait]
+impl From<StatusCode> for CurrentUserError {
+    fn from(e: StatusCode) -> Self {
+        Self::Unauthorized(e)
+    }
+}
+
 impl FromRequestParts<AppState> for CurrentUser {
     type Rejection = CurrentUserError;
 
@@ -41,14 +46,14 @@ impl FromRequestParts<AppState> for CurrentUser {
         parts: &mut axum::http::request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let session = DBSession::from_request_parts(parts, state).await?;
+        let Session(session) = Session::<DBSession>::from_request_parts(parts, state).await?;
 
         let user = sqlx::query_as!(
             UserFromDB,
             r#"
         SELECT *
         FROM Users
-        WHERE user_id = $1
+        WHERE user_id = $1 and user_id is not null
         "#,
             session.user_id
         )
@@ -84,6 +89,7 @@ impl IntoResponse for CurrentUserError {
 
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
+            Self::Unauthorized(e) => e.into_response(),
         }
     }
 }

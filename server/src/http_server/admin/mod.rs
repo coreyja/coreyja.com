@@ -23,7 +23,7 @@ pub(crate) async fn dashboard(
     SELECT *
     FROM GoogleUsers
     WHERE user_id = $1",
-        admin.session.user_id
+        admin.user_id
     )
     .fetch_optional(&app_state.db)
     .await?;

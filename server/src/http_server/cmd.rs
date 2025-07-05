@@ -1,23 +1,25 @@
-use axum::extract::{Host, Request, State};
+use axum::extract::{Request, State};
 use axum::middleware::Next;
 use axum::response::Response;
+use axum_extra::extract::Host;
+use cja::server::session::Session;
 use cja::Result;
 use cja::{jobs::worker::job_worker, server::run_server};
 use serde_json::Map;
 use tokio::task::JoinError;
 use tracing::info;
 
+use crate::http_server::auth::session::DBSession;
 use crate::tracking;
 use crate::{cron::run_cron, http_server::routes, jobs::Jobs, AppState};
 
-use super::current_user::CurrentUser;
-
 const IGNORED_PATH_PREFIXES: &[&str] = &["/static", "/styles"];
 
+#[axum_macros::debug_middleware(state = AppState)]
 async fn pageview_middleware(
     State(state): State<AppState>,
-    current_user: Option<CurrentUser>,
     Host(hostname): Host,
+    Session(session): Session<DBSession>,
     request: Request,
     next: Next,
 ) -> Response {
@@ -55,7 +57,7 @@ async fn pageview_middleware(
         props.insert("fly-region".to_string(), fly_region.into());
     }
 
-    let mut user_id = current_user.map(|u| u.user.user_id.to_string());
+    let mut user_id = session.user_id.map(|u| u.to_string());
 
     let user_agent = request
         .headers()

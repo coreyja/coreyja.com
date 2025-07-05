@@ -1,5 +1,7 @@
-use async_trait::async_trait;
-use axum::{extract::FromRequestParts, response::IntoResponse};
+use axum::{
+    extract::{FromRequestParts, OptionalFromRequestParts},
+    response::IntoResponse,
+};
 use maud::html;
 
 use crate::{
@@ -33,7 +35,6 @@ pub struct Sponsor {
     sponsor: GithubSponsorFromDB,
 }
 
-#[async_trait]
 impl FromRequestParts<AppState> for Sponsor {
     type Rejection = current_user::CurrentUserError;
 
@@ -64,6 +65,41 @@ impl FromRequestParts<AppState> for Sponsor {
     }
 }
 
+impl OptionalFromRequestParts<AppState> for Sponsor {
+    type Rejection = current_user::CurrentUserError;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &AppState,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        let current_user = CurrentUser::from_request_parts(parts, state).await?;
+
+        let sponsor = sqlx::query_as!(
+            GithubSponsorFromDB,
+            r#"
+          SELECT *
+          FROM GithubSponsors
+          WHERE user_id = $1
+          "#,
+            current_user.user.user_id
+        )
+        .fetch_optional(&state.db)
+        .await?;
+
+        let Some(sponsor) = sponsor else {
+            return Ok(None);
+        };
+
+        let sponsor = Sponsor {
+            user: current_user,
+            sponsor,
+        };
+
+        Ok(Some(sponsor))
+    }
+}
+
+#[axum_macros::debug_handler(state = AppState)]
 pub(crate) async fn sponsorship_page(
     current_user: CurrentUser,
     sponsor: Option<Sponsor>,

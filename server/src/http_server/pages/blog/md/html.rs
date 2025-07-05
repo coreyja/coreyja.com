@@ -207,6 +207,7 @@ impl IntoHtml for Heading {
         let href_attr = id.as_ref().map(|x| format!("#{x}"));
 
         let child_content = self.children.into_html(config, context)?;
+        #[allow(unreachable_code)]
         let inner = html! {
             @match self.depth {
                 1 => h1 id=[id] class="max-w-prose text-2xl" { (child_content) },
@@ -215,7 +216,6 @@ impl IntoHtml for Heading {
                 4 => h4 id=[id] class="max-w-prose text-lg text-subtitle" { (child_content) },
                 5 => h5 id=[id] class="max-w-prose text-lg text-subtitle font-light" { (child_content) },
                 6 => h6 id=[id] class="max-w-prose text-base text-subtitle" { (child_content) },
-                #[allow(unreachable_code)]
                 _ => (unreachable!("Invalid heading depth")),
             }
         };
@@ -248,7 +248,7 @@ impl IntoHtml for List {
             @let inner = self.children.into_html(config, context)?;
             @if self.ordered {
                 ol class="max-w-prose" { (inner) }
-            } else {
+            } @else {
                 ul class="max-w-prose" { (inner) }
             }
         })
