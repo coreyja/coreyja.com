@@ -1,5 +1,5 @@
 [workspace]
-members = ["db", "posts", "server", "tracing-common"]
+members = ["db", "posts", "server"]
 resolver = "2"
 
 [workspace.lints.clippy]
