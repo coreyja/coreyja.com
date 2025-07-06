@@ -68,6 +68,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             get(pages::bytes::single_leaderboard),
         )
         .route("/bytes_leaderboard", get(pages::bytes::overall_leaderboard))
+        .route("/thanks", get(pages::thanks::thanks))
         .fallback(fallback)
 }
 
