@@ -65,6 +65,7 @@ uuid.workspace = true
 openai = { path = "../openai" }
 posts = { path = "../posts" }
 db = { path = "../db" }
+# cja = { path = "../../cja/crates/cja" }
 cja = { git = "https://github.com/coreyja/cja", branch = "main" }
 
 sqlx = { workspace = true }
