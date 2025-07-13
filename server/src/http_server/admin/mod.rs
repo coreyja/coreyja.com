@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use axum::{extract::State, response::IntoResponse};
 use maud::{html, Render};
 
@@ -91,7 +93,11 @@ pub(crate) async fn dashboard(
 struct MaybeTimestamp<T: chrono::TimeZone>(Option<chrono::DateTime<T>>);
 struct Timestamp<T: chrono::TimeZone>(chrono::DateTime<T>);
 
-impl<T: chrono::TimeZone> Render for MaybeTimestamp<T> {
+impl<T: chrono::TimeZone> Render for MaybeTimestamp<T>
+where
+    T: chrono::TimeZone,
+    T::Offset: Display,
+{
     fn render(&self) -> maud::Markup {
         if let Some(timestamp) = self.0.clone() {
             Timestamp(timestamp).render()
@@ -103,13 +109,41 @@ impl<T: chrono::TimeZone> Render for MaybeTimestamp<T> {
     }
 }
 
-impl<T: chrono::TimeZone> Render for Timestamp<T> {
+impl<T> Render for Timestamp<T>
+where
+    T: chrono::TimeZone,
+    T::Offset: Display,
+{
     fn render(&self) -> maud::Markup {
         let timestamp = self.0.clone();
         let now = chrono::Utc::now().with_timezone(&timestamp.timezone());
-        let ago = chrono_humanize::HumanTime::from(timestamp.clone() - now);
+        let in_future = timestamp > now;
+        let duration = if in_future {
+            timestamp.clone() - now
+        } else {
+            now.clone() - timestamp.clone()
+        };
+        let human_time = chrono_humanize::HumanTime::from(duration);
+        let text = if in_future {
+            format!("in {human_time}")
+        } else {
+            format!("{human_time} ago")
+        };
+
+        // Format timestamp with timezone
+        let timestamp_with_tz = timestamp.format("%Y-%m-%d %H:%M:%S %Z").to_string();
+        let utc_time = timestamp
+            .with_timezone(&chrono::Utc)
+            .format("%Y-%m-%d %H:%M:%S UTC")
+            .to_string();
+        let title = if timestamp_with_tz.contains("UTC") {
+            timestamp_with_tz
+        } else {
+            format!("{timestamp_with_tz}\n{utc_time}")
+        };
+
         html! {
-            span title=(format!("{} UTC", timestamp.to_rfc3339())) { (ago) }
+            span title=(title) { (text) }
         }
     }
 }
