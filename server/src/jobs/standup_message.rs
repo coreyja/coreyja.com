@@ -1,4 +1,4 @@
-use chrono::{Timelike, Utc};
+use chrono::Utc;
 use chrono_tz::US::Eastern;
 use cja::jobs::Job;
 use serde::{Deserialize, Serialize};
@@ -14,24 +14,12 @@ impl Job<AppState> for StandupMessage {
     const NAME: &'static str = "StandupMessage";
 
     async fn run(&self, app_state: AppState) -> cja::Result<()> {
-        // Get current time in Eastern timezone
-        let now_utc = Utc::now();
-        let now_eastern = now_utc.with_timezone(&Eastern);
-
-        // Check if we're in the 7-8am Eastern time window
-        let hour = now_eastern.hour();
-        if hour != 7 {
-            tracing::debug!(
-                "Skipping standup message - current hour is {} Eastern (need hour 7)",
-                hour
-            );
-            return Ok(());
-        }
-
         // Get the channel ID from app state config
         let channel_id = app_state.standup.discord_channel_id.ok_or_else(|| {
             cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured")
         })?;
+
+        let now_eastern = Utc::now().with_timezone(&Eastern);
 
         // Create the standup message with Discord mention
         let message_content = format!(
