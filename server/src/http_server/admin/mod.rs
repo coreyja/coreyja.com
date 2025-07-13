@@ -1,5 +1,4 @@
 use axum::{extract::State, response::IntoResponse};
-use chrono::Utc;
 use maud::{html, Render};
 
 use crate::state::AppState;
@@ -89,12 +88,12 @@ pub(crate) async fn dashboard(
     ))
 }
 
-struct MaybeTimestamp(Option<chrono::DateTime<Utc>>);
-struct Timestamp(chrono::DateTime<Utc>);
+struct MaybeTimestamp<T: chrono::TimeZone>(Option<chrono::DateTime<T>>);
+struct Timestamp<T: chrono::TimeZone>(chrono::DateTime<T>);
 
-impl Render for MaybeTimestamp {
+impl<T: chrono::TimeZone> Render for MaybeTimestamp<T> {
     fn render(&self) -> maud::Markup {
-        if let Some(timestamp) = self.0 {
+        if let Some(timestamp) = self.0.clone() {
             Timestamp(timestamp).render()
         } else {
             html! {
@@ -104,10 +103,11 @@ impl Render for MaybeTimestamp {
     }
 }
 
-impl Render for Timestamp {
+impl<T: chrono::TimeZone> Render for Timestamp<T> {
     fn render(&self) -> maud::Markup {
-        let timestamp = self.0;
-        let ago = chrono_humanize::HumanTime::from(timestamp - chrono::Utc::now());
+        let timestamp = self.0.clone();
+        let now = chrono::Utc::now().with_timezone(&timestamp.timezone());
+        let ago = chrono_humanize::HumanTime::from(timestamp.clone() - now);
         html! {
             span title=(format!("{} UTC", timestamp.to_rfc3339())) { (ago) }
         }
