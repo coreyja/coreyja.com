@@ -117,18 +117,8 @@ where
     fn render(&self) -> maud::Markup {
         let timestamp = self.0.clone();
         let now = chrono::Utc::now().with_timezone(&timestamp.timezone());
-        let in_future = timestamp > now;
-        let duration = if in_future {
-            timestamp.clone() - now
-        } else {
-            now.clone() - timestamp.clone()
-        };
+        let duration = timestamp.clone() - now;
         let human_time = chrono_humanize::HumanTime::from(duration);
-        let text = if in_future {
-            format!("in {human_time}")
-        } else {
-            format!("{human_time} ago")
-        };
 
         // Format timestamp with timezone
         let timestamp_with_tz = timestamp.format("%Y-%m-%d %H:%M:%S %Z").to_string();
@@ -143,7 +133,138 @@ where
         };
 
         html! {
-            span title=(title) { (text) }
+            span title=(title) { (human_time) }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, TimeZone, Utc};
+    use chrono_tz::US::Pacific;
+
+    #[test]
+    fn test_timestamp_in_past() {
+        // Create a timestamp 2 hours ago
+        let two_hours_ago = Utc::now() - Duration::hours(2);
+        let timestamp = Timestamp(two_hours_ago);
+
+        let rendered = timestamp.render().into_string();
+
+        // Check that it contains "ago" for past timestamps
+        assert!(
+            rendered.contains("ago"),
+            "Expected 'ago' in rendered output: {rendered}"
+        );
+
+        // Check that it has the title attribute with the full timestamp
+        assert!(
+            rendered.contains("title="),
+            "Expected title attribute in rendered output"
+        );
+        assert!(
+            rendered.contains("<span"),
+            "Expected span element in rendered output"
+        );
+    }
+
+    #[test]
+    fn test_timestamp_in_future() {
+        // Create a timestamp 3 hours in the future
+        let three_hours_future = Utc::now() + Duration::hours(3);
+        let timestamp = Timestamp(three_hours_future);
+
+        let rendered = timestamp.render().into_string();
+
+        // Check that it contains "in" for future timestamps
+        assert!(
+            rendered.contains("in "),
+            "Expected 'in' for future timestamp: {rendered}"
+        );
+
+        // Check structure
+        assert!(
+            rendered.contains("title="),
+            "Expected title attribute in rendered output"
+        );
+        assert!(
+            rendered.contains("<span"),
+            "Expected span element in rendered output"
+        );
+    }
+
+    #[test]
+    fn test_timestamp_different_timezone() {
+        // Create a timestamp in Pacific timezone
+        let pacific_time = Pacific.with_ymd_and_hms(2024, 1, 15, 10, 30, 0).unwrap();
+        let timestamp = Timestamp(pacific_time);
+
+        let rendered = timestamp.render().into_string();
+
+        // Check that the title contains both timezone representations
+        assert!(
+            rendered.contains("PST"),
+            "Expected PST timezone in title: {rendered}"
+        );
+        assert!(
+            rendered.contains("UTC"),
+            "Expected UTC time in title for non-UTC timestamp"
+        );
+        assert!(
+            rendered.contains("title="),
+            "Expected title attribute in rendered output"
+        );
+    }
+
+    #[test]
+    fn test_timestamp_utc_timezone() {
+        // Create a timestamp in UTC
+        let utc_time = Utc.with_ymd_and_hms(2024, 1, 15, 10, 30, 0).unwrap();
+        let timestamp = Timestamp(utc_time);
+
+        let rendered = timestamp.render().into_string();
+
+        // For UTC timestamps, title should only show UTC time once
+        let title_count = rendered.matches("UTC").count();
+        assert_eq!(
+            title_count, 1,
+            "Expected UTC to appear only once in title for UTC timestamp"
+        );
+    }
+
+    #[test]
+    fn test_maybe_timestamp_with_none() {
+        let maybe_timestamp: MaybeTimestamp<Utc> = MaybeTimestamp(None);
+
+        let rendered = maybe_timestamp.render().into_string();
+
+        // Should render "Never" for None values
+        assert!(
+            rendered.contains("Never"),
+            "Expected 'Never' for None timestamp"
+        );
+        assert!(
+            rendered.contains("<span"),
+            "Expected span element in rendered output"
+        );
+    }
+
+    #[test]
+    fn test_maybe_timestamp_with_some() {
+        let past_time = Utc::now() - Duration::days(1);
+        let maybe_timestamp = MaybeTimestamp(Some(past_time));
+
+        let rendered = maybe_timestamp.render().into_string();
+
+        // Should render like a normal timestamp
+        assert!(
+            rendered.contains("ago"),
+            "Expected 'ago' for past timestamp"
+        );
+        assert!(
+            rendered.contains("title="),
+            "Expected title attribute for Some timestamp"
+        );
     }
 }

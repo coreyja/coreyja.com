@@ -1,19 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "mcp__Linear__get_issue",
-      "mcp__Linear__list_teams",
-      "Bash(cargo check:*)",
-      "mcp__Linear__list_issue_statuses",
-      "Bash(cargo clippy:*)",
-      "Bash(cargo check:*)",
       "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo clippy:*)",
       "Bash(cargo fmt:*)",
-      "Bash(jj status:*)",
+      "Bash(cargo test:*)",
       "Bash(find:*)",
+      "Bash(gh pr view:*)",
       "Bash(jj describe:*)",
+      "Bash(jj diff:*)",
+      "Bash(jj log:*)",
       "Bash(jj new:*)",
-      "Bash(gh pr view:*)"
+      "Bash(jj show:*)",
+      "Bash(jj status:*)",
+      "mcp__Linear__get_issue",
+      "mcp__Linear__list_issue_statuses",
+      "mcp__Linear__list_teams"
     ],
     "deny": []
   }
