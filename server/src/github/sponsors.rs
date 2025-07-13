@@ -3,6 +3,7 @@ use cja::Result;
 use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres, QueryBuilder};
+use tracing::warn;
 use uuid::Uuid;
 
 use self::get_sponsors::Variables;
@@ -36,12 +37,13 @@ pub async fn get_sponsors(access_token: &str) -> cja::Result<Vec<Sponsor>> {
             .await
             .unwrap();
 
-    let response_body = response.data.ok_or_else(|| {
-        cja::color_eyre::eyre::eyre!(
+    let Some(response_body) = response.data else {
+        warn!(
             "No data was returned in the query for Sponsors: {:?}",
             &response.errors
-        )
-    })?;
+        );
+        return Ok(vec![]);
+    };
 
     Ok(response_body
         .viewer
