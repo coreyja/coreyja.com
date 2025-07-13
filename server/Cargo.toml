@@ -84,6 +84,7 @@ serenity = { workspace = true }
 regex = { workspace = true }
 rsky-lexicon = { workspace = true }
 axum-extra = { workspace = true }
+rig-core = { workspace = true }
 
 [build-dependencies]
 vergen = { workspace = true, features = ["git", "gitoxide", "rustc"] }

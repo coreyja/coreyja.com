@@ -1,9 +1,9 @@
-use chrono::Utc;
-use chrono_tz::US::Eastern;
 use cja::jobs::Job;
 use serde::{Deserialize, Serialize};
-use serenity::all::{ChannelId, CreateMessage};
+use serenity::all::CreateMessage;
+use serenity::utils::MessageBuilder;
 
+use crate::al::{create_anthropic_client, standup::StandupAgent};
 use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,16 +18,26 @@ impl Job<AppState> for StandupMessage {
         let channel_id = app_state.standup.discord_channel_id.ok_or_else(|| {
             cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured")
         })?;
+        let user_id = app_state.standup.discord_user_id.ok_or_else(|| {
+            cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_USER_ID not configured")
+        })?;
 
-        let now_eastern = Utc::now().with_timezone(&Eastern);
+        // Create the AI agent
+        let anthropic_client = create_anthropic_client()?;
+        let agent = StandupAgent::new(&anthropic_client);
 
-        // Create the standup message with Discord mention
-        let message_content = format!(
-            "🌅 Good morning <@coreyja>! It's {} Eastern Time.\n\nTime for standup!",
-            now_eastern.format("%A, %B %d, %Y at %I:%M %p")
-        );
+        // Generate the standup message using AI with proper Discord mention format
+        let message_content = agent.generate_standup_message().await?;
 
-        let create_message = CreateMessage::new().content(&message_content);
+        use serenity::model::prelude::*;
+
+        let user_mention_id = UserId::new(user_id);
+        let message = MessageBuilder::new()
+            .mention(&user_mention_id)
+            .push("\n\n")
+            .push(message_content)
+            .build();
+        let create_message = CreateMessage::new().content(message);
         let discord_channel_id = ChannelId::new(channel_id);
 
         // Send the message

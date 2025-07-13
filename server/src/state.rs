@@ -23,6 +23,7 @@ pub struct AppConfig {
 #[derive(Debug, Clone)]
 pub struct StandupConfig {
     pub discord_channel_id: Option<u64>,
+    pub discord_user_id: Option<u64>,
 }
 
 impl StandupConfig {
@@ -31,7 +32,14 @@ impl StandupConfig {
             .ok()
             .and_then(|id| id.parse::<u64>().ok());
 
-        Ok(Self { discord_channel_id })
+        let discord_user_id = std::env::var("DAILY_MESSAGE_DISCORD_USER_ID")
+            .ok()
+            .and_then(|id| id.parse::<u64>().ok());
+
+        Ok(Self {
+            discord_channel_id,
+            discord_user_id,
+        })
     }
 }
 
