@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::extract::{Request, State};
 use axum::middleware::Next;
 use axum::response::Response;
@@ -129,7 +131,11 @@ pub(crate) async fn serve() -> Result<()> {
 
     if std::env::var("JOBS_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Jobs Enabled");
-        futures.push(tokio::spawn(job_worker(app_state.clone(), job_registry)));
+        futures.push(tokio::spawn(job_worker(
+            app_state.clone(),
+            job_registry,
+            Duration::from_secs(10),
+        )));
     } else {
         info!("Jobs Disabled");
     }

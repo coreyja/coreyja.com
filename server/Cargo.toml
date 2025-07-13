@@ -21,79 +21,72 @@ local = []
 test_auth = ["posts/test_auth"]
 
 [dependencies]
-async-trait = "0.1.60"
-axum = "0.8.4"
-axum-macros = "0.5.0"
+async-trait = { workspace = true }
+axum = { workspace = true }
+axum-macros = { workspace = true }
 chrono = { workspace = true }
-chrono-tz = "0.9"
+chrono-tz = { workspace = true }
 clap = { workspace = true }
 include_dir = { workspace = true }
-indoc = "2.0"
+indoc = { workspace = true }
 markdown = { workspace = true }
-maud = { version = "0.27.0", features = ["axum"] }
-mime_guess = "2.0"
+maud = { workspace = true, features = ["axum"] }
+mime_guess = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry-otlp = { workspace = true }
 path-absolutize = { workspace = true }
 reqwest = { workspace = true }
 rss = { workspace = true }
-sentry = { version = "0.31.5", default-features = false, features = [
-  "rustls",
-  "backtrace",
-  "contexts",
-  "panic",
-  "tower",
-  "reqwest",
-] }
-sentry-tower = { version = "0.31.5", features = ["http"] }
+sentry = { workspace = true, features = ["rustls", "backtrace", "contexts", "panic", "tower", "reqwest"] }
+sentry-tower = { workspace = true, features = ["http"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde_urlencoded = "0.7.1"
-syntect = "5.0"
-thiserror = "1.0"
+serde_urlencoded = { workspace = true }
+syntect = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
-tower = "0.4.13"
-tower-http = { version = "0.5.0", features = ["trace"] }
+tower = { workspace = true }
+tower-http = { workspace = true, features = ["trace"] }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-tree = { workspace = true }
-url = "2.4.0"
-urlencoding = "2.1"
+url = { workspace = true }
+urlencoding = { workspace = true }
 uuid.workspace = true
 
-openai = { path = "../openai" }
-posts = { path = "../posts" }
-db = { path = "../db" }
+openai = { workspace = true }
+posts = { workspace = true }
+db = { workspace = true }
 # cja = { path = "../../cja/crates/cja" }
-cja = { git = "https://github.com/coreyja/cja", branch = "main" }
+cja = { workspace = true }
 
 sqlx = { workspace = true }
-itertools = "0.12.0"
-sentry-tracing = "0.31.8"
-typify = "0.0.14"
-tower-cookies = { version = "0.11.0", features = ["private", "signed"] }
-debug-ignore = "1.0.5"
+itertools = { workspace = true }
+sentry-tracing = { workspace = true }
+typify = { workspace = true }
+tower-cookies = { workspace = true, features = ["private", "signed"] }
+debug-ignore = { workspace = true }
 base64.workspace = true
-gql_client = { git = "https://github.com/coreyja/gql-client-rs", rev = "d3bcd33" }
-jsonwebtoken = "9.1.0"
-age = { version = "0.9.2", features = ["async"] }
-graphql_client = { version = "0.13.0", features = ["reqwest-rustls"] }
-google-youtube3 = "5.0.3"
-futures = "0.3.29"
-chrono-humanize = "0.2.3"
-rsa = "0.9.4"
-rand = "0.8.5"
-color-eyre = "0.6.3"
-two-face = "0.4.0"
-poise = "0.6.1"
-serenity = "0.12.2"
-regex = "1.11.1"
-rsky-lexicon = { git = "https://github.com/blacksky-algorithms/rsky" }
-axum-extra = "0.10.1"
+gql_client = { workspace = true }
+jsonwebtoken = { workspace = true }
+age = { workspace = true, features = ["async"] }
+graphql_client = { workspace = true, features = ["reqwest-rustls"] }
+google-youtube3 = { workspace = true }
+futures = { workspace = true }
+chrono-humanize = { workspace = true }
+rsa = { workspace = true }
+rand = { workspace = true }
+color-eyre = { workspace = true }
+two-face = { workspace = true }
+poise = { workspace = true }
+serenity = { workspace = true }
+regex = { workspace = true }
+rsky-lexicon = { workspace = true }
+axum-extra = { workspace = true }
 
 [build-dependencies]
-vergen = { version = "8.0.0", features = ["git", "gitoxide", "rustc"] }
+vergen = { workspace = true, features = ["git", "gitoxide", "rustc"] }
 
 [lints]
 workspace = true

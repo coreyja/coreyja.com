@@ -9,18 +9,18 @@ test_auth = []
 
 [dependencies]
 rss = { workspace = true }
-color-eyre = "0.6.3"
+color-eyre = { workspace = true }
 chrono = { workspace = true }
 
 serde = { workspace = true }
-serde_yaml = "0.9"
+serde_yaml = { workspace = true }
 
 markdown = { workspace = true }
 include_dir = { workspace = true }
 
 path-absolutize = { workspace = true }
-thiserror = "1.0.44"
-url = "2.5.0"
+thiserror = { workspace = true }
+url = { workspace = true }
 
 [lints]
 workspace = true
