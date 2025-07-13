@@ -36,6 +36,8 @@ pub(crate) mod discord;
 
 pub(crate) mod bsky;
 
+pub(crate) mod al;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct CliArgs {
