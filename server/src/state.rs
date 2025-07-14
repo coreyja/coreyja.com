@@ -24,6 +24,7 @@ pub struct AppConfig {
 pub struct StandupConfig {
     pub discord_channel_id: Option<u64>,
     pub discord_user_id: Option<u64>,
+    pub anthropic_api_key: String,
 }
 
 impl StandupConfig {
@@ -36,9 +37,13 @@ impl StandupConfig {
             .ok()
             .and_then(|id| id.parse::<u64>().ok());
 
+        let anthropic_api_key = std::env::var("ANTHROPIC_API_KEY")
+            .wrap_err("Missing ANTHROPIC_API_KEY environment variable")?;
+
         Ok(Self {
             discord_channel_id,
             discord_user_id,
+            anthropic_api_key,
         })
     }
 }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serenity::all::CreateMessage;
 use serenity::utils::MessageBuilder;
 
-use crate::al::{create_anthropic_client, standup::StandupAgent};
+use crate::al::standup::StandupAgent;
 use crate::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,8 +23,7 @@ impl Job<AppState> for StandupMessage {
         })?;
 
         // Create the AI agent
-        let anthropic_client = create_anthropic_client()?;
-        let agent = StandupAgent::new(&anthropic_client);
+        let agent = StandupAgent::new(app_state.standup.anthropic_api_key.clone());
 
         // Generate the standup message using AI with proper Discord mention format
         let message_content = agent.generate_standup_message().await?;

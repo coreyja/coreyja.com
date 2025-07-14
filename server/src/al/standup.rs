@@ -1,15 +1,39 @@
 use chrono::Utc;
 use chrono_tz::US::Eastern;
-use rig::{agent::Agent, client::CompletionClient as _, completion::Prompt as _, providers::anthropic};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize)]
+struct AnthropicRequest {
+    model: String,
+    max_tokens: u32,
+    messages: Vec<Message>,
+}
+
+#[derive(Debug, Serialize)]
+struct Message {
+    role: String,
+    content: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AnthropicResponse {
+    content: Vec<Content>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Content {
+    text: String,
+}
 
 pub struct StandupAgent {
-    agent: Agent<anthropic::completion::CompletionModel>,
+    client: reqwest::Client,
+    api_key: String,
 }
 
 impl StandupAgent {
-    pub fn new(client: &anthropic::Client) -> Self {
-        let agent = client.agent("claude-3-5-haiku-latest").build();
-        Self { agent }
+    pub fn new(api_key: String) -> Self {
+        let client = reqwest::Client::new();
+        Self { client, api_key }
     }
 
     pub async fn generate_standup_message(&self) -> cja::Result<String> {
@@ -25,8 +49,41 @@ impl StandupAgent {
             End with encouragement for the standup meeting."
         );
 
-        let response = self.agent.prompt(&prompt).await?;
+        let request = AnthropicRequest {
+            model: "claude-3-5-haiku-latest".to_string(),
+            max_tokens: 150,
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: prompt,
+            }],
+        };
 
-        Ok(response)
+        let response = self
+            .client
+            .post("https://api.anthropic.com/v1/messages")
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .header("content-type", "application/json")
+            .json(&request)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Anthropic API error: {}",
+                error_text
+            ));
+        }
+
+        let response_data: AnthropicResponse = response.json().await?;
+        let message = response_data
+            .content
+            .first()
+            .ok_or_else(|| cja::color_eyre::eyre::eyre!("No content in Anthropic response"))?
+            .text
+            .clone();
+
+        Ok(message)
     }
 }
