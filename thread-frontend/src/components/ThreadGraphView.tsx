@@ -38,7 +38,7 @@ export const ThreadGraphView: React.FC = () => {
       // Create nodes for threads
       threads.forEach((thread, index) => {
         newNodes.push({
-          id: `thread-${thread.id}`,
+          id: `thread-${thread.thread_id}`,
           type: 'thread',
           position: { x: index * 300, y: 0 },
           data: {
@@ -47,7 +47,7 @@ export const ThreadGraphView: React.FC = () => {
               setSelectedThread(t);
               setSelectedStitch(undefined);
               // Fetch full thread with stitches
-              const fullThread = await threadsApi.getThread(t.id);
+              const fullThread = await threadsApi.getThread(t.thread_id);
               setSelectedThread(fullThread);
             },
           },
@@ -56,9 +56,9 @@ export const ThreadGraphView: React.FC = () => {
         // Add edges for parent-child relationships
         if (thread.parent_thread_id) {
           newEdges.push({
-            id: `edge-${thread.parent_thread_id}-${thread.id}`,
+            id: `edge-${thread.parent_thread_id}-${thread.thread_id}`,
             source: `thread-${thread.parent_thread_id}`,
-            target: `thread-${thread.id}`,
+            target: `thread-${thread.thread_id}`,
           });
         }
       });

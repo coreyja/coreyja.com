@@ -33,22 +33,13 @@ pub(crate) async fn serve_thread_assets(
         .ok_or_else(|| color_eyre::eyre::eyre!("File not found"))?;
 
     // Determine content type based on file extension
-    let content_type = match path.split('.').next_back() {
-        Some("js") => "application/javascript",
-        Some("css") => "text/css",
-        Some("html") => "text/html",
-        Some("svg") => "image/svg+xml",
-        Some("png") => "image/png",
-        Some("jpg" | "jpeg") => "image/jpeg",
-        Some("json") => "application/json",
-        _ => "application/octet-stream",
-    };
+    let mime = mime_guess::from_path(&path).first_or_octet_stream();
 
     let contents = file.contents();
 
     Ok((
         axum::http::StatusCode::OK,
-        [(axum::http::header::CONTENT_TYPE, content_type)],
+        [(axum::http::header::CONTENT_TYPE, mime.to_string())],
         contents,
     ))
 }

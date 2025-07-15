@@ -5,7 +5,7 @@ use sqlx::{types::Uuid, PgPool};
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Thread {
-    pub id: Uuid,
+    pub thread_id: Uuid,
     pub parent_thread_id: Option<Uuid>,
     pub branching_stitch_id: Option<Uuid>,
     pub goal: String,
@@ -19,18 +19,15 @@ pub struct Thread {
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Stitch {
-    pub id: Uuid,
+    pub stitch_id: Uuid,
     pub thread_id: Uuid,
     pub previous_stitch_id: Option<Uuid>,
     pub stitch_type: String,
-    // LLM call fields
     pub llm_request: Option<JsonValue>,
     pub llm_response: Option<JsonValue>,
-    // Tool call fields
     pub tool_name: Option<String>,
     pub tool_input: Option<JsonValue>,
     pub tool_output: Option<JsonValue>,
-    // Thread result fields
     pub child_thread_id: Option<Uuid>,
     pub thread_result_summary: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -81,7 +78,7 @@ impl Thread {
             Thread,
             r#"
             SELECT * FROM threads
-            WHERE id = $1
+            WHERE thread_id = $1
             "#,
             id
         )
@@ -115,7 +112,7 @@ impl Thread {
             r#"
             UPDATE threads
             SET status = $1, updated_at = NOW()
-            WHERE id = $2
+            WHERE thread_id = $2
             RETURNING *
             "#,
             status,
@@ -137,7 +134,7 @@ impl Thread {
             r#"
             UPDATE threads
             SET tasks = $1, updated_at = NOW()
-            WHERE id = $2
+            WHERE thread_id = $2
             RETURNING *
             "#,
             tasks,
@@ -159,7 +156,7 @@ impl Thread {
             r#"
             UPDATE threads
             SET status = 'completed', result = $1, updated_at = NOW()
-            WHERE id = $2
+            WHERE thread_id = $2
             RETURNING *
             "#,
             result,
@@ -181,7 +178,7 @@ impl Thread {
             r#"
             UPDATE threads
             SET status = 'failed', result = $1, updated_at = NOW()
-            WHERE id = $2
+            WHERE thread_id = $2
             RETURNING *
             "#,
             result,
@@ -194,7 +191,7 @@ impl Thread {
     }
 
     pub async fn get_stitches(&self, pool: &PgPool) -> color_eyre::Result<Vec<Stitch>> {
-        Stitch::get_by_thread_ordered(pool, self.id).await
+        Stitch::get_by_thread_ordered(pool, self.thread_id).await
     }
 }
 
@@ -285,7 +282,7 @@ impl Stitch {
             r#"
             SELECT * FROM stitches 
             WHERE thread_id = $1 
-            AND id NOT IN (
+            AND stitch_id NOT IN (
                 SELECT previous_stitch_id FROM stitches 
                 WHERE thread_id = $1 AND previous_stitch_id IS NOT NULL
             )
@@ -309,10 +306,10 @@ impl Stitch {
                 SELECT * FROM stitches WHERE thread_id = $1 AND previous_stitch_id IS NULL
                 UNION ALL
                 SELECT s.* FROM stitches s
-                JOIN thread_history th ON s.previous_stitch_id = th.id
+                JOIN thread_history th ON s.previous_stitch_id = th.stitch_id
             )
             SELECT 
-                id as "id!",
+                stitch_id as "stitch_id!",
                 thread_id as "thread_id!",
                 previous_stitch_id,
                 stitch_type as "stitch_type!",

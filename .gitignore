@@ -20,3 +20,8 @@ tmp_base_model
 server/src/local.rs
 
 .DS_Store
+
+# Thread frontend build artifacts
+thread-frontend/.output
+thread-frontend/.tanstack
+thread-frontend/dist

@@ -44,7 +44,7 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
         <div>
           <h2 style={{ marginTop: 0 }}>Thread Details</h2>
           <div style={{ marginBottom: '10px' }}>
-            <strong>ID:</strong> {thread.id}
+            <strong>ID:</strong> {thread.thread_id}
           </div>
           <div style={{ marginBottom: '10px' }}>
             <strong>Goal:</strong> {thread.goal}
@@ -90,7 +90,7 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
         <div>
           <h2 style={{ marginTop: 0 }}>Stitch Details</h2>
           <div style={{ marginBottom: '10px' }}>
-            <strong>ID:</strong> {stitch.id}
+            <strong>ID:</strong> {stitch.stitch_id}
           </div>
           <div style={{ marginBottom: '10px' }}>
             <strong>Type:</strong> {stitch.stitch_type}

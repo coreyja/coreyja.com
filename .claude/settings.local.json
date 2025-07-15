@@ -18,7 +18,8 @@
       "mcp__Linear__list_issue_statuses",
       "mcp__Linear__list_teams",
       "WebFetch(domain:crates.io)",
-      "WebFetch(domain:docs.rs)"
+      "WebFetch(domain:docs.rs)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

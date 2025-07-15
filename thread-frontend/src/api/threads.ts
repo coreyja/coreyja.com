@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Thread, ThreadWithStitches, ThreadsListResponse } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/admin/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

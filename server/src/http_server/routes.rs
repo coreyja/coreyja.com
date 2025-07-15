@@ -67,6 +67,9 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             "/admin/threads/*path",
             get(admin::threads::serve_thread_assets),
         )
+        .route("/admin/api/threads", get(api::threads::list_threads))
+        .route("/admin/api/threads", post(api::threads::create_thread))
+        .route("/admin/api/threads/:id", get(api::threads::get_thread))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .nest("/api", api_routes())
         .route("/bytes", get(pages::bytes::bytes_index))
@@ -165,9 +168,6 @@ async fn newsletter_get(State(posts): State<Arc<BlogPosts>>) -> ResponseResult {
 
 fn api_routes() -> Router<AppState> {
     Router::new()
-        .route("/threads", get(api::threads::list_threads))
-        .route("/threads", post(api::threads::create_thread))
-        .route("/threads/:id", get(api::threads::get_thread))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
