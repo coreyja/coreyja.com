@@ -7,8 +7,8 @@ use serde::de::DeserializeOwned;
 use sqlx::PgPool;
 use std::sync::Arc;
 
-use crate::{AppState, AppConfig, StandupConfig};
 use crate::http_server::pages::blog::md::SyntaxHighlightingContext;
+use crate::{AppConfig, AppState};
 
 pub async fn create_test_app(pool: PgPool) -> Router {
     // Set minimal environment variables for testing
@@ -20,20 +20,22 @@ pub async fn create_test_app(pool: PgPool) -> Router {
     std::env::set_var("OPENAI_API_KEY", "test-openai-key");
     std::env::set_var("COOKIE_KEY", "test-cookie-key-32-bytes-long!!!!");
     std::env::set_var("ENCRYPT_KEY", "test-encrypt-key-32-bytes-long!!");
-    
+
+    let discord_setup = crate::discord::setup().await.unwrap();
+
     // Create a minimal test state
     let state = AppState {
         twitch: crate::twitch::TwitchConfig::from_env().unwrap(),
         github: crate::github::GithubConfig::from_env().unwrap(),
         open_ai: openai::OpenAiConfig::from_env().unwrap(),
-        google: crate::google::GoogleConfig::default(),
+        google: crate::google::GoogleConfig::from_env().unwrap(),
         app: AppConfig::from_env().unwrap(),
-        standup: StandupConfig::from_env().unwrap(),
+        standup: crate::state::StandupConfig::from_env().unwrap(),
         syntax_highlighting_context: SyntaxHighlightingContext::default(),
-        blog_posts: Arc::new(posts::blog::BlogPosts::default()),
-        til_posts: Arc::new(posts::til::TilPosts::default()),
-        projects: Arc::new(posts::projects::Projects::default()),
-        versions: crate::VersionInfo {
+        blog_posts: Arc::new(posts::blog::BlogPosts::from_static_dir().unwrap()),
+        til_posts: Arc::new(posts::til::TilPosts::from_static_dir().unwrap()),
+        projects: Arc::new(posts::projects::Projects::from_static_dir().unwrap()),
+        versions: crate::state::VersionInfo {
             git_commit: "test-commit",
             rustc_version: "test-rustc",
         },
@@ -41,9 +43,9 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         cookie_key: cja::server::cookies::CookieKey::from_env_or_generate().unwrap(),
         encrypt_config: crate::encrypt::Config::from_env().unwrap(),
         posthog_key: None,
-        discord: crate::discord::DiscordClient::default(),
+        discord: discord_setup.client,
     };
-    
+
     let syntax_css = String::new(); // Empty for tests
     crate::http_server::routes::make_router(syntax_css).with_state(state)
 }
@@ -51,8 +53,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
 pub fn admin_request_builder() -> axum::http::request::Builder {
     // In tests, we bypass real authentication
     // The test must modify the admin route handler to accept test requests
-    Request::builder()
-        .header("x-test-mode", "admin")
+    Request::builder().header("x-test-mode", "admin")
 }
 
 pub async fn response_body_json<T: DeserializeOwned>(response: Response<Body>) -> T {

@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'completed', result = $1, updated_at = NOW()\n            WHERE id = $2\n            RETURNING *\n            ",
+  "query": "\n            UPDATE threads\n            SET tasks = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "thread_id",
         "type_info": "Uuid"
       },
       {
@@ -73,5 +73,5 @@
       false
     ]
   },
-  "hash": "35a0d1e0827a84ab8110752f6424d4b332cf12fce959930f1316d91fea405c1f"
+  "hash": "329f85f105a39b7c1035ab9a18e39ba5b10d6c0770d3d750f32867464ae9bcd3"
 }

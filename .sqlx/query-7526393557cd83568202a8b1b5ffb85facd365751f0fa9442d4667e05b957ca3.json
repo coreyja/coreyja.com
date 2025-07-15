@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'failed', result = $1, updated_at = NOW()\n            WHERE id = $2\n            RETURNING *\n            ",
+  "query": "\n            SELECT * FROM threads\n            WHERE thread_id = $1\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "thread_id",
         "type_info": "Uuid"
       },
       {
@@ -56,7 +56,6 @@
     ],
     "parameters": {
       "Left": [
-        "Jsonb",
         "Uuid"
       ]
     },
@@ -73,5 +72,5 @@
       false
     ]
   },
-  "hash": "733d412b2199bc1c9e62c58cf40091be5ae5a8d959e75160e2b282920891f5e7"
+  "hash": "7526393557cd83568202a8b1b5ffb85facd365751f0fa9442d4667e05b957ca3"
 }

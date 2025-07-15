@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM stitches \n            WHERE thread_id = $1 \n            AND id NOT IN (\n                SELECT previous_stitch_id FROM stitches \n                WHERE thread_id = $1 AND previous_stitch_id IS NOT NULL\n            )\n            ",
+  "query": "\n            WITH RECURSIVE thread_history AS (\n                SELECT * FROM stitches WHERE thread_id = $1 AND previous_stitch_id IS NULL\n                UNION ALL\n                SELECT s.* FROM stitches s\n                JOIN thread_history th ON s.previous_stitch_id = th.stitch_id\n            )\n            SELECT \n                stitch_id as \"stitch_id!\",\n                thread_id as \"thread_id!\",\n                previous_stitch_id,\n                stitch_type as \"stitch_type!\",\n                llm_request,\n                llm_response,\n                tool_name,\n                tool_input,\n                tool_output,\n                child_thread_id,\n                thread_result_summary,\n                created_at as \"created_at!\"\n            FROM thread_history \n            ORDER BY created_at\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "stitch_id!",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "thread_id",
+        "name": "thread_id!",
         "type_info": "Uuid"
       },
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "stitch_type",
+        "name": "stitch_type!",
         "type_info": "Text"
       },
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 11,
-        "name": "created_at",
+        "name": "created_at!",
         "type_info": "Timestamptz"
       }
     ],
@@ -70,19 +70,19 @@
       ]
     },
     "nullable": [
-      false,
-      false,
-      true,
-      false,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      false
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
     ]
   },
-  "hash": "29dc5e6b748d9e57ea358541e212dde6747a1173918adaa7039ee80d81e0e56d"
+  "hash": "8c2c2a7fc61f924f606d2b85d4647d5286369f5cac50486a8cb0ea02f6482e8a"
 }

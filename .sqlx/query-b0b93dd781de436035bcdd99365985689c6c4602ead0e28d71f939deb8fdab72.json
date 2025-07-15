@@ -5,7 +5,7 @@
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "stitch_id",
         "type_info": "Uuid"
       },
       {
