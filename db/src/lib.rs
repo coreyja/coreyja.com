@@ -7,6 +7,9 @@ pub mod agentic_threads;
 pub mod twitch_chatters;
 pub mod users;
 
+#[cfg(test)]
+pub mod test_utils;
+
 pub use sqlx;
 pub use sqlx::PgPool;
 use uuid::Uuid;
