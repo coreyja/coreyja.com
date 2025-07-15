@@ -14,6 +14,7 @@ use super::{
 pub(crate) mod auth;
 pub(crate) mod crons;
 pub(crate) mod job_routes;
+pub(crate) mod threads;
 
 pub(crate) async fn dashboard(
     admin: AdminUser,
@@ -50,7 +51,8 @@ pub(crate) async fn dashboard(
             h1 class="text-xl" { "Admin Dashboard" }
 
             div class="my-4" {
-                a href="/admin/crons" class="text-blue-500 hover:underline" { "Manage Crons →" }
+                a href="/admin/crons" class="text-blue-500 hover:underline mr-4" { "Manage Crons →" }
+                a href="/admin/threads" class="text-blue-500 hover:underline" { "Agentic Threads →" }
             }
 
             h3 class="py-2 text-lg" { "Last Refresh Ats" }

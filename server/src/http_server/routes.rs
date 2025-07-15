@@ -62,6 +62,8 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/crons", get(admin::crons::list_crons))
         .route("/admin/crons/reset", post(admin::crons::reset_cron))
         .route("/admin/crons/run", post(admin::crons::run_cron))
+        .route("/admin/threads", get(admin::threads::threads_app))
+        .route("/admin/threads/*path", get(admin::threads::serve_thread_assets))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .nest("/api", api_routes())
         .route("/bytes", get(pages::bytes::bytes_index))

@@ -1,10 +1,13 @@
 import { defineConfig } from 'vite'
 import tsConfigPaths from 'vite-tsconfig-paths'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 
 export default defineConfig({
+  base: '/admin/threads/',
   server: {
-    port: 3000,
+    port: 3001,
   },
-  plugins: [tsConfigPaths(), tanstackStart()],
+  build: {
+    outDir: 'dist',
+  },
+  plugins: [tsConfigPaths()],
 })

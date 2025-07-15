@@ -10,7 +10,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
-    http_server::{errors::WithStatus as _, ResponseResult},
+    http_server::{auth::session::AdminUser, errors::WithStatus as _, ResponseResult},
     AppState,
 };
 
@@ -33,6 +33,7 @@ struct CreateThreadRequest {
 
 #[axum_macros::debug_handler]
 pub async fn list_threads(
+    _admin: AdminUser,
     State(state): State<AppState>,
 ) -> ResponseResult<impl IntoResponse> {
     let threads = Thread::list_all(state.db())
@@ -45,6 +46,7 @@ pub async fn list_threads(
 
 #[axum_macros::debug_handler]
 pub async fn get_thread(
+    _admin: AdminUser,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> ResponseResult<impl IntoResponse> {
@@ -67,6 +69,7 @@ pub async fn get_thread(
 
 #[axum_macros::debug_handler]
 pub async fn create_thread(
+    _admin: AdminUser,
     State(state): State<AppState>,
     Json(payload): Json<CreateThreadRequest>,
 ) -> ResponseResult<impl IntoResponse> {
