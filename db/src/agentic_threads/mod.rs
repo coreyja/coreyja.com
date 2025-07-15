@@ -311,7 +311,21 @@ impl Stitch {
                 SELECT s.* FROM stitches s
                 JOIN thread_history th ON s.previous_stitch_id = th.id
             )
-            SELECT * FROM thread_history ORDER BY created_at
+            SELECT 
+                id as "id!",
+                thread_id as "thread_id!",
+                previous_stitch_id,
+                stitch_type as "stitch_type!",
+                llm_request,
+                llm_response,
+                tool_name,
+                tool_input,
+                tool_output,
+                child_thread_id,
+                thread_result_summary,
+                created_at as "created_at!"
+            FROM thread_history 
+            ORDER BY created_at
             "#,
             thread_id
         )

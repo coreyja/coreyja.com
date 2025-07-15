@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH RECURSIVE thread_history AS (\n                SELECT * FROM stitches WHERE thread_id = $1 AND previous_stitch_id IS NULL\n                UNION ALL\n                SELECT s.* FROM stitches s\n                JOIN thread_history th ON s.previous_stitch_id = th.id\n            )\n            SELECT \n                id as \"id!\",\n                thread_id as \"thread_id!\",\n                previous_stitch_id,\n                stitch_type as \"stitch_type!\",\n                llm_request,\n                llm_response,\n                tool_name,\n                tool_input,\n                tool_output,\n                child_thread_id,\n                thread_result_summary,\n                created_at as \"created_at!\"\n            FROM thread_history \n            ORDER BY created_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "thread_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "previous_stitch_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "stitch_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "llm_request",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "llm_response",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "tool_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "tool_input",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "tool_output",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "child_thread_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "thread_result_summary",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "de9aea9839fc49295ee7363e673156dab282cba2c7365822c11ff1d1ef1d7ba7"
+}

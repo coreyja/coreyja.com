@@ -4,9 +4,9 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use db::agentic_threads::{Thread, Stitch};
+use cja::app_state::AppState as _;
+use db::agentic_threads::{Stitch, Thread};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
@@ -27,7 +27,7 @@ struct ThreadsListResponse {
 }
 
 #[derive(Deserialize)]
-struct CreateThreadRequest {
+pub(crate) struct CreateThreadRequest {
     goal: String,
 }
 
@@ -54,12 +54,10 @@ pub async fn get_thread(
         .await
         .context("Failed to fetch thread")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or_else(|| {
-            color_eyre::eyre::eyre!("Thread not found")
-                .with_status(StatusCode::NOT_FOUND)
-        })?;
+        .ok_or_else(|| color_eyre::eyre::eyre!("Thread not found"))?;
 
-    let stitches = thread.get_stitches(state.db())
+    let stitches = thread
+        .get_stitches(state.db())
         .await
         .context("Failed to fetch stitches")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;

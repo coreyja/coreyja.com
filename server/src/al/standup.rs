@@ -1,9 +1,6 @@
 use chrono::Utc;
 use chrono_tz::US::Eastern;
-use rig::agent::Agent;
-use rig::client::CompletionClient;
-use rig::completion::Prompt;
-use rig::providers::anthropic;
+use rig::{agent::Agent, client::CompletionClient as _, completion::Prompt as _, providers::anthropic};
 
 pub struct StandupAgent {
     agent: Agent<anthropic::completion::CompletionModel>,
