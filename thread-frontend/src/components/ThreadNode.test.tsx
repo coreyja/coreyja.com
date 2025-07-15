@@ -25,12 +25,12 @@ describe('ThreadNode', () => {
     result: null,
     pending_child_results: [],
     created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z'
+    updated_at: '2024-01-01T00:00:00Z',
   }
 
   const createNodeData = (thread: Thread) => ({
     thread,
-    onClick: mockOnClick
+    onClick: mockOnClick,
   })
 
   beforeEach(() => {
@@ -39,46 +39,46 @@ describe('ThreadNode', () => {
 
   it('renders thread with pending status', () => {
     render(<ThreadNode data={createNodeData(baseThread)} />)
-    
+
     expect(screen.getByText('Thread')).toBeInTheDocument()
     expect(screen.getByText('Test thread goal...')).toBeInTheDocument()
     expect(screen.getByText('PENDING')).toBeInTheDocument()
-    
+
     const container = screen.getByText('Thread').parentElement
     expect(container).toHaveStyle({ borderColor: '#9CA3AF' }) // gray for pending
   })
 
   it('renders thread with running status', () => {
-    const runningThread = { ...baseThread, status: 'running' }
+    const runningThread = { ...baseThread, status: 'running' as const }
     render(<ThreadNode data={createNodeData(runningThread)} />)
-    
+
     expect(screen.getByText('RUNNING')).toBeInTheDocument()
     const container = screen.getByText('Thread').parentElement
     expect(container).toHaveStyle({ borderColor: '#F59E0B' }) // yellow for running
   })
 
   it('renders thread with waiting status', () => {
-    const waitingThread = { ...baseThread, status: 'waiting' }
+    const waitingThread = { ...baseThread, status: 'waiting' as const }
     render(<ThreadNode data={createNodeData(waitingThread)} />)
-    
+
     expect(screen.getByText('WAITING')).toBeInTheDocument()
     const container = screen.getByText('Thread').parentElement
     expect(container).toHaveStyle({ borderColor: '#3B82F6' }) // blue for waiting
   })
 
   it('renders thread with completed status', () => {
-    const completedThread = { ...baseThread, status: 'completed' }
+    const completedThread = { ...baseThread, status: 'completed' as const }
     render(<ThreadNode data={createNodeData(completedThread)} />)
-    
+
     expect(screen.getByText('COMPLETED')).toBeInTheDocument()
     const container = screen.getByText('Thread').parentElement
     expect(container).toHaveStyle({ borderColor: '#10B981' }) // green for completed
   })
 
   it('renders thread with failed status', () => {
-    const failedThread = { ...baseThread, status: 'failed' }
+    const failedThread = { ...baseThread, status: 'failed' as const }
     render(<ThreadNode data={createNodeData(failedThread)} />)
-    
+
     expect(screen.getByText('FAILED')).toBeInTheDocument()
     const container = screen.getByText('Thread').parentElement
     expect(container).toHaveStyle({ borderColor: '#EF4444' }) // red for failed
@@ -87,40 +87,42 @@ describe('ThreadNode', () => {
   it('truncates goal text at 50 characters', () => {
     const longGoalThread = {
       ...baseThread,
-      goal: 'This is a very long goal text that should be truncated after fifty characters'
+      goal: 'This is a very long goal text that should be truncated after fifty characters',
     }
     render(<ThreadNode data={createNodeData(longGoalThread)} />)
-    
+
     // The component truncates at 50 chars and adds "..."
-    expect(screen.getByText('This is a very long goal text that should be trunc...')).toBeInTheDocument()
+    expect(
+      screen.getByText('This is a very long goal text that should be trunc...')
+    ).toBeInTheDocument()
   })
 
   it('displays task progress for completed tasks', () => {
     const threadWithTasks = {
       ...baseThread,
       tasks: [
-        { status: 'completed' },
-        { status: 'completed' },
-        { status: 'pending' }
-      ] as any[]
+        { id: '1', description: 'Task 1', status: 'completed' as const },
+        { id: '2', description: 'Task 2', status: 'completed' as const },
+        { id: '3', description: 'Task 3', status: 'pending' as const },
+      ],
     }
     render(<ThreadNode data={createNodeData(threadWithTasks)} />)
-    
+
     expect(screen.getByText('Tasks: 2/3')).toBeInTheDocument()
   })
 
   it('does not display task progress when no tasks', () => {
     render(<ThreadNode data={createNodeData(baseThread)} />)
-    
+
     expect(screen.queryByText(/Tasks:/)).not.toBeInTheDocument()
   })
 
   it('calls onClick when clicked', () => {
     render(<ThreadNode data={createNodeData(baseThread)} />)
-    
+
     const container = screen.getByText('Thread').parentElement!
     fireEvent.click(container)
-    
+
     expect(mockOnClick).toHaveBeenCalledTimes(1)
     expect(mockOnClick).toHaveBeenCalledWith(baseThread)
   })

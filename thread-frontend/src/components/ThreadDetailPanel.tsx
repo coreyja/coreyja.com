@@ -1,14 +1,18 @@
-import React from 'react';
-import { Thread, Stitch } from '../types';
+import React from 'react'
+import { Thread, Stitch } from '../types'
 
 interface ThreadDetailPanelProps {
-  thread?: Thread;
-  stitch?: Stitch;
-  onClose: () => void;
+  thread?: Thread
+  stitch?: Stitch
+  onClose: () => void
 }
 
-export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, stitch, onClose }) => {
-  if (!thread && !stitch) return null;
+export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({
+  thread,
+  stitch,
+  onClose,
+}) => {
+  if (!thread && !stitch) return null
 
   return (
     <div
@@ -56,14 +60,21 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
             <div style={{ marginBottom: '10px' }}>
               <strong>Tasks:</strong>
               <ul style={{ marginTop: '5px' }}>
-                {thread.tasks.map((task: any, index: number) => (
+                {thread.tasks.map((task, index) => (
                   <li key={index} style={{ marginBottom: '5px' }}>
-                    <span style={{ 
-                      color: task.status === 'completed' ? 'green' : 
-                             task.status === 'in_progress' ? 'orange' : 'gray' 
-                    }}>
+                    <span
+                      style={{
+                        color:
+                          task.status === 'completed'
+                            ? 'green'
+                            : task.status === 'in_progress'
+                              ? 'orange'
+                              : 'gray',
+                      }}
+                    >
                       [{task.status}]
-                    </span> {task.description}
+                    </span>{' '}
+                    {task.description}
                   </li>
                 ))}
               </ul>
@@ -72,13 +83,15 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
           {thread.result && (
             <div style={{ marginBottom: '10px' }}>
               <strong>Result:</strong>
-              <pre style={{ 
-                background: '#f5f5f5', 
-                padding: '10px', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto',
-              }}>
+              <pre
+                style={{
+                  background: '#f5f5f5',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                }}
+              >
                 {JSON.stringify(thread.result, null, 2)}
               </pre>
             </div>
@@ -103,13 +116,15 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
           {stitch.llm_request && (
             <div style={{ marginBottom: '10px' }}>
               <strong>LLM Request:</strong>
-              <pre style={{ 
-                background: '#f5f5f5', 
-                padding: '10px', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto',
-              }}>
+              <pre
+                style={{
+                  background: '#f5f5f5',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                }}
+              >
                 {JSON.stringify(stitch.llm_request, null, 2)}
               </pre>
             </div>
@@ -117,13 +132,15 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
           {stitch.llm_response && (
             <div style={{ marginBottom: '10px' }}>
               <strong>LLM Response:</strong>
-              <pre style={{ 
-                background: '#f5f5f5', 
-                padding: '10px', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto',
-              }}>
+              <pre
+                style={{
+                  background: '#f5f5f5',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                }}
+              >
                 {JSON.stringify(stitch.llm_response, null, 2)}
               </pre>
             </div>
@@ -131,13 +148,15 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
           {stitch.tool_input && (
             <div style={{ marginBottom: '10px' }}>
               <strong>Tool Input:</strong>
-              <pre style={{ 
-                background: '#f5f5f5', 
-                padding: '10px', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto',
-              }}>
+              <pre
+                style={{
+                  background: '#f5f5f5',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                }}
+              >
                 {JSON.stringify(stitch.tool_input, null, 2)}
               </pre>
             </div>
@@ -145,13 +164,15 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
           {stitch.tool_output && (
             <div style={{ marginBottom: '10px' }}>
               <strong>Tool Output:</strong>
-              <pre style={{ 
-                background: '#f5f5f5', 
-                padding: '10px', 
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto',
-              }}>
+              <pre
+                style={{
+                  background: '#f5f5f5',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                }}
+              >
                 {JSON.stringify(stitch.tool_output, null, 2)}
               </pre>
             </div>
@@ -159,5 +180,5 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({ thread, st
         </div>
       )}
     </div>
-  );
-};
+  )
+}

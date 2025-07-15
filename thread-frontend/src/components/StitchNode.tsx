@@ -1,24 +1,24 @@
-import React from 'react';
-import { Handle, Position } from '@xyflow/react';
-import { Stitch } from '../types';
+import React from 'react'
+import { Handle, Position } from '@xyflow/react'
+import { Stitch } from '../types'
 
 interface StitchNodeProps {
   data: {
-    stitch: Stitch;
-    onClick: (stitch: Stitch) => void;
-  };
+    stitch: Stitch
+    onClick: (stitch: Stitch) => void
+  }
 }
 
 const stitchIcons = {
   llm_call: '🤖',
   tool_call: '🔧',
   thread_result: '📊',
-};
+}
 
 export const StitchNode: React.FC<StitchNodeProps> = ({ data }) => {
-  const { stitch, onClick } = data;
-  const icon = stitchIcons[stitch.stitch_type];
-  
+  const { stitch, onClick } = data
+  const icon = stitchIcons[stitch.stitch_type]
+
   return (
     <div
       style={{
@@ -38,9 +38,7 @@ export const StitchNode: React.FC<StitchNodeProps> = ({ data }) => {
         <span>{stitch.stitch_type.replace('_', ' ')}</span>
       </div>
       {stitch.tool_name && (
-        <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
-          {stitch.tool_name}
-        </div>
+        <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{stitch.tool_name}</div>
       )}
       {stitch.thread_result_summary && (
         <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
@@ -49,5 +47,5 @@ export const StitchNode: React.FC<StitchNodeProps> = ({ data }) => {
       )}
       <Handle type="source" position={Position.Bottom} />
     </div>
-  );
-};
+  )
+}

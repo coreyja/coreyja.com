@@ -12,19 +12,12 @@ export function createTestRouter() {
 }
 
 // Custom render function that includes providers
-export const renderWithProviders = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) => {
+export const renderWithProviders = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) => {
   const router = createTestRouter()
-  
-  return render(
-    <RouterProvider router={router}>
-      {ui}
-    </RouterProvider>,
-    options
-  )
+
+  return render(<RouterProvider router={router} />, options)
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export * from '@testing-library/react'
 export { renderWithProviders as render }

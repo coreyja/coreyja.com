@@ -19,7 +19,7 @@ const { mockAxiosGet, mockAxiosPost, mockAxiosCreate } = vi.hoisted(() => {
 vi.mock('axios', () => ({
   default: {
     create: mockAxiosCreate,
-  }
+  },
 }))
 
 // Import after mocking
@@ -44,12 +44,12 @@ describe('threadsApi', () => {
           result: null,
           pending_child_results: [],
           created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z'
-        }
+          updated_at: '2024-01-01T00:00:00Z',
+        },
       ]
 
       mockAxiosGet.mockResolvedValue({
-        data: { threads: mockThreads }
+        data: { threads: mockThreads },
       })
 
       const result = await threadsApi.listThreads()
@@ -85,20 +85,32 @@ describe('threadsApi', () => {
             thread_id: '123',
             previous_stitch_id: null,
             stitch_type: 'llm_call',
-            llm_request: { prompt: 'test' },
-            llm_response: { completion: 'response' },
-            tool_name: null,
-            tool_input: null,
-            tool_output: null,
-            child_thread_id: null,
-            thread_result_summary: null,
-            created_at: '2024-01-01T00:00:00Z'
-          }
-        ]
+            llm_request: {
+              model: 'test-model',
+              messages: [{ role: 'user' as const, content: 'test' }],
+            },
+            llm_response: {
+              id: 'test-id',
+              model: 'test-model',
+              choices: [
+                {
+                  message: { role: 'assistant' as const, content: 'response' },
+                  finish_reason: 'stop',
+                },
+              ],
+            },
+            tool_name: undefined,
+            tool_input: undefined,
+            tool_output: undefined,
+            child_thread_id: undefined,
+            thread_result_summary: undefined,
+            created_at: '2024-01-01T00:00:00Z',
+          },
+        ],
       }
 
       mockAxiosGet.mockResolvedValue({
-        data: mockThreadWithStitches
+        data: mockThreadWithStitches,
       })
 
       const result = await threadsApi.getThread('123')
@@ -109,11 +121,11 @@ describe('threadsApi', () => {
 
     it('handles thread not found error', async () => {
       mockAxiosGet.mockRejectedValue({
-        response: { status: 404, data: { error: 'Thread not found' } }
+        response: { status: 404, data: { error: 'Thread not found' } },
       })
 
       await expect(threadsApi.getThread('999')).rejects.toMatchObject({
-        response: { status: 404 }
+        response: { status: 404 },
       })
     })
   })
@@ -130,11 +142,11 @@ describe('threadsApi', () => {
         result: null,
         pending_child_results: [],
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
+        updated_at: '2024-01-01T00:00:00Z',
       }
 
       mockAxiosPost.mockResolvedValue({
-        data: newThread
+        data: newThread,
       })
 
       const result = await threadsApi.createThread('New thread goal')
@@ -145,11 +157,11 @@ describe('threadsApi', () => {
 
     it('handles validation error for empty goal', async () => {
       mockAxiosPost.mockRejectedValue({
-        response: { status: 400, data: { error: 'Goal is required' } }
+        response: { status: 400, data: { error: 'Goal is required' } },
       })
 
       await expect(threadsApi.createThread('')).rejects.toMatchObject({
-        response: { status: 400 }
+        response: { status: 400 },
       })
     })
   })

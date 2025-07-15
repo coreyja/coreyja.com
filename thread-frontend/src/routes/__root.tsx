@@ -1,12 +1,7 @@
 // src/routes/__root.tsx
 /// <reference types="vite/client" />
 import type { ReactNode } from 'react'
-import {
-  Outlet,
-  createRootRoute,
-  HeadContent,
-  Scripts,
-} from '@tanstack/react-router'
+import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router'
 
 export const Route = createRootRoute({
   head: () => ({

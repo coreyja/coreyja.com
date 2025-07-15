@@ -5,5 +5,5 @@ import { ThreadGraphView } from './components/ThreadGraphView'
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThreadGraphView />
-  </React.StrictMode>,
+  </React.StrictMode>
 )
