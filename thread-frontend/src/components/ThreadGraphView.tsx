@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   ReactFlow,
   useNodesState,
@@ -11,7 +11,7 @@ import type { Node, Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 import { Thread, Stitch } from '../types'
-import { threadsApi } from '../api/threads'
+import { useThreads, useThread } from '../hooks/useThreads'
 import { ThreadNode } from './ThreadNode'
 import { StitchNode } from './StitchNode'
 import { ThreadDetailPanel } from './ThreadDetailPanel'
@@ -24,17 +24,17 @@ const nodeTypes = {
 export const ThreadGraphView: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[])
   const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[])
-  const [selectedThread, setSelectedThread] = useState<Thread | undefined>()
+  const [selectedThreadId, setSelectedThreadId] = useState<string | undefined>()
   const [selectedStitch, setSelectedStitch] = useState<Stitch | undefined>()
-  const [isLoading, setIsLoading] = useState(true)
 
-  const fetchThreads = useCallback(async () => {
-    try {
-      const threads = await threadsApi.listThreads()
-      const newNodes = [] as Node[]
-      const newEdges = [] as Edge[]
+  const { data: threads, isLoading } = useThreads()
+  const { data: selectedThreadDetails } = useThread(selectedThreadId)
 
-      // Create nodes for threads
+  const { nodesData, edgesData } = useMemo(() => {
+    const newNodes = [] as Node[]
+    const newEdges = [] as Edge[]
+
+    if (threads) {
       threads.forEach((thread, index) => {
         newNodes.push({
           id: `thread-${thread.thread_id}`,
@@ -42,12 +42,9 @@ export const ThreadGraphView: React.FC = () => {
           position: { x: index * 300, y: 0 },
           data: {
             thread,
-            onClick: async (t: Thread) => {
-              setSelectedThread(t)
+            onClick: (t: Thread) => {
+              setSelectedThreadId(t.thread_id)
               setSelectedStitch(undefined)
-              // Fetch full thread with stitches
-              const fullThread = await threadsApi.getThread(t.thread_id)
-              setSelectedThread(fullThread)
             },
           },
         })
@@ -61,24 +58,18 @@ export const ThreadGraphView: React.FC = () => {
           })
         }
       })
-
-      setNodes(newNodes)
-      setEdges(newEdges)
-      setIsLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch threads:', error)
-      setIsLoading(false)
     }
-  }, [setNodes, setEdges])
+
+    return { nodesData: newNodes, edgesData: newEdges }
+  }, [threads])
 
   useEffect(() => {
-    fetchThreads()
-    const interval = setInterval(fetchThreads, 2000) // Auto-refresh every 2 seconds
-    return () => clearInterval(interval)
-  }, [fetchThreads])
+    setNodes(nodesData)
+    setEdges(edgesData)
+  }, [nodesData, edgesData, setNodes, setEdges])
 
   const handlePaneClick = useCallback(() => {
-    setSelectedThread(undefined)
+    setSelectedThreadId(undefined)
     setSelectedStitch(undefined)
   }, [])
 
@@ -113,10 +104,10 @@ export const ThreadGraphView: React.FC = () => {
       </ReactFlow>
 
       <ThreadDetailPanel
-        thread={selectedThread}
+        thread={selectedThreadDetails}
         stitch={selectedStitch}
         onClose={() => {
-          setSelectedThread(undefined)
+          setSelectedThreadId(undefined)
           setSelectedStitch(undefined)
         }}
       />

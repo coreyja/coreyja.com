@@ -24,7 +24,9 @@
       "Bash(npm test:*)",
       "Bash(npm run format:*)",
       "Bash(npm run lint)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   }

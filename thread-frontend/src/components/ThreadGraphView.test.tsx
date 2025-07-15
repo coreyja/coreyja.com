@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { ThreadGraphView } from './ThreadGraphView'
 import { threadsApi } from '../api/threads'
+import { renderWithQueryClient } from '../test-utils'
 
 // Mock the API
 vi.mock('../api/threads', () => ({
@@ -45,33 +46,39 @@ describe('ThreadGraphView', () => {
   })
 
   it('renders loading state initially', () => {
-    render(<ThreadGraphView />)
+    renderWithQueryClient(<ThreadGraphView />)
     expect(screen.getByText('Loading threads...')).toBeInTheDocument()
   })
 
-  it('calls listThreads API on mount', () => {
-    render(<ThreadGraphView />)
+  it('calls listThreads API on mount', async () => {
+    renderWithQueryClient(<ThreadGraphView />)
 
-    expect(threadsApi.listThreads).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(threadsApi.listThreads).toHaveBeenCalledTimes(1)
+    })
   })
 
-  it('renders without crashing when API returns empty array', () => {
+  it('renders without crashing when API returns empty array', async () => {
     vi.mocked(threadsApi.listThreads).mockResolvedValue([])
 
-    const { container } = render(<ThreadGraphView />)
+    const { container } = renderWithQueryClient(<ThreadGraphView />)
 
-    expect(container).toBeTruthy()
+    await waitFor(() => {
+      expect(container).toBeTruthy()
+    })
   })
 
-  it('renders without crashing when API fails', () => {
+  it('renders without crashing when API fails', async () => {
     vi.mocked(threadsApi.listThreads).mockRejectedValue(new Error('API Error'))
 
     // Suppress console.error for this test
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const { container } = render(<ThreadGraphView />)
+    const { container } = renderWithQueryClient(<ThreadGraphView />)
 
-    expect(container).toBeTruthy()
+    await waitFor(() => {
+      expect(container).toBeTruthy()
+    })
 
     consoleError.mockRestore()
   })
