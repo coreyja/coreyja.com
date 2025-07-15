@@ -40,6 +40,8 @@ pub(crate) mod auth;
 
 pub(crate) mod admin;
 
+pub(crate) mod api;
+
 pub(crate) mod webhooks;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");

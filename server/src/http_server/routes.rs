@@ -2,9 +2,10 @@ use std::{path::PathBuf, str::FromStr};
 
 use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
+use tower_http::cors::{Any, CorsLayer};
 
 use super::{
-    admin, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
+    admin, api, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
     Redirect, Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
     COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
@@ -62,6 +63,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/crons/reset", post(admin::crons::reset_cron))
         .route("/admin/crons/run", post(admin::crons::run_cron))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
+        .nest("/api", api_routes())
         .route("/bytes", get(pages::bytes::bytes_index))
         .route("/bytes/{slug}", get(pages::bytes::byte_get))
         .route(
@@ -154,4 +156,17 @@ async fn newsletter_get(State(posts): State<Arc<BlogPosts>>) -> ResponseResult {
         templates::newsletter::newsletter_page(newsletters),
     )
         .into_response())
+}
+
+fn api_routes() -> Router<AppState> {
+    Router::new()
+        .route("/threads", get(api::threads::list_threads))
+        .route("/threads", post(api::threads::create_thread))
+        .route("/threads/:id", get(api::threads::get_thread))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
 }

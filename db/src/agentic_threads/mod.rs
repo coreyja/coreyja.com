@@ -1,0 +1,323 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
+use sqlx::{types::Uuid, PgPool};
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Thread {
+    pub id: Uuid,
+    pub parent_thread_id: Option<Uuid>,
+    pub branching_stitch_id: Option<Uuid>,
+    pub goal: String,
+    pub tasks: JsonValue,
+    pub status: String,
+    pub result: Option<JsonValue>,
+    pub pending_child_results: JsonValue,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Stitch {
+    pub id: Uuid,
+    pub thread_id: Uuid,
+    pub previous_stitch_id: Option<Uuid>,
+    pub stitch_type: String,
+    // LLM call fields
+    pub llm_request: Option<JsonValue>,
+    pub llm_response: Option<JsonValue>,
+    // Tool call fields
+    pub tool_name: Option<String>,
+    pub tool_input: Option<JsonValue>,
+    pub tool_output: Option<JsonValue>,
+    // Thread result fields
+    pub child_thread_id: Option<Uuid>,
+    pub thread_result_summary: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl Thread {
+    pub async fn create(pool: &PgPool, goal: String) -> color_eyre::Result<Self> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            INSERT INTO threads (goal)
+            VALUES ($1)
+            RETURNING *
+            "#,
+            goal
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn create_child(
+        pool: &PgPool,
+        parent_thread_id: Uuid,
+        branching_stitch_id: Uuid,
+        goal: String,
+    ) -> color_eyre::Result<Self> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            INSERT INTO threads (parent_thread_id, branching_stitch_id, goal)
+            VALUES ($1, $2, $3)
+            RETURNING *
+            "#,
+            parent_thread_id,
+            branching_stitch_id,
+            goal
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn get_by_id(pool: &PgPool, id: Uuid) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            SELECT * FROM threads
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn list_all(pool: &PgPool) -> color_eyre::Result<Vec<Self>> {
+        let threads = sqlx::query_as!(
+            Thread,
+            r#"
+            SELECT * FROM threads
+            ORDER BY created_at DESC
+            "#
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(threads)
+    }
+
+    pub async fn update_status(
+        pool: &PgPool,
+        id: Uuid,
+        status: &str,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            UPDATE threads
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING *
+            "#,
+            status,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn update_tasks(
+        pool: &PgPool,
+        id: Uuid,
+        tasks: JsonValue,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            UPDATE threads
+            SET tasks = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING *
+            "#,
+            tasks,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn complete(
+        pool: &PgPool,
+        id: Uuid,
+        result: JsonValue,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            UPDATE threads
+            SET status = 'completed', result = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING *
+            "#,
+            result,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn fail(
+        pool: &PgPool,
+        id: Uuid,
+        result: JsonValue,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            UPDATE threads
+            SET status = 'failed', result = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING *
+            "#,
+            result,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn get_stitches(&self, pool: &PgPool) -> color_eyre::Result<Vec<Stitch>> {
+        Stitch::get_by_thread_ordered(pool, self.id).await
+    }
+}
+
+impl Stitch {
+    pub async fn create_llm_call(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        llm_request: JsonValue,
+        llm_response: JsonValue,
+    ) -> color_eyre::Result<Self> {
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request, llm_response)
+            VALUES ($1, $2, 'llm_call', $3, $4)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            llm_request,
+            llm_response
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
+    pub async fn create_tool_call(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        tool_name: String,
+        tool_input: JsonValue,
+        tool_output: JsonValue,
+    ) -> color_eyre::Result<Self> {
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, tool_name, tool_input, tool_output)
+            VALUES ($1, $2, 'tool_call', $3, $4, $5)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            tool_name,
+            tool_input,
+            tool_output
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
+    pub async fn create_thread_result(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        child_thread_id: Uuid,
+        thread_result_summary: String,
+    ) -> color_eyre::Result<Self> {
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, child_thread_id, thread_result_summary)
+            VALUES ($1, $2, 'thread_result', $3, $4)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            child_thread_id,
+            thread_result_summary
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
+    pub async fn get_last_stitch(
+        pool: &PgPool,
+        thread_id: Uuid,
+    ) -> color_eyre::Result<Option<Self>> {
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            SELECT * FROM stitches 
+            WHERE thread_id = $1 
+            AND id NOT IN (
+                SELECT previous_stitch_id FROM stitches 
+                WHERE thread_id = $1 AND previous_stitch_id IS NOT NULL
+            )
+            "#,
+            thread_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
+    pub async fn get_by_thread_ordered(
+        pool: &PgPool,
+        thread_id: Uuid,
+    ) -> color_eyre::Result<Vec<Self>> {
+        let stitches = sqlx::query_as!(
+            Stitch,
+            r#"
+            WITH RECURSIVE thread_history AS (
+                SELECT * FROM stitches WHERE thread_id = $1 AND previous_stitch_id IS NULL
+                UNION ALL
+                SELECT s.* FROM stitches s
+                JOIN thread_history th ON s.previous_stitch_id = th.id
+            )
+            SELECT * FROM thread_history ORDER BY created_at
+            "#,
+            thread_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(stitches)
+    }
+}

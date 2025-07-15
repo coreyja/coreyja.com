@@ -1124,6 +1124,7 @@ dependencies = [
  "chrono",
  "color-eyre",
  "serde",
+ "serde_json",
  "sqlx",
  "tracing",
  "uuid",
