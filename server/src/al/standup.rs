@@ -2,11 +2,24 @@ use chrono::Utc;
 use chrono_tz::US::Eastern;
 use serde::{Deserialize, Serialize};
 
+use crate::{
+    al::tools::{discord::SendDiscordMessage, ToolBag},
+    AppState,
+};
+
+#[derive(Debug, Serialize)]
+pub struct AnthropicTool {
+    pub name: String,
+    pub description: String,
+    pub input_schema: serde_json::Value,
+}
+
 #[derive(Debug, Serialize)]
 struct AnthropicRequest {
     model: String,
     max_tokens: u32,
     messages: Vec<Message>,
+    tools: Vec<AnthropicTool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -27,16 +40,26 @@ struct Content {
 
 pub struct StandupAgent {
     client: reqwest::Client,
-    api_key: String,
+    app_state: AppState,
 }
 
 impl StandupAgent {
-    pub fn new(api_key: String) -> Self {
+    pub fn new(app_state: AppState) -> Self {
         let client = reqwest::Client::new();
-        Self { client, api_key }
+        Self { client, app_state }
     }
 
     pub async fn generate_standup_message(&self) -> cja::Result<String> {
+        let channel_id = self.app_state.standup.discord_channel_id.ok_or_else(|| {
+            cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured")
+        })?;
+        let user_id = self.app_state.standup.discord_user_id.ok_or_else(|| {
+            cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_USER_ID not configured")
+        })?;
+
+        let mut tools = ToolBag::default();
+        tools.add_tool(SendDiscordMessage::new(self.app_state.clone()))?;
+
         let now_eastern = Utc::now().with_timezone(&Eastern);
         let date_str = now_eastern.format("%A, %B %d, %Y at %I:%M %p").to_string();
 
@@ -46,7 +69,9 @@ impl StandupAgent {
             Keep it brief (2-3 sentences max), professional but friendly. \
             Include the current time: {date_str}. \
             Vary the message each day - be creative but appropriate for a work context. \
-            End with encouragement for the standup meeting."
+            End with encouragement for the standup meeting.
+            Send the message to the following discord channel: {channel_id}
+            And tag the following user: {user_id}"
         );
 
         let request = AnthropicRequest {
@@ -56,12 +81,13 @@ impl StandupAgent {
                 role: "user".to_string(),
                 content: prompt,
             }],
+            tools: tools.as_api(),
         };
 
         let response = self
             .client
             .post("https://api.anthropic.com/v1/messages")
-            .header("x-api-key", &self.api_key)
+            .header("x-api-key", &self.app_state.standup.anthropic_api_key)
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&request)
