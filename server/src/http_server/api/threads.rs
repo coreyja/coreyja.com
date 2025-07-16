@@ -26,6 +26,24 @@ struct ThreadsListResponse {
     threads: Vec<Thread>,
 }
 
+#[derive(Serialize, Deserialize)]
+struct ThreadWithCounts {
+    #[serde(flatten)]
+    thread: Thread,
+    stitch_count: i64,
+    children_count: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ThreadsWithCountsResponse {
+    threads: Vec<ThreadWithCounts>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ChildrenResponse {
+    children: Vec<Thread>,
+}
+
 #[derive(Deserialize, Serialize)]
 pub(crate) struct CreateThreadRequest {
     goal: String,
@@ -41,7 +59,30 @@ pub async fn list_threads(
         .context("Failed to fetch threads")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(ThreadsListResponse { threads }))
+    let mut threads_with_counts = Vec::new();
+    for thread in threads {
+        let stitch_count = thread
+            .count_stitches(state.db())
+            .await
+            .context("Failed to count stitches")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let children_count = thread
+            .count_children(state.db())
+            .await
+            .context("Failed to count children")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        threads_with_counts.push(ThreadWithCounts {
+            thread,
+            stitch_count,
+            children_count,
+        });
+    }
+
+    Ok(Json(ThreadsWithCountsResponse {
+        threads: threads_with_counts,
+    }))
 }
 
 #[axum_macros::debug_handler]
@@ -80,3 +121,81 @@ pub async fn create_thread(
 }
 
 use color_eyre::eyre::Context;
+
+#[axum_macros::debug_handler]
+pub async fn get_thread_parents(
+    _admin: AdminUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> ResponseResult<impl IntoResponse> {
+    let thread = Thread::get_by_id(state.db(), id)
+        .await
+        .context("Failed to fetch thread")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or_else(|| color_eyre::eyre::eyre!("Thread not found"))?;
+
+    let parents = thread
+        .get_parent_chain(state.db())
+        .await
+        .context("Failed to fetch parent chain")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(parents))
+}
+
+#[axum_macros::debug_handler]
+pub async fn list_recent_threads(
+    _admin: AdminUser,
+    State(state): State<AppState>,
+) -> ResponseResult<impl IntoResponse> {
+    let threads = Thread::list_recent_top_level(state.db(), 20)
+        .await
+        .context("Failed to fetch recent threads")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let mut threads_with_counts = Vec::new();
+    for thread in threads {
+        let stitch_count = thread
+            .count_stitches(state.db())
+            .await
+            .context("Failed to count stitches")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let children_count = thread
+            .count_children(state.db())
+            .await
+            .context("Failed to count children")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        threads_with_counts.push(ThreadWithCounts {
+            thread,
+            stitch_count,
+            children_count,
+        });
+    }
+
+    Ok(Json(ThreadsWithCountsResponse {
+        threads: threads_with_counts,
+    }))
+}
+
+#[axum_macros::debug_handler]
+pub async fn get_thread_children(
+    _admin: AdminUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> ResponseResult<impl IntoResponse> {
+    let thread = Thread::get_by_id(state.db(), id)
+        .await
+        .context("Failed to fetch thread")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or_else(|| color_eyre::eyre::eyre!("Thread not found"))?;
+
+    let children = thread
+        .get_children(state.db())
+        .await
+        .context("Failed to fetch children")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(ChildrenResponse { children }))
+}

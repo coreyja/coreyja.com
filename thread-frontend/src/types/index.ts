@@ -79,3 +79,16 @@ export interface ThreadWithStitches extends Thread {
 export interface ThreadsListResponse {
   threads: Thread[]
 }
+
+export interface ThreadWithCounts extends Thread {
+  stitch_count: number
+  children_count: number
+}
+
+export interface ThreadsWithCountsResponse {
+  threads: ThreadWithCounts[]
+}
+
+export interface ChildrenResponse {
+  children: Thread[]
+}

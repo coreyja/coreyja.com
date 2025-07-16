@@ -209,6 +209,82 @@ impl Thread {
         }
         Ok(None)
     }
+
+    pub async fn get_parent_chain(&self, pool: &PgPool) -> color_eyre::Result<Vec<Self>> {
+        let mut chain = Vec::new();
+        let mut current_thread = self.clone();
+        
+        while let Some(parent) = current_thread.get_parent_thread(pool).await? {
+            chain.push(parent.clone());
+            current_thread = parent;
+        }
+        
+        chain.reverse(); // Return root-to-child order
+        Ok(chain)
+    }
+
+    pub async fn list_recent_top_level(pool: &PgPool, limit: i64) -> color_eyre::Result<Vec<Self>> {
+        let threads = sqlx::query_as!(
+            Thread,
+            r#"
+            SELECT * FROM threads
+            WHERE branching_stitch_id IS NULL
+            ORDER BY created_at DESC
+            LIMIT $1
+            "#,
+            limit
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(threads)
+    }
+
+    pub async fn get_children(&self, pool: &PgPool) -> color_eyre::Result<Vec<Self>> {
+        let children = sqlx::query_as!(
+            Thread,
+            r#"
+            SELECT t.* FROM threads t
+            JOIN stitches s ON t.branching_stitch_id = s.stitch_id
+            WHERE s.thread_id = $1
+            ORDER BY t.created_at ASC
+            "#,
+            self.thread_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(children)
+    }
+
+    pub async fn count_children(&self, pool: &PgPool) -> color_eyre::Result<i64> {
+        let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count FROM threads t
+            JOIN stitches s ON t.branching_stitch_id = s.stitch_id
+            WHERE s.thread_id = $1
+            "#,
+            self.thread_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(count.count.unwrap_or(0))
+    }
+
+    pub async fn count_stitches(&self, pool: &PgPool) -> color_eyre::Result<i64> {
+        let count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count FROM stitches
+            WHERE thread_id = $1
+            "#,
+            self.thread_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(count.count.unwrap_or(0))
+    }
 }
 
 impl Stitch {

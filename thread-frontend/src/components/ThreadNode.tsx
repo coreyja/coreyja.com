@@ -1,11 +1,12 @@
 import React from 'react'
 import { Handle, Position } from '@xyflow/react'
-import { Thread } from '../types'
+import { Thread, ThreadWithCounts } from '../types'
 
 interface ThreadNodeProps {
   data: {
-    thread: Thread
-    onClick: (thread: Thread) => void
+    thread: Thread | ThreadWithCounts
+    onClick: (thread: Thread | ThreadWithCounts) => void
+    opacity?: number
   }
 }
 
@@ -18,7 +19,7 @@ const statusColors = {
 }
 
 export const ThreadNode: React.FC<ThreadNodeProps> = ({ data }) => {
-  const { thread, onClick } = data
+  const { thread, onClick, opacity = 1 } = data
   const color = statusColors[thread.status]
 
   return (
@@ -30,6 +31,8 @@ export const ThreadNode: React.FC<ThreadNodeProps> = ({ data }) => {
         padding: '10px',
         minWidth: '200px',
         cursor: 'pointer',
+        opacity,
+        transition: 'opacity 0.3s ease',
       }}
       onClick={() => onClick(thread)}
     >
@@ -42,6 +45,12 @@ export const ThreadNode: React.FC<ThreadNodeProps> = ({ data }) => {
       {thread.tasks.length > 0 && (
         <div style={{ fontSize: '10px', marginTop: '4px' }}>
           Tasks: {thread.tasks.filter(t => t.status === 'completed').length}/{thread.tasks.length}
+        </div>
+      )}
+      {'stitch_count' in thread && (
+        <div style={{ fontSize: '10px', marginTop: '4px', display: 'flex', gap: '10px' }}>
+          <span>Stitches: {thread.stitch_count}</span>
+          <span>Children: {thread.children_count}</span>
         </div>
       )}
       <Handle type="source" position={Position.Bottom} />
