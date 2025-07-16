@@ -1,8 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { threadsApi } from '../api/threads'
 
 export const THREADS_QUERY_KEY = ['threads'] as const
 export const THREAD_QUERY_KEY = (id: string) => ['thread', id] as const
+export const ALL_THREAD_DETAILS_QUERY_KEY = (threadIds: string[]) =>
+  ['all-thread-details', threadIds] as const
 
 export const useThreads = () => {
   return useQuery({
@@ -20,14 +22,13 @@ export const useThread = (id: string | undefined) => {
   })
 }
 
-export const useCreateThread = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (goal: string) => threadsApi.createThread(goal),
-    onSuccess: () => {
-      // Invalidate and refetch threads list
-      queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY })
+export const useAllThreadDetails = (threadIds: string[] | undefined) => {
+  return useQuery({
+    queryKey: ALL_THREAD_DETAILS_QUERY_KEY(threadIds ?? []),
+    queryFn: async () => {
+      if (!threadIds || threadIds.length === 0) return []
+      return Promise.all(threadIds.map(id => threadsApi.getThread(id)))
     },
+    enabled: !!threadIds && threadIds.length > 0,
   })
 }

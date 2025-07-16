@@ -8,7 +8,6 @@ describe('ThreadDetailPanel', () => {
 
   const baseThread: Thread = {
     thread_id: '123e4567-e89b-12d3-a456-426614174000',
-    parent_thread_id: null,
     branching_stitch_id: null,
     goal: 'Test thread goal',
     tasks: [],

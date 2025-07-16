@@ -36,7 +36,6 @@ describe('threadsApi', () => {
       const mockThreads: Thread[] = [
         {
           thread_id: '123',
-          parent_thread_id: null,
           branching_stitch_id: null,
           goal: 'Test thread',
           tasks: [],
@@ -70,7 +69,6 @@ describe('threadsApi', () => {
     it('fetches single thread with stitches successfully', async () => {
       const mockThreadWithStitches: ThreadWithStitches = {
         thread_id: '123',
-        parent_thread_id: null,
         branching_stitch_id: null,
         goal: 'Test thread',
         tasks: [],
@@ -134,7 +132,6 @@ describe('threadsApi', () => {
     it('creates thread successfully', async () => {
       const newThread: Thread = {
         thread_id: '789',
-        parent_thread_id: null,
         branching_stitch_id: null,
         goal: 'New thread goal',
         tasks: [],

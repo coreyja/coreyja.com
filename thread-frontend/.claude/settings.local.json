@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(./create_sample_data.sh:*)"
+    ],
+    "deny": []
+  }
+}

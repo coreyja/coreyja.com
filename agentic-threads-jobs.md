@@ -39,7 +39,6 @@ Handles child thread completion notifications.
 **Input**:
 ```rust
 struct NotifyParentThreadInput {
-    parent_thread_id: Uuid,
     child_thread_id: Uuid,
     result_summary: String,
     result_data: Option<serde_json::Value>,

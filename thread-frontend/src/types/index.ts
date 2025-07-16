@@ -47,7 +47,6 @@ export type ToolOutput = Record<string, unknown>
 
 export interface Thread {
   thread_id: string
-  parent_thread_id: string | null
   branching_stitch_id: string | null
   goal: string
   tasks: Task[]

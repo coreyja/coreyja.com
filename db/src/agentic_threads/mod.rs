@@ -6,7 +6,6 @@ use sqlx::{types::Uuid, PgPool};
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Thread {
     pub thread_id: Uuid,
-    pub parent_thread_id: Option<Uuid>,
     pub branching_stitch_id: Option<Uuid>,
     pub goal: String,
     pub tasks: JsonValue,
@@ -52,18 +51,16 @@ impl Thread {
 
     pub async fn create_child(
         pool: &PgPool,
-        parent_thread_id: Uuid,
         branching_stitch_id: Uuid,
         goal: String,
     ) -> color_eyre::Result<Self> {
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            INSERT INTO threads (parent_thread_id, branching_stitch_id, goal)
-            VALUES ($1, $2, $3)
+            INSERT INTO threads (branching_stitch_id, goal)
+            VALUES ($1, $2)
             RETURNING *
             "#,
-            parent_thread_id,
             branching_stitch_id,
             goal
         )
@@ -192,6 +189,25 @@ impl Thread {
 
     pub async fn get_stitches(&self, pool: &PgPool) -> color_eyre::Result<Vec<Stitch>> {
         Stitch::get_by_thread_ordered(pool, self.thread_id).await
+    }
+
+    pub async fn get_parent_thread(&self, pool: &PgPool) -> color_eyre::Result<Option<Self>> {
+        if let Some(branching_stitch_id) = self.branching_stitch_id {
+            let parent_stitch = sqlx::query!(
+                r#"
+                SELECT thread_id FROM stitches
+                WHERE stitch_id = $1
+                "#,
+                branching_stitch_id
+            )
+            .fetch_optional(pool)
+            .await?;
+
+            if let Some(parent) = parent_stitch {
+                return Thread::get_by_id(pool, parent.thread_id).await;
+            }
+        }
+        Ok(None)
     }
 }
 
