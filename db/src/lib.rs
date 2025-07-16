@@ -3,6 +3,7 @@ use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 
+pub mod agentic_threads;
 pub mod twitch_chatters;
 pub mod users;
 

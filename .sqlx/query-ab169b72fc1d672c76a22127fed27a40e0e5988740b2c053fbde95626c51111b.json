@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(*) as count FROM threads t\n            JOIN stitches s ON t.branching_stitch_id = s.stitch_id\n            WHERE s.thread_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ab169b72fc1d672c76a22127fed27a40e0e5988740b2c053fbde95626c51111b"
+}

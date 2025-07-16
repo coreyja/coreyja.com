@@ -40,7 +40,12 @@ pub(crate) mod auth;
 
 pub(crate) mod admin;
 
+pub(crate) mod api;
+
 pub(crate) mod webhooks;
+
+#[cfg(test)]
+pub(crate) mod test_helpers;
 
 const TAILWIND_STYLES: &str = include_str!("../../../target/tailwind.css");
 const COMIC_CODE_STYLES: &str = include_str!("../styles/comic_code.css");

@@ -1,2 +1,5 @@
 target/
 models/
+thread-frontend/node_modules/
+thread-frontend/dist/
+thread-frontend/.tanstack/
