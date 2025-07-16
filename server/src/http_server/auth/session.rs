@@ -80,6 +80,12 @@ pub struct AdminUser {
 
 const COREYJA_PERSONAL_GITHUB_ID: &str = "MDQ6VXNlcjk2NDc3MQ==";
 
+impl GithubLink {
+    pub fn is_coreyja(&self) -> bool {
+        self.external_github_id == COREYJA_PERSONAL_GITHUB_ID
+    }
+}
+
 pub async fn is_admin_user(user_id: Uuid, state: &AppState) -> cja::Result<bool> {
     let github_link = sqlx::query_as!(
         GithubLink,
@@ -93,7 +99,7 @@ pub async fn is_admin_user(user_id: Uuid, state: &AppState) -> cja::Result<bool>
         return Ok(false);
     };
 
-    Ok(github_link.external_github_id == COREYJA_PERSONAL_GITHUB_ID)
+    Ok(github_link.is_coreyja())
 }
 
 impl FromRequestParts<AppState> for AdminUser {

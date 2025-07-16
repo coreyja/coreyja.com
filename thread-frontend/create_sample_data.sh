@@ -67,6 +67,52 @@ VALUES
    NULL, NULL, NULL, NULL, NULL, 'a2b2c3d4-e5f6-7890-abcd-ef1234567802', 
    'Security scan completed: 2 medium issues found', NOW() - INTERVAL '1 hour 40 minutes');
 
+-- Add another stitch to thread 1 that spawns a performance analysis thread
+INSERT INTO stitches (stitch_id, thread_id, previous_stitch_id, stitch_type, llm_request, llm_response, tool_name, tool_input, tool_output, child_thread_id, thread_result_summary, created_at)
+VALUES
+  ('b3c2c3d4-e5f6-7890-abcd-ef1234567804', 'a1b2c3d4-e5f6-7890-abcd-ef1234567801', 'b3b2c3d4-e5f6-7890-abcd-ef1234567803', 'thread_result', 
+   NULL, NULL, NULL, NULL, NULL, 'a9b2c3d4-e5f6-7890-abcd-ef1234567809', 
+   'Performance analysis initiated', NOW() - INTERVAL '1 hour 35 minutes');
+
+-- Create another child thread 9: Performance Analyzer (also spawned from thread 1)
+INSERT INTO threads (thread_id, branching_stitch_id, goal, tasks, status, result, pending_child_results, created_at, updated_at)
+VALUES 
+  ('a9b2c3d4-e5f6-7890-abcd-ef1234567809', 'b3c2c3d4-e5f6-7890-abcd-ef1234567804', 'Sample: Analyze code performance and optimization opportunities', 
+   '[{"id": "task-1", "description": "Profile code execution", "status": "completed"},
+     {"id": "task-2", "description": "Identify bottlenecks", "status": "completed"},
+     {"id": "task-3", "description": "Suggest optimizations", "status": "completed"}]'::jsonb,
+   'completed', 
+   '{"success": true, "data": {"bottlenecks": 3, "potential_speedup": "40%"}}'::jsonb, 
+   '[]'::jsonb, NOW() - INTERVAL '1 hour 35 minutes', NOW() - INTERVAL '20 minutes');
+
+-- Add stitches for the performance analyzer thread
+INSERT INTO stitches (stitch_id, thread_id, previous_stitch_id, stitch_type, llm_request, llm_response, tool_name, tool_input, tool_output, child_thread_id, thread_result_summary, created_at)
+VALUES
+  ('b9a2c3d4-e5f6-7890-abcd-ef1234567809', 'a9b2c3d4-e5f6-7890-abcd-ef1234567809', NULL, 'tool_call', 
+   NULL, NULL, 'profiler', 
+   '{"mode": "cpu", "duration": 60}'::jsonb,
+   '{"hot_functions": ["process_data", "calculate_metrics", "render_output"]}'::jsonb,
+   NULL, NULL, NOW() - INTERVAL '1 hour 25 minutes'),
+  
+  ('b9b2c3d4-e5f6-7890-abcd-ef1234567810', 'a9b2c3d4-e5f6-7890-abcd-ef1234567809', 'b9a2c3d4-e5f6-7890-abcd-ef1234567809', 'llm_call', 
+   '{"model": "gpt-4", "messages": [{"role": "user", "content": "Analyze performance bottlenecks"}]}'::jsonb,
+   '{"choices": [{"message": {"content": "The main bottlenecks are in data processing..."}}]}'::jsonb,
+   NULL, NULL, NULL, NULL, NULL, NOW() - INTERVAL '1 hour 15 minutes');
+
+-- Add final stitches to thread 1 after spawning children
+INSERT INTO stitches (stitch_id, thread_id, previous_stitch_id, stitch_type, llm_request, llm_response, tool_name, tool_input, tool_output, child_thread_id, thread_result_summary, created_at)
+VALUES
+  ('b3d2c3d4-e5f6-7890-abcd-ef1234567805', 'a1b2c3d4-e5f6-7890-abcd-ef1234567801', 'b3c2c3d4-e5f6-7890-abcd-ef1234567804', 'llm_call', 
+   '{"model": "gpt-4", "messages": [{"role": "user", "content": "Compile final code review report"}]}'::jsonb,
+   '{"choices": [{"message": {"content": "Code review complete. Security and performance analyses delegated..."}}]}'::jsonb,
+   NULL, NULL, NULL, NULL, NULL, NOW() - INTERVAL '1 hour 30 minutes'),
+  
+  ('b3e2c3d4-e5f6-7890-abcd-ef1234567806', 'a1b2c3d4-e5f6-7890-abcd-ef1234567801', 'b3d2c3d4-e5f6-7890-abcd-ef1234567805', 'tool_call', 
+   NULL, NULL, 'report_generator', 
+   '{"format": "markdown", "include_children": true}'::jsonb,
+   '{"report_url": "/reports/code-review-123.md", "size": "4.2KB"}'::jsonb,
+   NULL, NULL, NOW() - INTERVAL '1 hour 25 minutes');
+
 -- Create child thread 2: Security Scanner (spawned from stitch b3b2c3d4-e5f6-7890-abcd-ef1234567803)
 INSERT INTO threads (thread_id, branching_stitch_id, goal, tasks, status, result, pending_child_results, created_at, updated_at)
 VALUES 
@@ -90,6 +136,37 @@ VALUES
    '{"model": "gpt-4", "messages": [{"role": "user", "content": "Summarize security findings"}]}'::jsonb,
    '{"choices": [{"message": {"content": "Found 2 medium severity issues..."}}]}'::jsonb,
    NULL, NULL, NULL, NULL, NULL, NOW() - INTERVAL '1 hour 20 minutes');
+
+-- Add a stitch in thread 2 that spawns a remediation thread (grandchild of thread 1)
+INSERT INTO stitches (stitch_id, thread_id, previous_stitch_id, stitch_type, llm_request, llm_response, tool_name, tool_input, tool_output, child_thread_id, thread_result_summary, created_at)
+VALUES
+  ('b5a2c3d4-e5f6-7890-abcd-ef1234567805', 'a2b2c3d4-e5f6-7890-abcd-ef1234567802', 'b5b2c3d4-e5f6-7890-abcd-ef1234567805', 'thread_result', 
+   NULL, NULL, NULL, NULL, NULL, 'a8b2c3d4-e5f6-7890-abcd-ef1234567808', 
+   'Fixing security vulnerabilities', NOW() - INTERVAL '1 hour 10 minutes');
+
+-- Create grandchild thread 8: Security Remediation (spawned from thread 2)
+INSERT INTO threads (thread_id, branching_stitch_id, goal, tasks, status, result, pending_child_results, created_at, updated_at)
+VALUES 
+  ('a8b2c3d4-e5f6-7890-abcd-ef1234567808', 'b5a2c3d4-e5f6-7890-abcd-ef1234567805', 'Sample: Fix identified security vulnerabilities', 
+   '[{"id": "task-1", "description": "Patch SQL injection vulnerability", "status": "completed"},
+     {"id": "task-2", "description": "Fix XSS vulnerability", "status": "completed"},
+     {"id": "task-3", "description": "Update security tests", "status": "pending"}]'::jsonb,
+   'running', NULL, '[]'::jsonb, NOW() - INTERVAL '1 hour 10 minutes', NOW() - INTERVAL '5 minutes');
+
+-- Add stitches for the remediation thread
+INSERT INTO stitches (stitch_id, thread_id, previous_stitch_id, stitch_type, llm_request, llm_response, tool_name, tool_input, tool_output, child_thread_id, thread_result_summary, created_at)
+VALUES
+  ('b8a2c3d4-e5f6-7890-abcd-ef1234567808', 'a8b2c3d4-e5f6-7890-abcd-ef1234567808', NULL, 'tool_call', 
+   NULL, NULL, 'code_patcher', 
+   '{"vulnerability": "SQL_INJECTION", "file": "database.py"}'::jsonb,
+   '{"status": "patched", "lines_changed": 15}'::jsonb,
+   NULL, NULL, NOW() - INTERVAL '1 hour'),
+  
+  ('b8b2c3d4-e5f6-7890-abcd-ef1234567809', 'a8b2c3d4-e5f6-7890-abcd-ef1234567808', 'b8a2c3d4-e5f6-7890-abcd-ef1234567808', 'tool_call', 
+   NULL, NULL, 'code_patcher', 
+   '{"vulnerability": "XSS", "file": "views.py"}'::jsonb,
+   '{"status": "patched", "lines_changed": 8}'::jsonb,
+   NULL, NULL, NOW() - INTERVAL '50 minutes');
 
 -- Add stitches for thread 3
 INSERT INTO stitches (stitch_id, thread_id, previous_stitch_id, stitch_type, llm_request, llm_response, tool_name, tool_input, tool_output, child_thread_id, thread_result_summary, created_at)

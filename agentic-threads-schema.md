@@ -13,7 +13,6 @@ Stores the main thread entities with their goals, status, and relationships.
 ```sql
 CREATE TABLE threads (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    parent_thread_id UUID REFERENCES threads(id),
     branching_stitch_id UUID REFERENCES stitches(id),
     goal TEXT NOT NULL,
     tasks JSONB DEFAULT '[]'::jsonb,
@@ -24,7 +23,6 @@ CREATE TABLE threads (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_threads_parent_thread_id ON threads(parent_thread_id);
 CREATE INDEX idx_threads_status ON threads(status);
 ```
 
@@ -38,32 +36,33 @@ CREATE TABLE stitches (
     thread_id UUID NOT NULL REFERENCES threads(id),
     previous_stitch_id UUID REFERENCES stitches(id),
     stitch_type TEXT NOT NULL CHECK (stitch_type IN ('llm_call', 'tool_call', 'thread_result')),
-    
+
     -- LLM call fields
     llm_request JSONB,
     llm_response JSONB,
-    
+
     -- Tool call fields
     tool_name TEXT,
     tool_input JSONB,
     tool_output JSONB,
-    
+
     -- Thread result fields (when reporting child thread completion)
     child_thread_id UUID REFERENCES threads(id),
     thread_result_summary TEXT,
-    
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_stitches_thread_id ON stitches(thread_id);
 CREATE INDEX idx_stitches_previous_stitch_id ON stitches(previous_stitch_id);
-CREATE UNIQUE INDEX idx_stitches_thread_previous ON stitches(thread_id, previous_stitch_id) 
+CREATE UNIQUE INDEX idx_stitches_thread_previous ON stitches(thread_id, previous_stitch_id)
     WHERE previous_stitch_id IS NOT NULL;
 ```
 
 ## Key Design Decisions
 
 ### Thread Relationships
+
 - `parent_thread_id`: Links to the parent thread that spawned this thread
 - `branching_stitch_id`: References the exact stitch in the parent thread where this child was created
 - Both fields allow navigation of the thread hierarchy
@@ -75,6 +74,7 @@ CREATE UNIQUE INDEX idx_stitches_thread_previous ON stitches(thread_id, previous
 - First stitch in a thread has `previous_stitch_id = NULL`
 
 ### Task Storage
+
 - Tasks stored as JSONB in the `tasks` column
 - Flexible schema allows for evolving task structure
 - Example: `[{"id": "1", "description": "Parse input", "status": "done"}, {"id": "2", "description": "Generate response", "status": "pending"}]`
@@ -89,6 +89,7 @@ CREATE UNIQUE INDEX idx_stitches_thread_previous ON stitches(thread_id, previous
   - Keeps parent thread context focused and manageable
 
 ### Concurrency Control
+
 - Job processor can use row-level locking on thread status
 - Example: `UPDATE threads SET status = 'running' WHERE id = ? AND status = 'pending' RETURNING *`
 - Linear stitch structure within threads prevents race conditions
@@ -122,16 +123,18 @@ CREATE UNIQUE INDEX idx_stitches_thread_previous ON stitches(thread_id, previous
 ## Sample Queries
 
 ### Find last stitch in a thread
+
 ```sql
-SELECT * FROM stitches 
-WHERE thread_id = ? 
+SELECT * FROM stitches
+WHERE thread_id = ?
 AND id NOT IN (
-    SELECT previous_stitch_id FROM stitches 
+    SELECT previous_stitch_id FROM stitches
     WHERE thread_id = ? AND previous_stitch_id IS NOT NULL
 );
 ```
 
 ### Get thread execution history
+
 ```sql
 WITH RECURSIVE thread_history AS (
     SELECT * FROM stitches WHERE thread_id = ? AND previous_stitch_id IS NULL

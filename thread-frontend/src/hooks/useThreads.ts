@@ -21,14 +21,3 @@ export const useThread = (id: string | undefined) => {
     enabled: !!id,
   })
 }
-
-export const useAllThreadDetails = (threadIds: string[] | undefined) => {
-  return useQuery({
-    queryKey: ALL_THREAD_DETAILS_QUERY_KEY(threadIds ?? []),
-    queryFn: async () => {
-      if (!threadIds || threadIds.length === 0) return []
-      return Promise.all(threadIds.map(id => threadsApi.getThread(id)))
-    },
-    enabled: !!threadIds && threadIds.length > 0,
-  })
-}

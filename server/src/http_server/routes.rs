@@ -71,7 +71,6 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/api/threads", post(api::threads::create_thread))
         .route("/admin/api/threads/{id}", get(api::threads::get_thread))
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
-        .nest("/api", api_routes())
         .route("/bytes", get(pages::bytes::bytes_index))
         .route("/bytes/{slug}", get(pages::bytes::byte_get))
         .route(
@@ -164,13 +163,4 @@ async fn newsletter_get(State(posts): State<Arc<BlogPosts>>) -> ResponseResult {
         templates::newsletter::newsletter_page(newsletters),
     )
         .into_response())
-}
-
-fn api_routes() -> Router<AppState> {
-    Router::new().layer(
-        CorsLayer::new()
-            .allow_origin(Any)
-            .allow_methods(Any)
-            .allow_headers(Any),
-    )
 }

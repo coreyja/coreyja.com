@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     encrypt::encrypt,
+    github::GithubLink,
     http_server::{auth::session::DBSession, ResponseResult},
     AppState,
 };
@@ -223,6 +224,16 @@ pub(crate) async fn github_oauth(
     .execute(pool)
     .await?;
 
+    let github_link = sqlx::query_as!(
+        GithubLink,
+        r#"
+        SELECT * FROM GithubLinks WHERE github_link_id = $1
+        "#,
+        github_link_id
+    )
+    .fetch_one(pool)
+    .await?;
+
     let state = sqlx::query!(
         r#"
         UPDATE GithubLoginStates
@@ -238,7 +249,13 @@ pub(crate) async fn github_oauth(
     .await?;
 
     let Some(app) = state.app else {
-        let return_to = state.return_to.unwrap_or_else(|| "/".to_string());
+        let return_to = state.return_to.unwrap_or_else(|| {
+            if github_link.is_coreyja() {
+                "/admin".to_string()
+            } else {
+                "/".to_string()
+            }
+        });
         return ResponseResult::Ok(Redirect::temporary(&return_to));
     };
 

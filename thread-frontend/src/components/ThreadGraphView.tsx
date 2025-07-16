@@ -1,12 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import {
-  ReactFlow,
-  useNodesState,
-  useEdgesState,
-  Controls,
-  Background,
-  BackgroundVariant,
-} from '@xyflow/react'
+import React, { useState, useCallback, useMemo } from 'react'
+import { ReactFlow, Controls, Background, BackgroundVariant } from '@xyflow/react'
 import type { Node, Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -22,8 +15,6 @@ const nodeTypes = {
 }
 
 export const ThreadGraphView: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [selectedThreadId, setSelectedThreadId] = useState<string>()
   const [selectedStitch, setSelectedStitch] = useState<Stitch>()
 
@@ -49,7 +40,6 @@ export const ThreadGraphView: React.FC = () => {
           },
         }
         newNodes.push(threadNode)
-
       })
     }
 
@@ -57,7 +47,7 @@ export const ThreadGraphView: React.FC = () => {
     if (threads) {
       // Create a map of child threads that have branching_stitch_id
       const childThreads = threads.filter(t => t.branching_stitch_id)
-      
+
       // For the selected thread, check if any of its stitches spawned child threads
       if (selectedThreadDetails && selectedThreadDetails.stitches) {
         childThreads.forEach(childThread => {
@@ -158,11 +148,6 @@ export const ThreadGraphView: React.FC = () => {
     return { nodesData: newNodes, edgesData: newEdges }
   }, [threads, selectedThreadDetails])
 
-  useEffect(() => {
-    setNodes(nodesData)
-    setEdges(edgesData)
-  }, [nodesData, edgesData, setNodes, setEdges])
-
   const handlePaneClick = useCallback(() => {
     setSelectedThreadId(undefined)
     setSelectedStitch(undefined)
@@ -186,10 +171,8 @@ export const ThreadGraphView: React.FC = () => {
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        nodes={nodesData}
+        edges={edgesData}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         fitView
