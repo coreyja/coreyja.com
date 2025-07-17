@@ -8,6 +8,7 @@ import { renderWithQueryClient } from '../test-utils'
 vi.mock('../api/threads', () => ({
   threadsApi: {
     listThreads: vi.fn(() => Promise.resolve([])),
+    listRecentThreads: vi.fn(() => Promise.resolve([])),
     getThread: vi.fn(),
   },
 }))
@@ -54,7 +55,7 @@ describe('ThreadGraphView', () => {
     renderWithQueryClient(<ThreadGraphView />)
 
     await waitFor(() => {
-      expect(threadsApi.listThreads).toHaveBeenCalledTimes(1)
+      expect(threadsApi.listRecentThreads).toHaveBeenCalledTimes(1)
     })
   })
 

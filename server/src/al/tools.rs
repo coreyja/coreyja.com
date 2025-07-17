@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::al::standup::AnthropicTool;
+use crate::al::standup::{AnthropicTool, ToolUseContent};
 pub mod discord;
 
 #[async_trait::async_trait]
@@ -84,5 +84,20 @@ impl ToolBag {
                 input_schema: tool.tool_parameters(),
             })
             .collect()
+    }
+
+    pub(crate) async fn call_tool(
+        &self,
+        tool_use_content: ToolUseContent,
+    ) -> cja::Result<serde_json::Value> {
+        let tool = self
+            .tools_by_name
+            .get(tool_use_content.name.as_str())
+            .ok_or_else(|| {
+                cja::color_eyre::eyre::eyre!("Tool not found: {}", tool_use_content.name)
+            })?;
+
+        let output = tool.run(tool_use_content.input).await?;
+        Ok(output)
     }
 }
