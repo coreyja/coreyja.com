@@ -213,12 +213,12 @@ impl Thread {
     pub async fn get_parent_chain(&self, pool: &PgPool) -> color_eyre::Result<Vec<Self>> {
         let mut chain = Vec::new();
         let mut current_thread = self.clone();
-        
+
         while let Some(parent) = current_thread.get_parent_thread(pool).await? {
             chain.push(parent.clone());
             current_thread = parent;
         }
-        
+
         chain.reverse(); // Return root-to-child order
         Ok(chain)
     }

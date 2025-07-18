@@ -66,7 +66,7 @@ pub async fn list_threads(
             .await
             .context("Failed to count stitches")
             .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
-        
+
         let children_count = thread
             .count_children(state.db())
             .await
@@ -160,7 +160,7 @@ pub async fn list_recent_threads(
             .await
             .context("Failed to count stitches")
             .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
-        
+
         let children_count = thread
             .count_children(state.db())
             .await
