@@ -16,6 +16,33 @@ use crate::{
     AppState,
 };
 
+#[derive(Debug, thiserror::Error)]
+#[error("Standup loop error")]
+enum StandupLoopError {
+    #[error("Aborted loop")]
+    AbortedLoop,
+    #[error("Error: {0}")]
+    Other(#[from] cja::color_eyre::Report),
+}
+
+impl From<reqwest::Error> for StandupLoopError {
+    fn from(err: reqwest::Error) -> Self {
+        Self::Other(err.into())
+    }
+}
+
+impl From<serde_json::Error> for StandupLoopError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::Other(err.into())
+    }
+}
+
+impl From<sqlx::Error> for StandupLoopError {
+    fn from(err: sqlx::Error) -> Self {
+        Self::Other(err.into())
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct AnthropicTool {
     pub name: String,
@@ -122,7 +149,22 @@ impl StandupAgent {
                 )
                 .await?;
             }
-            Err(e) => {
+            Err(StandupLoopError::AbortedLoop) => {
+                Thread::abort(
+                    &self.app_state.db,
+                    thread_id,
+                    json!({
+                        "success": false,
+                        "error": "Thread aborted: Maximum message limit reached"
+                    }),
+                )
+                .await?;
+
+                return Err(cja::color_eyre::eyre::eyre!(
+                    "Thread aborted: Maximum message limit reached"
+                ));
+            }
+            Err(StandupLoopError::Other(e)) => {
                 Thread::fail(
                     &self.app_state.db,
                     thread_id,
@@ -132,6 +174,7 @@ impl StandupAgent {
                     }),
                 )
                 .await?;
+
                 return Err(e);
             }
         }
@@ -144,7 +187,7 @@ impl StandupAgent {
         &self,
         thread_id: Uuid,
         previous_stitch_id: &mut Option<Uuid>,
-    ) -> cja::Result<()> {
+    ) -> Result<(), StandupLoopError> {
         let channel_id = self.app_state.standup.discord_channel_id.ok_or_else(|| {
             cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured")
         })?;
@@ -177,10 +220,16 @@ impl StandupAgent {
             content: vec![Content::Text(TextContent { text: prompt })],
         }];
 
+        const MAX_MESSAGES: usize = 100;
+
         while *continue_looping.lock().await {
+            if messages.len() > MAX_MESSAGES {
+                return Err(StandupLoopError::AbortedLoop);
+            }
+
             let request = AnthropicRequest {
                 model: "claude-sonnet-4-0".to_string(),
-                max_tokens: 150,
+                max_tokens: 1024,
                 messages: messages.clone(),
                 tools: tools.as_api(),
                 tool_choice: Some(ToolChoice {
@@ -200,10 +249,10 @@ impl StandupAgent {
 
             if !response.status().is_success() {
                 let error_text = response.text().await?;
-                return Err(cja::color_eyre::eyre::eyre!(
+                return Err(StandupLoopError::Other(cja::color_eyre::eyre::eyre!(
                     "Anthropic API error: {}",
                     error_text
-                ));
+                )));
             }
 
             let response_data: AnthropicResponse = response.json().await?;

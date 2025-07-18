@@ -166,6 +166,20 @@ async function seedDatabase() {
         result: { success: true, data: { bottlenecks: 3, potential_speedup: '40%' } },
         pending_child_results: [],
       },
+      {
+        thread_id: 'aab2c3d4-e5f6-7890-abcd-ef1234567810',
+        branching_stitch_id: null,
+        goal: 'Sample: Send daily standup message (ABORTED - stuck in loop)',
+        tasks: [
+          { id: 'task-1', description: 'Send standup message to Discord', status: 'in_progress' },
+        ],
+        status: 'aborted',
+        result: { 
+          success: false, 
+          error: 'Thread aborted: Maximum message limit reached' 
+        },
+        pending_child_results: [],
+      },
     ]
 
     // Insert threads (initially with null branching_stitch_id)
@@ -377,6 +391,60 @@ async function seedDatabase() {
         },
       },
     ]
+
+    // Generate 150 stitches for the aborted thread
+    const abortedThreadId = 'aab2c3d4-e5f6-7890-abcd-ef1234567810'
+    for (let i = 0; i < 150; i++) {
+      // Generate valid UUIDs - using format like ca000000-0000-0000-0000-000000000XXX
+      const paddedIndex = i.toString().padStart(3, '0')
+      const stitchId = `ca000000-0000-0000-0000-000000000${paddedIndex}`
+      const previousStitchId = i === 0 ? null : `ca000000-0000-0000-0000-000000000${(i - 1).toString().padStart(3, '0')}`
+      
+      if (i % 2 === 0) {
+        // LLM call
+        stitches.push({
+          stitch_id: stitchId,
+          thread_id: abortedThreadId,
+          previous_stitch_id: previousStitchId,
+          stitch_type: 'llm_call',
+          llm_request: {
+            model: 'claude-sonnet-4-0',
+            messages: [
+              { role: 'user', content: 'Send the daily standup message to Discord' },
+              { role: 'assistant', content: 'I\'ll send the standup message now.' }
+            ],
+          },
+          llm_response: {
+            content: [{
+              type: 'tool_use',
+              id: `tool-use-${i}`,
+              name: 'SendDiscordMessage',
+              input: {
+                channel_id: '1234567890',
+                message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`
+              }
+            }]
+          },
+        })
+      } else {
+        // Tool call result showing rate limit error
+        stitches.push({
+          stitch_id: stitchId,
+          thread_id: abortedThreadId,
+          previous_stitch_id: previousStitchId,
+          stitch_type: 'tool_call',
+          tool_name: 'SendDiscordMessage',
+          tool_input: {
+            channel_id: '1234567890',
+            message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`
+          },
+          tool_output: {
+            error: 'Rate limit exceeded. Please wait before sending another message.',
+            retry_after: 60
+          },
+        })
+      }
+    }
 
     // Insert stitches
     console.log('Inserting stitches...')

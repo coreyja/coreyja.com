@@ -16,6 +16,7 @@ const statusColors = {
   waiting: '#3B82F6', // blue
   completed: '#10B981', // green
   failed: '#EF4444', // red
+  aborted: '#DC2626', // dark red
 }
 
 export const ThreadNode: React.FC<ThreadNodeProps> = ({ data }) => {

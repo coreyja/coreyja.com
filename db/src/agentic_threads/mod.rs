@@ -285,6 +285,28 @@ impl Thread {
 
         Ok(count.count.unwrap_or(0))
     }
+
+    pub async fn abort(
+        pool: &PgPool,
+        id: Uuid,
+        result: JsonValue,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            UPDATE threads
+            SET status = 'aborted', result = $1, updated_at = NOW()
+            WHERE thread_id = $2
+            RETURNING *
+            "#,
+            result,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
 }
 
 impl Stitch {
