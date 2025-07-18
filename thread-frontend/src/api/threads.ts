@@ -7,7 +7,7 @@ import {
   ChildrenResponse,
 } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/admin/api'
+const API_BASE_URL = '/admin/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
