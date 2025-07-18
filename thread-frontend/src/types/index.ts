@@ -50,7 +50,7 @@ export interface Thread {
   branching_stitch_id: string | null
   goal: string
   tasks: Task[]
-  status: 'pending' | 'running' | 'waiting' | 'completed' | 'failed'
+  status: 'pending' | 'running' | 'waiting' | 'completed' | 'failed' | 'aborted'
   result: ThreadResult | null
   pending_child_results: ChildResult[]
   created_at: string

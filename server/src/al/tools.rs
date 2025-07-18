@@ -30,7 +30,22 @@ pub trait GenericTool: Sync + Send {
     fn tool_description(&self) -> &'static str;
     fn tool_parameters(&self) -> serde_json::Value;
 
-    async fn run(&self, input: serde_json::Value) -> cja::Result<serde_json::Value>;
+    async fn run(
+        &self,
+        input: serde_json::Value,
+    ) -> cja::Result<serde_json::Value, GenericToolError>;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GenericToolError {
+    #[error("Tool not found: {0}")]
+    NotFound(String),
+    #[error("Tool input error: {0}")]
+    InputError(serde_json::Error),
+    #[error("Tool output error: {0}")]
+    OutputError(serde_json::Error),
+    #[error("Tool error: {0}")]
+    Error(#[from] cja::color_eyre::eyre::Report),
 }
 
 #[async_trait::async_trait]
@@ -47,10 +62,14 @@ impl<T: Tool + Sync + Send> GenericTool for T {
         self.tool_parameters()
     }
 
-    async fn run(&self, input: serde_json::Value) -> cja::Result<serde_json::Value> {
-        let input: T::ToolInput = serde_json::from_value(input)?;
+    async fn run(
+        &self,
+        input: serde_json::Value,
+    ) -> cja::Result<serde_json::Value, GenericToolError> {
+        let input: T::ToolInput =
+            serde_json::from_value(input).map_err(GenericToolError::InputError)?;
         let output = self.run(input).await?;
-        Ok(serde_json::to_value(output)?)
+        Ok(serde_json::to_value(output).map_err(GenericToolError::OutputError)?)
     }
 }
 
@@ -89,13 +108,11 @@ impl ToolBag {
     pub(crate) async fn call_tool(
         &self,
         tool_use_content: ToolUseContent,
-    ) -> cja::Result<serde_json::Value> {
+    ) -> cja::Result<serde_json::Value, GenericToolError> {
         let tool = self
             .tools_by_name
             .get(tool_use_content.name.as_str())
-            .ok_or_else(|| {
-                cja::color_eyre::eyre::eyre!("Tool not found: {}", tool_use_content.name)
-            })?;
+            .ok_or(GenericToolError::NotFound(tool_use_content.name))?;
 
         let output = tool.run(tool_use_content.input).await?;
         Ok(output)

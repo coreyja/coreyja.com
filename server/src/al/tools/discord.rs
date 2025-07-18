@@ -28,7 +28,27 @@ pub struct DiscordInput {
 #[async_trait::async_trait]
 impl Tool for SendDiscordMessage {
     const NAME: &'static str = "send_discord_message";
-    const DESCRIPTION: &'static str = "Send a message to a Discord channel. The message and channel id are required. And the list of users to tag is optional. YOU MUST INCLUDE A MESSAGE TO SEND";
+    const DESCRIPTION: &'static str = r#"
+    Send a message to a Discord channel. The message and channel id are required. And the list of users to tag is optional. YOU MUST INCLUDE A MESSAGE TO SEND
+
+    Example:
+    ```json
+    {
+        "channel_id": 1234567890,
+        "user_id": [1234567890],
+        "message": "Hello, world!"
+    }
+    ```
+
+    Example Multiple Users:
+    ```json
+    {
+        "channel_id": 1234567890,
+        "user_id": [1234567890, 1234567891],
+        "message": "Hello, world!"
+    }
+    ```
+    "#;
 
     type ToolInput = DiscordInput;
     type ToolOutput = ();
