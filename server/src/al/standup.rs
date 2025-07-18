@@ -200,6 +200,9 @@ impl StandupAgent {
         let mut tools = ToolBag::default();
         tools.add_tool(SendDiscordMessage::new(self.app_state.clone()))?;
         tools.add_tool(DoneTool::new(continue_looping.clone()))?;
+        tools.add_tool(
+            crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new(self.app_state.clone()),
+        )?;
 
         let now_eastern = Utc::now().with_timezone(&Eastern);
         let date_str = now_eastern.format("%A, %B %d, %Y at %I:%M %p").to_string();

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::al::standup::{AnthropicTool, ToolUseContent};
 pub mod discord;
+pub mod tool_suggestions;
 
 #[async_trait::async_trait]
 pub trait Tool: Send + Sync + Sized + 'static {
