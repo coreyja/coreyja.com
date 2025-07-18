@@ -38,23 +38,26 @@ pub(crate) async fn tool_suggestions_list(
                                 p class="text-gray-700 mt-1" { (suggestion.description) }
                             }
 
-                            div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" {
-                                div {
-                                    h4 class="font-medium mb-2" { "Sample Inputs:" }
-                                    @for (idx, input) in suggestion.sample_inputs.as_array().unwrap_or(&vec![]).iter().enumerate() {
-                                        div class="bg-gray-50 p-2 rounded mb-2" {
-                                            span class="text-sm text-gray-500" { "Example " (idx + 1) ":" }
-                                            pre class="text-xs overflow-x-auto" { (serde_json::to_string_pretty(input).unwrap_or_default()) }
-                                        }
-                                    }
-                                }
-
-                                div {
-                                    h4 class="font-medium mb-2" { "Sample Outputs:" }
-                                    @for (idx, output) in suggestion.sample_outputs.as_array().unwrap_or(&vec![]).iter().enumerate() {
-                                        div class="bg-gray-50 p-2 rounded mb-2" {
-                                            span class="text-sm text-gray-500" { "Example " (idx + 1) ":" }
-                                            pre class="text-xs overflow-x-auto" { (serde_json::to_string_pretty(output).unwrap_or_default()) }
+                            div class="mb-4" {
+                                h4 class="font-medium mb-2" { "Examples:" }
+                                @for (idx, example) in suggestion.examples.as_array().unwrap_or(&vec![]).iter().enumerate() {
+                                    div class="bg-gray-50 p-3 rounded mb-3" {
+                                        span class="text-sm text-gray-600 font-medium" { "Example " (idx + 1) }
+                                        
+                                        div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2" {
+                                            div {
+                                                span class="text-xs text-gray-500 block mb-1" { "Input:" }
+                                                pre class="text-xs overflow-x-auto bg-white p-2 rounded border" {
+                                                    (serde_json::to_string_pretty(example.get("input").unwrap_or(&serde_json::json!(null))).unwrap_or_default())
+                                                }
+                                            }
+                                            
+                                            div {
+                                                span class="text-xs text-gray-500 block mb-1" { "Output:" }
+                                                pre class="text-xs overflow-x-auto bg-white p-2 rounded border" {
+                                                    (serde_json::to_string_pretty(example.get("output").unwrap_or(&serde_json::json!(null))).unwrap_or_default())
+                                                }
+                                            }
                                         }
                                     }
                                 }

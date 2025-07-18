@@ -16,15 +16,21 @@ impl ToolSuggestionsSubmit {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ToolExample {
+    /// The input parameters for this example
+    pub input: serde_json::Value,
+    /// The expected output for this example
+    pub output: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ToolSuggestionInput {
     /// The name of the suggested tool
     pub name: String,
     /// A description of what the tool should do
     pub description: String,
-    /// Sample inputs showing how the tool would be called
-    pub sample_inputs: Vec<serde_json::Value>,
-    /// Sample outputs showing what the tool would return
-    pub sample_outputs: Vec<serde_json::Value>,
+    /// Examples showing how the tool would be called and what it would return
+    pub examples: Vec<ToolExample>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,31 +63,22 @@ impl Tool for ToolSuggestionsSubmit {
             });
         }
 
-        if input.sample_inputs.is_empty() {
+        if input.examples.is_empty() {
             return Ok(ToolSuggestionOutput {
                 success: false,
-                message: "At least one sample input is required".to_string(),
+                message: "At least one example is required".to_string(),
             });
         }
 
-        if input.sample_outputs.is_empty() {
-            return Ok(ToolSuggestionOutput {
-                success: false,
-                message: "At least one sample output is required".to_string(),
-            });
-        }
-
-        // Convert vectors to JSON arrays
-        let sample_inputs_json = serde_json::json!(input.sample_inputs);
-        let sample_outputs_json = serde_json::json!(input.sample_outputs);
+        // Convert examples to JSON array
+        let examples_json = serde_json::json!(input.examples);
 
         // Try to create the suggestion
         match ToolSuggestion::create(
             &self.app_state.db,
             input.name,
             input.description,
-            sample_inputs_json,
-            sample_outputs_json,
+            examples_json,
         )
         .await
         {

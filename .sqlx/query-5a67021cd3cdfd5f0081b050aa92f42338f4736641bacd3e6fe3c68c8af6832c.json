@@ -20,33 +20,28 @@
       },
       {
         "ordinal": 3,
-        "name": "sample_inputs",
-        "type_info": "Jsonb"
-      },
-      {
-        "ordinal": 4,
-        "name": "sample_outputs",
-        "type_info": "Jsonb"
-      },
-      {
-        "ordinal": 5,
         "name": "status",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 4,
         "name": "linear_ticket_id",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 5,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "examples",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
@@ -57,9 +52,8 @@
       false,
       false,
       false,
-      false,
-      false,
       true,
+      false,
       false,
       false
     ]

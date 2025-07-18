@@ -8,8 +8,7 @@ pub struct ToolSuggestion {
     pub suggestion_id: Uuid,
     pub name: String,
     pub description: String,
-    pub sample_inputs: serde_json::Value,
-    pub sample_outputs: serde_json::Value,
+    pub examples: serde_json::Value,
     pub status: String,
     pub linear_ticket_id: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -21,20 +20,18 @@ impl ToolSuggestion {
         pool: &PgPool,
         name: String,
         description: String,
-        sample_inputs: serde_json::Value,
-        sample_outputs: serde_json::Value,
+        examples: serde_json::Value,
     ) -> color_eyre::Result<Self> {
         let suggestion = sqlx::query_as!(
             Self,
             r#"
-            INSERT INTO tool_suggestions (name, description, sample_inputs, sample_outputs)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO tool_suggestions (name, description, examples)
+            VALUES ($1, $2, $3)
             RETURNING *
             "#,
             name,
             description,
-            sample_inputs,
-            sample_outputs
+            examples
         )
         .fetch_one(pool)
         .await?;

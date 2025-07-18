@@ -28,7 +28,8 @@
       "Bash(npm run test:*)",
       "Bash(npm run:*)",
       "Bash(sqlx migrate:*)",
-      "Bash(cargo sqlx prepare:*)"
+      "Bash(cargo sqlx prepare:*)",
+      "Bash(cargo sqlx migrate:*)"
     ],
     "deny": []
   }
