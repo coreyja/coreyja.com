@@ -1,7 +1,12 @@
-use axum::{extract::State, response::IntoResponse};
+use axum::{
+    extract::{Form, Path, State},
+    response::{IntoResponse, Redirect},
+};
 use maud::html;
+use serde::Deserialize;
+use uuid::Uuid;
 
-use crate::state::AppState;
+use crate::{http_server::admin::Timestamp, state::AppState};
 use db::tool_suggestions::ToolSuggestion;
 
 use super::super::{
@@ -43,7 +48,7 @@ pub(crate) async fn tool_suggestions_list(
                                 @for (idx, example) in suggestion.examples.as_array().unwrap_or(&vec![]).iter().enumerate() {
                                     div class="bg-gray-50 p-3 rounded mb-3" {
                                         span class="text-sm text-gray-600 font-medium" { "Example " (idx + 1) }
-                                        
+
                                         div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2" {
                                             div {
                                                 span class="text-xs text-gray-500 block mb-1" { "Input:" }
@@ -51,7 +56,7 @@ pub(crate) async fn tool_suggestions_list(
                                                     (serde_json::to_string_pretty(example.get("input").unwrap_or(&serde_json::json!(null))).unwrap_or_default())
                                                 }
                                             }
-                                            
+
                                             div {
                                                 span class="text-xs text-gray-500 block mb-1" { "Output:" }
                                                 pre class="text-xs overflow-x-auto bg-white p-2 rounded border" {
@@ -64,87 +69,76 @@ pub(crate) async fn tool_suggestions_list(
                             }
 
                             div class="flex gap-2 items-end" {
-                                div class="flex gap-2 items-end" {
-                                    input type="text" id={"linear-ticket-" (suggestion.suggestion_id)}
+                                form action={"/admin/tool-suggestions/" (suggestion.suggestion_id) "/dismiss"} method="post" class="flex gap-2 items-end" {
+                                    input type="text" name="linear_ticket_id"
                                         placeholder="Linear Ticket ID (e.g., ENG-123)"
-                                        class="px-3 py-1 border rounded";
-                                    button onclick={"dismissSuggestion('" (suggestion.suggestion_id) "')"}
+                                        class="px-3 py-1 border rounded"
+                                        required="required";
+                                    button type="submit"
                                         class="px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" {
                                         "Dismiss with Ticket"
                                     }
                                 }
 
-                                button onclick={"skipSuggestion('" (suggestion.suggestion_id) "')"}
-                                    class="px-4 py-1 bg-gray-500 text-white rounded hover:bg-gray-600" {
-                                    "Skip"
+                                form action={"/admin/tool-suggestions/" (suggestion.suggestion_id) "/skip"} method="post" {
+                                    button type="submit"
+                                        class="px-4 py-1 bg-gray-500 text-white rounded hover:bg-gray-600" {
+                                        "Skip"
+                                    }
                                 }
                             }
 
                             div class="text-xs text-gray-500 mt-2" {
-                                "Suggested: " (format_timestamp(&suggestion.created_at))
+                                "Suggested: " (Timestamp(suggestion.created_at))
                             }
                         }
                     }
                 }
             }
 
-            script {
-                (maud::PreEscaped(r"
-                async function dismissSuggestion(id) {
-                    const ticketInput = document.getElementById('linear-ticket-' + id);
-                    const ticketId = ticketInput.value.trim();
-                    
-                    if (!ticketId) {
-                        alert('Please enter a Linear ticket ID');
-                        return;
-                    }
-                    
-                    try {
-                        const response = await fetch(`/admin/api/tool-suggestions/${id}/dismiss`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ linear_ticket_id: ticketId })
-                        });
-                        
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to dismiss suggestion');
-                        }
-                    } catch (error) {
-                        alert('Error: ' + error.message);
-                    }
-                }
-                
-                async function skipSuggestion(id) {
-                    try {
-                        const response = await fetch(`/admin/api/tool-suggestions/${id}/skip`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('Failed to skip suggestion');
-                        }
-                    } catch (error) {
-                        alert('Error: ' + error.message);
-                    }
-                }
-                "))
-            }
         },
         OpenGraph::default(),
     ))
 }
 
-fn format_timestamp(timestamp: &chrono::DateTime<chrono::Utc>) -> String {
-    let now = chrono::Utc::now();
-    let duration = now - *timestamp;
-    chrono_humanize::HumanTime::from(duration).to_string()
+#[derive(Deserialize)]
+pub(crate) struct DismissRequest {
+    linear_ticket_id: String,
+}
+
+pub(crate) async fn dismiss_suggestion(
+    _admin: AdminUser,
+    State(app_state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Form(payload): Form<DismissRequest>,
+) -> Result<impl IntoResponse, ServerError> {
+    let suggestion = ToolSuggestion::get_by_id(&app_state.db, id)
+        .await?
+        .ok_or_else(|| color_eyre::eyre::eyre!("Tool suggestion not found"))?;
+
+    if suggestion.status != "pending" {
+        return Err(color_eyre::eyre::eyre!("Tool suggestion is not pending").into());
+    }
+
+    ToolSuggestion::dismiss(&app_state.db, id, payload.linear_ticket_id).await?;
+
+    Ok(Redirect::to("/admin/tool-suggestions"))
+}
+
+pub(crate) async fn skip_suggestion(
+    _admin: AdminUser,
+    State(app_state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<impl IntoResponse, ServerError> {
+    let suggestion = ToolSuggestion::get_by_id(&app_state.db, id)
+        .await?
+        .ok_or_else(|| color_eyre::eyre::eyre!("Tool suggestion not found"))?;
+
+    if suggestion.status != "pending" {
+        return Err(color_eyre::eyre::eyre!("Tool suggestion is not pending").into());
+    }
+
+    ToolSuggestion::skip(&app_state.db, id).await?;
+
+    Ok(Redirect::to("/admin/tool-suggestions"))
 }

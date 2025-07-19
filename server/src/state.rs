@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use base64::Engine as _;
 use cja::{color_eyre::eyre::Context, server::cookies::CookieKey};
 use db::setup_db_pool;
 use openai::OpenAiConfig;
@@ -110,7 +111,7 @@ pub(crate) struct AppState {
 }
 
 impl AppState {
-    #[instrument(name = "AppState::from_env", err)]
+    #[instrument(name = "AppState::from_env", err, skip(discord))]
     pub async fn from_env(discord: DiscordClient) -> cja::Result<Self> {
         let blog_posts = BlogPosts::from_static_dir()?;
         let blog_posts = Arc::new(blog_posts);
@@ -122,6 +123,10 @@ impl AppState {
         let projects = Arc::new(projects);
 
         let cookie_key = CookieKey::from_env_or_generate()?;
+
+        let main = cookie_key.master();
+        let main_str = base64::engine::general_purpose::STANDARD.encode(main);
+        tracing::info!("Generated cookie key: {:?}", main_str);
 
         let app_state = AppState {
             twitch: TwitchConfig::from_env()?,
