@@ -1,7 +1,11 @@
+use color_eyre::eyre::bail;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{al::tools::Tool, AppState};
+use crate::{
+    al::tools::{ThreadContext, Tool},
+    AppState,
+};
 use db::tool_suggestions::ToolSuggestion;
 
 #[derive(Clone, Debug)]
@@ -47,56 +51,42 @@ impl Tool for ToolSuggestionsSubmit {
     type ToolInput = ToolSuggestionInput;
     type ToolOutput = ToolSuggestionOutput;
 
-    async fn run(&self, input: Self::ToolInput) -> cja::Result<Self::ToolOutput> {
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
+        let Some(previous_stitch_id) = context.previous_stitch_id else {
+            bail!("Tool suggestion requires a previous stitch in the thread");
+        };
+
         // Validate input
         if input.name.trim().is_empty() {
-            return Ok(ToolSuggestionOutput {
-                success: false,
-                message: "Tool name cannot be empty".to_string(),
-            });
+            bail!("Tool name cannot be empty");
         }
 
         if input.description.trim().is_empty() {
-            return Ok(ToolSuggestionOutput {
-                success: false,
-                message: "Tool description cannot be empty".to_string(),
-            });
+            bail!("Tool description cannot be empty");
         }
 
         if input.examples.is_empty() {
-            return Ok(ToolSuggestionOutput {
-                success: false,
-                message: "At least one example is required".to_string(),
-            });
+            bail!("At least one example is required");
         }
 
         // Convert examples to JSON array
         let examples_json = serde_json::json!(input.examples);
 
         // Try to create the suggestion
-        match ToolSuggestion::create(
+        ToolSuggestion::create(
             &self.app_state.db,
             input.name,
             input.description,
             examples_json,
+            previous_stitch_id,
         )
-        .await
-        {
-            Ok(_) => Ok(ToolSuggestionOutput {
-                success: true,
-                message: "Tool suggestion submitted successfully! The team will review it and consider implementation.".to_string(),
-            }),
-            Err(e) => {
-                // Check if it's a duplicate name error
-                if e.to_string().contains("duplicate key value") {
-                    Ok(ToolSuggestionOutput {
-                        success: false,
-                        message: "A tool suggestion with this name already exists".to_string(),
-                    })
-                } else {
-                    Err(e)
-                }
-            }
-        }
+        .await.map(|_| ToolSuggestionOutput {
+            success: true,
+            message: "Tool suggestion submitted successfully! The team will review it and consider implementation.".to_string(),
+        })
     }
 }

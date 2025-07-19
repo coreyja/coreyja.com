@@ -11,6 +11,7 @@ pub struct ToolSuggestion {
     pub examples: serde_json::Value,
     pub status: String,
     pub linear_ticket_id: Option<String>,
+    pub previous_stitch_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -21,17 +22,19 @@ impl ToolSuggestion {
         name: String,
         description: String,
         examples: serde_json::Value,
+        previous_stitch_id: Uuid,
     ) -> color_eyre::Result<Self> {
         let suggestion = sqlx::query_as!(
             Self,
             r#"
-            INSERT INTO tool_suggestions (name, description, examples)
-            VALUES ($1, $2, $3)
+            INSERT INTO tool_suggestions (name, description, examples, previous_stitch_id)
+            VALUES ($1, $2, $3, $4)
             RETURNING *
             "#,
             name,
             description,
-            examples
+            examples,
+            previous_stitch_id
         )
         .fetch_one(pool)
         .await?;

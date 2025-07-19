@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 use crate::{
     al::tools::{
         discord::{DoneTool, SendDiscordMessage},
-        ToolBag,
+        ToolBag, ThreadContext,
     },
     AppState,
 };
@@ -290,7 +290,13 @@ impl StandupAgent {
                         let tool_name = tool_use_content.name.clone();
                         let tool_input = tool_use_content.input.clone();
 
-                        let tool_result = match tools.call_tool(tool_use_content).await {
+                        // Create thread context with the previous stitch ID
+                        let context = ThreadContext {
+                            thread_id,
+                            previous_stitch_id: *previous_stitch_id,
+                        };
+
+                        let tool_result = match tools.call_tool(tool_use_content, context).await {
                             Ok(tool_result) => {
                                 // Create tool call stitch for successful execution
                                 let tool_stitch = Stitch::create_tool_call(
@@ -327,7 +333,7 @@ impl StandupAgent {
 
                                 ToolResult {
                                     tool_use_id,
-                                    content: e.to_string(),
+                                    content: format!("Tool error: {}", e),
                                     is_error: true,
                                 }
                             }
