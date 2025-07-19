@@ -1,4 +1,4 @@
-name: Rust Tests (Reusable)
+name: Rust Tests
 
 on:
   workflow_call:
