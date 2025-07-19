@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  frontend-tests:
+    name: Frontend Tests
+    uses: ./.github/workflows/frontend-tests-reusable.yml
+
+  rust-tests:
+    name: Rust Tests
+    uses: ./.github/workflows/rust-tests-reusable.yml
