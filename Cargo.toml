@@ -70,7 +70,9 @@ db = { path = "db" }
 debug-ignore = "1.0.5"
 futures = "0.3.29"
 google-youtube3 = "5.0.3"
-gql_client = { git = "https://github.com/coreyja/gql-client-rs", rev = "d3bcd33" }
+gql_client = { version = "1.0.8", default-features = false, features = [
+  "rustls-tls",
+] }
 graphql_client = "0.13.0"
 indoc = "2.0"
 itertools = "0.12.0"
