@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 use crate::{
     al::tools::{
         discord::{DoneTool, SendDiscordMessage},
-        ToolBag, ThreadContext,
+        ThreadContext, ToolBag,
     },
     AppState,
 };
@@ -333,7 +333,7 @@ impl StandupAgent {
 
                                 ToolResult {
                                     tool_use_id,
-                                    content: format!("Tool error: {}", e),
+                                    content: format!("Tool error: {e}"),
                                     is_error: true,
                                 }
                             }

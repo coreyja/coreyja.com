@@ -41,7 +41,7 @@ struct ThreadsWithCountsResponse {
 
 #[derive(Serialize, Deserialize)]
 struct ChildrenResponse {
-    children: Vec<Thread>,
+    children: Vec<ThreadWithCounts>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -197,5 +197,28 @@ pub async fn get_thread_children(
         .context("Failed to fetch children")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(ChildrenResponse { children }))
+    let mut children_with_counts = Vec::new();
+    for child in children {
+        let stitch_count = child
+            .count_stitches(state.db())
+            .await
+            .context("Failed to count stitches")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let children_count = child
+            .count_children(state.db())
+            .await
+            .context("Failed to count children")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        children_with_counts.push(ThreadWithCounts {
+            thread: child,
+            stitch_count,
+            children_count,
+        });
+    }
+
+    Ok(Json(ChildrenResponse {
+        children: children_with_counts,
+    }))
 }

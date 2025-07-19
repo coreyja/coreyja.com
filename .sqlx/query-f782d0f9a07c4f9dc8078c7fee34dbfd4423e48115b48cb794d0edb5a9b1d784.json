@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO tool_suggestions (name, description, examples)\n            VALUES ($1, $2, $3)\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO tool_suggestions (name, description, examples, previous_stitch_id)\n            VALUES ($1, $2, $3, $4)\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -42,13 +42,19 @@
         "ordinal": 7,
         "name": "examples",
         "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "previous_stitch_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
       "Left": [
         "Text",
         "Text",
-        "Jsonb"
+        "Jsonb",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -59,8 +65,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "aa06694f54a59a781e66574e827a30057aec15020ff38f728eb7bbce0889ee58"
+  "hash": "f782d0f9a07c4f9dc8078c7fee34dbfd4423e48115b48cb794d0edb5a9b1d784"
 }

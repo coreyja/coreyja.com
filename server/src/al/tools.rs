@@ -25,7 +25,11 @@ pub trait Tool: Send + Sync + Sized + 'static {
         serde_json::to_value(schema).unwrap()
     }
 
-    async fn run(&self, input: Self::ToolInput, context: ThreadContext) -> cja::Result<Self::ToolOutput>;
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput>;
 
     fn to_generic(self) -> Box<dyn GenericTool> {
         Box::new(self)

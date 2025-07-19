@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 import tsConfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
@@ -9,5 +10,5 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-  plugins: [tsConfigPaths()],
+  plugins: [react(), tsConfigPaths()],
 })

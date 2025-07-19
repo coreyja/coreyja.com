@@ -42,6 +42,11 @@
         "ordinal": 7,
         "name": "examples",
         "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "previous_stitch_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -56,6 +61,7 @@
       false,
       false,
       true,
+      false,
       false,
       false,
       false

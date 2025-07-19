@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { ThreadGraphView } from './ThreadGraphView'
 import { threadsApi } from '../api/threads'
-import { renderWithQueryClient } from '../test-utils'
+import { renderWithProviders } from '../test-utils'
 
 // Mock the API
 vi.mock('../api/threads', () => ({
   threadsApi: {
     listThreads: vi.fn(() => Promise.resolve([])),
-    listRecentThreads: vi.fn(() => Promise.resolve([])),
+    listRecentThreads: vi.fn(() => new Promise(() => {})), // Never resolves to simulate loading
     getThread: vi.fn(),
+    getThreadChildren: vi.fn(() => Promise.resolve([])),
+    getThreadParents: vi.fn(() => Promise.resolve([])),
   },
 }))
 
@@ -44,15 +46,29 @@ vi.mock('./ThreadDetailPanel', () => ({
 describe('ThreadGraphView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset mocks to default behavior (loading state)
+    vi.mocked(threadsApi.listRecentThreads).mockImplementation(() => new Promise(() => {}))
   })
 
-  it('renders loading state initially', () => {
-    renderWithQueryClient(<ThreadGraphView />)
-    expect(screen.getByText('Loading threads...')).toBeInTheDocument()
+  it('renders loading state initially', async () => {
+    // Suppress console logs for this test
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    renderWithProviders(<ThreadGraphView />)
+
+    // Check for loading text
+    await waitFor(() => {
+      expect(screen.getByText('Loading threads...')).toBeInTheDocument()
+    })
+
+    consoleSpy.mockRestore()
   })
 
   it('calls listThreads API on mount', async () => {
-    renderWithQueryClient(<ThreadGraphView />)
+    // Reset the mock to resolve properly for this test
+    vi.mocked(threadsApi.listRecentThreads).mockResolvedValue([])
+
+    renderWithProviders(<ThreadGraphView />)
 
     await waitFor(() => {
       expect(threadsApi.listRecentThreads).toHaveBeenCalledTimes(1)
@@ -60,9 +76,9 @@ describe('ThreadGraphView', () => {
   })
 
   it('renders without crashing when API returns empty array', async () => {
-    vi.mocked(threadsApi.listThreads).mockResolvedValue([])
+    vi.mocked(threadsApi.listRecentThreads).mockResolvedValue([])
 
-    const { container } = renderWithQueryClient(<ThreadGraphView />)
+    const { container } = renderWithProviders(<ThreadGraphView />)
 
     await waitFor(() => {
       expect(container).toBeTruthy()
@@ -70,12 +86,12 @@ describe('ThreadGraphView', () => {
   })
 
   it('renders without crashing when API fails', async () => {
-    vi.mocked(threadsApi.listThreads).mockRejectedValue(new Error('API Error'))
+    vi.mocked(threadsApi.listRecentThreads).mockRejectedValue(new Error('API Error'))
 
     // Suppress console.error for this test
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const { container } = renderWithQueryClient(<ThreadGraphView />)
+    const { container } = renderWithProviders(<ThreadGraphView />)
 
     await waitFor(() => {
       expect(container).toBeTruthy()

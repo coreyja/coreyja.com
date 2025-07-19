@@ -63,7 +63,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a2b2c3d4-e5f6-7890-abcd-ef1234567802',
-        branching_stitch_id: 'b3b2c3d4-e5f6-7890-abcd-ef1234567803',
+        branching_stitch_id: 'b2b2c3d4-e5f6-7890-abcd-ef1234567802', // Changed to point to the tool_call stitch that spawned it
         goal: 'Sample: Perform security analysis',
         tasks: [
           { id: 'task-1', description: 'Scan for vulnerabilities', status: 'completed' },
@@ -91,7 +91,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a4b2c3d4-e5f6-7890-abcd-ef1234567804',
-        branching_stitch_id: 'b7b2c3d4-e5f6-7890-abcd-ef1234567807',
+        branching_stitch_id: 'b6b2c3d4-e5f6-7890-abcd-ef1234567806', // Changed to tool_call stitch
         goal: 'Sample: Transform raw data',
         tasks: [
           { id: 'task-1', description: 'Clean data', status: 'completed' },
@@ -103,7 +103,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a5b2c3d4-e5f6-7890-abcd-ef1234567805',
-        branching_stitch_id: 'b8b2c3d4-e5f6-7890-abcd-ef1234567808',
+        branching_stitch_id: 'b7b2c3d4-e5f6-7890-abcd-ef1234567807', // Changed to thread_result stitch from parent
         goal: 'Sample: Generate analytics reports',
         tasks: [
           { id: 'task-1', description: 'Create visualizations', status: 'completed' },
@@ -117,7 +117,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a6b2c3d4-e5f6-7890-abcd-ef1234567806',
-        branching_stitch_id: 'bab2c3d4-e5f6-7890-abcd-ef1234567810',
+        branching_stitch_id: 'b9b2c3d4-e5f6-7890-abcd-ef1234567808', // Changed to tool_call stitch from parent
         goal: 'Sample: Export report to PDF, Excel, and email',
         tasks: [
           { id: 'task-1', description: 'Generate PDF', status: 'completed' },
@@ -142,7 +142,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a8b2c3d4-e5f6-7890-abcd-ef1234567808',
-        branching_stitch_id: 'b5a2c3d4-e5f6-7890-abcd-ef1234567805',
+        branching_stitch_id: 'b5b2c3d4-e5f6-7890-abcd-ef1234567805', // Changed to llm_call stitch
         goal: 'Sample: Fix identified security vulnerabilities',
         tasks: [
           { id: 'task-1', description: 'Patch SQL injection vulnerability', status: 'completed' },
@@ -155,7 +155,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a9b2c3d4-e5f6-7890-abcd-ef1234567809',
-        branching_stitch_id: 'b3c2c3d4-e5f6-7890-abcd-ef1234567804',
+        branching_stitch_id: 'b3b2c3d4-e5f6-7890-abcd-ef1234567803', // Changed to thread_result stitch (this was the actual spawning stitch)
         goal: 'Sample: Analyze code performance and optimization opportunities',
         tasks: [
           { id: 'task-1', description: 'Profile code execution', status: 'completed' },
@@ -174,24 +174,7 @@ async function seedDatabase() {
           { id: 'task-1', description: 'Send standup message to Discord', status: 'in_progress' },
         ],
         status: 'aborted',
-        result: {
-          success: false,
-          error: 'Thread aborted: Maximum message limit reached',
-        },
-        pending_child_results: [],
-      },
-      {
-        thread_id: 'aab2c3d4-e5f6-7890-abcd-ef1234567810',
-        branching_stitch_id: null,
-        goal: 'Sample: Send daily standup message (ABORTED - stuck in loop)',
-        tasks: [
-          { id: 'task-1', description: 'Send standup message to Discord', status: 'in_progress' },
-        ],
-        status: 'aborted',
-        result: {
-          success: false,
-          error: 'Thread aborted: Maximum message limit reached',
-        },
+        result: null,
         pending_child_results: [],
       },
     ]
@@ -405,63 +388,6 @@ async function seedDatabase() {
         },
       },
     ]
-
-    // Generate 150 stitches for the aborted thread
-    const abortedThreadId = 'aab2c3d4-e5f6-7890-abcd-ef1234567810'
-    for (let i = 0; i < 150; i++) {
-      // Generate valid UUIDs - using format like ca000000-0000-0000-0000-000000000XXX
-      const paddedIndex = i.toString().padStart(3, '0')
-      const stitchId = `ca000000-0000-0000-0000-000000000${paddedIndex}`
-      const previousStitchId =
-        i === 0 ? null : `ca000000-0000-0000-0000-000000000${(i - 1).toString().padStart(3, '0')}`
-
-      if (i % 2 === 0) {
-        // LLM call
-        stitches.push({
-          stitch_id: stitchId,
-          thread_id: abortedThreadId,
-          previous_stitch_id: previousStitchId,
-          stitch_type: 'llm_call',
-          llm_request: {
-            model: 'claude-sonnet-4-0',
-            messages: [
-              { role: 'user', content: 'Send the daily standup message to Discord' },
-              { role: 'assistant', content: "I'll send the standup message now." },
-            ],
-          },
-          llm_response: {
-            content: [
-              {
-                type: 'tool_use',
-                id: `tool-use-${i}`,
-                name: 'SendDiscordMessage',
-                input: {
-                  channel_id: '1234567890',
-                  message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`,
-                },
-              },
-            ],
-          },
-        })
-      } else {
-        // Tool call result showing rate limit error
-        stitches.push({
-          stitch_id: stitchId,
-          thread_id: abortedThreadId,
-          previous_stitch_id: previousStitchId,
-          stitch_type: 'tool_call',
-          tool_name: 'SendDiscordMessage',
-          tool_input: {
-            channel_id: '1234567890',
-            message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`,
-          },
-          tool_output: {
-            error: 'Rate limit exceeded. Please wait before sending another message.',
-            retry_after: 60,
-          },
-        })
-      }
-    }
 
     // Generate 150 stitches for the aborted thread
     const abortedThreadId = 'aab2c3d4-e5f6-7890-abcd-ef1234567810'

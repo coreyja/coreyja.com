@@ -4,6 +4,7 @@ use axum::{
 };
 use maud::html;
 use serde::Deserialize;
+use sqlx::query;
 use uuid::Uuid;
 
 use crate::{http_server::admin::Timestamp, state::AppState};
@@ -22,6 +23,21 @@ pub(crate) async fn tool_suggestions_list(
 ) -> Result<impl IntoResponse, ServerError> {
     let suggestions = ToolSuggestion::list_pending(&app_state.db).await?;
 
+    // Get thread IDs for each suggestion's stitch
+    let mut suggestions_with_thread_info = Vec::new();
+    for suggestion in suggestions {
+        let thread_info = query!(
+            r#"
+            SELECT thread_id FROM stitches WHERE stitch_id = $1
+        "#,
+            suggestion.previous_stitch_id
+        )
+        .fetch_optional(&app_state.db)
+        .await?;
+
+        suggestions_with_thread_info.push((suggestion, thread_info));
+    }
+
     Ok(base_constrained(
         html! {
             h1 class="text-xl mb-4" { "Tool Suggestions" }
@@ -30,13 +46,13 @@ pub(crate) async fn tool_suggestions_list(
                 "Agents can suggest new tools they'd like to have. Review pending suggestions below."
             }
 
-            @if suggestions.is_empty() {
+            @if suggestions_with_thread_info.is_empty() {
                 div class="bg-gray-100 p-4 rounded" {
                     p { "No pending tool suggestions at the moment." }
                 }
             } @else {
                 div class="space-y-4" {
-                    @for suggestion in suggestions {
+                    @for (suggestion, thread_info) in suggestions_with_thread_info {
                         div class="border rounded-lg p-4 bg-white shadow-sm" {
                             div class="mb-3" {
                                 h3 class="text-lg font-semibold" { (suggestion.name) }
@@ -88,8 +104,17 @@ pub(crate) async fn tool_suggestions_list(
                                 }
                             }
 
-                            div class="text-xs text-gray-500 mt-2" {
-                                "Suggested: " (Timestamp(suggestion.created_at))
+                            div class="flex justify-between items-center text-xs text-gray-500 mt-2" {
+                                div {
+                                    "Suggested: " (Timestamp(suggestion.created_at))
+                                }
+                                @if let Some(thread_info) = thread_info {
+                                    a href={"/admin/threads?thread=" (thread_info.thread_id) "&stitch=" (suggestion.previous_stitch_id)}
+                                       target="_blank"
+                                       class="text-blue-500 hover:text-blue-700 underline" {
+                                        "View in Thread Graph →"
+                                    }
+                                }
                             }
                         }
                     }

@@ -362,7 +362,6 @@ impl Stitch {
         Ok(stitch)
     }
 
-
     pub async fn create_thread_result(
         pool: &PgPool,
         thread_id: Uuid,
