@@ -1,16 +1,12 @@
-name: Rust Tests
+name: Rust Tests (Reusable)
+
+on:
+  workflow_call:
 
 env:
   DATABASE_URL: "sqlite:/home/runner/work/coreyja.com/coreyja.com/server/db.sqlite3"
   SQLX_OFFLINE: true
   APP_BASE_URL: https://ci.coreyja.com
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize]
 
 jobs:
   lint:
@@ -20,7 +16,7 @@ jobs:
       CARGO_INCREMENTAL: 0
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: protobuf-compiler libasound2-dev
@@ -31,9 +27,9 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: thread-frontend/package-lock.json
       - name: Build frontend
@@ -45,6 +41,7 @@ jobs:
           ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Build | Lint
         run: cargo clippy --all-targets --no-deps -- -Dwarnings
+  
   doc:
     name: Doc
     runs-on: ubuntu-latest
@@ -52,7 +49,7 @@ jobs:
       CARGO_INCREMENTAL: 0
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: protobuf-compiler libasound2-dev
@@ -61,9 +58,9 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: Swatinem/rust-cache@v2
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: thread-frontend/package-lock.json
       - name: Build frontend
@@ -75,6 +72,7 @@ jobs:
           ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Cargo Doc
         run: cargo doc --workspace --no-deps
+  
   test:
     name: Test
     env:
@@ -96,7 +94,7 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -107,9 +105,9 @@ jobs:
           packages: protobuf-compiler libasound2-dev
           version: v0
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: thread-frontend/package-lock.json
       - name: Build frontend
@@ -121,10 +119,11 @@ jobs:
           ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
       - name: Test
         run: cargo test --all-targets
+  
   cargo-deny:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install cargo-binstall
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
       - name: Install cargo-deny
