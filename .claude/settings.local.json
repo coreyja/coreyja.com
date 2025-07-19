@@ -26,7 +26,11 @@
       "Bash(npm run lint)",
       "Bash(npx tsc:*)",
       "Bash(npm run test:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(sqlx migrate:*)",
+      "Bash(cargo sqlx prepare:*)",
+      "Bash(cargo sqlx migrate:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

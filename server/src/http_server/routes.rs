@@ -81,6 +81,18 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             get(api::threads::get_thread_children),
         )
         .route("/admin/api/threads/{id}", get(api::threads::get_thread))
+        .route(
+            "/admin/tool-suggestions",
+            get(admin::tool_suggestions::tool_suggestions_list),
+        )
+        .route(
+            "/admin/tool-suggestions/{id}/dismiss",
+            post(admin::tool_suggestions::dismiss_suggestion),
+        )
+        .route(
+            "/admin/tool-suggestions/{id}/skip",
+            post(admin::tool_suggestions::skip_suggestion),
+        )
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .route("/bytes", get(pages::bytes::bytes_index))
         .route("/bytes/{slug}", get(pages::bytes::byte_get))

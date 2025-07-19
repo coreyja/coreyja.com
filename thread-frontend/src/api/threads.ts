@@ -32,7 +32,7 @@ export const threadsApi = {
     return response.data
   },
 
-  getThreadChildren: async (id: string): Promise<Thread[]> => {
+  getThreadChildren: async (id: string): Promise<ThreadWithCounts[]> => {
     const response = await api.get<ChildrenResponse>(`/threads/${id}/children`)
     return response.data.children
   },

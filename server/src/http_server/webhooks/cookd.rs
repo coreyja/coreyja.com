@@ -23,7 +23,7 @@ pub(crate) async fn handler(
     Json(webhook_payload): Json<Value>,
 ) -> ResponseResult<impl IntoResponse> {
     let payload: Payload = serde_json::from_value(webhook_payload)
-        .context("Could not parse payload into expected JSON")
+        .context("Could not parse payload into CookdWebhook expected JSON")
         .with_status(StatusCode::UNPROCESSABLE_ENTITY)?;
 
     let now = chrono::Utc::now();

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { threadsApi } from '../api/threads'
+import { ThreadWithCounts } from '../types'
 
 export const THREADS_QUERY_KEY = ['threads'] as const
 export const RECENT_THREADS_QUERY_KEY = ['threads', 'recent'] as const
@@ -34,7 +35,7 @@ export const useThread = (id: string | undefined) => {
 }
 
 export const useThreadChildren = (id: string | undefined) => {
-  return useQuery({
+  return useQuery<ThreadWithCounts[]>({
     queryKey: THREAD_CHILDREN_QUERY_KEY(id!),
     queryFn: () => threadsApi.getThreadChildren(id!),
     enabled: !!id,

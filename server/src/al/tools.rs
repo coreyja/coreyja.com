@@ -1,8 +1,16 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use sqlx::types::Uuid;
 
 use crate::al::standup::{AnthropicTool, ToolUseContent};
 pub mod discord;
+pub mod tool_suggestions;
+
+#[derive(Debug, Clone)]
+pub struct ThreadContext {
+    pub thread_id: Uuid,
+    pub previous_stitch_id: Option<Uuid>,
+}
 
 #[async_trait::async_trait]
 pub trait Tool: Send + Sync + Sized + 'static {
@@ -17,7 +25,11 @@ pub trait Tool: Send + Sync + Sized + 'static {
         serde_json::to_value(schema).unwrap()
     }
 
-    async fn run(&self, input: Self::ToolInput) -> cja::Result<Self::ToolOutput>;
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput>;
 
     fn to_generic(self) -> Box<dyn GenericTool> {
         Box::new(self)
@@ -33,6 +45,7 @@ pub trait GenericTool: Sync + Send {
     async fn run(
         &self,
         input: serde_json::Value,
+        context: ThreadContext,
     ) -> cja::Result<serde_json::Value, GenericToolError>;
 }
 
@@ -65,10 +78,11 @@ impl<T: Tool + Sync + Send> GenericTool for T {
     async fn run(
         &self,
         input: serde_json::Value,
+        context: ThreadContext,
     ) -> cja::Result<serde_json::Value, GenericToolError> {
         let input: T::ToolInput =
             serde_json::from_value(input).map_err(GenericToolError::InputError)?;
-        let output = self.run(input).await?;
+        let output = self.run(input, context).await?;
         Ok(serde_json::to_value(output).map_err(GenericToolError::OutputError)?)
     }
 }
@@ -108,13 +122,14 @@ impl ToolBag {
     pub(crate) async fn call_tool(
         &self,
         tool_use_content: ToolUseContent,
+        context: ThreadContext,
     ) -> cja::Result<serde_json::Value, GenericToolError> {
         let tool = self
             .tools_by_name
             .get(tool_use_content.name.as_str())
             .ok_or(GenericToolError::NotFound(tool_use_content.name))?;
 
-        let output = tool.run(tool_use_content.input).await?;
+        let output = tool.run(tool_use_content.input, context).await?;
         Ok(output)
     }
 }

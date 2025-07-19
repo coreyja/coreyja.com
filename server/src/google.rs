@@ -18,7 +18,7 @@ impl GoogleConfig {
             client_id: std::env::var("GOOGLE_CLIENT_ID")
                 .context("GOOGLE_CLIENT_ID env var missing")?,
             client_secret: std::env::var("GOOGLE_CLIENT_SECRET")
-                .context("GOOGLE_CLIENT_SECRET env var missing")?,
+                .context("GOOGLE_CLIENT_SECRET env var missing ")?,
         })
     }
 }

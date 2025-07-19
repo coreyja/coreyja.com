@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 use serenity::all::{CreateMessage, MessageBuilder};
 use tokio::sync::Mutex;
 
-use crate::{al::tools::Tool, AppState};
+use crate::{
+    al::tools::{ThreadContext, Tool},
+    AppState,
+};
 
 #[derive(Clone, Debug)]
 pub struct SendDiscordMessage {
@@ -53,7 +56,11 @@ impl Tool for SendDiscordMessage {
     type ToolInput = DiscordInput;
     type ToolOutput = ();
 
-    async fn run(&self, input: Self::ToolInput) -> cja::Result<Self::ToolOutput> {
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        _context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
         use serenity::model::prelude::*;
 
         let mut message = MessageBuilder::new();
@@ -103,7 +110,11 @@ impl Tool for DoneTool {
     type ToolInput = DoneInput;
     type ToolOutput = ();
 
-    async fn run(&self, _: Self::ToolInput) -> cja::Result<Self::ToolOutput> {
+    async fn run(
+        &self,
+        _: Self::ToolInput,
+        _context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
         *self.continue_looping.lock().await = false;
         Ok(())
     }

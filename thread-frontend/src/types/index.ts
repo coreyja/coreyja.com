@@ -90,5 +90,5 @@ export interface ThreadsWithCountsResponse {
 }
 
 export interface ChildrenResponse {
-  children: Thread[]
+  children: ThreadWithCounts[]
 }

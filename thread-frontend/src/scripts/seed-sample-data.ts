@@ -63,7 +63,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a2b2c3d4-e5f6-7890-abcd-ef1234567802',
-        branching_stitch_id: 'b3b2c3d4-e5f6-7890-abcd-ef1234567803',
+        branching_stitch_id: 'b2b2c3d4-e5f6-7890-abcd-ef1234567802', // Changed to point to the tool_call stitch that spawned it
         goal: 'Sample: Perform security analysis',
         tasks: [
           { id: 'task-1', description: 'Scan for vulnerabilities', status: 'completed' },
@@ -91,7 +91,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a4b2c3d4-e5f6-7890-abcd-ef1234567804',
-        branching_stitch_id: 'b7b2c3d4-e5f6-7890-abcd-ef1234567807',
+        branching_stitch_id: 'b6b2c3d4-e5f6-7890-abcd-ef1234567806', // Changed to tool_call stitch
         goal: 'Sample: Transform raw data',
         tasks: [
           { id: 'task-1', description: 'Clean data', status: 'completed' },
@@ -103,7 +103,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a5b2c3d4-e5f6-7890-abcd-ef1234567805',
-        branching_stitch_id: 'b8b2c3d4-e5f6-7890-abcd-ef1234567808',
+        branching_stitch_id: 'b7b2c3d4-e5f6-7890-abcd-ef1234567807', // Changed to thread_result stitch from parent
         goal: 'Sample: Generate analytics reports',
         tasks: [
           { id: 'task-1', description: 'Create visualizations', status: 'completed' },
@@ -117,7 +117,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a6b2c3d4-e5f6-7890-abcd-ef1234567806',
-        branching_stitch_id: 'bab2c3d4-e5f6-7890-abcd-ef1234567810',
+        branching_stitch_id: 'b9b2c3d4-e5f6-7890-abcd-ef1234567808', // Changed to tool_call stitch from parent
         goal: 'Sample: Export report to PDF, Excel, and email',
         tasks: [
           { id: 'task-1', description: 'Generate PDF', status: 'completed' },
@@ -142,7 +142,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a8b2c3d4-e5f6-7890-abcd-ef1234567808',
-        branching_stitch_id: 'b5a2c3d4-e5f6-7890-abcd-ef1234567805',
+        branching_stitch_id: 'b5b2c3d4-e5f6-7890-abcd-ef1234567805', // Changed to llm_call stitch
         goal: 'Sample: Fix identified security vulnerabilities',
         tasks: [
           { id: 'task-1', description: 'Patch SQL injection vulnerability', status: 'completed' },
@@ -155,7 +155,7 @@ async function seedDatabase() {
       },
       {
         thread_id: 'a9b2c3d4-e5f6-7890-abcd-ef1234567809',
-        branching_stitch_id: 'b3c2c3d4-e5f6-7890-abcd-ef1234567804',
+        branching_stitch_id: 'b3b2c3d4-e5f6-7890-abcd-ef1234567803', // Changed to thread_result stitch (this was the actual spawning stitch)
         goal: 'Sample: Analyze code performance and optimization opportunities',
         tasks: [
           { id: 'task-1', description: 'Profile code execution', status: 'completed' },
@@ -174,10 +174,7 @@ async function seedDatabase() {
           { id: 'task-1', description: 'Send standup message to Discord', status: 'in_progress' },
         ],
         status: 'aborted',
-        result: {
-          success: false,
-          error: 'Thread aborted: Maximum message limit reached',
-        },
+        result: null,
         pending_child_results: [],
       },
     ]

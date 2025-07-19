@@ -1,4 +1,7 @@
-use axum::{extract::State, response::IntoResponse};
+use axum::{
+    extract::State,
+    response::{IntoResponse, Response},
+};
 use include_dir::{include_dir, Dir};
 
 use crate::state::AppState;
@@ -26,11 +29,20 @@ pub(crate) async fn threads_app(
 pub(crate) async fn serve_thread_assets(
     _admin: AdminUser,
     axum::extract::Path(path): axum::extract::Path<String>,
-) -> Result<impl IntoResponse, ServerError> {
+) -> Result<Response, ServerError> {
     // Try to find the file in the embedded directory
-    let file = THREAD_FRONTEND_DIST
-        .get_file(&path)
-        .ok_or_else(|| color_eyre::eyre::eyre!("File not found"))?;
+    let Some(file) = THREAD_FRONTEND_DIST.get_file(&path) else {
+        // Serve the index.html file
+        let index_html = THREAD_FRONTEND_DIST
+            .get_file("index.html")
+            .ok_or_else(|| color_eyre::eyre::eyre!("index.html not found"))?;
+
+        let content = index_html
+            .contents_utf8()
+            .ok_or_else(|| color_eyre::eyre::eyre!("Failed to read index.html"))?;
+
+        return Ok(axum::response::Html(content).into_response());
+    };
 
     // Determine content type based on file extension
     let mime = mime_guess::from_path(&path).first_or_octet_stream();
@@ -41,5 +53,6 @@ pub(crate) async fn serve_thread_assets(
         axum::http::StatusCode::OK,
         [(axum::http::header::CONTENT_TYPE, mime.to_string())],
         contents,
-    ))
+    )
+        .into_response())
 }
