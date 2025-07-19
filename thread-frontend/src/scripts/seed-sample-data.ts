@@ -174,9 +174,9 @@ async function seedDatabase() {
           { id: 'task-1', description: 'Send standup message to Discord', status: 'in_progress' },
         ],
         status: 'aborted',
-        result: { 
-          success: false, 
-          error: 'Thread aborted: Maximum message limit reached' 
+        result: {
+          success: false,
+          error: 'Thread aborted: Maximum message limit reached',
         },
         pending_child_results: [],
       },
@@ -398,8 +398,9 @@ async function seedDatabase() {
       // Generate valid UUIDs - using format like ca000000-0000-0000-0000-000000000XXX
       const paddedIndex = i.toString().padStart(3, '0')
       const stitchId = `ca000000-0000-0000-0000-000000000${paddedIndex}`
-      const previousStitchId = i === 0 ? null : `ca000000-0000-0000-0000-000000000${(i - 1).toString().padStart(3, '0')}`
-      
+      const previousStitchId =
+        i === 0 ? null : `ca000000-0000-0000-0000-000000000${(i - 1).toString().padStart(3, '0')}`
+
       if (i % 2 === 0) {
         // LLM call
         stitches.push({
@@ -411,19 +412,21 @@ async function seedDatabase() {
             model: 'claude-sonnet-4-0',
             messages: [
               { role: 'user', content: 'Send the daily standup message to Discord' },
-              { role: 'assistant', content: 'I\'ll send the standup message now.' }
+              { role: 'assistant', content: "I'll send the standup message now." },
             ],
           },
           llm_response: {
-            content: [{
-              type: 'tool_use',
-              id: `tool-use-${i}`,
-              name: 'SendDiscordMessage',
-              input: {
-                channel_id: '1234567890',
-                message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`
-              }
-            }]
+            content: [
+              {
+                type: 'tool_use',
+                id: `tool-use-${i}`,
+                name: 'SendDiscordMessage',
+                input: {
+                  channel_id: '1234567890',
+                  message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`,
+                },
+              },
+            ],
           },
         })
       } else {
@@ -436,11 +439,11 @@ async function seedDatabase() {
           tool_name: 'SendDiscordMessage',
           tool_input: {
             channel_id: '1234567890',
-            message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`
+            message: `Good morning! Time for our daily standup meeting at ${new Date().toLocaleTimeString()}! Let's share what we're working on today.`,
           },
           tool_output: {
             error: 'Rate limit exceeded. Please wait before sending another message.',
-            retry_after: 60
+            retry_after: 60,
           },
         })
       }
