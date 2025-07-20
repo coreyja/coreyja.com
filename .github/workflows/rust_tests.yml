@@ -1,7 +1,6 @@
 name: Rust Tests
 
 env:
-  DATABASE_URL: "sqlite:/home/runner/work/coreyja.com/coreyja.com/server/db.sqlite3"
   SQLX_OFFLINE: true
   APP_BASE_URL: https://ci.coreyja.com
 
@@ -33,8 +32,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: thread-frontend/package-lock.json
       - name: Build frontend
         run: ./scripts/build-frontend.sh
@@ -63,8 +62,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: thread-frontend/package-lock.json
       - name: Build frontend
         run: ./scripts/build-frontend.sh
@@ -79,6 +78,19 @@ jobs:
     name: Test
     env:
       CARGO_INCREMENTAL: 0
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     strategy:
       fail-fast: false
       matrix:
@@ -109,8 +121,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: thread-frontend/package-lock.json
       - name: Build frontend
         run: ./scripts/build-frontend.sh

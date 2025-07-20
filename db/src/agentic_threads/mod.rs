@@ -1,7 +1,49 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
-use sqlx::{types::Uuid, PgPool};
+use serde_json::{json, Value as JsonValue};
+use sqlx::{types::Uuid, PgPool, Type};
+use std::fmt;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+#[sqlx(rename_all = "snake_case")]
+pub enum StitchType {
+    #[serde(rename = "llm_call")]
+    LlmCall,
+    #[serde(rename = "tool_call")]
+    ToolCall,
+    #[serde(rename = "thread_result")]
+    ThreadResult,
+}
+
+impl fmt::Display for StitchType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StitchType::LlmCall => write!(f, "llm_call"),
+            StitchType::ToolCall => write!(f, "tool_call"),
+            StitchType::ThreadResult => write!(f, "thread_result"),
+        }
+    }
+}
+
+impl std::str::FromStr for StitchType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "llm_call" => Ok(StitchType::LlmCall),
+            "tool_call" => Ok(StitchType::ToolCall),
+            "thread_result" => Ok(StitchType::ThreadResult),
+            _ => Err(format!("Unknown stitch type: {s}")),
+        }
+    }
+}
+
+impl From<String> for StitchType {
+    fn from(s: String) -> Self {
+        s.parse().expect("Invalid stitch type")
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Thread {
@@ -21,7 +63,7 @@ pub struct Stitch {
     pub stitch_id: Uuid,
     pub thread_id: Uuid,
     pub previous_stitch_id: Option<Uuid>,
-    pub stitch_type: String,
+    pub stitch_type: StitchType,
     pub llm_request: Option<JsonValue>,
     pub llm_response: Option<JsonValue>,
     pub tool_name: Option<String>,
@@ -387,6 +429,31 @@ impl Stitch {
         Ok(stitch)
     }
 
+    pub async fn create_initial_user_message(
+        pool: &PgPool,
+        thread_id: Uuid,
+        prompt: String,
+    ) -> color_eyre::Result<Self> {
+        // Create the request JSON with the user's initial message
+        let request = json!({
+            "messages": [{
+                "role": "user",
+                "content": [{
+                    "type": "text",
+                    "text": prompt
+                }]
+            }]
+        });
+
+        // Create an empty response for now
+        let response = json!({
+            "content": []
+        });
+
+        // Create the LLM call stitch with no previous stitch
+        Self::create_llm_call(pool, thread_id, None, request, response).await
+    }
+
     pub async fn get_last_stitch(
         pool: &PgPool,
         thread_id: Uuid,
@@ -426,7 +493,7 @@ impl Stitch {
                 stitch_id as "stitch_id!",
                 thread_id as "thread_id!",
                 previous_stitch_id,
-                stitch_type as "stitch_type!",
+                stitch_type as "stitch_type!: StitchType",
                 llm_request,
                 llm_response,
                 tool_name,

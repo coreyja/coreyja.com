@@ -15,31 +15,14 @@ export interface ChildResult {
   result: ThreadResult
 }
 
+// Note: These types are simplified and don't match the actual Anthropic API format
+// The frontend displays raw JSON so it works with any structure
 export interface LLMRequest {
-  model: string
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant'
-    content: string
-  }>
-  temperature?: number
-  max_tokens?: number
+  [key: string]: unknown
 }
 
 export interface LLMResponse {
-  id: string
-  model: string
-  choices: Array<{
-    message: {
-      role: 'assistant'
-      content: string
-    }
-    finish_reason: string
-  }>
-  usage?: {
-    prompt_tokens: number
-    completion_tokens: number
-    total_tokens: number
-  }
+  [key: string]: unknown
 }
 
 export type ToolInput = Record<string, unknown>
