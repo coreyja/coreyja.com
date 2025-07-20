@@ -1,32 +1,32 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
+  "query": "\n            UPDATE threads\n            SET status = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING status as \"status: ThreadStatus\", \n                   thread_id, branching_stitch_id, goal, tasks, \n                   result, pending_child_results, created_at, updated_at\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "status: ThreadStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
         "name": "thread_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "branching_stitch_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "goal",
         "type_info": "Text"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "tasks",
         "type_info": "Jsonb"
-      },
-      {
-        "ordinal": 4,
-        "name": "status",
-        "type_info": "Text"
       },
       {
         "ordinal": 5,
@@ -57,15 +57,15 @@
     },
     "nullable": [
       false,
-      true,
       false,
       true,
       false,
+      true,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "4d586068cc0ba0ee44e574ff27935941273c0112ec938b462d27e60fef8de956"
+  "hash": "e64e001b479f13501560eb11da9a5f9b9e43f0aa15952abffdd35be400ab6b22"
 }

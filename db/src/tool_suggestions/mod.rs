@@ -1,7 +1,49 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Type};
+use std::fmt;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+#[sqlx(rename_all = "snake_case")]
+pub enum ToolSuggestionStatus {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "dismissed")]
+    Dismissed,
+    #[serde(rename = "skipped")]
+    Skipped,
+}
+
+impl fmt::Display for ToolSuggestionStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ToolSuggestionStatus::Pending => write!(f, "pending"),
+            ToolSuggestionStatus::Dismissed => write!(f, "dismissed"),
+            ToolSuggestionStatus::Skipped => write!(f, "skipped"),
+        }
+    }
+}
+
+impl std::str::FromStr for ToolSuggestionStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pending" => Ok(ToolSuggestionStatus::Pending),
+            "dismissed" => Ok(ToolSuggestionStatus::Dismissed),
+            "skipped" => Ok(ToolSuggestionStatus::Skipped),
+            _ => Err(format!("Unknown tool suggestion status: {s}")),
+        }
+    }
+}
+
+impl From<String> for ToolSuggestionStatus {
+    fn from(s: String) -> Self {
+        s.parse().expect("Invalid tool suggestion status")
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct ToolSuggestion {
@@ -9,7 +51,7 @@ pub struct ToolSuggestion {
     pub name: String,
     pub description: String,
     pub examples: serde_json::Value,
-    pub status: String,
+    pub status: ToolSuggestionStatus,
     pub linear_ticket_id: Option<String>,
     pub previous_stitch_id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -46,7 +88,11 @@ impl ToolSuggestion {
         let suggestions = sqlx::query_as!(
             Self,
             r#"
-            SELECT * FROM tool_suggestions
+            SELECT 
+                suggestion_id, name, description, examples, 
+                status as "status: ToolSuggestionStatus", 
+                linear_ticket_id, previous_stitch_id, created_at, updated_at
+            FROM tool_suggestions
             WHERE status = 'pending'
             ORDER BY created_at DESC
             "#
@@ -83,7 +129,10 @@ impl ToolSuggestion {
             UPDATE tool_suggestions
             SET status = 'dismissed', linear_ticket_id = $2
             WHERE suggestion_id = $1
-            RETURNING *
+            RETURNING 
+                suggestion_id, name, description, examples, 
+                status as "status: ToolSuggestionStatus", 
+                linear_ticket_id, previous_stitch_id, created_at, updated_at
             "#,
             suggestion_id,
             linear_ticket_id
@@ -101,7 +150,10 @@ impl ToolSuggestion {
             UPDATE tool_suggestions
             SET status = 'skipped'
             WHERE suggestion_id = $1
-            RETURNING *
+            RETURNING 
+                suggestion_id, name, description, examples, 
+                status as "status: ToolSuggestionStatus", 
+                linear_ticket_id, previous_stitch_id, created_at, updated_at
             "#,
             suggestion_id
         )

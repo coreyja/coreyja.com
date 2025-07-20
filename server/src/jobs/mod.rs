@@ -2,12 +2,15 @@ use cja::impl_job_registry;
 
 use crate::state::AppState;
 
-use self::{sponsors::RefreshSponsors, youtube_videos::RefreshVideos};
+use self::{
+    sponsors::RefreshSponsors, thread_processor::ProcessThreadStep, youtube_videos::RefreshVideos,
+};
 
 pub mod bytes_discord_posts;
 pub mod refresh_discord;
 pub mod sponsors;
 pub mod standup_message;
+pub mod thread_processor;
 pub mod youtube_videos;
 
 impl_job_registry!(
@@ -16,5 +19,6 @@ impl_job_registry!(
     RefreshVideos,
     bytes_discord_posts::PostByteSubmission,
     refresh_discord::RefreshDiscordChannels,
-    standup_message::StandupMessage
+    standup_message::StandupMessage,
+    ProcessThreadStep
 );

@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE tool_suggestions\n            SET status = 'dismissed', linear_ticket_id = $2\n            WHERE suggestion_id = $1\n            RETURNING \n                suggestion_id, name, description, examples, \n                status as \"status: ToolSuggestionStatus\", \n                linear_ticket_id, previous_stitch_id, created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "suggestion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "examples",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "status: ToolSuggestionStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "linear_ticket_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "previous_stitch_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "82eddd66d5bd7fda37c56a54cd4a7e135f32507d0b37b45449de7654705511cd"
+}

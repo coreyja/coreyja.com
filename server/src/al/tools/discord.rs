@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serenity::all::{CreateMessage, MessageBuilder};
-use tokio::sync::Mutex;
 
 use crate::{
     al::tools::{ThreadContext, Tool},
@@ -86,36 +83,49 @@ impl Tool for SendDiscordMessage {
 }
 
 #[derive(Clone)]
-pub struct DoneTool {
-    continue_looping: Arc<Mutex<bool>>,
+pub struct CompleteThread {
+    app_state: AppState,
 }
 
-impl DoneTool {
-    pub fn new(continue_looping: Arc<Mutex<bool>>) -> Self {
-        Self { continue_looping }
+impl CompleteThread {
+    pub fn new(app_state: AppState) -> Self {
+        Self { app_state }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct DoneInput {
+pub struct CompleteThreadInput {
     pub reason: String,
 }
 
 #[async_trait::async_trait]
-impl Tool for DoneTool {
-    const NAME: &'static str = "done";
+impl Tool for CompleteThread {
+    const NAME: &'static str = "complete_thread";
     const DESCRIPTION: &'static str =
-        "Mark the conversation as done. This will end the conversation. Use this tool when you've finished your work";
+        "Mark the current thread as completed. This will end the conversation and mark the thread status as 'completed'. Use this tool when you've finished your work";
 
-    type ToolInput = DoneInput;
+    type ToolInput = CompleteThreadInput;
     type ToolOutput = ();
 
     async fn run(
         &self,
-        _: Self::ToolInput,
-        _context: ThreadContext,
+        input: Self::ToolInput,
+        context: ThreadContext,
     ) -> cja::Result<Self::ToolOutput> {
-        *self.continue_looping.lock().await = false;
+        use db::agentic_threads::Thread;
+        use serde_json::json;
+
+        // Mark the thread as complete with the reason
+        Thread::complete(
+            &self.app_state.db,
+            context.thread_id,
+            json!({
+                "reason": input.reason,
+                "completed_at": chrono::Utc::now().to_rfc3339()
+            }),
+        )
+        .await?;
+
         Ok(())
     }
 }

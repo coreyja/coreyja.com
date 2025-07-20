@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                suggestion_id, name, description, examples, \n                status as \"status: ToolSuggestionStatus\", \n                linear_ticket_id, previous_stitch_id, created_at, updated_at\n            FROM tool_suggestions\n            WHERE status = 'pending'\n            ORDER BY created_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "suggestion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "examples",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "status: ToolSuggestionStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "linear_ticket_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "previous_stitch_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bd8bbf0ac31cd804fe6d218f9fcbf855d1c99ee1e9ad29dc9cfa191c187403b5"
+}

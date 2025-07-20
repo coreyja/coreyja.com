@@ -10,6 +10,7 @@ interface StitchNodeProps {
 }
 
 const stitchIcons = {
+  initial_prompt: '💬',
   llm_call: '🤖',
   tool_call: '🔧',
   thread_result: '📊',

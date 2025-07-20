@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            WITH RECURSIVE thread_history AS (\n                SELECT * FROM stitches WHERE thread_id = $1 AND previous_stitch_id IS NULL\n                UNION ALL\n                SELECT s.* FROM stitches s\n                JOIN thread_history th ON s.previous_stitch_id = th.stitch_id\n            )\n            SELECT \n                stitch_id as \"stitch_id!\",\n                thread_id as \"thread_id!\",\n                previous_stitch_id,\n                stitch_type as \"stitch_type!\",\n                llm_request,\n                llm_response,\n                tool_name,\n                tool_input,\n                tool_output,\n                child_thread_id,\n                thread_result_summary,\n                created_at as \"created_at!\"\n            FROM thread_history \n            ORDER BY created_at\n            ",
+  "query": "\n            WITH RECURSIVE thread_history AS (\n                SELECT * FROM stitches WHERE thread_id = $1 AND previous_stitch_id IS NULL\n                UNION ALL\n                SELECT s.* FROM stitches s\n                JOIN thread_history th ON s.previous_stitch_id = th.stitch_id\n            )\n            SELECT \n                stitch_id as \"stitch_id!\",\n                thread_id as \"thread_id!\",\n                previous_stitch_id,\n                stitch_type as \"stitch_type!: StitchType\",\n                llm_request,\n                llm_response,\n                tool_name,\n                tool_input,\n                tool_output,\n                child_thread_id,\n                thread_result_summary,\n                created_at as \"created_at!\"\n            FROM thread_history \n            ORDER BY created_at\n            ",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "stitch_type!",
+        "name": "stitch_type!: StitchType",
         "type_info": "Text"
       },
       {
@@ -84,5 +84,5 @@
       null
     ]
   },
-  "hash": "8c2c2a7fc61f924f606d2b85d4647d5286369f5cac50486a8cb0ea02f6482e8a"
+  "hash": "a1ac2aa4a94af6de4865aa8f9179275bbcc7319e9a945eb9ae0caaa21a88ea88"
 }
