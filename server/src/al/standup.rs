@@ -116,7 +116,6 @@ impl StandupAgent {
         // Create and enqueue the first job to process the thread
         let job = ProcessThreadStep {
             thread_id: thread.thread_id,
-            previous_stitch_id: None,
         };
 
         // Enqueue the job to start processing

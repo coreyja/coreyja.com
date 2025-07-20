@@ -44,7 +44,7 @@ export interface Stitch {
   stitch_id: string
   thread_id: string
   previous_stitch_id: string | null
-  stitch_type: 'llm_call' | 'tool_call' | 'thread_result'
+  stitch_type: 'initial_prompt' | 'llm_call' | 'tool_call' | 'thread_result'
   llm_request?: LLMRequest
   llm_response?: LLMResponse
   tool_name?: string

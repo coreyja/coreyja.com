@@ -8,7 +8,7 @@ use sqlx::query;
 use uuid::Uuid;
 
 use crate::{http_server::admin::Timestamp, state::AppState};
-use db::tool_suggestions::ToolSuggestion;
+use db::tool_suggestions::{ToolSuggestion, ToolSuggestionStatus};
 
 use super::super::{
     auth::session::AdminUser,
@@ -141,7 +141,7 @@ pub(crate) async fn dismiss_suggestion(
         .await?
         .ok_or_else(|| color_eyre::eyre::eyre!("Tool suggestion not found"))?;
 
-    if suggestion.status != "pending" {
+    if suggestion.status != ToolSuggestionStatus::Pending {
         return Err(color_eyre::eyre::eyre!("Tool suggestion is not pending").into());
     }
 
@@ -159,7 +159,7 @@ pub(crate) async fn skip_suggestion(
         .await?
         .ok_or_else(|| color_eyre::eyre::eyre!("Tool suggestion not found"))?;
 
-    if suggestion.status != "pending" {
+    if suggestion.status != ToolSuggestionStatus::Pending {
         return Err(color_eyre::eyre::eyre!("Tool suggestion is not pending").into());
     }
 

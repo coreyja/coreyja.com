@@ -8,6 +8,8 @@ use std::fmt;
 #[sqlx(type_name = "text")]
 #[sqlx(rename_all = "snake_case")]
 pub enum StitchType {
+    #[serde(rename = "initial_prompt")]
+    InitialPrompt,
     #[serde(rename = "llm_call")]
     LlmCall,
     #[serde(rename = "tool_call")]
@@ -16,9 +18,28 @@ pub enum StitchType {
     ThreadResult,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+#[sqlx(rename_all = "snake_case")]
+pub enum ThreadStatus {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "running")]
+    Running,
+    #[serde(rename = "waiting")]
+    Waiting,
+    #[serde(rename = "completed")]
+    Completed,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "aborted")]
+    Aborted,
+}
+
 impl fmt::Display for StitchType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            StitchType::InitialPrompt => write!(f, "initial_prompt"),
             StitchType::LlmCall => write!(f, "llm_call"),
             StitchType::ToolCall => write!(f, "tool_call"),
             StitchType::ThreadResult => write!(f, "thread_result"),
@@ -31,6 +52,7 @@ impl std::str::FromStr for StitchType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "initial_prompt" => Ok(StitchType::InitialPrompt),
             "llm_call" => Ok(StitchType::LlmCall),
             "tool_call" => Ok(StitchType::ToolCall),
             "thread_result" => Ok(StitchType::ThreadResult),
@@ -45,13 +67,48 @@ impl From<String> for StitchType {
     }
 }
 
+impl fmt::Display for ThreadStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ThreadStatus::Pending => write!(f, "pending"),
+            ThreadStatus::Running => write!(f, "running"),
+            ThreadStatus::Waiting => write!(f, "waiting"),
+            ThreadStatus::Completed => write!(f, "completed"),
+            ThreadStatus::Failed => write!(f, "failed"),
+            ThreadStatus::Aborted => write!(f, "aborted"),
+        }
+    }
+}
+
+impl std::str::FromStr for ThreadStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pending" => Ok(ThreadStatus::Pending),
+            "running" => Ok(ThreadStatus::Running),
+            "waiting" => Ok(ThreadStatus::Waiting),
+            "completed" => Ok(ThreadStatus::Completed),
+            "failed" => Ok(ThreadStatus::Failed),
+            "aborted" => Ok(ThreadStatus::Aborted),
+            _ => Err(format!("Unknown thread status: {s}")),
+        }
+    }
+}
+
+impl From<String> for ThreadStatus {
+    fn from(s: String) -> Self {
+        s.parse().expect("Invalid thread status")
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Thread {
     pub thread_id: Uuid,
     pub branching_stitch_id: Option<Uuid>,
     pub goal: String,
     pub tasks: JsonValue,
-    pub status: String,
+    pub status: ThreadStatus,
     pub result: Option<JsonValue>,
     pub pending_child_results: JsonValue,
     pub created_at: DateTime<Utc>,
@@ -152,7 +209,9 @@ impl Thread {
             UPDATE threads
             SET status = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING *
+            RETURNING status as "status: ThreadStatus", 
+                   thread_id, branching_stitch_id, goal, tasks, 
+                   result, pending_child_results, created_at, updated_at
             "#,
             status,
             id
@@ -450,8 +509,23 @@ impl Stitch {
             "content": []
         });
 
-        // Create the LLM call stitch with no previous stitch
-        Self::create_llm_call(pool, thread_id, None, request, response).await
+        // Create the initial prompt stitch with no previous stitch
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request, llm_response)
+            VALUES ($1, $2, 'initial_prompt', $3, $4)
+            RETURNING *
+            "#,
+            thread_id,
+            None::<Uuid>,
+            request,
+            response
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
     }
 
     pub async fn get_last_stitch(

@@ -1,17 +1,15 @@
-use std::sync::Arc;
-
 use cja::jobs::Job;
-use db::agentic_threads::{Stitch, Thread};
+use color_eyre::eyre::bail;
+use db::agentic_threads::{Stitch, Thread, ThreadStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{types::Uuid, PgPool};
-use tokio::sync::Mutex;
 
 use crate::{
     al::{
         standup::{AnthropicRequest, AnthropicResponse, Content, Message, ToolChoice, ToolResult},
         tools::{
-            discord::{DoneTool, SendDiscordMessage},
+            discord::{CompleteThread, SendDiscordMessage},
             ThreadContext, ToolBag,
         },
     },
@@ -21,13 +19,6 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessThreadStep {
     pub thread_id: Uuid,
-    pub previous_stitch_id: Option<Uuid>,
-}
-
-#[derive(Debug)]
-pub struct StepResult {
-    pub continue_processing: bool,
-    pub last_stitch_id: Uuid,
 }
 
 #[async_trait::async_trait]
@@ -35,24 +26,21 @@ impl Job<AppState> for ProcessThreadStep {
     const NAME: &'static str = "ProcessThreadStep";
 
     async fn run(&self, app_state: AppState) -> cja::Result<()> {
-        // Process a single step of the thread
-        let result =
-            process_single_step(&app_state, self.thread_id, self.previous_stitch_id).await?;
+        process_single_step(&app_state, self.thread_id).await?;
 
-        // If we should continue processing, enqueue the next step
-        if result.continue_processing {
-            let next_job = ProcessThreadStep {
+        let thread = Thread::get_by_id(&app_state.db, self.thread_id)
+            .await?
+            .ok_or_else(|| cja::color_eyre::eyre::eyre!("Thread not found"))?;
+
+        if thread.status == ThreadStatus::Running {
+            ProcessThreadStep {
                 thread_id: self.thread_id,
-                previous_stitch_id: Some(result.last_stitch_id),
-            };
-
-            // Enqueue the next step
-            next_job
-                .enqueue(
-                    app_state.clone(),
-                    "Thread processing continuation".to_string(),
-                )
-                .await?;
+            }
+            .enqueue(
+                app_state.clone(),
+                "Thread processing continuation".to_string(),
+            )
+            .await?;
         }
 
         Ok(())
@@ -60,29 +48,47 @@ impl Job<AppState> for ProcessThreadStep {
 }
 
 #[allow(clippy::too_many_lines)]
-async fn process_single_step(
-    app_state: &AppState,
-    thread_id: Uuid,
-    mut previous_stitch_id: Option<Uuid>,
-) -> cja::Result<StepResult> {
-    // Check if thread exists and is in the right state
+async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Result<()> {
     let thread = Thread::get_by_id(&app_state.db, thread_id)
         .await?
         .ok_or_else(|| cja::color_eyre::eyre::eyre!("Thread not found"))?;
-    if thread.status != "running" {
-        return Err(cja::color_eyre::eyre::eyre!(
-            "Thread is not in running state"
-        ));
+
+    match thread.status {
+        ThreadStatus::Completed | ThreadStatus::Failed | ThreadStatus::Aborted => {
+            return Ok(());
+        }
+        ThreadStatus::Pending | ThreadStatus::Waiting => {
+            bail!(
+                "Thread is in unexpected state for processing job: {:?}",
+                thread.status
+            );
+        }
+        ThreadStatus::Running => {}
     }
 
-    // Reconstruct messages from stitches
+    let previous_stitch = Stitch::get_last_stitch(&app_state.db, thread_id).await?;
+    let previous_stitch_id = previous_stitch.as_ref().map(|s| s.stitch_id);
+
+    if let Some(s) = previous_stitch {
+        match s.stitch_type {
+            db::agentic_threads::StitchType::LlmCall => bail!(
+                "Right now we only support starting by running an LLM call and then running tool calls after.
+                So its not expected to be processing with an LLM call as the previous stitch."
+            ),
+            db::agentic_threads::StitchType::ThreadResult => todo!(),
+            db::agentic_threads::StitchType::InitialPrompt
+            | db::agentic_threads::StitchType::ToolCall => {
+                // This is the expected types that we can process here right now
+            }
+        }
+    }
+
     let messages = reconstruct_messages(&app_state.db, thread_id).await?;
 
     // Set up tools
-    let continue_looping = Arc::new(Mutex::new(true));
     let mut tools = ToolBag::default();
     tools.add_tool(SendDiscordMessage::new(app_state.clone()))?;
-    tools.add_tool(DoneTool::new(continue_looping.clone()))?;
+    tools.add_tool(CompleteThread::new(app_state.clone()))?;
     tools.add_tool(
         crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new(app_state.clone()),
     )?;
@@ -118,7 +124,6 @@ async fn process_single_step(
 
     let response_data: AnthropicResponse = response.json().await?;
 
-    // Create LLM stitch
     let llm_stitch = Stitch::create_llm_call(
         &app_state.db,
         thread_id,
@@ -128,10 +133,10 @@ async fn process_single_step(
     )
     .await?;
 
-    previous_stitch_id = Some(llm_stitch.stitch_id);
+    let mut previous_stitch_id = Some(llm_stitch.stitch_id);
 
     // Process tool calls
-    for content in &response_data.content {
+    for content in response_data.content {
         match content {
             Content::Text(_text) => {
                 // Text content from assistant - no action needed
@@ -146,36 +151,18 @@ async fn process_single_step(
                     previous_stitch_id,
                 };
 
-                match tools.call_tool(tool_use_content.clone(), context).await {
-                    Ok(tool_result) => {
-                        // Create tool call stitch for successful execution
-                        let tool_stitch = Stitch::create_tool_call(
-                            &app_state.db,
-                            thread_id,
-                            previous_stitch_id,
-                            tool_name,
-                            tool_input,
-                            serde_json::to_value(&tool_result)?,
-                        )
-                        .await?;
+                let tool_result = tools.call_tool(tool_use_content, context).await;
+                let tool_stitch = Stitch::create_tool_call(
+                    &app_state.db,
+                    thread_id,
+                    previous_stitch_id,
+                    tool_name,
+                    tool_input,
+                    tool_result.unwrap_or_else(|e| json!({"error": e.to_string()})),
+                )
+                .await?;
 
-                        previous_stitch_id = Some(tool_stitch.stitch_id);
-                    }
-                    Err(e) => {
-                        // Create tool call stitch for error
-                        let tool_stitch = Stitch::create_tool_call(
-                            &app_state.db,
-                            thread_id,
-                            previous_stitch_id,
-                            tool_name,
-                            tool_input,
-                            json!({"error": e.to_string()}),
-                        )
-                        .await?;
-
-                        previous_stitch_id = Some(tool_stitch.stitch_id);
-                    }
-                };
+                previous_stitch_id = Some(tool_stitch.stitch_id);
             }
             Content::ToolResult(_) => {
                 unreachable!("ToolResult should not appear in assistant response")
@@ -183,31 +170,32 @@ async fn process_single_step(
         }
     }
 
-    // Check if we should continue processing
-    let continue_processing = *continue_looping.lock().await;
-
-    Ok(StepResult {
-        continue_processing,
-        last_stitch_id: previous_stitch_id.unwrap(),
-    })
+    Ok(())
 }
 
 async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<Message>> {
-    // Get all stitches for the thread in order
     let stitches = Stitch::get_by_thread_ordered(db, thread_id).await?;
 
     let mut messages = Vec::new();
     let mut pending_tool_results: Vec<Content> = Vec::new();
 
-    // Track tool_use_ids from assistant messages
     let mut tool_use_mapping: std::collections::HashMap<(String, Option<Uuid>), String> =
         std::collections::HashMap::new();
 
-    // Convert each stitch into appropriate Message format
     for stitch in stitches {
         match stitch.stitch_type {
+            db::agentic_threads::StitchType::InitialPrompt => {
+                if let Some(request) = stitch.llm_request {
+                    if let Some(request_messages) =
+                        request.get("messages").and_then(|v| v.as_array())
+                    {
+                        for msg in request_messages {
+                            messages.push(serde_json::from_value(msg.clone())?);
+                        }
+                    }
+                }
+            }
             db::agentic_threads::StitchType::LlmCall => {
-                // If we have pending tool results, add them as a user message first
                 if !pending_tool_results.is_empty() {
                     messages.push(Message {
                         role: "user".to_string(),
@@ -216,25 +204,10 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
                     pending_tool_results.clear();
                 }
 
-                // Extract the request for the initial user message
-                if let (Some(request), Some(response)) = (stitch.llm_request, stitch.llm_response) {
-                    // Extract the messages from the request
-                    if messages.is_empty() {
-                        // First stitch - extract all messages from request
-                        if let Some(request_messages) =
-                            request.get("messages").and_then(|v| v.as_array())
-                        {
-                            for msg in request_messages {
-                                messages.push(serde_json::from_value(msg.clone())?);
-                            }
-                        }
-                    }
-
-                    // Add the assistant response
+                if let Some(response) = stitch.llm_response {
                     if let Some(content) = response.get("content") {
                         let content_vec: Vec<Content> = serde_json::from_value(content.clone())?;
 
-                        // Track tool_use_ids for matching with tool results
                         for content_item in &content_vec {
                             if let Content::ToolUse(tool_use) = content_item {
                                 tool_use_mapping.insert(
@@ -252,30 +225,27 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
                 }
             }
             db::agentic_threads::StitchType::ToolCall => {
-                // Tool calls generate tool result messages
                 if let (Some(tool_name), Some(_tool_input), Some(tool_output)) = (
                     stitch.tool_name.clone(),
                     stitch.tool_input,
                     stitch.tool_output,
                 ) {
-                    // Find the tool use ID from our mapping
                     let tool_use_id = tool_use_mapping
                         .get(&(tool_name.clone(), stitch.previous_stitch_id))
                         .cloned()
                         .unwrap_or_else(|| format!("tool_{}_{}", tool_name, stitch.stitch_id));
 
-                    let is_error = tool_output.get("error").is_some();
-                    let content = if is_error {
-                        tool_output
-                            .get("error")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("Unknown error")
-                            .to_string()
+                    let (content, is_error) = if let Some(err) = tool_output.get("error") {
+                        (
+                            serde_json::to_string(&err).unwrap_or_else(|_| {
+                                "SYSTEM: Tool Errored but can't serialize error".to_string()
+                            }),
+                            true,
+                        )
                     } else {
-                        serde_json::to_string(&tool_output)?
+                        (serde_json::to_string(&tool_output)?, false)
                     };
 
-                    // Add to pending tool results
                     pending_tool_results.push(Content::ToolResult(ToolResult {
                         tool_use_id,
                         content,
@@ -325,26 +295,29 @@ mod tests {
             .unwrap();
         let thread_id = thread.thread_id;
 
-        // Create request and response for LLM call
-        let request = json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": "Hello"}]
-                }
-            ]
-        });
+        // Create initial user message
+        let initial_stitch =
+            Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
+                .await
+                .unwrap();
 
+        // Create LLM response
         let response = json!({
             "content": [
                 {"type": "text", "text": "Hi there!"}
             ]
         });
 
-        // Create LLM call stitch
-        Stitch::create_llm_call(&pool, thread_id, None, request, response)
-            .await
-            .unwrap();
+        // Create LLM call stitch for the response
+        Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
 
         let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
 
@@ -373,16 +346,16 @@ mod tests {
             .unwrap();
         let thread_id = thread.thread_id;
 
-        // First LLM call with user message
-        let request1 = json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": "What's the weather?"}]
-                }
-            ]
-        });
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(
+            &pool,
+            thread_id,
+            "What's the weather?".to_string(),
+        )
+        .await
+        .unwrap();
 
+        // First LLM response with tool use
         let response1 = json!({
             "content": [
                 {"type": "text", "text": "I'll check the weather for you."},
@@ -395,9 +368,15 @@ mod tests {
             ]
         });
 
-        let llm_stitch1 = Stitch::create_llm_call(&pool, thread_id, None, request1, response1)
-            .await
-            .unwrap();
+        let llm_stitch1 = Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response1,
+        )
+        .await
+        .unwrap();
 
         // Tool call
         let tool_stitch = Stitch::create_tool_call(
@@ -411,37 +390,7 @@ mod tests {
         .await
         .unwrap();
 
-        // Second LLM call with tool result
-        let request2 = json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": "What's the weather?"}]
-                },
-                {
-                    "role": "assistant",
-                    "content": [
-                        {"type": "text", "text": "I'll check the weather for you."},
-                        {
-                            "type": "tool_use",
-                            "id": "tool_123",
-                            "name": "get_weather",
-                            "input": {"location": "New York"}
-                        }
-                    ]
-                },
-                {
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": "tool_123",
-                        "content": "{\"temperature\":\"72F\",\"condition\":\"sunny\"}",
-                        "is_error": false
-                    }]
-                }
-            ]
-        });
-
+        // Second LLM call after tool result
         let response2 = json!({
             "content": [
                 {"type": "text", "text": "The weather in New York is sunny and 72°F."}
@@ -452,7 +401,7 @@ mod tests {
             &pool,
             thread_id,
             Some(tool_stitch.stitch_id),
-            request2,
+            json!({}),
             response2,
         )
         .await
@@ -494,16 +443,13 @@ mod tests {
             .unwrap();
         let thread_id = thread.thread_id;
 
-        // LLM call requesting tool use
-        let request = json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": "Do something"}]
-                }
-            ]
-        });
+        // Create initial user message
+        let initial_stitch =
+            Stitch::create_initial_user_message(&pool, thread_id, "Do something".to_string())
+                .await
+                .unwrap();
 
+        // LLM response with tool use
         let response = json!({
             "content": [
                 {
@@ -515,9 +461,15 @@ mod tests {
             ]
         });
 
-        let llm_stitch = Stitch::create_llm_call(&pool, thread_id, None, request, response)
-            .await
-            .unwrap();
+        let llm_stitch = Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
 
         // Tool call with error
         Stitch::create_tool_call(
@@ -535,11 +487,19 @@ mod tests {
 
         assert_eq!(messages.len(), 3);
 
-        // Check tool result has error
+        // We should have:
+        // 1. Initial user message
+        // 2. Assistant response with tool use
+        // 3. Tool result (added at the end since there's no follow-up LLM call)
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages[2].role, "user");
+
+        // Check the tool result has error
         if let Content::ToolResult(tool_result) = &messages[2].content[0] {
             assert_eq!(tool_result.tool_use_id, "tool_456");
             assert!(tool_result.is_error);
-            assert_eq!(tool_result.content, "Tool execution failed");
+            assert_eq!(tool_result.content, "\"Tool execution failed\"");
         } else {
             panic!("Expected tool result content");
         }
@@ -553,16 +513,13 @@ mod tests {
             .unwrap();
         let thread_id = thread.thread_id;
 
-        // LLM call with multiple tool uses
-        let request = json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": "Do multiple things"}]
-                }
-            ]
-        });
+        // Create initial user message
+        let initial_stitch =
+            Stitch::create_initial_user_message(&pool, thread_id, "Do multiple things".to_string())
+                .await
+                .unwrap();
 
+        // LLM response with multiple tool uses
         let response = json!({
             "content": [
                 {
@@ -580,9 +537,15 @@ mod tests {
             ]
         });
 
-        let llm_stitch = Stitch::create_llm_call(&pool, thread_id, None, request, response)
-            .await
-            .unwrap();
+        let llm_stitch = Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
 
         // First tool call
         let tool_stitch1 = Stitch::create_tool_call(
