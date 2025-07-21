@@ -6,6 +6,7 @@ use crate::{
     al::tools::{ThreadContext, Tool},
     AppState,
 };
+use db::discord_threads::DiscordThreadMetadata;
 
 #[derive(Clone, Debug)]
 pub struct SendDiscordMessage;
@@ -124,17 +125,15 @@ impl Tool for SendDiscordThreadMessage {
     ) -> cja::Result<Self::ToolOutput> {
         use serenity::model::prelude::*;
 
-        // Extract Discord thread ID from metadata
-        let discord_thread_id = context
-            .thread
-            .metadata
-            .as_ref()
-            .and_then(|m| m.get("discord"))
-            .and_then(|d| d.get("thread_id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| {
-                cja::color_eyre::eyre::eyre!("Discord thread ID not found in metadata")
-            })?;
+        // Get Discord metadata for this thread
+        let discord_meta =
+            DiscordThreadMetadata::find_by_thread_id(&app_state.db, context.thread.thread_id)
+                .await?
+                .ok_or_else(|| {
+                    cja::color_eyre::eyre::eyre!("Discord metadata not found for this thread")
+                })?;
+
+        let discord_thread_id = &discord_meta.discord_thread_id;
 
         let channel_id = ChannelId::from(
             discord_thread_id

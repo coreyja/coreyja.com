@@ -1,62 +1,62 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM GithubSponsors WHERE github_id = $1",
+  "query": "\n            SELECT * FROM discord_thread_metadata\n            WHERE discord_thread_id = $1\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "github_sponsor_id",
+        "name": "thread_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "user_id",
-        "type_info": "Uuid"
+        "name": "discord_thread_id",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "sponsor_type",
+        "name": "channel_id",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "github_id",
+        "name": "guild_id",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "github_login",
+        "name": "last_message_id",
         "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "sponsored_at",
-        "type_info": "Timestamptz"
+        "name": "created_by",
+        "type_info": "Text"
       },
       {
         "ordinal": 6,
-        "name": "is_active",
-        "type_info": "Bool"
+        "name": "thread_name",
+        "type_info": "Text"
       },
       {
         "ordinal": 7,
-        "name": "is_one_time_payment",
-        "type_info": "Bool"
+        "name": "participants",
+        "type_info": "Jsonb"
       },
       {
         "ordinal": 8,
-        "name": "privacy_level",
+        "name": "webhook_url",
         "type_info": "Text"
       },
       {
         "ordinal": 9,
-        "name": "amount_cents",
-        "type_info": "Int4"
+        "name": "created_at",
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 10,
-        "name": "tier_name",
-        "type_info": "Text"
+        "name": "updated_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -66,17 +66,17 @@
     },
     "nullable": [
       false,
-      true,
-      false,
-      false,
-      false,
-      false,
       false,
       false,
       false,
       true,
-      true
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
     ]
   },
-  "hash": "0d6c343eaa780cddd5d2c93039a869ce39d313524e1234f8485aa2883fc14935"
+  "hash": "623989817f2e8f85be7f65dbfe786e70f3e3d156beb073d026118b737924d03b"
 }

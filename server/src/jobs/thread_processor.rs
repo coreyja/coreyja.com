@@ -1,6 +1,7 @@
 use cja::jobs::Job;
 use color_eyre::eyre::bail;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
+use db::discord_threads::DiscordThreadMetadata;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{types::Uuid, PgPool};
@@ -94,12 +95,12 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     let mut tools = ToolBag::default();
 
     // Check if this is an interactive Discord thread
-    let is_discord_thread = thread.thread_type == db::agentic_threads::ThreadType::Interactive
-        && thread
-            .metadata
-            .as_ref()
-            .and_then(|m| m.get("discord"))
-            .is_some();
+    let discord_metadata = if thread.thread_type == db::agentic_threads::ThreadType::Interactive {
+        DiscordThreadMetadata::find_by_thread_id(&app_state.db, thread_id).await?
+    } else {
+        None
+    };
+    let is_discord_thread = discord_metadata.is_some();
 
     if is_discord_thread {
         // For interactive Discord threads, use the thread-specific message tool

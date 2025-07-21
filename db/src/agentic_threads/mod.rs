@@ -24,8 +24,8 @@ pub enum StitchType {
 #[sqlx(type_name = "text")]
 #[sqlx(rename_all = "snake_case")]
 pub enum ThreadType {
-    #[serde(rename = "goal_oriented")]
-    GoalOriented,
+    #[serde(rename = "autonomous")]
+    Autonomous,
     #[serde(rename = "interactive")]
     Interactive,
 }
@@ -84,7 +84,7 @@ impl From<String> for StitchType {
 impl fmt::Display for ThreadType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ThreadType::GoalOriented => write!(f, "goal_oriented"),
+            ThreadType::Autonomous => write!(f, "autonomous"),
             ThreadType::Interactive => write!(f, "interactive"),
         }
     }
@@ -95,7 +95,7 @@ impl std::str::FromStr for ThreadType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "goal_oriented" => Ok(ThreadType::GoalOriented),
+            "autonomous" => Ok(ThreadType::Autonomous),
             "interactive" => Ok(ThreadType::Interactive),
             _ => Err(format!("Unknown thread type: {s}")),
         }
@@ -153,7 +153,6 @@ pub struct Thread {
     pub result: Option<JsonValue>,
     pub pending_child_results: JsonValue,
     pub thread_type: ThreadType,
-    pub metadata: Option<JsonValue>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -214,43 +213,18 @@ impl Thread {
         Ok(thread)
     }
 
-    pub async fn create_interactive(
-        pool: &PgPool,
-        goal: String,
-        metadata: JsonValue,
-    ) -> color_eyre::Result<Self> {
+    pub async fn create_interactive(pool: &PgPool, goal: String) -> color_eyre::Result<Self> {
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            INSERT INTO threads (goal, thread_type, metadata)
-            VALUES ($1, 'interactive', $2)
+            INSERT INTO threads (goal, thread_type)
+            VALUES ($1, 'interactive')
             RETURNING 
                 *
             "#,
-            goal,
-            metadata
+            goal
         )
         .fetch_one(pool)
-        .await?;
-
-        Ok(thread)
-    }
-
-    pub async fn find_by_discord_thread_id(
-        pool: &PgPool,
-        discord_thread_id: &str,
-    ) -> color_eyre::Result<Option<Self>> {
-        let thread = sqlx::query_as!(
-            Thread,
-            r#"
-            SELECT 
-                *
-            FROM threads
-            WHERE metadata->'discord'->>'thread_id' = $1
-            "#,
-            discord_thread_id
-        )
-        .fetch_optional(pool)
         .await?;
 
         Ok(thread)
@@ -327,29 +301,6 @@ impl Thread {
                 *
             "#,
             tasks,
-            id
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(thread)
-    }
-
-    pub async fn update_metadata(
-        pool: &PgPool,
-        id: Uuid,
-        metadata: JsonValue,
-    ) -> color_eyre::Result<Option<Self>> {
-        let thread = sqlx::query_as!(
-            Thread,
-            r#"
-            UPDATE threads
-            SET metadata = $1, updated_at = NOW()
-            WHERE thread_id = $2
-            RETURNING 
-                *
-            "#,
-            metadata,
             id
         )
         .fetch_optional(pool)

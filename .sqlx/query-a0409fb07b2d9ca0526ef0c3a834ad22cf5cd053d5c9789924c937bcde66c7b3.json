@@ -52,11 +52,6 @@
         "ordinal": 9,
         "name": "thread_type",
         "type_info": "Text"
-      },
-      {
-        "ordinal": 10,
-        "name": "metadata",
-        "type_info": "Jsonb"
       }
     ],
     "parameters": {
@@ -74,8 +69,7 @@
       true,
       false,
       false,
-      false,
-      true
+      false
     ]
   },
   "hash": "a0409fb07b2d9ca0526ef0c3a834ad22cf5cd053d5c9789924c937bcde66c7b3"

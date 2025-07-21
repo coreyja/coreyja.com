@@ -15,8 +15,8 @@ Add a new thread type to the existing system:
 CHECK (status IN ('pending', 'running', 'waiting', 'completed', 'failed', 'interactive'))
 
 -- Add thread_type column
-ALTER TABLE threads ADD COLUMN thread_type TEXT DEFAULT 'goal_oriented'
-  CHECK (thread_type IN ('goal_oriented', 'interactive'));
+ALTER TABLE threads ADD COLUMN thread_type TEXT DEFAULT 'autonomous'
+  CHECK (thread_type IN ('autonomous', 'interactive'));
 
 -- Add thread metadata column for Discord-specific data
 ALTER TABLE threads ADD COLUMN metadata JSONB DEFAULT '{}'::jsonb;

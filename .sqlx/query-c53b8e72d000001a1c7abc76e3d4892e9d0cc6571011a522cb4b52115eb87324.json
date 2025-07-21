@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET metadata = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
+  "query": "\n            INSERT INTO threads (goal, thread_type)\n            VALUES ($1, 'interactive')\n            RETURNING \n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -52,17 +52,11 @@
         "ordinal": 9,
         "name": "thread_type",
         "type_info": "Text"
-      },
-      {
-        "ordinal": 10,
-        "name": "metadata",
-        "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
-        "Jsonb",
-        "Uuid"
+        "Text"
       ]
     },
     "nullable": [
@@ -75,9 +69,8 @@
       true,
       false,
       false,
-      false,
-      true
+      false
     ]
   },
-  "hash": "40d1d90c96d85c6b1e51972defe16d4fbbee9c61fe14dffe890d59303216e321"
+  "hash": "c53b8e72d000001a1c7abc76e3d4892e9d0cc6571011a522cb4b52115eb87324"
 }

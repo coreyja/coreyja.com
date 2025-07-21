@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::state::AppState;
 use cja::jobs::Job as JobTrait;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
+use db::discord_threads::DiscordThreadMetadata;
 
 use super::thread_processor::ProcessThreadStep;
 
@@ -54,14 +55,15 @@ impl JobTrait<AppState> for ProcessDiscordEvent {
                     Thread::update_status(db, self.thread_id, "running").await?;
                 }
 
-                // Update thread metadata with last message ID
-                if let Some(mut metadata) = thread.metadata {
-                    if let Some(discord_meta) = metadata.get_mut("discord") {
-                        if let Some(message_id) = self.event_data.get("message_id") {
-                            discord_meta["last_message_id"] = message_id.clone();
-                        }
-                    }
-                    Thread::update_metadata(db, self.thread_id, metadata).await?;
+                // Update Discord metadata with last message ID
+                if let Some(message_id) = self.event_data.get("message_id").and_then(|v| v.as_str())
+                {
+                    DiscordThreadMetadata::update_last_message_id(
+                        db,
+                        self.thread_id,
+                        message_id.to_string(),
+                    )
+                    .await?;
                 }
 
                 // Enqueue thread processor to handle the message

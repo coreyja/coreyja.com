@@ -1,23 +1,11 @@
 use std::sync::Arc;
 
 use poise::serenity_prelude::{self as serenity};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
 
 use db::agentic_threads::Thread;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DiscordMetadata {
-    pub channel_id: String,
-    pub thread_id: String,
-    pub guild_id: String,
-    pub webhook_url: Option<String>,
-    pub last_message_id: Option<String>,
-    pub participants: Vec<String>,
-    pub created_by: String,
-    pub thread_name: String,
-}
+use db::discord_threads::DiscordThreadMetadata;
 
 use crate::jobs::discord_event_processor::ProcessDiscordEvent;
 pub type ProcessDiscordEventInput = ProcessDiscordEvent;
@@ -55,38 +43,53 @@ impl DiscordEventHandler {
             })
         {
             // Try to find existing interactive thread
-            let existing_thread = Thread::find_by_discord_thread_id(&self.db, &thread_id).await?;
+            let existing_discord =
+                DiscordThreadMetadata::find_by_discord_thread_id(&self.db, &thread_id).await?;
 
-            let thread = if let Some(thread) = existing_thread {
-                thread
+            let thread = if let Some(discord_meta) = existing_discord {
+                // Get the associated thread
+                Thread::get_by_id(&self.db, discord_meta.thread_id)
+                    .await?
+                    .ok_or_else(|| {
+                        color_eyre::eyre::eyre!("Thread not found for Discord metadata")
+                    })?
             } else {
+                // Get thread name
+                let thread_name = msg
+                    .channel(self.discord_client.as_ref())
+                    .await?
+                    .guild()
+                    .map_or_else(|| "Discord Thread".to_string(), |c| c.name.clone());
+
                 // Create new interactive thread
-                let metadata = DiscordMetadata {
-                    channel_id: msg.channel_id.to_string(),
-                    thread_id: thread_id.clone(),
-                    guild_id: msg.guild_id.map(|id| id.to_string()).unwrap_or_default(),
-                    webhook_url: None,
-                    last_message_id: Some(msg.id.to_string()),
-                    participants: vec![msg.author.tag()],
-                    created_by: msg.author.tag(),
-                    thread_name: msg
-                        .channel(self.discord_client.as_ref())
-                        .await?
-                        .guild()
-                        .map_or_else(|| "Discord Thread".to_string(), |c| c.name.clone()),
-                };
-
-                let metadata_json = json!({
-                    "discord": metadata
-                });
-
-                Thread::create_interactive(
+                let thread = Thread::create_interactive(
                     &self.db,
-                    format!("Interactive Discord thread: {}", metadata.thread_name),
-                    metadata_json,
+                    format!("Interactive Discord thread: {thread_name}"),
                 )
-                .await?
+                .await?;
+
+                // Create Discord metadata
+                let _discord_meta = DiscordThreadMetadata::create(
+                    &self.db,
+                    thread.thread_id,
+                    thread_id.clone(),
+                    msg.channel_id.to_string(),
+                    msg.guild_id.map(|id| id.to_string()).unwrap_or_default(),
+                    msg.author.tag(),
+                    thread_name,
+                )
+                .await?;
+
+                thread
             };
+
+            // Add participant if new
+            let _updated = DiscordThreadMetadata::add_participant(
+                &self.db,
+                thread.thread_id,
+                &msg.author.tag(),
+            )
+            .await?;
 
             // Create job to process the message
             let event_data = json!({
@@ -132,30 +135,25 @@ impl DiscordEventHandler {
             .guild()
             .and_then(|c| c.thread_metadata);
 
-        // Create metadata for the new thread
-        let metadata = DiscordMetadata {
-            channel_id: thread
-                .parent_id
-                .map(|id| id.to_string())
-                .unwrap_or_default(),
-            thread_id: thread.id.to_string(),
-            guild_id: thread.guild_id.to_string(),
-            webhook_url: None,
-            last_message_id: None,
-            participants: vec![],
-            created_by: thread.owner_id.map(|id| id.to_string()).unwrap_or_default(),
-            thread_name: thread.name.clone(),
-        };
-
-        let metadata_json = json!({
-            "discord": metadata
-        });
-
         // Create the interactive thread
         let ai_thread = Thread::create_interactive(
             &self.db,
             format!("Interactive Discord thread: {}", thread.name),
-            metadata_json,
+        )
+        .await?;
+
+        // Create Discord metadata
+        let _discord_meta = DiscordThreadMetadata::create(
+            &self.db,
+            ai_thread.thread_id,
+            thread.id.to_string(),
+            thread
+                .parent_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
+            thread.guild_id.to_string(),
+            thread.owner_id.map(|id| id.to_string()).unwrap_or_default(),
+            thread.name.clone(),
         )
         .await?;
 
