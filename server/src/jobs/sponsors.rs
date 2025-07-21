@@ -16,3 +16,25 @@ impl Job<AppState> for RefreshSponsors {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_job_name() {
+        assert_eq!(RefreshSponsors::NAME, "RefreshSponsors");
+    }
+
+    #[test]
+    fn test_job_serialization() {
+        let job = RefreshSponsors;
+
+        // Test that the job can be serialized/deserialized
+        let serialized = serde_json::to_string(&job).unwrap();
+        let deserialized: RefreshSponsors = serde_json::from_str(&serialized).unwrap();
+
+        // Since RefreshSponsors has no fields, this just verifies the derive macros work
+        assert_eq!(format!("{job:?}"), format!("{:?}", deserialized));
+    }
+}
