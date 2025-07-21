@@ -132,7 +132,7 @@ Interactive threads need special context handling:
 1. **Message History Window**: Keep last N messages in context
 2. **Participant Tracking**: Track who's in the conversation
 3. **Conversation Summary**: Periodically summarize long conversations
-4. **Topic Detection**: Identify when conversation topic changes significantly
+4. [For Later] **Topic Detection**: Identify when conversation topic changes significantly
 
 ### 8. Integration Architecture
 

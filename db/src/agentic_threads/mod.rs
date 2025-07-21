@@ -16,6 +16,18 @@ pub enum StitchType {
     ToolCall,
     #[serde(rename = "thread_result")]
     ThreadResult,
+    #[serde(rename = "discord_message")]
+    DiscordMessage,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+#[sqlx(rename_all = "snake_case")]
+pub enum ThreadType {
+    #[serde(rename = "goal_oriented")]
+    GoalOriented,
+    #[serde(rename = "interactive")]
+    Interactive,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -43,6 +55,7 @@ impl fmt::Display for StitchType {
             StitchType::LlmCall => write!(f, "llm_call"),
             StitchType::ToolCall => write!(f, "tool_call"),
             StitchType::ThreadResult => write!(f, "thread_result"),
+            StitchType::DiscordMessage => write!(f, "discord_message"),
         }
     }
 }
@@ -56,6 +69,7 @@ impl std::str::FromStr for StitchType {
             "llm_call" => Ok(StitchType::LlmCall),
             "tool_call" => Ok(StitchType::ToolCall),
             "thread_result" => Ok(StitchType::ThreadResult),
+            "discord_message" => Ok(StitchType::DiscordMessage),
             _ => Err(format!("Unknown stitch type: {s}")),
         }
     }
@@ -64,6 +78,33 @@ impl std::str::FromStr for StitchType {
 impl From<String> for StitchType {
     fn from(s: String) -> Self {
         s.parse().expect("Invalid stitch type")
+    }
+}
+
+impl fmt::Display for ThreadType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ThreadType::GoalOriented => write!(f, "goal_oriented"),
+            ThreadType::Interactive => write!(f, "interactive"),
+        }
+    }
+}
+
+impl std::str::FromStr for ThreadType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "goal_oriented" => Ok(ThreadType::GoalOriented),
+            "interactive" => Ok(ThreadType::Interactive),
+            _ => Err(format!("Unknown thread type: {s}")),
+        }
+    }
+}
+
+impl From<String> for ThreadType {
+    fn from(s: String) -> Self {
+        s.parse().expect("Invalid thread type")
     }
 }
 
@@ -111,6 +152,8 @@ pub struct Thread {
     pub status: ThreadStatus,
     pub result: Option<JsonValue>,
     pub pending_child_results: JsonValue,
+    pub thread_type: ThreadType,
+    pub metadata: Option<JsonValue>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -138,7 +181,8 @@ impl Thread {
             r#"
             INSERT INTO threads (goal)
             VALUES ($1)
-            RETURNING *
+            RETURNING 
+                *
             "#,
             goal
         )
@@ -158,7 +202,8 @@ impl Thread {
             r#"
             INSERT INTO threads (branching_stitch_id, goal)
             VALUES ($1, $2)
-            RETURNING *
+            RETURNING 
+                *
             "#,
             branching_stitch_id,
             goal
@@ -169,11 +214,55 @@ impl Thread {
         Ok(thread)
     }
 
+    pub async fn create_interactive(
+        pool: &PgPool,
+        goal: String,
+        metadata: JsonValue,
+    ) -> color_eyre::Result<Self> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            INSERT INTO threads (goal, thread_type, metadata)
+            VALUES ($1, 'interactive', $2)
+            RETURNING 
+                *
+            "#,
+            goal,
+            metadata
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn find_by_discord_thread_id(
+        pool: &PgPool,
+        discord_thread_id: &str,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            SELECT 
+                *
+            FROM threads
+            WHERE metadata->'discord'->>'thread_id' = $1
+            "#,
+            discord_thread_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
     pub async fn get_by_id(pool: &PgPool, id: Uuid) -> color_eyre::Result<Option<Self>> {
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            SELECT * FROM threads
+            SELECT 
+                *
+            FROM threads
             WHERE thread_id = $1
             "#,
             id
@@ -188,7 +277,9 @@ impl Thread {
         let threads = sqlx::query_as!(
             Thread,
             r#"
-            SELECT * FROM threads
+            SELECT 
+                *
+            FROM threads
             ORDER BY created_at DESC
             "#
         )
@@ -209,9 +300,8 @@ impl Thread {
             UPDATE threads
             SET status = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING status as "status: ThreadStatus", 
-                   thread_id, branching_stitch_id, goal, tasks, 
-                   result, pending_child_results, created_at, updated_at
+            RETURNING 
+                *
             "#,
             status,
             id
@@ -233,9 +323,33 @@ impl Thread {
             UPDATE threads
             SET tasks = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING *
+            RETURNING 
+                *
             "#,
             tasks,
+            id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(thread)
+    }
+
+    pub async fn update_metadata(
+        pool: &PgPool,
+        id: Uuid,
+        metadata: JsonValue,
+    ) -> color_eyre::Result<Option<Self>> {
+        let thread = sqlx::query_as!(
+            Thread,
+            r#"
+            UPDATE threads
+            SET metadata = $1, updated_at = NOW()
+            WHERE thread_id = $2
+            RETURNING 
+                *
+            "#,
+            metadata,
             id
         )
         .fetch_optional(pool)
@@ -255,7 +369,8 @@ impl Thread {
             UPDATE threads
             SET status = 'completed', result = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING *
+            RETURNING 
+                *
             "#,
             result,
             id
@@ -277,7 +392,8 @@ impl Thread {
             UPDATE threads
             SET status = 'failed', result = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING *
+            RETURNING 
+                *
             "#,
             result,
             id
@@ -328,7 +444,9 @@ impl Thread {
         let threads = sqlx::query_as!(
             Thread,
             r#"
-            SELECT * FROM threads
+            SELECT 
+                *
+            FROM threads
             WHERE branching_stitch_id IS NULL
             ORDER BY created_at DESC
             LIMIT $1
@@ -345,7 +463,9 @@ impl Thread {
         let children = sqlx::query_as!(
             Thread,
             r#"
-            SELECT t.* FROM threads t
+            SELECT 
+                t.*
+            FROM threads t
             JOIN stitches s ON t.branching_stitch_id = s.stitch_id
             WHERE s.thread_id = $1
             ORDER BY t.created_at ASC
@@ -398,7 +518,8 @@ impl Thread {
             UPDATE threads
             SET status = 'aborted', result = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING *
+            RETURNING 
+                *
             "#,
             result,
             id
@@ -521,6 +642,29 @@ impl Stitch {
             None::<Uuid>,
             request,
             response
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
+    pub async fn create_discord_message(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        message_data: JsonValue,
+    ) -> color_eyre::Result<Self> {
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, $2, 'discord_message', $3)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            message_data
         )
         .fetch_one(pool)
         .await?;

@@ -109,7 +109,9 @@ async fn pageview_middleware(
 }
 
 pub(crate) async fn serve() -> Result<()> {
-    let discord = crate::discord::setup().await?;
+    // First create a temporary AppState to get the database
+    let db = db::setup_db_pool().await?;
+    let discord = crate::discord::setup(std::sync::Arc::new(db.clone())).await?;
 
     let app_state = AppState::from_env(discord.client).await?;
     let job_registry = Jobs;

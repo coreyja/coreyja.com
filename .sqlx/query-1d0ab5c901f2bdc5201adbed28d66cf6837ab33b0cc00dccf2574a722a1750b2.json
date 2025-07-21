@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'aborted', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
+  "query": "\n            UPDATE threads\n            SET status = 'aborted', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,16 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
@@ -64,8 +74,10 @@
       true,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "01723d2cf1dadc4b7ff9146c297f4ec7809cfeaef4175763350ad18516ad2c8a"
+  "hash": "1d0ab5c901f2bdc5201adbed28d66cf6837ab33b0cc00dccf2574a722a1750b2"
 }

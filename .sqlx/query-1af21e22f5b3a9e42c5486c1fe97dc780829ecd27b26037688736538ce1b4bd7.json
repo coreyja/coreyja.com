@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM threads\n            WHERE branching_stitch_id IS NULL\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
+  "query": "\n            INSERT INTO threads (branching_stitch_id, goal)\n            VALUES ($1, $2)\n            RETURNING \n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -47,11 +47,22 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
@@ -63,8 +74,10 @@
       true,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "efec60e62f8b6d2225ccb46a831cd33138ab1b7ec6c4aef553049598004c716a"
+  "hash": "1af21e22f5b3a9e42c5486c1fe97dc780829ecd27b26037688736538ce1b4bd7"
 }

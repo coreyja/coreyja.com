@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'failed', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
+  "query": "\n            SELECT \n                *\n            FROM threads\n            WHERE branching_stitch_id IS NULL\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
   "describe": {
     "columns": [
       {
@@ -47,12 +47,21 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
-        "Jsonb",
-        "Uuid"
+        "Int8"
       ]
     },
     "nullable": [
@@ -64,8 +73,10 @@
       true,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "cb849b3051654381c2f2ccf4c449ae2263ee7a98afc0e0ef6d7d739cbfa7b400"
+  "hash": "a0409fb07b2d9ca0526ef0c3a834ad22cf5cd053d5c9789924c937bcde66c7b3"
 }

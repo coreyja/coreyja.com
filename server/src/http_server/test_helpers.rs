@@ -21,7 +21,9 @@ pub async fn create_test_app(pool: PgPool) -> Router {
     std::env::set_var("COOKIE_KEY", "test-cookie-key-32-bytes-long!!!!");
     std::env::set_var("ENCRYPT_KEY", "test-encrypt-key-32-bytes-long!!");
 
-    let discord_setup = crate::discord::setup().await.unwrap();
+    let discord_setup = crate::discord::setup(std::sync::Arc::new(pool.clone()))
+        .await
+        .unwrap();
 
     // Create a minimal test state
     let state = AppState {

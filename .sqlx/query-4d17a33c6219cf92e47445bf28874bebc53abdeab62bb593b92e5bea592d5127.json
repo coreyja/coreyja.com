@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM threads\n            ORDER BY created_at DESC\n            ",
+  "query": "\n            SELECT \n                *\n            FROM threads\n            WHERE thread_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -47,10 +47,22 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid"
+      ]
     },
     "nullable": [
       false,
@@ -61,8 +73,10 @@
       true,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "3558c136a1289f17c8e6df8a60d1bba20a6d8d0a054ff10bd1c7f2837b4f9187"
+  "hash": "4d17a33c6219cf92e47445bf28874bebc53abdeab62bb593b92e5bea592d5127"
 }

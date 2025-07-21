@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO threads (branching_stitch_id, goal)\n            VALUES ($1, $2)\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO threads (goal)\n            VALUES ($1)\n            RETURNING \n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -47,11 +47,20 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Text"
       ]
     },
@@ -64,8 +73,10 @@
       true,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "92c832fadc6a5767fe4a0b756077e62cd0c0fcdb5754def478a142ff3d75d35b"
+  "hash": "0fbee39038725b89da4f3607bac2d1b9327c9e3873ca9e1052cedd6258483bfc"
 }

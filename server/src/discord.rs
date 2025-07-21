@@ -3,8 +3,14 @@ use std::sync::Arc;
 use ::serenity::all::CacheHttp;
 use color_eyre::eyre::Context as _;
 use poise::serenity_prelude as serenity;
+use sqlx::PgPool;
 
-struct Data {} // User data, which is stored and accessible in all command invocations
+use crate::discord_interactive::DiscordEventHandler;
+
+pub struct Data {
+    pub db: Arc<PgPool>,
+    pub event_handler: Arc<DiscordEventHandler>,
+}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -57,19 +63,28 @@ pub(crate) struct DiscordSetup {
     pub client: DiscordClient,
 }
 
-pub(crate) async fn setup() -> cja::Result<DiscordSetup> {
+pub(crate) async fn setup(db: Arc<PgPool>) -> cja::Result<DiscordSetup> {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::non_privileged();
+    let intents =
+        serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+
+    let db_clone = db.clone();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![age(), register()],
+            event_handler: |ctx, event, framework, data| {
+                Box::pin(event_handler(ctx, event, framework, data))
+            },
             ..Default::default()
         })
-        .setup(|ctx, _ready, framework| {
+        .setup(move |ctx, _ready, framework| {
+            let db = db_clone.clone();
+            let event_handler = Arc::new(DiscordEventHandler::new(db.clone(), ctx.http.clone()));
+
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(Data { db, event_handler })
             })
         })
         .build();
@@ -88,4 +103,22 @@ pub(crate) async fn setup() -> cja::Result<DiscordSetup> {
         bot: DiscordBot(client),
         client: outside_client,
     })
+}
+
+async fn event_handler(
+    _ctx: &serenity::Context,
+    event: &serenity::FullEvent,
+    _framework: poise::FrameworkContext<'_, Data, Error>,
+    data: &Data,
+) -> Result<(), Error> {
+    match event {
+        serenity::FullEvent::Message { new_message } => {
+            data.event_handler.handle_message(new_message).await?;
+        }
+        serenity::FullEvent::ThreadCreate { thread } => {
+            data.event_handler.handle_thread_create(thread).await?;
+        }
+        _ => {}
+    }
+    Ok(())
 }

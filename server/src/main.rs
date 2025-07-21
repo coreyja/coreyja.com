@@ -33,6 +33,7 @@ pub(crate) use state::{AppConfig, AppState};
 pub(crate) mod google;
 
 pub(crate) mod discord;
+pub(crate) mod discord_interactive;
 
 pub(crate) mod bsky;
 

@@ -7,9 +7,13 @@ use sqlx::{types::Uuid, PgPool};
 
 use crate::{
     al::{
-        standup::{AnthropicRequest, AnthropicResponse, Content, Message, ToolChoice, ToolResult},
+        standup::{
+            AnthropicRequest, AnthropicResponse, Content, Message, TextContent, ToolChoice,
+            ToolResult,
+        },
         tools::{
-            discord::{CompleteThread, SendDiscordMessage},
+            discord::{SendDiscordMessage, SendDiscordThreadMessage},
+            threads::CompleteThread,
             ThreadContext, ToolBag,
         },
     },
@@ -77,21 +81,46 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
             ),
             db::agentic_threads::StitchType::ThreadResult => todo!(),
             db::agentic_threads::StitchType::InitialPrompt
-            | db::agentic_threads::StitchType::ToolCall => {
+            | db::agentic_threads::StitchType::ToolCall
+            | db::agentic_threads::StitchType::DiscordMessage => {
                 // This is the expected types that we can process here right now
             }
         }
     }
 
-    let messages = reconstruct_messages(&app_state.db, thread_id).await?;
+    let mut messages = reconstruct_messages(&app_state.db, thread_id).await?;
 
-    // Set up tools
+    // Set up tools based on thread type
     let mut tools = ToolBag::default();
-    tools.add_tool(SendDiscordMessage::new(app_state.clone()))?;
-    tools.add_tool(CompleteThread::new(app_state.clone()))?;
-    tools.add_tool(
-        crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new(app_state.clone()),
-    )?;
+
+    // Check if this is an interactive Discord thread
+    let is_discord_thread = thread.thread_type == db::agentic_threads::ThreadType::Interactive
+        && thread
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("discord"))
+            .is_some();
+
+    if is_discord_thread {
+        // For interactive Discord threads, use the thread-specific message tool
+        tools.add_tool(SendDiscordThreadMessage::new())?;
+
+        // Add a system message for Discord context if this is the first message
+        if messages.len() == 1 {
+            messages.insert(0, Message {
+                role: "system".to_string(),
+                content: vec![Content::Text(TextContent {
+                    text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation.".to_string(),
+                })],
+            });
+        }
+    } else {
+        // For regular threads, use the standard Discord message tool
+        tools.add_tool(SendDiscordMessage)?;
+    }
+
+    tools.add_tool(CompleteThread::new())?;
+    tools.add_tool(crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new())?;
 
     // Make LLM request
     let request = AnthropicRequest {
@@ -147,11 +176,13 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
                 // Create thread context with the previous stitch ID
                 let context = ThreadContext {
-                    thread_id,
+                    thread: thread.clone(),
                     previous_stitch_id,
                 };
 
-                let tool_result = tools.call_tool(tool_use_content, context).await;
+                let tool_result = tools
+                    .call_tool(tool_use_content, app_state.clone(), context)
+                    .await;
                 let tool_stitch = Stitch::create_tool_call(
                     &app_state.db,
                     thread_id,
@@ -173,6 +204,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<Message>> {
     let stitches = Stitch::get_by_thread_ordered(db, thread_id).await?;
 
@@ -255,6 +287,21 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
             }
             db::agentic_threads::StitchType::ThreadResult => {
                 todo!("Thread results would be handled here when we add child thread support");
+            }
+            db::agentic_threads::StitchType::DiscordMessage => {
+                // Handle Discord messages as user messages
+                if let Some(message_data) = stitch.llm_request {
+                    if let Some(data) = message_data.get("data") {
+                        if let Some(content) = data.get("content").and_then(|c| c.as_str()) {
+                            messages.push(Message {
+                                role: "user".to_string(),
+                                content: vec![Content::Text(TextContent {
+                                    text: content.to_string(),
+                                })],
+                            });
+                        }
+                    }
+                }
             }
         }
     }
