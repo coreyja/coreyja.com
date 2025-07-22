@@ -31,7 +31,8 @@
       "Bash(cargo sqlx prepare:*)",
       "Bash(cargo sqlx migrate:*)",
       "Bash(mv:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(gh pr diff:*)"
     ],
     "deny": []
   }

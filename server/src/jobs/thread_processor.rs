@@ -13,7 +13,7 @@ use crate::{
             ToolResult,
         },
         tools::{
-            discord::{SendDiscordMessage, SendDiscordThreadMessage},
+            discord::{ListenToThread, SendDiscordMessage, SendDiscordThreadMessage},
             threads::CompleteThread,
             ThreadContext, ToolBag,
         },
@@ -105,11 +105,13 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     if is_discord_thread {
         // For interactive Discord threads, use the thread-specific message tool
         tools.add_tool(SendDiscordThreadMessage::new())?;
+        // Add the listen tool for interactive threads
+        tools.add_tool(ListenToThread::new())?;
 
-        // Add a system message for Discord context if this is the first message
+        // Add a user message for Discord context if this is the first message
         if messages.len() == 1 {
             messages.insert(0, Message {
-                role: "system".to_string(),
+                role: "user".to_string(),
                 content: vec![Content::Text(TextContent {
                     text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation.".to_string(),
                 })],
@@ -118,9 +120,11 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     } else {
         // For regular threads, use the standard Discord message tool
         tools.add_tool(SendDiscordMessage)?;
+
+        // Add the complete thread tool for regular threads
+        tools.add_tool(CompleteThread::new())?;
     }
 
-    tools.add_tool(CompleteThread::new())?;
     tools.add_tool(crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new())?;
 
     // Make LLM request
@@ -147,8 +151,10 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     if !response.status().is_success() {
         let error_text = response.text().await?;
         return Err(cja::color_eyre::eyre::eyre!(
-            "Anthropic API error: {}",
-            error_text
+            "Anthropic API error: {}\nRequest: {:?}\nMessages: {:?}",
+            error_text,
+            request,
+            messages,
         ));
     }
 
@@ -290,14 +296,45 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
                 todo!("Thread results would be handled here when we add child thread support");
             }
             db::agentic_threads::StitchType::DiscordMessage => {
+                // First, add any pending tool results before the Discord message
+                if !pending_tool_results.is_empty() {
+                    messages.push(Message {
+                        role: "user".to_string(),
+                        content: pending_tool_results.clone(),
+                    });
+                    pending_tool_results.clear();
+                }
+
                 // Handle Discord messages as user messages
                 if let Some(message_data) = stitch.llm_request {
                     if let Some(data) = message_data.get("data") {
                         if let Some(content) = data.get("content").and_then(|c| c.as_str()) {
+                            // Extract user information
+                            let author_name = data
+                                .get("author_display_name")
+                                .or_else(|| data.get("author_name"))
+                                .and_then(|a| a.as_str())
+                                .unwrap_or("Unknown User");
+
+                            let author_tag = data
+                                .get("author")
+                                .and_then(|a| a.as_str())
+                                .unwrap_or("unknown#0000");
+
+                            let author_id = data
+                                .get("author_id")
+                                .and_then(|a| a.as_str())
+                                .unwrap_or("unknown");
+
+                            // Format message with user information
+                            let formatted_message = format!(
+                                "[{author_name} (@{author_tag}, ID: {author_id})]: {content}"
+                            );
+
                             messages.push(Message {
                                 role: "user".to_string(),
                                 content: vec![Content::Text(TextContent {
-                                    text: content.to_string(),
+                                    text: formatted_message,
                                 })],
                             });
                         }
@@ -550,6 +587,107 @@ mod tests {
             assert_eq!(tool_result.content, "\"Tool execution failed\"");
         } else {
             panic!("Expected tool result content");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_reconstruct_messages_discord_after_tool_call(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string())
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch =
+            Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
+                .await
+                .unwrap();
+
+        // LLM response with listen tool use
+        let response1 = json!({
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "tool_listen_1",
+                    "name": "listen_to_thread",
+                    "input": {"duration_seconds": null}
+                }
+            ]
+        });
+
+        let llm_stitch1 = Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response1,
+        )
+        .await
+        .unwrap();
+
+        // Tool call result
+        let tool_stitch = Stitch::create_tool_call(
+            &pool,
+            thread_id,
+            Some(llm_stitch1.stitch_id),
+            "listen_to_thread".to_string(),
+            json!({"duration_seconds": null}),
+            json!("Listening to thread..."),
+        )
+        .await
+        .unwrap();
+
+        // Discord message arrives after the tool call
+        let discord_message_data = json!({
+            "type": "discord_message",
+            "data": {
+                "message_id": "1234567890",
+                "author": "testuser#1234",
+                "author_id": "987654321",
+                "author_name": "testuser",
+                "author_display_name": "Test User",
+                "content": "Thanks for listening!",
+                "timestamp": "2024-01-01T00:00:00Z"
+            }
+        });
+
+        Stitch::create_discord_message(
+            &pool,
+            thread_id,
+            Some(tool_stitch.stitch_id),
+            discord_message_data,
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Should have:
+        // 1. Initial user message "Hello"
+        // 2. Assistant message with listen tool use
+        // 3. User message with tool result
+        // 4. User message from Discord
+        assert_eq!(messages.len(), 4);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages[2].role, "user"); // Tool result
+        assert_eq!(messages[3].role, "user"); // Discord message
+
+        // Verify the tool result comes before the Discord message
+        if let Content::ToolResult(tool_result) = &messages[2].content[0] {
+            assert!(tool_result.content.contains("Listening to thread"));
+        } else {
+            panic!("Expected tool result in message 2");
+        }
+
+        if let Content::Text(text) = &messages[3].content[0] {
+            assert_eq!(
+                text.text,
+                "[Test User (@testuser#1234, ID: 987654321)]: Thanks for listening!"
+            );
+        } else {
+            panic!("Expected Discord message text in message 3");
         }
     }
 

@@ -5,10 +5,6 @@
 ALTER TABLE threads ADD CONSTRAINT check_interactive_no_branching
     CHECK (thread_type != 'interactive' OR branching_stitch_id IS NULL);
 
--- Ensure threads can't be their own parent
-ALTER TABLE threads ADD CONSTRAINT check_no_self_parent
-    CHECK (thread_id != parent_thread_id);
-
 -- Add index for thread_type to speed up filtering
 CREATE INDEX idx_threads_type ON threads(thread_type);
 
@@ -20,15 +16,6 @@ CREATE INDEX idx_threads_created_at ON threads(created_at DESC);
 
 -- 2. Stitches table constraints
 -- Ensure stitch type matches required fields
-ALTER TABLE stitches ADD CONSTRAINT check_llm_call_fields
-    CHECK (stitch_type != 'llm_call' OR (llm_request IS NOT NULL AND llm_response IS NOT NULL));
-
-ALTER TABLE stitches ADD CONSTRAINT check_tool_call_fields
-    CHECK (stitch_type != 'tool_call' OR (tool_name IS NOT NULL AND tool_input IS NOT NULL));
-
-ALTER TABLE stitches ADD CONSTRAINT check_thread_result_fields
-    CHECK (stitch_type != 'thread_result' OR child_thread_id IS NOT NULL);
-
 ALTER TABLE stitches ADD CONSTRAINT check_discord_message_fields
     CHECK (stitch_type != 'discord_message' OR llm_request IS NOT NULL);
 

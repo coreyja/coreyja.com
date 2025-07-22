@@ -56,6 +56,9 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({
           <div style={{ marginBottom: '10px' }}>
             <strong>Status:</strong> {thread.status}
           </div>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>Type:</strong> {thread.thread_type}
+          </div>
           {thread.tasks.length > 0 && (
             <div style={{ marginBottom: '10px' }}>
               <strong>Tasks:</strong>
@@ -94,6 +97,41 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({
               >
                 {JSON.stringify(thread.result, null, 2)}
               </pre>
+            </div>
+          )}
+          {thread.discord_metadata && (
+            <div style={{ marginBottom: '10px' }}>
+              <h3>Discord Information</h3>
+              <div style={{ marginBottom: '5px' }}>
+                <strong>Discord Thread:</strong> {thread.discord_metadata.thread_name}
+              </div>
+              <div style={{ marginBottom: '5px' }}>
+                <strong>Thread ID:</strong> {thread.discord_metadata.discord_thread_id}
+              </div>
+              <div style={{ marginBottom: '5px' }}>
+                <strong>Channel ID:</strong> {thread.discord_metadata.channel_id}
+              </div>
+              <div style={{ marginBottom: '5px' }}>
+                <strong>Guild ID:</strong> {thread.discord_metadata.guild_id}
+              </div>
+              <div style={{ marginBottom: '5px' }}>
+                <strong>Created By:</strong> {thread.discord_metadata.created_by}
+              </div>
+              {thread.discord_metadata.participants.length > 0 && (
+                <div style={{ marginBottom: '5px' }}>
+                  <strong>Participants:</strong>
+                  <ul style={{ marginTop: '5px', marginBottom: 0 }}>
+                    {thread.discord_metadata.participants.map((p, i) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {thread.discord_metadata.last_message_id && (
+                <div style={{ marginBottom: '5px' }}>
+                  <strong>Last Message ID:</strong> {thread.discord_metadata.last_message_id}
+                </div>
+              )}
             </div>
           )}
         </div>

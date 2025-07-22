@@ -3,14 +3,16 @@ use std::sync::Arc;
 use ::serenity::all::CacheHttp;
 use color_eyre::eyre::Context as _;
 use poise::serenity_prelude as serenity;
-use sqlx::PgPool;
+
+use std::sync::Mutex;
 
 use crate::discord_interactive::DiscordEventHandler;
+use crate::AppState;
 
 pub struct Data {
-    pub db: Arc<PgPool>,
-    pub event_handler: Arc<DiscordEventHandler>,
+    pub app_state: Arc<Mutex<Option<AppState>>>,
 }
+
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -61,14 +63,16 @@ impl DiscordBot {
 pub(crate) struct DiscordSetup {
     pub bot: DiscordBot,
     pub client: DiscordClient,
+    pub app_state_holder: Arc<Mutex<Option<AppState>>>,
 }
 
-pub(crate) async fn setup(db: Arc<PgPool>) -> cja::Result<DiscordSetup> {
+pub(crate) async fn setup() -> cja::Result<DiscordSetup> {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents =
         serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
-    let db_clone = db.clone();
+    let app_state_holder: Arc<Mutex<Option<AppState>>> = Arc::new(Mutex::new(None));
+    let app_state_holder_clone = app_state_holder.clone();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -79,12 +83,11 @@ pub(crate) async fn setup(db: Arc<PgPool>) -> cja::Result<DiscordSetup> {
             ..Default::default()
         })
         .setup(move |ctx, _ready, framework| {
-            let db = db_clone.clone();
-            let event_handler = Arc::new(DiscordEventHandler::new(db.clone(), ctx.http.clone()));
+            let app_state = app_state_holder_clone.clone();
 
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data { db, event_handler })
+                Ok(Data { app_state })
             })
         })
         .build();
@@ -102,6 +105,7 @@ pub(crate) async fn setup(db: Arc<PgPool>) -> cja::Result<DiscordSetup> {
     Ok(DiscordSetup {
         bot: DiscordBot(client),
         client: outside_client,
+        app_state_holder,
     })
 }
 
@@ -111,14 +115,25 @@ async fn event_handler(
     _framework: poise::FrameworkContext<'_, Data, Error>,
     data: &Data,
 ) -> Result<(), Error> {
-    match event {
-        serenity::FullEvent::Message { new_message } => {
-            data.event_handler.handle_message(new_message).await?;
+    // Get the app_state from the mutex
+    let app_state = data.app_state.lock().unwrap().clone();
+
+    // Only process events if app_state has been set
+    if let Some(app_state) = app_state {
+        let event_handler = DiscordEventHandler::new(app_state);
+
+        match event {
+            serenity::FullEvent::Message { new_message } => {
+                event_handler.handle_message(new_message).await?;
+            }
+            serenity::FullEvent::ThreadCreate { thread } => {
+                event_handler.handle_thread_create(thread).await?;
+            }
+            _ => {}
         }
-        serenity::FullEvent::ThreadCreate { thread } => {
-            data.event_handler.handle_thread_create(thread).await?;
-        }
-        _ => {}
+    } else {
+        tracing::error!("No app_state found");
     }
+
     Ok(())
 }

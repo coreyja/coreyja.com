@@ -14,6 +14,7 @@ describe('ThreadDetailPanel', () => {
     status: 'completed',
     result: null,
     pending_child_results: [],
+    thread_type: 'autonomous',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   }

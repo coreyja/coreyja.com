@@ -22,6 +22,8 @@ pub struct DiscordInput {
 pub struct SendToThreadInput {
     pub message: String,
     pub reply_to_message_id: Option<String>,
+    #[serde(default)]
+    pub continue_processing: bool,
 }
 
 #[async_trait::async_trait]
@@ -97,11 +99,15 @@ impl Tool for SendDiscordThreadMessage {
     const DESCRIPTION: &'static str = r#"
     Send a message to the current Discord thread. This tool automatically determines the correct thread from the context.
     
-    Example:
+    By default, after sending a message, the agent will wait for a user response before continuing.
+    Set continue_processing to true if you want to perform additional actions after sending the message.
+    
+    Example (default - wait for response):
     ```json
     {
         "message": "Hello! I'm here to help.",
-        "reply_to_message_id": null
+        "reply_to_message_id": null,
+        "continue_processing": false
     }
     ```
     
@@ -109,7 +115,17 @@ impl Tool for SendDiscordThreadMessage {
     ```json
     {
         "message": "That's a great question! Let me explain...",
-        "reply_to_message_id": "1234567890"
+        "reply_to_message_id": "1234567890",
+        "continue_processing": false
+    }
+    ```
+    
+    Example (continue processing):
+    ```json
+    {
+        "message": "Let me search for that information...",
+        "reply_to_message_id": null,
+        "continue_processing": true
     }
     ```
     "#;
@@ -160,6 +176,92 @@ impl Tool for SendDiscordThreadMessage {
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to send Discord message: {}", e))?;
 
+        // Only set thread status to waiting if continue_processing is false
+        // This allows the agent to perform additional actions if needed
+        if !input.continue_processing {
+            db::agentic_threads::Thread::update_status(
+                &app_state.db,
+                context.thread.thread_id,
+                "waiting",
+            )
+            .await?;
+        }
+
         Ok(sent_message.id.to_string())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ListenToThread;
+
+impl ListenToThread {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ListenInput {
+    pub duration_seconds: Option<u32>,
+}
+
+#[async_trait::async_trait]
+impl Tool for ListenToThread {
+    const NAME: &'static str = "listen_to_thread";
+    const DESCRIPTION: &'static str = r#"
+    Listen to the current Discord thread without sending a message. Use this when you want to wait for user input or observe the conversation without immediately responding.
+    
+    This tool is useful when:
+    - The user asks you to wait or listen
+    - You want to give the user time to provide more context
+    - The conversation naturally calls for a pause
+    
+    Example:
+    ```json
+    {
+        "duration_seconds": null
+    }
+    ```
+    
+    Example with timeout:
+    ```json
+    {
+        "duration_seconds": 30
+    }
+    ```
+    "#;
+
+    type ToolInput = ListenInput;
+    type ToolOutput = String;
+
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        app_state: AppState,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
+        use db::agentic_threads::Thread;
+
+        // Get Discord metadata for this thread
+        let discord_meta =
+            DiscordThreadMetadata::find_by_thread_id(&app_state.db, context.thread.thread_id)
+                .await?
+                .ok_or_else(|| {
+                    cja::color_eyre::eyre::eyre!("Discord metadata not found for this thread")
+                })?;
+
+        // Log that we're listening
+        tracing::info!(
+            "Listen tool activated for Discord thread: {} (duration: {:?}s)",
+            discord_meta.discord_thread_id,
+            input.duration_seconds
+        );
+
+        // Set thread status to waiting to prevent re-enqueueing
+        Thread::update_status(&app_state.db, context.thread.thread_id, "waiting").await?;
+
+        // The actual listening happens by not sending a message
+        // The thread processor will wait for the next user message
+        Ok("Listening to thread...".to_string())
     }
 }
