@@ -114,10 +114,6 @@ impl DiscordEventHandler {
                 event_data,
             };
 
-            // Enqueue the job
-            // Enqueue job requires AppState, not just db
-            // This is a limitation we'll need to work around
-            // Now we have AppState, we can enqueue the job
             job_input
                 .enqueue(
                     self.app_state.clone(),
