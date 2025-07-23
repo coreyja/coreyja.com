@@ -201,42 +201,27 @@ impl ListenToThread {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ListenInput {
-    pub duration_seconds: Option<u32>,
-}
+pub struct ListenInput {}
 
 #[async_trait::async_trait]
 impl Tool for ListenToThread {
     const NAME: &'static str = "listen_to_thread";
-    const DESCRIPTION: &'static str = r#"
+    const DESCRIPTION: &'static str = "
     Listen to the current Discord thread without sending a message. Use this when you want to wait for user input or observe the conversation without immediately responding.
     
     This tool is useful when:
     - The user asks you to wait or listen
     - You want to give the user time to provide more context
+    - Users are chatting and your input isn't needed
     - The conversation naturally calls for a pause
-    
-    Example:
-    ```json
-    {
-        "duration_seconds": null
-    }
-    ```
-    
-    Example with timeout:
-    ```json
-    {
-        "duration_seconds": 30
-    }
-    ```
-    "#;
+    ";
 
     type ToolInput = ListenInput;
     type ToolOutput = String;
 
     async fn run(
         &self,
-        input: Self::ToolInput,
+        _input: Self::ToolInput,
         app_state: AppState,
         context: ThreadContext,
     ) -> cja::Result<Self::ToolOutput> {
@@ -252,9 +237,8 @@ impl Tool for ListenToThread {
 
         // Log that we're listening
         tracing::info!(
-            "Listen tool activated for Discord thread: {} (duration: {:?}s)",
+            "Listen tool activated for Discord thread: {}",
             discord_meta.discord_thread_id,
-            input.duration_seconds
         );
 
         // Set thread status to waiting to prevent re-enqueueing
@@ -263,5 +247,222 @@ impl Tool for ListenToThread {
         // The actual listening happens by not sending a message
         // The thread processor will wait for the next user message
         Ok("Listening to thread...".to_string())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ReactToMessage;
+
+impl ReactToMessage {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ReactInput {
+    pub message_id: String,
+    pub emoji: String,
+}
+
+#[async_trait::async_trait]
+impl Tool for ReactToMessage {
+    const NAME: &'static str = "react_to_message";
+    const DESCRIPTION: &'static str = r#"
+    Add a reaction emoji to a Discord message in the current thread.
+    
+    The emoji can be:
+    - A unicode emoji like "👍", "❤️", "🎉", etc.
+    - A custom Discord emoji in the format "<:name:id>" or "<a:name:id>" for animated emojis
+    
+    Example with unicode emoji:
+    ```json
+    {
+        "message_id": "1234567890",
+        "emoji": "👍"
+    }
+    ```
+    
+    Example with custom emoji:
+    ```json
+    {
+        "message_id": "1234567890", 
+        "emoji": "<:customname:123456789012345678>"
+    }
+    ```
+    "#;
+
+    type ToolInput = ReactInput;
+    type ToolOutput = String;
+
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        app_state: AppState,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
+        use serenity::model::prelude::*;
+
+        // Get Discord metadata for this thread
+        let discord_meta =
+            DiscordThreadMetadata::find_by_thread_id(&app_state.db, context.thread.thread_id)
+                .await?
+                .ok_or_else(|| {
+                    cja::color_eyre::eyre::eyre!("Discord metadata not found for this thread")
+                })?;
+
+        let discord_thread_id = &discord_meta.discord_thread_id;
+
+        let channel_id = ChannelId::from(
+            discord_thread_id
+                .parse::<u64>()
+                .map_err(|_| cja::color_eyre::eyre::eyre!("Invalid Discord thread ID"))?,
+        );
+
+        let message_id = MessageId::from(
+            input
+                .message_id
+                .parse::<u64>()
+                .map_err(|_| cja::color_eyre::eyre::eyre!("Invalid message ID"))?,
+        );
+
+        // Parse the emoji
+        let reaction_type = if input.emoji.starts_with("<:") || input.emoji.starts_with("<a:") {
+            // Custom emoji format: <:name:id> or <a:name:id>
+            // Extract the emoji ID from the format
+            let parts: Vec<&str> = input
+                .emoji
+                .trim_matches(&['<', '>', ':'][..])
+                .split(':')
+                .collect();
+            if parts.len() >= 2 {
+                if let Ok(emoji_id) = parts[parts.len() - 1].parse::<u64>() {
+                    serenity::all::ReactionType::Custom {
+                        animated: input.emoji.starts_with("<a:"),
+                        id: serenity::all::EmojiId::from(emoji_id),
+                        name: Some(parts[parts.len() - 2].to_string()),
+                    }
+                } else {
+                    return Err(cja::color_eyre::eyre::eyre!("Invalid custom emoji format"));
+                }
+            } else {
+                return Err(cja::color_eyre::eyre::eyre!("Invalid custom emoji format"));
+            }
+        } else {
+            // Unicode emoji
+            serenity::all::ReactionType::Unicode(input.emoji.clone())
+        };
+
+        // Add the reaction
+        app_state
+            .discord
+            .http
+            .create_reaction(channel_id, message_id, &reaction_type)
+            .await
+            .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to add reaction: {}", e))?;
+
+        Ok(format!("Added {} reaction to message", input.emoji))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ListServerEmojis;
+
+impl ListServerEmojis {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ListEmojisInput {
+    pub include_animated: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmojiInfo {
+    pub name: String,
+    pub id: String,
+    pub animated: bool,
+    pub format: String,
+}
+
+#[async_trait::async_trait]
+impl Tool for ListServerEmojis {
+    const NAME: &'static str = "list_server_emojis";
+    const DESCRIPTION: &'static str = r#"
+    List all custom emojis available in the Discord server.
+    
+    Returns a list of custom emojis with their names, IDs, and formatted strings that can be used with the react_to_message tool.
+    
+    Example:
+    ```json
+    {
+        "include_animated": true
+    }
+    ```
+    "#;
+
+    type ToolInput = ListEmojisInput;
+    type ToolOutput = Vec<EmojiInfo>;
+
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        app_state: AppState,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
+        use serenity::model::prelude::*;
+
+        // Get Discord metadata for this thread
+        let discord_meta =
+            DiscordThreadMetadata::find_by_thread_id(&app_state.db, context.thread.thread_id)
+                .await?
+                .ok_or_else(|| {
+                    cja::color_eyre::eyre::eyre!("Discord metadata not found for this thread")
+                })?;
+
+        // Parse guild ID
+        let guild_id = GuildId::from(
+            discord_meta
+                .guild_id
+                .parse::<u64>()
+                .map_err(|_| cja::color_eyre::eyre::eyre!("Invalid guild ID"))?,
+        );
+
+        // Get the guild
+        let guild = guild_id
+            .to_partial_guild(&app_state.discord.http)
+            .await
+            .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to get guild: {}", e))?;
+
+        // Get emojis from the guild
+        let emojis = guild
+            .emojis(&app_state.discord.http)
+            .await
+            .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to get emojis: {}", e))?;
+
+        // Filter and format emojis
+        let include_animated = input.include_animated.unwrap_or(true);
+        let emoji_list: Vec<EmojiInfo> = emojis
+            .into_iter()
+            .filter(|emoji| include_animated || !emoji.animated)
+            .map(|emoji| {
+                let format = if emoji.animated {
+                    format!("<a:{}:{}>", emoji.name, emoji.id)
+                } else {
+                    format!("<:{}:{}>", emoji.name, emoji.id)
+                };
+
+                EmojiInfo {
+                    name: emoji.name.clone(),
+                    id: emoji.id.to_string(),
+                    animated: emoji.animated,
+                    format,
+                }
+            })
+            .collect();
+
+        Ok(emoji_list)
     }
 }

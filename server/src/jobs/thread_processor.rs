@@ -13,7 +13,10 @@ use crate::{
             ToolResult,
         },
         tools::{
-            discord::{ListenToThread, SendDiscordMessage, SendDiscordThreadMessage},
+            discord::{
+                ListServerEmojis, ListenToThread, ReactToMessage, SendDiscordMessage,
+                SendDiscordThreadMessage,
+            },
             threads::CompleteThread,
             ThreadContext, ToolBag,
         },
@@ -107,13 +110,17 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tools.add_tool(SendDiscordThreadMessage::new())?;
         // Add the listen tool for interactive threads
         tools.add_tool(ListenToThread::new())?;
+        // Add the react tool for interactive threads
+        tools.add_tool(ReactToMessage::new())?;
+        // Add the emoji list tool for interactive threads
+        tools.add_tool(ListServerEmojis::new())?;
 
         // Add a user message for Discord context if this is the first message
         if messages.len() == 1 {
             messages.insert(0, Message {
                 role: "user".to_string(),
                 content: vec![Content::Text(TextContent {
-                    text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation.".to_string(),
+                    text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation. You can react to messages using emojis when appropriate. Each message shows the Message ID that you can use to react to specific messages. You can list available custom server emojis using the list_server_emojis tool.".to_string(),
                 })],
             });
         }
@@ -326,9 +333,14 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
                                 .and_then(|a| a.as_str())
                                 .unwrap_or("unknown");
 
-                            // Format message with user information
+                            let message_id = data
+                                .get("message_id")
+                                .and_then(|m| m.as_str())
+                                .unwrap_or("unknown");
+
+                            // Format message with user information and message ID
                             let formatted_message = format!(
-                                "[{author_name} (@{author_tag}, ID: {author_id})]: {content}"
+                                "[{author_name} (@{author_tag}, ID: {author_id}, Message ID: {message_id})]: {content}"
                             );
 
                             messages.push(Message {
@@ -684,7 +696,7 @@ mod tests {
         if let Content::Text(text) = &messages[3].content[0] {
             assert_eq!(
                 text.text,
-                "[Test User (@testuser#1234, ID: 987654321)]: Thanks for listening!"
+                "[Test User (@testuser#1234, ID: 987654321, Message ID: 1234567890)]: Thanks for listening!"
             );
         } else {
             panic!("Expected Discord message text in message 3");
