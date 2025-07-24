@@ -9,8 +9,8 @@ use sqlx::{types::Uuid, PgPool};
 use crate::{
     al::{
         standup::{
-            AnthropicRequest, AnthropicResponse, Content, Message, TextContent, ToolChoice,
-            ToolResult,
+            AnthropicRequest, AnthropicResponse, CacheControl, Content, Message, TextContent,
+            ToolChoice, ToolResult,
         },
         tools::{
             discord::{
@@ -122,6 +122,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
                 content: vec![Content::Text(TextContent {
                     text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation. You can react to messages using emojis when appropriate. Each message shows the Message ID that you can use to react to specific messages. You can list available custom server emojis using the list_server_emojis tool.".to_string(),
                 })],
+                cache_control: None,
             });
         }
     } else {
@@ -247,6 +248,7 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                     messages.push(Message {
                         role: "user".to_string(),
                         content: pending_tool_results.clone(),
+                        cache_control: None,
                     });
                     pending_tool_results.clear();
                 }
@@ -270,6 +272,7 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                         messages.push(Message {
                             role: "assistant".to_string(),
                             content: content_vec,
+                            cache_control: None,
                         });
                     }
                 }
@@ -322,6 +325,7 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                     messages.push(Message {
                         role: "user".to_string(),
                         content: pending_tool_results.clone(),
+                        cache_control: None,
                     });
                     pending_tool_results.clear();
                 }
@@ -351,6 +355,7 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                             content: vec![Content::Text(TextContent {
                                 text: formatted_message,
                             })],
+                            cache_control: None,
                         });
                     }
                 }
@@ -363,6 +368,14 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
         messages.push(Message {
             role: "user".to_string(),
             content: pending_tool_results,
+            cache_control: None,
+        });
+    }
+
+    // Add cache control to the last message for better performance on subsequent calls
+    if let Some(last_message) = messages.last_mut() {
+        last_message.cache_control = Some(CacheControl {
+            r#type: "ephemeral".to_string(),
         });
     }
 
@@ -847,6 +860,120 @@ mod tests {
         } else {
             panic!("Expected second tool result");
         }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_reconstruct_messages_cache_control(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string())
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch =
+            Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
+                .await
+                .unwrap();
+
+        // Create LLM response
+        let response = json!({
+            "content": [
+                {"type": "text", "text": "Hi there!"}
+            ]
+        });
+
+        Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Should have 2 messages
+        assert_eq!(messages.len(), 2);
+
+        // First message should not have cache_control
+        assert!(messages[0].cache_control.is_none());
+
+        // Last message should have cache_control
+        assert!(messages[1].cache_control.is_some());
+        let cache_control = messages[1].cache_control.as_ref().unwrap();
+        assert_eq!(cache_control.r#type, "ephemeral");
+
+        // Verify JSON serialization
+        let json = serde_json::to_value(&messages[1]).unwrap();
+        assert_eq!(json["cache_control"], json!({"type": "ephemeral"}));
+
+        // Verify that messages without cache_control don't include the field
+        let json_without = serde_json::to_value(&messages[0]).unwrap();
+        assert!(json_without.get("cache_control").is_none());
+    }
+
+    #[test]
+    fn test_anthropic_request_serialization_with_cache_control() {
+        // Create a simple request with cache control on the last message
+        let messages = vec![
+            Message {
+                role: "user".to_string(),
+                content: vec![Content::Text(TextContent {
+                    text: "Hello".to_string(),
+                })],
+                cache_control: None,
+            },
+            Message {
+                role: "assistant".to_string(),
+                content: vec![Content::Text(TextContent {
+                    text: "Hi there!".to_string(),
+                })],
+                cache_control: Some(CacheControl {
+                    r#type: "ephemeral".to_string(),
+                }),
+            },
+        ];
+
+        let request = AnthropicRequest {
+            model: "claude-3-opus-20240229".to_string(),
+            max_tokens: 1024,
+            messages,
+            tools: vec![],
+            tool_choice: None,
+        };
+
+        let json = serde_json::to_value(&request).unwrap();
+
+        // Verify the structure
+        assert_eq!(json["model"], json!("claude-3-opus-20240229"));
+        assert_eq!(json["max_tokens"], json!(1024));
+
+        // First message should not have cache_control
+        assert!(json["messages"][0].get("cache_control").is_none());
+
+        // Second message should have cache_control
+        assert_eq!(
+            json["messages"][1]["cache_control"],
+            json!({"type": "ephemeral"})
+        );
+
+        // Verify the exact JSON structure we expect
+        let expected_messages = json!([
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "Hello"}]
+            },
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": "Hi there!"}],
+                "cache_control": {"type": "ephemeral"}
+            }
+        ]);
+
+        assert_eq!(json["messages"], expected_messages);
     }
 
     #[sqlx::test(migrations = "../db/migrations")]
