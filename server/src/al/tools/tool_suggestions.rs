@@ -9,13 +9,11 @@ use crate::{
 use db::tool_suggestions::ToolSuggestion;
 
 #[derive(Clone, Debug)]
-pub struct ToolSuggestionsSubmit {
-    app_state: AppState,
-}
+pub struct ToolSuggestionsSubmit;
 
 impl ToolSuggestionsSubmit {
-    pub fn new(app_state: AppState) -> Self {
-        Self { app_state }
+    pub fn new() -> Self {
+        Self
     }
 }
 
@@ -54,6 +52,7 @@ impl Tool for ToolSuggestionsSubmit {
     async fn run(
         &self,
         input: Self::ToolInput,
+        app_state: AppState,
         context: ThreadContext,
     ) -> cja::Result<Self::ToolOutput> {
         let Some(previous_stitch_id) = context.previous_stitch_id else {
@@ -78,7 +77,7 @@ impl Tool for ToolSuggestionsSubmit {
 
         // Try to create the suggestion
         ToolSuggestion::create(
-            &self.app_state.db,
+            &app_state.db,
             input.name,
             input.description,
             examples_json,

@@ -14,6 +14,7 @@ const stitchIcons = {
   llm_call: '🤖',
   tool_call: '🔧',
   thread_result: '📊',
+  discord_message: '💬',
 }
 
 export const StitchNode: React.FC<StitchNodeProps> = ({ data }) => {

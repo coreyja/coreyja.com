@@ -1,14 +1,19 @@
+use db::agentic_threads::Thread;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 
-use crate::al::standup::{AnthropicTool, ToolUseContent};
+use crate::{
+    al::standup::{AnthropicTool, ToolUseContent},
+    AppState,
+};
 pub mod discord;
+pub mod threads;
 pub mod tool_suggestions;
 
 #[derive(Debug, Clone)]
 pub struct ThreadContext {
-    pub thread_id: Uuid,
+    pub thread: Thread,
     pub previous_stitch_id: Option<Uuid>,
 }
 
@@ -28,6 +33,7 @@ pub trait Tool: Send + Sync + Sized + 'static {
     async fn run(
         &self,
         input: Self::ToolInput,
+        app_state: AppState,
         context: ThreadContext,
     ) -> cja::Result<Self::ToolOutput>;
 
@@ -45,6 +51,7 @@ pub trait GenericTool: Sync + Send {
     async fn run(
         &self,
         input: serde_json::Value,
+        app_state: AppState,
         context: ThreadContext,
     ) -> cja::Result<serde_json::Value, GenericToolError>;
 }
@@ -78,11 +85,12 @@ impl<T: Tool + Sync + Send> GenericTool for T {
     async fn run(
         &self,
         input: serde_json::Value,
+        app_state: AppState,
         context: ThreadContext,
     ) -> cja::Result<serde_json::Value, GenericToolError> {
         let input: T::ToolInput =
             serde_json::from_value(input).map_err(GenericToolError::InputError)?;
-        let output = self.run(input, context).await?;
+        let output = self.run(input, app_state, context).await?;
         Ok(serde_json::to_value(output).map_err(GenericToolError::OutputError)?)
     }
 }
@@ -122,6 +130,7 @@ impl ToolBag {
     pub(crate) async fn call_tool(
         &self,
         tool_use_content: ToolUseContent,
+        app_state: AppState,
         context: ThreadContext,
     ) -> cja::Result<serde_json::Value, GenericToolError> {
         let tool = self
@@ -129,7 +138,7 @@ impl ToolBag {
             .get(tool_use_content.name.as_str())
             .ok_or(GenericToolError::NotFound(tool_use_content.name))?;
 
-        let output = tool.run(tool_use_content.input, context).await?;
+        let output = tool.run(tool_use_content.input, app_state, context).await?;
         Ok(output)
     }
 }

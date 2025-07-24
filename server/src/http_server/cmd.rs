@@ -111,7 +111,9 @@ async fn pageview_middleware(
 pub(crate) async fn serve() -> Result<()> {
     let discord = crate::discord::setup().await?;
 
-    let app_state = AppState::from_env(discord.client).await?;
+    let app_state = AppState::from_env(discord.client.clone()).await?;
+
+    *discord.app_state_holder.lock().unwrap() = Some(app_state.clone());
     let job_registry = Jobs;
 
     let syntax_css = syntect::html::css_for_theme_with_class_style(

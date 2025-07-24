@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM threads\n            WHERE branching_stitch_id IS NULL\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
+  "query": "\n            SELECT \n                *\n            FROM threads\n            WHERE branching_stitch_id IS NULL\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,11 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -63,8 +68,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "efec60e62f8b6d2225ccb46a831cd33138ab1b7ec6c4aef553049598004c716a"
+  "hash": "a0409fb07b2d9ca0526ef0c3a834ad22cf5cd053d5c9789924c937bcde66c7b3"
 }

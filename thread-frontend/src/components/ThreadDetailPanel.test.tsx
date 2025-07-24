@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { ThreadDetailPanel } from './ThreadDetailPanel'
 import { Thread, Stitch } from '../types'
+import { renderWithQueryClient } from '../test-utils'
 
 describe('ThreadDetailPanel', () => {
   const mockOnClose = vi.fn()
@@ -14,6 +15,7 @@ describe('ThreadDetailPanel', () => {
     status: 'completed',
     result: null,
     pending_child_results: [],
+    thread_type: 'autonomous',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
   }
@@ -38,12 +40,12 @@ describe('ThreadDetailPanel', () => {
   })
 
   it('renders nothing when no thread or stitch is provided', () => {
-    const { container } = render(<ThreadDetailPanel onClose={mockOnClose} />)
+    const { container } = renderWithQueryClient(<ThreadDetailPanel onClose={mockOnClose} />)
     expect(container.firstChild).toBeNull()
   })
 
   it('renders thread details when thread is provided', () => {
-    render(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
 
     expect(screen.getByText('Thread Details')).toBeInTheDocument()
     expect(screen.getByText('123e4567-e89b-12d3-a456-426614174000')).toBeInTheDocument()
@@ -52,7 +54,7 @@ describe('ThreadDetailPanel', () => {
   })
 
   it('renders stitch details when stitch is provided', () => {
-    render(<ThreadDetailPanel stitch={baseStitch} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel stitch={baseStitch} onClose={mockOnClose} />)
 
     expect(screen.getByText('Stitch Details')).toBeInTheDocument()
     expect(screen.getByText('223e4567-e89b-12d3-a456-426614174000')).toBeInTheDocument()
@@ -61,7 +63,7 @@ describe('ThreadDetailPanel', () => {
   })
 
   it('calls onClose when close button is clicked', () => {
-    render(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
 
     const closeButton = screen.getByRole('button', { name: '×' })
     fireEvent.click(closeButton)
@@ -78,7 +80,7 @@ describe('ThreadDetailPanel', () => {
         { id: '3', status: 'pending' as const, description: 'Task 3' },
       ],
     }
-    render(<ThreadDetailPanel thread={threadWithTasks} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={threadWithTasks} onClose={mockOnClose} />)
 
     expect(screen.getByText('Tasks:')).toBeInTheDocument()
     expect(screen.getByText('[completed]')).toBeInTheDocument()
@@ -94,7 +96,7 @@ describe('ThreadDetailPanel', () => {
       ...baseThread,
       result: { success: true, data: 'Result data' },
     }
-    render(<ThreadDetailPanel thread={threadWithResult} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={threadWithResult} onClose={mockOnClose} />)
 
     expect(screen.getByText('Result:')).toBeInTheDocument()
     expect(screen.getByText(/success/)).toBeInTheDocument()
@@ -107,7 +109,7 @@ describe('ThreadDetailPanel', () => {
       tool_input: { query: 'SELECT * FROM users' },
       tool_output: { rows: 5, status: 'success' },
     }
-    render(<ThreadDetailPanel stitch={stitchWithToolData} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel stitch={stitchWithToolData} onClose={mockOnClose} />)
 
     expect(screen.getByText('Tool Input:')).toBeInTheDocument()
     expect(screen.getByText(/SELECT \* FROM users/)).toBeInTheDocument()
@@ -135,7 +137,7 @@ describe('ThreadDetailPanel', () => {
         ],
       },
     }
-    render(<ThreadDetailPanel stitch={stitchWithLLM} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel stitch={stitchWithLLM} onClose={mockOnClose} />)
 
     expect(screen.getByText('LLM Request:')).toBeInTheDocument()
     expect(screen.getByText(/Test prompt/)).toBeInTheDocument()
@@ -144,14 +146,14 @@ describe('ThreadDetailPanel', () => {
   })
 
   it('does not render optional fields when not present', () => {
-    render(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
 
     expect(screen.queryByText('Tasks:')).not.toBeInTheDocument()
     expect(screen.queryByText('Result:')).not.toBeInTheDocument()
   })
 
   it('applies correct styling to the panel', () => {
-    render(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={baseThread} onClose={mockOnClose} />)
 
     const panel = screen.getByText('Thread Details').parentElement!.parentElement!
     expect(panel).toHaveStyle({
@@ -177,7 +179,7 @@ describe('ThreadDetailPanel', () => {
         { id: '3', status: 'pending' as const, description: 'Pending task' },
       ],
     }
-    render(<ThreadDetailPanel thread={threadWithTasks} onClose={mockOnClose} />)
+    renderWithQueryClient(<ThreadDetailPanel thread={threadWithTasks} onClose={mockOnClose} />)
 
     const completedStatus = screen.getByText('[completed]')
     expect(completedStatus).toHaveStyle({ color: 'rgb(0, 128, 0)' }) // green

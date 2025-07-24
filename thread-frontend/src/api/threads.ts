@@ -5,6 +5,7 @@ import {
   ThreadWithCounts,
   ThreadsWithCountsResponse,
   ChildrenResponse,
+  Message,
 } from '../types'
 
 const API_BASE_URL = '/admin/api'
@@ -44,6 +45,11 @@ export const threadsApi = {
 
   createThread: async (goal: string): Promise<Thread> => {
     const response = await api.post<Thread>('/threads', { goal })
+    return response.data
+  },
+
+  getThreadMessages: async (id: string): Promise<Message[]> => {
+    const response = await api.get<Message[]>(`/threads/${id}/messages`)
     return response.data
   },
 }

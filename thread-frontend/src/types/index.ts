@@ -28,6 +28,19 @@ export interface LLMResponse {
 export type ToolInput = Record<string, unknown>
 export type ToolOutput = Record<string, unknown>
 
+export interface DiscordMetadata {
+  thread_id: string
+  discord_thread_id: string
+  channel_id: string
+  guild_id: string
+  last_message_id?: string
+  created_by: string
+  thread_name: string
+  participants: string[]
+  created_at: string
+  updated_at: string
+}
+
 export interface Thread {
   thread_id: string
   branching_stitch_id: string | null
@@ -36,6 +49,8 @@ export interface Thread {
   status: 'pending' | 'running' | 'waiting' | 'completed' | 'failed' | 'aborted'
   result: ThreadResult | null
   pending_child_results: ChildResult[]
+  thread_type: 'autonomous' | 'interactive'
+  discord_metadata?: DiscordMetadata
   created_at: string
   updated_at: string
 }
@@ -44,7 +59,7 @@ export interface Stitch {
   stitch_id: string
   thread_id: string
   previous_stitch_id: string | null
-  stitch_type: 'initial_prompt' | 'llm_call' | 'tool_call' | 'thread_result'
+  stitch_type: 'initial_prompt' | 'llm_call' | 'tool_call' | 'thread_result' | 'discord_message'
   llm_request?: LLMRequest
   llm_response?: LLMResponse
   tool_name?: string
@@ -74,4 +89,29 @@ export interface ThreadsWithCountsResponse {
 
 export interface ChildrenResponse {
   children: ThreadWithCounts[]
+}
+
+export interface TextContent {
+  type: 'text'
+  text: string
+}
+
+export interface ToolUseContent {
+  type: 'tool_use'
+  id: string
+  name: string
+  input: unknown
+}
+
+export interface ToolResultContent {
+  type: 'tool_result'
+  tool_use_id: string
+  content: string
+}
+
+export type MessageContent = TextContent | ToolUseContent | ToolResultContent | string
+
+export interface Message {
+  role: string
+  content: MessageContent | MessageContent[]
 }

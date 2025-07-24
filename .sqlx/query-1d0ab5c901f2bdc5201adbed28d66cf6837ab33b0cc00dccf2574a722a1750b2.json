@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO threads (goal)\n            VALUES ($1)\n            RETURNING *\n            ",
+  "query": "\n            UPDATE threads\n            SET status = 'aborted', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -47,11 +47,17 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Jsonb",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -63,8 +69,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "b2e99c5ebd99497b44b23c7eb40eb82cf1e4ff8df0d19a05beff0916b5585e78"
+  "hash": "1d0ab5c901f2bdc5201adbed28d66cf6837ab33b0cc00dccf2574a722a1750b2"
 }

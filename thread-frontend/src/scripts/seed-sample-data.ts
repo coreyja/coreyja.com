@@ -18,6 +18,7 @@ interface ThreadData {
   status: string
   result: any | null
   pending_child_results: any[]
+  thread_type?: string
 }
 
 interface StitchData {
@@ -44,7 +45,9 @@ async function seedDatabase() {
 
     // Clean up existing data
     console.log('Cleaning up existing data...')
-    await client.query('TRUNCATE TABLE stitches, threads RESTART IDENTITY CASCADE')
+    await client.query(
+      'TRUNCATE TABLE discord_thread_metadata, stitches, threads RESTART IDENTITY CASCADE'
+    )
 
     // Define all threads first
     const threads: ThreadData[] = [
@@ -177,14 +180,24 @@ async function seedDatabase() {
         result: null,
         pending_child_results: [],
       },
+      {
+        thread_id: 'acb2c3d4-e5f6-7890-abcd-ef1234567811',
+        branching_stitch_id: null,
+        goal: 'Interactive Discord thread: Python Help',
+        tasks: [],
+        status: 'running',
+        result: null,
+        pending_child_results: [],
+        thread_type: 'interactive',
+      },
     ]
 
     // Insert threads (initially with null branching_stitch_id)
     console.log('Inserting threads...')
     for (const thread of threads) {
       await client.query(
-        `INSERT INTO threads (thread_id, branching_stitch_id, goal, tasks, status, result, pending_child_results, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() - INTERVAL '2 hours', NOW())`,
+        `INSERT INTO threads (thread_id, branching_stitch_id, goal, tasks, status, result, pending_child_results, thread_type, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() - INTERVAL '2 hours', NOW())`,
         [
           thread.thread_id,
           null, // We'll update this later
@@ -193,6 +206,7 @@ async function seedDatabase() {
           thread.status,
           thread.result ? JSON.stringify(thread.result) : null,
           JSON.stringify(thread.pending_child_results),
+          thread.thread_type || 'autonomous',
         ]
       )
     }
@@ -446,6 +460,88 @@ async function seedDatabase() {
       }
     }
 
+    // Add Discord message stitches for interactive thread
+    stitches.push(
+      {
+        stitch_id: 'dcb2c3d4-1111-2222-3333-444444444444',
+        thread_id: 'acb2c3d4-e5f6-7890-abcd-ef1234567811',
+        previous_stitch_id: null,
+        stitch_type: 'discord_message',
+        llm_request: {
+          type: 'discord_message',
+          data: {
+            message_id: '2222222222222222221',
+            author: 'User#5678',
+            content:
+              'Hey, can someone help me with this Python error? I keep getting "IndentationError" when I run my script.',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+          },
+        },
+      },
+      {
+        stitch_id: 'dcb2c3d4-1111-2222-3333-555555555555',
+        thread_id: 'acb2c3d4-e5f6-7890-abcd-ef1234567811',
+        previous_stitch_id: 'dcb2c3d4-1111-2222-3333-444444444444',
+        stitch_type: 'llm_call',
+        llm_request: {
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a helpful Python tutor in a Discord thread. Be friendly and educational.',
+            },
+            {
+              role: 'user',
+              content:
+                'User#5678: Hey, can someone help me with this Python error? I keep getting "IndentationError" when I run my script.',
+            },
+          ],
+        },
+        llm_response: {
+          choices: [
+            {
+              message: {
+                content:
+                  "Hi! I'd be happy to help you with that IndentationError. This is one of the most common errors in Python! It happens when your code indentation isn't consistent. Could you share the part of your code where you're getting the error?",
+              },
+            },
+          ],
+        },
+      },
+      {
+        stitch_id: 'dcb2c3d4-1111-2222-3333-666666666666',
+        thread_id: 'acb2c3d4-e5f6-7890-abcd-ef1234567811',
+        previous_stitch_id: 'dcb2c3d4-1111-2222-3333-555555555555',
+        stitch_type: 'tool_call',
+        tool_name: 'send_discord_thread_message',
+        tool_input: {
+          message:
+            "Hi! I'd be happy to help you with that IndentationError. This is one of the most common errors in Python! It happens when your code indentation isn't consistent. Could you share the part of your code where you're getting the error?",
+          reply_to_message_id: '2222222222222222221',
+        },
+        tool_output: {
+          message_id: '2222222222222222222',
+        },
+      },
+      {
+        stitch_id: 'dcb2c3d4-1111-2222-3333-777777777777',
+        thread_id: 'acb2c3d4-e5f6-7890-abcd-ef1234567811',
+        previous_stitch_id: 'dcb2c3d4-1111-2222-3333-666666666666',
+        stitch_type: 'discord_message',
+        llm_request: {
+          type: 'discord_message',
+          data: {
+            message_id: '2222222222222222223',
+            author: 'User#5678',
+            content:
+              'Sure! Here\'s my code:\n```python\ndef greet(name):\nprint(f"Hello, {name}!")\n```',
+            timestamp: new Date(Date.now() - 1800000).toISOString(),
+          },
+        },
+      }
+    )
+
     // Insert stitches
     console.log('Inserting stitches...')
     for (const stitch of stitches) {
@@ -480,6 +576,24 @@ async function seedDatabase() {
       }
     }
     console.log('Updated thread branching relationships')
+
+    // Insert Discord metadata for interactive thread
+    console.log('Inserting Discord metadata...')
+    await client.query(
+      `INSERT INTO discord_thread_metadata (thread_id, discord_thread_id, channel_id, guild_id, created_by, thread_name, participants, last_message_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        'acb2c3d4-e5f6-7890-abcd-ef1234567811',
+        '1234567890123456789', // Discord thread ID
+        '9876543210987654321', // Channel ID
+        '1111111111111111111', // Guild ID
+        'CodeHelper#1234',
+        'Python Help',
+        JSON.stringify(['CodeHelper#1234', 'User#5678', 'Student#9012']),
+        '2222222222222222222', // Last message ID
+      ]
+    )
+    console.log('Inserted Discord metadata')
 
     // Commit transaction
     await client.query('COMMIT')

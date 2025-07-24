@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT t.* FROM threads t\n            JOIN stitches s ON t.branching_stitch_id = s.stitch_id\n            WHERE s.thread_id = $1\n            ORDER BY t.created_at ASC\n            ",
+  "query": "\n            UPDATE threads\n            SET status = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -47,10 +47,16 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Uuid"
       ]
     },
@@ -63,8 +69,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "4a2518584955a9d238558badc8e66b955a3de07570cf00d0e18229212dc9151e"
+  "hash": "1d6e34024881aa66c12893fce4b93bf2261c8344887bf5c747622804ceca780c"
 }

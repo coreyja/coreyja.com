@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'failed', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
+  "query": "\n            SELECT * FROM discord_thread_metadata\n            WHERE thread_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -10,62 +10,67 @@
       },
       {
         "ordinal": 1,
-        "name": "branching_stitch_id",
-        "type_info": "Uuid"
+        "name": "discord_thread_id",
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "goal",
+        "name": "channel_id",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "tasks",
-        "type_info": "Jsonb"
+        "name": "guild_id",
+        "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "status",
+        "name": "last_message_id",
         "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "result",
-        "type_info": "Jsonb"
+        "name": "created_by",
+        "type_info": "Text"
       },
       {
         "ordinal": 6,
-        "name": "pending_child_results",
-        "type_info": "Jsonb"
+        "name": "thread_name",
+        "type_info": "Text"
       },
       {
         "ordinal": 7,
+        "name": "participants",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Jsonb",
         "Uuid"
       ]
     },
     "nullable": [
       false,
-      true,
+      false,
+      false,
       false,
       true,
       false,
-      true,
-      true,
+      false,
+      false,
       false,
       false
     ]
   },
-  "hash": "cb849b3051654381c2f2ccf4c449ae2263ee7a98afc0e0ef6d7d739cbfa7b400"
+  "hash": "9944b666231b6a45ad3a07ae5002e4ae5612dad74940afee9a1c96570554bf7d"
 }

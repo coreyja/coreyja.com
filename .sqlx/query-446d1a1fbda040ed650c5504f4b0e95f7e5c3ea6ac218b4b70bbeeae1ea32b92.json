@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM threads\n            ORDER BY created_at DESC\n            ",
+  "query": "\n            SELECT \n                *\n            FROM threads\n            ORDER BY created_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,11 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "thread_type",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -61,8 +66,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "3558c136a1289f17c8e6df8a60d1bba20a6d8d0a054ff10bd1c7f2837b4f9187"
+  "hash": "446d1a1fbda040ed650c5504f4b0e95f7e5c3ea6ac218b4b70bbeeae1ea32b92"
 }

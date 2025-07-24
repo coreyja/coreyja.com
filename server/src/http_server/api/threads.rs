@@ -5,7 +5,8 @@ use axum::{
     Json,
 };
 use cja::app_state::AppState as _;
-use db::agentic_threads::{Stitch, Thread};
+use db::agentic_threads::{Stitch, Thread, ThreadType};
+use db::discord_threads::DiscordThreadMetadata;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -19,6 +20,7 @@ struct ThreadWithStitches {
     #[serde(flatten)]
     thread: Thread,
     stitches: Vec<Stitch>,
+    discord_metadata: Option<DiscordThreadMetadata>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -103,7 +105,32 @@ pub async fn get_thread(
         .context("Failed to fetch stitches")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(ThreadWithStitches { thread, stitches }))
+    // Fetch Discord metadata if this is an interactive thread
+    let discord_metadata = if thread.thread_type == ThreadType::Interactive {
+        DiscordThreadMetadata::find_by_thread_id(state.db(), thread.thread_id)
+            .await
+            .context("Failed to fetch Discord metadata")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        None
+    };
+
+    Ok(Json(ThreadWithStitches {
+        thread,
+        stitches,
+        discord_metadata,
+    }))
+}
+
+#[axum_macros::debug_handler]
+pub async fn get_thread_messages(
+    _admin: AdminUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> ResponseResult<impl IntoResponse> {
+    let messages = crate::jobs::thread_processor::reconstruct_messages(state.db(), id).await?;
+
+    Ok(Json(messages))
 }
 
 #[axum_macros::debug_handler]
