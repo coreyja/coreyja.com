@@ -263,6 +263,8 @@ impl ReactToMessage {
 pub struct ReactInput {
     pub message_id: String,
     pub emoji: String,
+    #[serde(default)]
+    pub continue_processing: bool,
 }
 
 #[async_trait::async_trait]
@@ -275,11 +277,15 @@ impl Tool for ReactToMessage {
     - A unicode emoji like "👍", "❤️", "🎉", etc.
     - A custom Discord emoji in the format "<:name:id>" or "<a:name:id>" for animated emojis
     
-    Example with unicode emoji:
+    By default, after adding a reaction, the agent will wait for a user response before continuing.
+    Set continue_processing to true if you want to perform additional actions after adding the reaction.
+    
+    Example with unicode emoji (default - wait for response):
     ```json
     {
         "message_id": "1234567890",
-        "emoji": "👍"
+        "emoji": "👍",
+        "continue_processing": false
     }
     ```
     
@@ -287,7 +293,17 @@ impl Tool for ReactToMessage {
     ```json
     {
         "message_id": "1234567890", 
-        "emoji": "<:customname:123456789012345678>"
+        "emoji": "<:customname:123456789012345678>",
+        "continue_processing": false
+    }
+    ```
+    
+    Example (continue processing):
+    ```json
+    {
+        "message_id": "1234567890",
+        "emoji": "✅",
+        "continue_processing": true
     }
     ```
     "#;
@@ -360,6 +376,17 @@ impl Tool for ReactToMessage {
             .create_reaction(channel_id, message_id, &reaction_type)
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to add reaction: {}", e))?;
+
+        // Only set thread status to waiting if continue_processing is false
+        // This allows the agent to perform additional actions if needed
+        if !input.continue_processing {
+            db::agentic_threads::Thread::update_status(
+                &app_state.db,
+                context.thread.thread_id,
+                "waiting",
+            )
+            .await?;
+        }
 
         Ok(format!("Added {} reaction to message", input.emoji))
     }
