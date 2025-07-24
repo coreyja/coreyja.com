@@ -327,30 +327,32 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                 }
 
                 // Handle Discord messages as user messages
-                if let Some(message_data) = stitch.llm_request {
-                    let message: serenity::all::Message =
-                        serde_json::from_value(message_data.clone())?;
+                if let Some(request) = stitch.llm_request {
+                    if let Some(message_data) = request.get("data") {
+                        let message: serenity::all::Message =
+                            serde_json::from_value(message_data.clone())?;
 
-                    // Format message with user information and message ID
-                    let formatted_message = format!(
-                        "[{} (@{}, ID: {}, Message ID: {})]: {}",
-                        message
-                            .author
-                            .global_name
-                            .as_deref()
-                            .unwrap_or(message.author.name.as_str()),
-                        message.author.tag(),
-                        message.author.id,
-                        message.id,
-                        message.content
-                    );
+                        // Format message with user information and message ID
+                        let formatted_message = format!(
+                            "[{} (@{}, ID: {}, Message ID: {})]: {}",
+                            message
+                                .author
+                                .global_name
+                                .as_deref()
+                                .unwrap_or(message.author.name.as_str()),
+                            message.author.tag(),
+                            message.author.id,
+                            message.id,
+                            message.content
+                        );
 
-                    messages.push(Message {
-                        role: "user".to_string(),
-                        content: vec![Content::Text(TextContent {
-                            text: formatted_message,
-                        })],
-                    });
+                        messages.push(Message {
+                            role: "user".to_string(),
+                            content: vec![Content::Text(TextContent {
+                                text: formatted_message,
+                            })],
+                        });
+                    }
                 }
             }
         }
@@ -705,6 +707,10 @@ mod tests {
             "resolved": null,
             "poll": null,
             "call": null
+        });
+        let discord_message_data = json!({
+            "data": discord_message_data,
+            "type": "discord_message",
         });
 
         Stitch::create_discord_message(
