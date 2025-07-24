@@ -31,6 +31,13 @@ pub struct ToolChoice {
 pub struct Message {
     pub role: String,
     pub content: Vec<Content>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CacheControl {
+    pub r#type: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
