@@ -17,8 +17,8 @@ fn one_hour() -> Duration {
 pub(crate) fn cron_registry() -> cja::Result<CronRegistry<AppState>> {
     let mut registry = CronRegistry::new();
 
-    registry.register_job(RefreshSponsors, one_hour());
-    registry.register_job(RefreshVideos, one_hour());
+    // registry.register_job(RefreshSponsors, one_hour());
+    // registry.register_job(RefreshVideos, one_hour());
     registry.register_job(RefreshDiscordChannels, one_hour());
 
     registry.register_job_with_cron(StandupMessage, "0 15 7 * * * *")?;
