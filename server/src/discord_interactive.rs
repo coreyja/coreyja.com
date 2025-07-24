@@ -6,10 +6,10 @@ use db::discord_threads::DiscordThreadMetadata;
 use serenity::builder::CreateThread;
 use tracing::instrument;
 
-use crate::jobs::discord_event_processor::ProcessDiscordEvent;
+use crate::jobs::discord_message_processor::ProcessDiscordMessage;
+use crate::jobs::discord_thread_create_processor::ProcessDiscordThreadCreate;
 use crate::AppState;
 use cja::jobs::Job as JobTrait;
-pub type ProcessDiscordEventInput = ProcessDiscordEvent;
 
 pub struct DiscordEventHandler {
     app_state: AppState,
@@ -105,10 +105,9 @@ impl DiscordEventHandler {
                     })).collect::<Vec<_>>(),
                 });
 
-                let job_input = ProcessDiscordEventInput {
+                let job_input = ProcessDiscordMessage {
                     thread_id: thread.thread_id,
-                    event_type: "message".to_string(),
-                    event_data,
+                    message_data: event_data,
                 };
 
                 job_input
@@ -173,10 +172,9 @@ impl DiscordEventHandler {
                         "original_channel_id": guild_channel.id.to_string(),
                     });
 
-                    let job_input = ProcessDiscordEventInput {
+                    let job_input = ProcessDiscordMessage {
                         thread_id: ai_thread.thread_id,
-                        event_type: "message".to_string(), // Process as a regular message, not thread_create
-                        event_data,
+                        message_data: event_data,
                     };
 
                     job_input
@@ -257,10 +255,9 @@ impl DiscordEventHandler {
             "thread_name": thread.name,
         });
 
-        let job_input = ProcessDiscordEventInput {
+        let job_input = ProcessDiscordThreadCreate {
             thread_id: ai_thread.thread_id,
-            event_type: "thread_create".to_string(),
-            event_data,
+            thread_data: event_data,
         };
 
         // Enqueue the job
