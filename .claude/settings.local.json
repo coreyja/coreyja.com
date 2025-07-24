@@ -32,7 +32,8 @@
       "Bash(cargo sqlx migrate:*)",
       "Bash(mv:*)",
       "Bash(grep:*)",
-      "Bash(gh pr diff:*)"
+      "Bash(gh pr diff:*)",
+      "WebFetch(domain:serenity-rs.github.io)"
     ],
     "deny": []
   }

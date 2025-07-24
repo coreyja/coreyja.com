@@ -37,7 +37,7 @@ pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
 #[derive(Clone, Debug)]
 pub(crate) struct DiscordClient {
     pub http: Arc<serenity::Http>,
-    cache: Arc<serenity::Cache>,
+    pub cache: Arc<serenity::Cache>,
 }
 
 impl CacheHttp for DiscordClient {
@@ -128,6 +128,12 @@ async fn event_handler(
             }
             serenity::FullEvent::ThreadCreate { thread } => {
                 event_handler.handle_thread_create(thread).await?;
+            }
+            serenity::FullEvent::ThreadUpdate { old: _, new } => {
+                event_handler.handle_thread_update(new).await?;
+            }
+            serenity::FullEvent::ThreadDelete { thread, .. } => {
+                event_handler.handle_thread_delete(thread).await?;
             }
             _ => {}
         }
