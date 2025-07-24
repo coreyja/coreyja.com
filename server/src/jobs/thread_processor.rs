@@ -219,14 +219,15 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 }
 
 #[allow(clippy::too_many_lines)]
-async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<Message>> {
+pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<Message>> {
     let stitches = Stitch::get_by_thread_ordered(db, thread_id).await?;
 
     let mut messages = Vec::new();
     let mut pending_tool_results: Vec<Content> = Vec::new();
 
-    let mut tool_use_mapping: std::collections::HashMap<(String, Option<Uuid>), String> =
-        std::collections::HashMap::new();
+    // Track tool uses from the current LLM call in order
+    let mut current_tool_uses: Vec<(String, String)> = Vec::new(); // (tool_name, tool_use_id)
+    let mut tool_use_index = 0;
 
     for stitch in stitches {
         match stitch.stitch_type {
@@ -250,16 +251,19 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
                     pending_tool_results.clear();
                 }
 
+                // Reset tool use tracking for this LLM call
+                current_tool_uses.clear();
+                tool_use_index = 0;
+
                 if let Some(response) = stitch.llm_response {
                     if let Some(content) = response.get("content") {
                         let content_vec: Vec<Content> = serde_json::from_value(content.clone())?;
 
+                        // Collect tool uses in order
                         for content_item in &content_vec {
                             if let Content::ToolUse(tool_use) = content_item {
-                                tool_use_mapping.insert(
-                                    (tool_use.name.clone(), Some(stitch.stitch_id)),
-                                    tool_use.id.clone(),
-                                );
+                                current_tool_uses
+                                    .push((tool_use.name.clone(), tool_use.id.clone()));
                             }
                         }
 
@@ -276,10 +280,20 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
                     stitch.tool_input,
                     stitch.tool_output,
                 ) {
-                    let tool_use_id = tool_use_mapping
-                        .get(&(tool_name.clone(), stitch.previous_stitch_id))
-                        .cloned()
-                        .unwrap_or_else(|| format!("tool_{}_{}", tool_name, stitch.stitch_id));
+                    // Find the tool_use_id by matching against the current tool uses in order
+                    let tool_use_id = if tool_use_index < current_tool_uses.len() {
+                        let (expected_tool_name, tool_id) = &current_tool_uses[tool_use_index];
+                        if expected_tool_name == &tool_name {
+                            tool_use_index += 1;
+                            tool_id.clone()
+                        } else {
+                            // Fallback if tool name doesn't match expected order
+                            format!("tool_{}_{}", tool_name, stitch.stitch_id)
+                        }
+                    } else {
+                        // Fallback if we've exhausted the tool uses
+                        format!("tool_{}_{}", tool_name, stitch.stitch_id)
+                    };
 
                     let (content, is_error) = if let Some(err) = tool_output.get("error") {
                         (
@@ -314,43 +328,29 @@ async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<Vec<M
 
                 // Handle Discord messages as user messages
                 if let Some(message_data) = stitch.llm_request {
-                    if let Some(data) = message_data.get("data") {
-                        if let Some(content) = data.get("content").and_then(|c| c.as_str()) {
-                            // Extract user information
-                            let author_name = data
-                                .get("author_display_name")
-                                .or_else(|| data.get("author_name"))
-                                .and_then(|a| a.as_str())
-                                .unwrap_or("Unknown User");
+                    let message: serenity::all::Message =
+                        serde_json::from_value(message_data.clone())?;
 
-                            let author_tag = data
-                                .get("author")
-                                .and_then(|a| a.as_str())
-                                .unwrap_or("unknown#0000");
+                    // Format message with user information and message ID
+                    let formatted_message = format!(
+                        "[{} (@{}, ID: {}, Message ID: {})]: {}",
+                        message
+                            .author
+                            .global_name
+                            .as_deref()
+                            .unwrap_or(message.author.name.as_str()),
+                        message.author.tag(),
+                        message.author.id,
+                        message.id,
+                        message.content
+                    );
 
-                            let author_id = data
-                                .get("author_id")
-                                .and_then(|a| a.as_str())
-                                .unwrap_or("unknown");
-
-                            let message_id = data
-                                .get("message_id")
-                                .and_then(|m| m.as_str())
-                                .unwrap_or("unknown");
-
-                            // Format message with user information and message ID
-                            let formatted_message = format!(
-                                "[{author_name} (@{author_tag}, ID: {author_id}, Message ID: {message_id})]: {content}"
-                            );
-
-                            messages.push(Message {
-                                role: "user".to_string(),
-                                content: vec![Content::Text(TextContent {
-                                    text: formatted_message,
-                                })],
-                            });
-                        }
-                    }
+                    messages.push(Message {
+                        role: "user".to_string(),
+                        content: vec![Content::Text(TextContent {
+                            text: formatted_message,
+                        })],
+                    });
                 }
             }
         }
@@ -650,18 +650,61 @@ mod tests {
         .await
         .unwrap();
 
-        // Discord message arrives after the tool call
+        // Discord message arrives after the tool call - create a proper Discord Message struct
         let discord_message_data = json!({
-            "type": "discord_message",
-            "data": {
-                "message_id": "1234567890",
-                "author": "testuser#1234",
-                "author_id": "987654321",
-                "author_name": "testuser",
-                "author_display_name": "Test User",
-                "content": "Thanks for listening!",
-                "timestamp": "2024-01-01T00:00:00Z"
-            }
+            "id": "1234567890",
+            "channel_id": "1111111111",
+            "author": {
+                "id": "987654321",
+                "username": "testuser",
+                "discriminator": "1234",
+                "global_name": "Test User",
+                "avatar": null,
+                "bot": false,
+                "system": false,
+                "mfa_enabled": false,
+                "banner": null,
+                "accent_color": null,
+                "locale": null,
+                "verified": null,
+                "email": null,
+                "flags": 0,
+                "premium_type": 0,
+                "public_flags": 0,
+                "member": null
+            },
+            "content": "Thanks for listening!",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "edited_timestamp": null,
+            "tts": false,
+            "mention_everyone": false,
+            "mentions": [],
+            "mention_roles": [],
+            "mention_channels": [],
+            "attachments": [],
+            "embeds": [],
+            "reactions": [],
+            "nonce": null,
+            "pinned": false,
+            "webhook_id": null,
+            "type": 0,
+            "activity": null,
+            "application": null,
+            "application_id": null,
+            "flags": 0,
+            "message_reference": null,
+            "referenced_message": null,
+            "interaction_metadata": null,
+            "interaction": null,
+            "thread": null,
+            "components": [],
+            "sticker_items": [],
+            "stickers": [],
+            "position": null,
+            "role_subscription_data": null,
+            "resolved": null,
+            "poll": null,
+            "call": null
         });
 
         Stitch::create_discord_message(
@@ -795,6 +838,111 @@ mod tests {
                 result2.tool_use_id == "tool_2" || result2.tool_use_id.starts_with("tool_tool_b_")
             );
             assert!(result2.content.contains("success_b"));
+        } else {
+            panic!("Expected second tool result");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_reconstruct_messages_duplicate_tool_calls(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string())
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(
+            &pool,
+            thread_id,
+            "Do the same thing twice".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // LLM response with two identical tool uses (same tool name)
+        let response = json!({
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "tool_1",
+                    "name": "calculate",
+                    "input": {"x": 5, "y": 3}
+                },
+                {
+                    "type": "tool_use",
+                    "id": "tool_2",
+                    "name": "calculate",
+                    "input": {"x": 5, "y": 3}
+                }
+            ]
+        });
+
+        let llm_stitch = Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
+
+        // First tool call result
+        let tool_stitch1 = Stitch::create_tool_call(
+            &pool,
+            thread_id,
+            Some(llm_stitch.stitch_id),
+            "calculate".to_string(),
+            json!({"x": 5, "y": 3}),
+            json!({"result": 8}),
+        )
+        .await
+        .unwrap();
+
+        // Second tool call result (same tool, same params)
+        Stitch::create_tool_call(
+            &pool,
+            thread_id,
+            Some(tool_stitch1.stitch_id),
+            "calculate".to_string(),
+            json!({"x": 5, "y": 3}),
+            json!({"result": 8}),
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        assert_eq!(messages.len(), 3);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages[2].role, "user");
+
+        // Check assistant message has both tool uses
+        assert_eq!(messages[1].content.len(), 2);
+
+        // Both tool results should be in the same user message
+        assert_eq!(messages[2].content.len(), 2);
+
+        // Check that the first tool result has the correct tool_use_id
+        if let Content::ToolResult(result1) = &messages[2].content[0] {
+            assert_eq!(
+                result1.tool_use_id, "tool_1",
+                "First tool result should have tool_use_id 'tool_1'"
+            );
+            assert!(result1.content.contains('8'));
+        } else {
+            panic!("Expected first tool result");
+        }
+
+        // Check that the second tool result has the correct tool_use_id
+        if let Content::ToolResult(result2) = &messages[2].content[1] {
+            assert_eq!(
+                result2.tool_use_id, "tool_2",
+                "Second tool result should have tool_use_id 'tool_2'"
+            );
+            assert!(result2.content.contains('8'));
         } else {
             panic!("Expected second tool result");
         }

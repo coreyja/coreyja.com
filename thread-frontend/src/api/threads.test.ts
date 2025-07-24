@@ -165,4 +165,43 @@ describe('threadsApi', () => {
       })
     })
   })
+
+  describe('getThreadMessages', () => {
+    it('fetches thread messages successfully', async () => {
+      const mockMessages = [
+        {
+          role: 'user',
+          content: 'Hello, can you help me?',
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Of course! I would be happy to help.',
+            },
+          ],
+        },
+      ]
+
+      mockAxiosGet.mockResolvedValue({
+        data: mockMessages,
+      })
+
+      const result = await threadsApi.getThreadMessages('123')
+
+      expect(mockAxiosGet).toHaveBeenCalledWith('/threads/123/messages')
+      expect(result).toEqual(mockMessages)
+    })
+
+    it('handles thread messages not found', async () => {
+      mockAxiosGet.mockRejectedValue({
+        response: { status: 404, data: { error: 'Thread not found' } },
+      })
+
+      await expect(threadsApi.getThreadMessages('999')).rejects.toMatchObject({
+        response: { status: 404 },
+      })
+    })
+  })
 })

@@ -22,7 +22,8 @@ impl JobTrait<AppState> for ProcessDiscordThreadCreate {
         let db = &app_state.db;
 
         // Send initial greeting message
-        let greeting = "Hello! I'm here to help you in this Discord thread. Feel free to ask me anything!";
+        let greeting =
+            "Hello! I'm here to help you in this Discord thread. Feel free to ask me anything!";
 
         // Create an initial prompt stitch
         let _stitch =

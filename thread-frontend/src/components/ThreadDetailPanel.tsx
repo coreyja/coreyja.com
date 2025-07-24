@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Thread, Stitch } from '../types'
+import { threadsApi } from '../api/threads'
+import { MessagesView } from './MessagesView'
 
 interface ThreadDetailPanelProps {
   thread?: Thread
@@ -12,6 +15,14 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({
   stitch,
   onClose,
 }) => {
+  const [activeTab, setActiveTab] = useState<'details' | 'messages'>('details')
+
+  const { data: messages, isLoading: messagesLoading } = useQuery({
+    queryKey: ['threadMessages', thread?.thread_id],
+    queryFn: () => threadsApi.getThreadMessages(thread!.thread_id),
+    enabled: !!thread && activeTab === 'messages',
+  })
+
   if (!thread && !stitch) return null
 
   return (
@@ -45,6 +56,38 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({
       </button>
 
       {thread && (
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setActiveTab('details')}
+            style={{
+              padding: '8px 16px',
+              marginRight: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              background: activeTab === 'details' ? '#007bff' : 'white',
+              color: activeTab === 'details' ? 'white' : 'black',
+              cursor: 'pointer',
+            }}
+          >
+            Details
+          </button>
+          <button
+            onClick={() => setActiveTab('messages')}
+            style={{
+              padding: '8px 16px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              background: activeTab === 'messages' ? '#007bff' : 'white',
+              color: activeTab === 'messages' ? 'white' : 'black',
+              cursor: 'pointer',
+            }}
+          >
+            Messages
+          </button>
+        </div>
+      )}
+
+      {thread && activeTab === 'details' && (
         <div>
           <h2 style={{ marginTop: 0 }}>Thread Details</h2>
           <div style={{ marginBottom: '10px' }}>
@@ -133,6 +176,19 @@ export const ThreadDetailPanel: React.FC<ThreadDetailPanelProps> = ({
                 </div>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {thread && activeTab === 'messages' && (
+        <div>
+          <h2 style={{ marginTop: 0 }}>Thread Messages</h2>
+          {messagesLoading ? (
+            <div>Loading messages...</div>
+          ) : messages ? (
+            <MessagesView messages={messages} />
+          ) : (
+            <div>No messages available</div>
           )}
         </div>
       )}

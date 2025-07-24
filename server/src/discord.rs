@@ -126,9 +126,6 @@ async fn event_handler(
             serenity::FullEvent::Message { new_message } => {
                 event_handler.handle_message(new_message).await?;
             }
-            serenity::FullEvent::ThreadCreate { thread } => {
-                event_handler.handle_thread_create(thread).await?;
-            }
             serenity::FullEvent::ThreadUpdate { old: _, new } => {
                 event_handler.handle_thread_update(new).await?;
             }

@@ -91,3 +91,28 @@ export interface ThreadsWithCountsResponse {
 export interface ChildrenResponse {
   children: ThreadWithCounts[]
 }
+
+export interface TextContent {
+  type: 'text'
+  text: string
+}
+
+export interface ToolUseContent {
+  type: 'tool_use'
+  id: string
+  name: string
+  input: unknown
+}
+
+export interface ToolResultContent {
+  type: 'tool_result'
+  tool_use_id: string
+  content: string
+}
+
+export type MessageContent = TextContent | ToolUseContent | ToolResultContent | string
+
+export interface Message {
+  role: string
+  content: MessageContent | MessageContent[]
+}

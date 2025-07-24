@@ -123,6 +123,17 @@ pub async fn get_thread(
 }
 
 #[axum_macros::debug_handler]
+pub async fn get_thread_messages(
+    _admin: AdminUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> ResponseResult<impl IntoResponse> {
+    let messages = crate::jobs::thread_processor::reconstruct_messages(state.db(), id).await?;
+
+    Ok(Json(messages))
+}
+
+#[axum_macros::debug_handler]
 pub async fn create_thread(
     _admin: AdminUser,
     State(state): State<AppState>,

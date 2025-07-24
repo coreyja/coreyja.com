@@ -4,10 +4,8 @@ use crate::state::AppState;
 
 use self::{
     discord_message_processor::ProcessDiscordMessage,
-    discord_thread_create_processor::ProcessDiscordThreadCreate,
-    sponsors::RefreshSponsors,
-    thread_processor::ProcessThreadStep,
-    youtube_videos::RefreshVideos,
+    discord_thread_create_processor::ProcessDiscordThreadCreate, sponsors::RefreshSponsors,
+    thread_processor::ProcessThreadStep, youtube_videos::RefreshVideos,
 };
 
 pub mod bytes_discord_posts;
