@@ -37,7 +37,6 @@ export interface DiscordMetadata {
   created_by: string
   thread_name: string
   participants: string[]
-  webhook_url?: string
   created_at: string
   updated_at: string
 }

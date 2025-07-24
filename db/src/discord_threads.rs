@@ -14,7 +14,6 @@ pub struct DiscordThreadMetadata {
     pub created_by: String,
     pub thread_name: String,
     pub participants: JsonValue, // JSON array of participant tags
-    pub webhook_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -127,28 +126,6 @@ impl DiscordThreadMetadata {
             RETURNING *
             "#,
             participant_tag,
-            thread_id
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(metadata)
-    }
-
-    pub async fn update_webhook_url(
-        pool: &PgPool,
-        thread_id: Uuid,
-        webhook_url: Option<String>,
-    ) -> color_eyre::Result<Option<Self>> {
-        let metadata = sqlx::query_as!(
-            DiscordThreadMetadata,
-            r#"
-            UPDATE discord_thread_metadata
-            SET webhook_url = $1, updated_at = NOW()
-            WHERE thread_id = $2
-            RETURNING *
-            "#,
-            webhook_url,
             thread_id
         )
         .fetch_optional(pool)

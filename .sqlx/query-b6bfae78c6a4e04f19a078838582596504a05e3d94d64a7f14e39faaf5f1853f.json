@@ -45,16 +45,11 @@
       },
       {
         "ordinal": 8,
-        "name": "webhook_url",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -74,7 +69,6 @@
       false,
       false,
       false,
-      true,
       false,
       false
     ]
