@@ -121,8 +121,8 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
                 role: "user".to_string(),
                 content: vec![Content::Text(TextContent {
                     text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation. You can react to messages using emojis when appropriate. Each message shows the Message ID that you can use to react to specific messages. You can list available custom server emojis using the list_server_emojis tool.".to_string(),
+                    cache_control: None,
                 })],
-                cache_control: None,
             });
         }
     } else {
@@ -248,7 +248,6 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                     messages.push(Message {
                         role: "user".to_string(),
                         content: pending_tool_results.clone(),
-                        cache_control: None,
                     });
                     pending_tool_results.clear();
                 }
@@ -272,7 +271,6 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                         messages.push(Message {
                             role: "assistant".to_string(),
                             content: content_vec,
-                            cache_control: None,
                         });
                     }
                 }
@@ -313,6 +311,7 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                         tool_use_id,
                         content,
                         is_error,
+                        cache_control: None,
                     }));
                 }
             }
@@ -325,7 +324,6 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                     messages.push(Message {
                         role: "user".to_string(),
                         content: pending_tool_results.clone(),
-                        cache_control: None,
                     });
                     pending_tool_results.clear();
                 }
@@ -354,8 +352,8 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                             role: "user".to_string(),
                             content: vec![Content::Text(TextContent {
                                 text: formatted_message,
+                                cache_control: None,
                             })],
-                            cache_control: None,
                         });
                     }
                 }
@@ -368,15 +366,16 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
         messages.push(Message {
             role: "user".to_string(),
             content: pending_tool_results,
-            cache_control: None,
         });
     }
 
-    // Add cache control to the last message for better performance on subsequent calls
+    // Add cache control to the last content of the last message for better performance on subsequent calls
     if let Some(last_message) = messages.last_mut() {
-        last_message.cache_control = Some(CacheControl {
-            r#type: "ephemeral".to_string(),
-        });
+        if let Some(last_content) = last_message.content.last_mut() {
+            last_content.set_cache_control(CacheControl {
+                r#type: "ephemeral".to_string(),
+            });
+        }
     }
 
     Ok(messages)
@@ -898,20 +897,24 @@ mod tests {
         // Should have 2 messages
         assert_eq!(messages.len(), 2);
 
-        // First message should not have cache_control
-        assert!(messages[0].cache_control.is_none());
+        // First message's last content should not have cache_control
+        assert!(messages[0]
+            .content
+            .last()
+            .and_then(|c| c.cache_control())
+            .is_none());
 
-        // Last message should have cache_control
-        assert!(messages[1].cache_control.is_some());
-        let cache_control = messages[1].cache_control.as_ref().unwrap();
-        assert_eq!(cache_control.r#type, "ephemeral");
+        // Last message's last content should have cache_control set to "ephemeral"
+        let last_content_cache_control = messages[1].content.last().and_then(|c| c.cache_control());
+        assert!(last_content_cache_control.is_some());
+        assert_eq!(last_content_cache_control.unwrap().r#type, "ephemeral");
 
         // Verify JSON serialization
-        let json = serde_json::to_value(&messages[1]).unwrap();
+        let json = serde_json::to_value(messages[1].content.last().unwrap()).unwrap();
         assert_eq!(json["cache_control"], json!({"type": "ephemeral"}));
 
         // Verify that messages without cache_control don't include the field
-        let json_without = serde_json::to_value(&messages[0]).unwrap();
+        let json_without = serde_json::to_value(messages[0].content.last().unwrap()).unwrap();
         assert!(json_without.get("cache_control").is_none());
     }
 
@@ -923,17 +926,17 @@ mod tests {
                 role: "user".to_string(),
                 content: vec![Content::Text(TextContent {
                     text: "Hello".to_string(),
+                    cache_control: None,
                 })],
-                cache_control: None,
             },
             Message {
                 role: "assistant".to_string(),
                 content: vec![Content::Text(TextContent {
                     text: "Hi there!".to_string(),
+                    cache_control: Some(CacheControl {
+                        r#type: "ephemeral".to_string(),
+                    }),
                 })],
-                cache_control: Some(CacheControl {
-                    r#type: "ephemeral".to_string(),
-                }),
             },
         ];
 
@@ -951,15 +954,6 @@ mod tests {
         assert_eq!(json["model"], json!("claude-3-opus-20240229"));
         assert_eq!(json["max_tokens"], json!(1024));
 
-        // First message should not have cache_control
-        assert!(json["messages"][0].get("cache_control").is_none());
-
-        // Second message should have cache_control
-        assert_eq!(
-            json["messages"][1]["cache_control"],
-            json!({"type": "ephemeral"})
-        );
-
         // Verify the exact JSON structure we expect
         let expected_messages = json!([
             {
@@ -968,8 +962,7 @@ mod tests {
             },
             {
                 "role": "assistant",
-                "content": [{"type": "text", "text": "Hi there!"}],
-                "cache_control": {"type": "ephemeral"}
+                "content": [{"type": "text", "text": "Hi there!", "cache_control": {"type": "ephemeral"}}],
             }
         ]);
 
