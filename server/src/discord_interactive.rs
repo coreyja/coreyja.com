@@ -155,7 +155,7 @@ impl DiscordEventHandler {
                     )
                     .await?;
 
-                    // Process the original message
+                    // Process the original message as the first message in the thread
                     let event_data = json!({
                         "message_id": msg.id.to_string(),
                         "author": msg.author.tag(),
@@ -169,19 +169,20 @@ impl DiscordEventHandler {
                             "url": a.url,
                             "content_type": a.content_type,
                         })).collect::<Vec<_>>(),
-                        "thread_created": true,
+                        "original_message_id": msg.id.to_string(), // Track the original message for responding
+                        "original_channel_id": guild_channel.id.to_string(),
                     });
 
                     let job_input = ProcessDiscordEventInput {
                         thread_id: ai_thread.thread_id,
-                        event_type: "message".to_string(),
+                        event_type: "message".to_string(), // Process as a regular message, not thread_create
                         event_data,
                     };
 
                     job_input
                         .enqueue(
                             self.app_state.clone(),
-                            "Discord message processing with thread creation".to_string(),
+                            "Discord message processing from bot mention".to_string(),
                         )
                         .await?;
                 }
@@ -201,6 +202,22 @@ impl DiscordEventHandler {
         if thread.kind != serenity::ChannelType::PublicThread
             && thread.kind != serenity::ChannelType::PrivateThread
         {
+            return Ok(());
+        }
+
+        // Check if this Discord thread already exists (created from bot mention)
+        let existing_discord = DiscordThreadMetadata::find_by_discord_thread_id(
+            &self.app_state.db,
+            &thread.id.to_string(),
+        )
+        .await?;
+
+        // If thread already exists, skip creation (it was created from bot mention)
+        if existing_discord.is_some() {
+            tracing::info!(
+                discord_thread_id = thread.id.to_string(),
+                "Discord thread already exists, skipping duplicate creation"
+            );
             return Ok(());
         }
 
@@ -234,7 +251,7 @@ impl DiscordEventHandler {
         )
         .await?;
 
-        // Send initial greeting
+        // For manually created threads (not from bot mention), send a greeting
         let event_data = json!({
             "action": "send_greeting",
             "thread_name": thread.name,
@@ -282,12 +299,8 @@ impl DiscordEventHandler {
 
                 if let Some(discord_meta) = discord_meta {
                     // Update the thread status to completed
-                    Thread::update_status(
-                        &self.app_state.db,
-                        discord_meta.thread_id,
-                        db::agentic_threads::ThreadStatus::Completed,
-                    )
-                    .await?;
+                    Thread::update_status(&self.app_state.db, discord_meta.thread_id, "completed")
+                        .await?;
 
                     tracing::info!(
                         thread_id = discord_meta.thread_id.to_string(),
@@ -318,18 +331,13 @@ impl DiscordEventHandler {
         .await?;
 
         if let Some(discord_meta) = discord_meta {
-            // Update the thread status to aborted (since it was deleted)
-            Thread::update_status(
-                &self.app_state.db,
-                discord_meta.thread_id,
-                db::agentic_threads::ThreadStatus::Aborted,
-            )
-            .await?;
+            // Update the thread status to completed
+            Thread::update_status(&self.app_state.db, discord_meta.thread_id, "completed").await?;
 
             tracing::info!(
                 thread_id = discord_meta.thread_id.to_string(),
                 discord_thread_id = thread.id.to_string(),
-                "Discord thread deleted, marking as aborted"
+                "Discord thread deleted, marking as completed"
             );
         }
 
