@@ -31,8 +31,6 @@ pub struct ToolChoice {
 pub struct Message {
     pub role: String,
     pub content: Vec<Content>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cache_control: Option<CacheControl>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -56,9 +54,35 @@ pub enum Content {
     ToolResult(ToolResult),
 }
 
+impl Content {
+    pub fn set_cache_control(&mut self, cache_control: CacheControl) {
+        match self {
+            Content::Text(text_content) => {
+                text_content.cache_control = Some(cache_control);
+            }
+            Content::ToolUse(tool_use_content) => {
+                tool_use_content.cache_control = Some(cache_control);
+            }
+            Content::ToolResult(tool_result) => {
+                tool_result.cache_control = Some(cache_control);
+            }
+        }
+    }
+
+    pub fn cache_control(&self) -> Option<&CacheControl> {
+        match self {
+            Content::Text(text_content) => text_content.cache_control.as_ref(),
+            Content::ToolUse(tool_use_content) => tool_use_content.cache_control.as_ref(),
+            Content::ToolResult(tool_result) => tool_result.cache_control.as_ref(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct TextContent {
     pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -66,6 +90,8 @@ pub struct ToolUseContent {
     pub id: String,
     pub name: String,
     pub input: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -73,6 +99,8 @@ pub struct ToolResult {
     pub tool_use_id: String,
     pub content: String,
     pub is_error: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
 }
 
 pub struct StandupAgent {
