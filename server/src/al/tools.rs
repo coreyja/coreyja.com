@@ -97,7 +97,7 @@ impl<T: Tool + Sync + Send> GenericTool for T {
 
 #[derive(Default)]
 pub struct ToolBag {
-    tools_by_name: std::collections::HashMap<String, Box<dyn GenericTool>>,
+    tools_by_name: std::collections::BTreeMap<String, Box<dyn GenericTool>>,
 }
 
 impl ToolBag {
