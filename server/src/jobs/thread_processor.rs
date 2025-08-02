@@ -1,4 +1,4 @@
-use crate::memory::prompts::PromptGenerator;
+use crate::memory::MemoryManager;
 use cja::jobs::Job;
 use color_eyre::eyre::bail;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
@@ -108,9 +108,11 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
     // Build composite system message if we have at least one message
     if !messages.is_empty() {
-        // Generate system prompt using the PromptGenerator
-        let system_content =
-            PromptGenerator::generate_system_prompt(&app_state.db, is_discord_thread).await?;
+        // Generate system prompt using the MemoryManager
+        let memory_manager = MemoryManager::new(app_state.db.clone());
+        let system_content = memory_manager
+            .generate_system_prompt(is_discord_thread)
+            .await?;
 
         // Insert system message at the beginning
         messages.insert(
