@@ -34,7 +34,8 @@
       "Bash(grep:*)",
       "Bash(gh pr diff:*)",
       "WebFetch(domain:serenity-rs.github.io)",
-      "Bash(./auto-fix-all.sh:*)"
+      "Bash(./auto-fix-all.sh:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
