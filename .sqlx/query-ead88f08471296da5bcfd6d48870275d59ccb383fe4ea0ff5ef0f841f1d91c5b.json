@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO memory_blocks (block_type, content)\n            VALUES ($1, $2)\n            RETURNING memory_block_id, block_type, content, created_at, updated_at\n            ",
+  "query": "\n            UPDATE memory_blocks\n            SET content = $1, updated_at = NOW()\n            WHERE memory_block_id = $2\n            RETURNING \n                memory_block_id,\n                block_type as \"block_type: MemoryBlockType\",\n                content,\n                created_at,\n                updated_at\n            ",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "block_type",
+        "name": "block_type: MemoryBlockType",
         "type_info": "Text"
       },
       {
@@ -32,7 +32,7 @@
     "parameters": {
       "Left": [
         "Text",
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -43,5 +43,5 @@
       false
     ]
   },
-  "hash": "3ef6c3e819951d2bb41b51a35bc154d60fb97bccfc0f34a44da6520e4b8eeacc"
+  "hash": "ead88f08471296da5bcfd6d48870275d59ccb383fe4ea0ff5ef0f841f1d91c5b"
 }

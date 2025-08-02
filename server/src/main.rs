@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(clippy::unused_async)]
+#![allow(clippy::struct_field_names)]
 
 use std::sync::Arc;
 
