@@ -39,6 +39,8 @@ pub(crate) mod bsky;
 
 pub(crate) mod al;
 
+pub(crate) mod memory;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct CliArgs {

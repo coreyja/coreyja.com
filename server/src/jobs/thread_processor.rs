@@ -1,3 +1,4 @@
+use crate::memory::MemoryManager;
 use cja::jobs::Job;
 use color_eyre::eyre::bail;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
@@ -94,7 +95,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
     let mut messages = reconstruct_messages(&app_state.db, thread_id).await?;
 
-    // Set up tools based on thread type
+    // Set up tools based on thread type first to know the context
     let mut tools = ToolBag::default();
 
     // Check if this is an interactive Discord thread
@@ -105,6 +106,27 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     };
     let is_discord_thread = discord_metadata.is_some();
 
+    // Build composite system message if we have at least one message
+    if !messages.is_empty() {
+        // Generate system prompt using the MemoryManager
+        let memory_manager = MemoryManager::new(app_state.db.clone());
+        let system_content = memory_manager
+            .generate_system_prompt(is_discord_thread)
+            .await?;
+
+        // Insert system message at the beginning
+        messages.insert(
+            0,
+            Message {
+                role: "system".to_string(),
+                content: vec![Content::Text(TextContent {
+                    text: system_content,
+                    cache_control: None,
+                })],
+            },
+        );
+    }
+
     if is_discord_thread {
         // For interactive Discord threads, use the thread-specific message tool
         tools.add_tool(SendDiscordThreadMessage::new())?;
@@ -114,17 +136,6 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tools.add_tool(ReactToMessage::new())?;
         // Add the emoji list tool for interactive threads
         tools.add_tool(ListServerEmojis::new())?;
-
-        // Add a user message for Discord context if this is the first message
-        if messages.len() == 1 {
-            messages.insert(0, Message {
-                role: "user".to_string(),
-                content: vec![Content::Text(TextContent {
-                    text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation. You can react to messages using emojis when appropriate. Each message shows the Message ID that you can use to react to specific messages. You can list available custom server emojis using the list_server_emojis tool.".to_string(),
-                    cache_control: None,
-                })],
-            });
-        }
     } else {
         // For regular threads, use the standard Discord message tool
         tools.add_tool(SendDiscordMessage)?;
