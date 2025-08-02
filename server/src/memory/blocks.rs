@@ -1,45 +1,14 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Type};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
+#[sqlx(type_name = "text")]
+#[sqlx(rename_all = "snake_case")]
 pub enum MemoryBlockType {
     Persona,
-}
-
-impl MemoryBlockType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            MemoryBlockType::Persona => "persona",
-        }
-    }
-}
-
-impl std::fmt::Display for MemoryBlockType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-impl std::str::FromStr for MemoryBlockType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "persona" => Ok(MemoryBlockType::Persona),
-            _ => Err(format!("Unknown memory block type: {s}")),
-        }
-    }
-}
-
-impl TryFrom<String> for MemoryBlockType {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.parse()
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,37 +26,40 @@ impl MemoryBlock {
         block_type: MemoryBlockType,
         content: String,
     ) -> color_eyre::Result<Self> {
-        let row = sqlx::query!(
+        let block = sqlx::query_as!(
+            MemoryBlock,
             r#"
             INSERT INTO memory_blocks (block_type, content)
             VALUES ($1, $2)
-            RETURNING memory_block_id, block_type, content, created_at, updated_at
+            RETURNING 
+                memory_block_id,
+                block_type as "block_type: MemoryBlockType",
+                content,
+                created_at,
+                updated_at
             "#,
-            block_type.as_str(),
+            block_type as MemoryBlockType,
             content
         )
         .fetch_one(pool)
         .await?;
 
-        Ok(MemoryBlock {
-            memory_block_id: row.memory_block_id,
-            block_type: row
-                .block_type
-                .parse::<MemoryBlockType>()
-                .map_err(|e| color_eyre::eyre::eyre!(e))?,
-            content: row.content,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-        })
+        Ok(block)
     }
 
     pub async fn find_by_id(
         pool: &PgPool,
         memory_block_id: Uuid,
     ) -> color_eyre::Result<Option<Self>> {
-        let row = sqlx::query!(
+        let block = sqlx::query_as!(
+            MemoryBlock,
             r#"
-            SELECT memory_block_id, block_type, content, created_at, updated_at
+            SELECT 
+                memory_block_id,
+                block_type as "block_type: MemoryBlockType",
+                content,
+                created_at,
+                updated_at
             FROM memory_blocks
             WHERE memory_block_id = $1
             "#,
@@ -96,49 +68,31 @@ impl MemoryBlock {
         .fetch_optional(pool)
         .await?;
 
-        match row {
-            Some(row) => Ok(Some(MemoryBlock {
-                memory_block_id: row.memory_block_id,
-                block_type: row
-                    .block_type
-                    .parse::<MemoryBlockType>()
-                    .map_err(|e| color_eyre::eyre::eyre!(e))?,
-                content: row.content,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            })),
-            None => Ok(None),
-        }
+        Ok(block)
     }
 
     pub async fn find_by_type(
         pool: &PgPool,
         block_type: MemoryBlockType,
     ) -> color_eyre::Result<Option<Self>> {
-        let row = sqlx::query!(
+        let block = sqlx::query_as!(
+            MemoryBlock,
             r#"
-            SELECT memory_block_id, block_type, content, created_at, updated_at
+            SELECT 
+                memory_block_id,
+                block_type as "block_type: MemoryBlockType",
+                content,
+                created_at,
+                updated_at
             FROM memory_blocks
             WHERE block_type = $1
             "#,
-            block_type.as_str()
+            block_type as MemoryBlockType
         )
         .fetch_optional(pool)
         .await?;
 
-        match row {
-            Some(row) => Ok(Some(MemoryBlock {
-                memory_block_id: row.memory_block_id,
-                block_type: row
-                    .block_type
-                    .parse::<MemoryBlockType>()
-                    .map_err(|e| color_eyre::eyre::eyre!(e))?,
-                content: row.content,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            })),
-            None => Ok(None),
-        }
+        Ok(block)
     }
 
     pub async fn update_content(
@@ -146,12 +100,18 @@ impl MemoryBlock {
         memory_block_id: Uuid,
         content: String,
     ) -> color_eyre::Result<Option<Self>> {
-        let row = sqlx::query!(
+        let block = sqlx::query_as!(
+            MemoryBlock,
             r#"
             UPDATE memory_blocks
             SET content = $1, updated_at = NOW()
             WHERE memory_block_id = $2
-            RETURNING memory_block_id, block_type, content, created_at, updated_at
+            RETURNING 
+                memory_block_id,
+                block_type as "block_type: MemoryBlockType",
+                content,
+                created_at,
+                updated_at
             "#,
             content,
             memory_block_id
@@ -159,19 +119,7 @@ impl MemoryBlock {
         .fetch_optional(pool)
         .await?;
 
-        match row {
-            Some(row) => Ok(Some(MemoryBlock {
-                memory_block_id: row.memory_block_id,
-                block_type: row
-                    .block_type
-                    .parse::<MemoryBlockType>()
-                    .map_err(|e| color_eyre::eyre::eyre!(e))?,
-                content: row.content,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            })),
-            None => Ok(None),
-        }
+        Ok(block)
     }
 
     pub async fn delete(pool: &PgPool, memory_block_id: Uuid) -> color_eyre::Result<bool> {
@@ -196,36 +144,6 @@ impl MemoryBlock {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_memory_block_type_as_str() {
-        assert_eq!(MemoryBlockType::Persona.as_str(), "persona");
-    }
-
-    #[test]
-    fn test_memory_block_type_display() {
-        assert_eq!(format!("{}", MemoryBlockType::Persona), "persona");
-    }
-
-    #[test]
-    fn test_memory_block_type_from_str() {
-        assert_eq!(
-            "persona".parse::<MemoryBlockType>().unwrap(),
-            MemoryBlockType::Persona
-        );
-
-        assert!("invalid".parse::<MemoryBlockType>().is_err());
-    }
-
-    #[test]
-    fn test_memory_block_type_try_from_string() {
-        assert_eq!(
-            MemoryBlockType::try_from("persona".to_string()).unwrap(),
-            MemoryBlockType::Persona
-        );
-
-        assert!(MemoryBlockType::try_from("invalid".to_string()).is_err());
-    }
 
     #[test]
     fn test_memory_block_type_serde() {

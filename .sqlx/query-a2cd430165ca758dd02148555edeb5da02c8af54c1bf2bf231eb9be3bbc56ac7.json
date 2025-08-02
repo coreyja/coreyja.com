@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO LastRefreshAts (\n                key,\n                last_refresh_at\n            ) VALUES (\n                $1,\n                NOW()\n            ) ON CONFLICT (key) DO UPDATE SET\n                last_refresh_at = excluded.last_refresh_at\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a2cd430165ca758dd02148555edeb5da02c8af54c1bf2bf231eb9be3bbc56ac7"
+}
