@@ -1,8 +1,8 @@
+use crate::memory::prompts::PromptGenerator;
 use cja::jobs::Job;
 use color_eyre::eyre::bail;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
 use db::discord_threads::DiscordThreadMetadata;
-use db::memory_blocks::MemoryBlock;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{types::Uuid, PgPool};
@@ -108,35 +108,9 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
     // Build composite system message if we have at least one message
     if !messages.is_empty() {
-        // Base instructions (always included)
-        let mut system_content = String::from(
-            "You are an AI assistant with the following capabilities and constraints:\n\
-            - Be helpful, accurate, and thoughtful in your responses\n\
-            - Follow user instructions carefully\n\
-            - Admit when you're unsure rather than making things up\n\
-            - Use the tools available to you when appropriate\n",
-        );
-
-        // Add persona if available
-        let persona = MemoryBlock::get_persona(&app_state.db).await?;
-        if let Some(persona_block) = persona {
-            system_content.push('\n');
-            system_content.push_str(&persona_block.content);
-            system_content.push('\n');
-        }
-
-        // Add context-specific instructions
-        if is_discord_thread {
-            system_content.push_str(
-                "\nContext-specific instructions for Discord:\n\
-                - Keep responses under 2000 characters (Discord's limit)\n\
-                - Use Discord markdown formatting when appropriate\n\
-                - Be conversational and friendly\n\
-                - You can react to messages using emojis when appropriate\n\
-                - Each message shows the Message ID that you can use to react to specific messages\n\
-                - You can list available custom server emojis using the list_server_emojis tool"
-            );
-        }
+        // Generate system prompt using the PromptGenerator
+        let system_content =
+            PromptGenerator::generate_system_prompt(&app_state.db, is_discord_thread).await?;
 
         // Insert system message at the beginning
         messages.insert(
