@@ -114,33 +114,31 @@ impl MemoryBlock {
     pub async fn find_by_type(
         pool: &PgPool,
         block_type: MemoryBlockType,
-    ) -> color_eyre::Result<Vec<Self>> {
-        let rows = sqlx::query!(
+    ) -> color_eyre::Result<Option<Self>> {
+        let row = sqlx::query!(
             r#"
             SELECT memory_block_id, block_type, content, created_at, updated_at
             FROM memory_blocks
             WHERE block_type = $1
-            ORDER BY created_at DESC
             "#,
             block_type.as_str()
         )
-        .fetch_all(pool)
+        .fetch_optional(pool)
         .await?;
 
-        rows.into_iter()
-            .map(|row| {
-                Ok(MemoryBlock {
-                    memory_block_id: row.memory_block_id,
-                    block_type: row
-                        .block_type
-                        .parse::<MemoryBlockType>()
-                        .map_err(|e| color_eyre::eyre::eyre!(e))?,
-                    content: row.content,
-                    created_at: row.created_at,
-                    updated_at: row.updated_at,
-                })
-            })
-            .collect()
+        match row {
+            Some(row) => Ok(Some(MemoryBlock {
+                memory_block_id: row.memory_block_id,
+                block_type: row
+                    .block_type
+                    .parse::<MemoryBlockType>()
+                    .map_err(|e| color_eyre::eyre::eyre!(e))?,
+                content: row.content,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+            })),
+            None => Ok(None),
+        }
     }
 
     pub async fn update_content(
@@ -191,9 +189,7 @@ impl MemoryBlock {
     }
 
     pub async fn get_persona(pool: &PgPool) -> color_eyre::Result<Option<Self>> {
-        Self::find_by_type(pool, MemoryBlockType::Persona)
-            .await
-            .map(|blocks| blocks.into_iter().next())
+        Self::find_by_type(pool, MemoryBlockType::Persona).await
     }
 }
 
@@ -285,6 +281,12 @@ mod tests {
 
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_memory_block_find_by_type(pool: PgPool) {
+        // Initially no block exists
+        let found = MemoryBlock::find_by_type(&pool, MemoryBlockType::Persona)
+            .await
+            .unwrap();
+        assert!(found.is_none());
+
         // Create a single persona block (due to unique constraint)
         let content = "Test persona";
 
@@ -293,13 +295,13 @@ mod tests {
             .unwrap();
 
         // Find by type
-        let blocks = MemoryBlock::find_by_type(&pool, MemoryBlockType::Persona)
+        let found = MemoryBlock::find_by_type(&pool, MemoryBlockType::Persona)
             .await
-            .unwrap();
+            .unwrap()
+            .expect("Should find the block");
 
-        assert_eq!(blocks.len(), 1);
-        assert_eq!(blocks[0].memory_block_id, block.memory_block_id);
-        assert_eq!(blocks[0].content, content);
+        assert_eq!(found.memory_block_id, block.memory_block_id);
+        assert_eq!(found.content, content);
     }
 
     #[sqlx::test(migrations = "../db/migrations")]

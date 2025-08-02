@@ -20,7 +20,7 @@ impl PersonaManager {
         // First try to find existing persona
         let existing = MemoryBlock::find_by_type(pool, MemoryBlockType::Persona).await?;
 
-        if let Some(persona) = existing.first() {
+        if let Some(persona) = existing {
             // Update existing persona
             MemoryBlock::update_content(pool, persona.memory_block_id, content)
                 .await?
