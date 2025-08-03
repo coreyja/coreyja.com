@@ -6,10 +6,10 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::agentic_threads::ThreadBuilder;
+use crate::agentic_threads::{builder::DiscordMetadata, ThreadBuilder};
 use crate::state::AppState;
 use cja::jobs::Job as JobTrait;
-use db::agentic_threads::{Stitch, Thread, ThreadStatus, ThreadType};
+use db::agentic_threads::{Stitch, Thread, ThreadStatus};
 use db::discord_threads::DiscordThreadMetadata;
 use serenity::builder::CreateThread;
 
@@ -106,19 +106,20 @@ impl ProcessDiscordMessage {
             .create_discord_thread(app_state, guild_channel, &thread_name)
             .await?;
 
-        // Create the interactive thread in the app
-        let ai_thread = self.create_interactive_thread(db, &thread_name).await?;
+        // Create the interactive thread with Discord metadata
+        let discord_metadata = DiscordMetadata {
+            discord_thread_id: new_discord_thread.id.to_string(),
+            channel_id: guild_channel.id.to_string(),
+            guild_id: guild_channel.guild_id.to_string(),
+            created_by: msg.author.tag(),
+            thread_name: thread_name.clone(),
+        };
 
-        // Create Discord metadata
-        self.create_discord_metadata(
-            db,
-            ai_thread.thread_id,
-            new_discord_thread.id.to_string(),
-            guild_channel.id.to_string(),
-            guild_channel.guild_id.to_string(),
-            thread_name,
-        )
-        .await?;
+        let ai_thread = ThreadBuilder::new(db.clone())
+            .with_goal(format!("Interactive Discord thread: {thread_name}"))
+            .interactive_discord(discord_metadata)
+            .build()
+            .await?;
 
         // Add the original user as participant
         self.add_participant(db, ai_thread.thread_id).await?;
@@ -145,31 +146,18 @@ impl ProcessDiscordMessage {
         let thread_name = guild_channel.name.clone();
         let msg = &self.message;
 
-        // Create new interactive thread
-        let thread = self.create_interactive_thread(db, &thread_name).await?;
+        // Create new interactive thread with Discord metadata
+        let discord_metadata = DiscordMetadata {
+            discord_thread_id: discord_thread_id.to_string(),
+            channel_id: msg.channel_id.to_string(),
+            guild_id: msg.guild_id.map(|id| id.to_string()).unwrap_or_default(),
+            created_by: msg.author.tag(),
+            thread_name: thread_name.clone(),
+        };
 
-        // Create Discord metadata
-        self.create_discord_metadata(
-            db,
-            thread.thread_id,
-            discord_thread_id.to_string(),
-            msg.channel_id.to_string(),
-            msg.guild_id.map(|id| id.to_string()).unwrap_or_default(),
-            thread_name,
-        )
-        .await?;
-
-        Ok(thread)
-    }
-
-    async fn create_interactive_thread(
-        &self,
-        db: &PgPool,
-        thread_name: &str,
-    ) -> cja::Result<Thread> {
         let thread = ThreadBuilder::new(db.clone())
             .with_goal(format!("Interactive Discord thread: {thread_name}"))
-            .with_thread_type(ThreadType::Interactive)
+            .interactive_discord(discord_metadata)
             .build()
             .await?;
 
@@ -190,31 +178,6 @@ impl ProcessDiscordMessage {
             .create_thread_from_message(&app_state.discord.http, msg.id, builder)
             .await
             .map_err(Into::into)
-    }
-
-    async fn create_discord_metadata(
-        &self,
-        db: &PgPool,
-        thread_id: Uuid,
-        discord_thread_id: String,
-        channel_id: String,
-        guild_id: String,
-        thread_name: String,
-    ) -> cja::Result<()> {
-        let msg = &self.message;
-
-        DiscordThreadMetadata::create(
-            db,
-            thread_id,
-            discord_thread_id,
-            channel_id,
-            guild_id,
-            msg.author.tag(),
-            thread_name,
-        )
-        .await?;
-
-        Ok(())
     }
 
     async fn add_participant(&self, db: &PgPool, thread_id: Uuid) -> cja::Result<()> {

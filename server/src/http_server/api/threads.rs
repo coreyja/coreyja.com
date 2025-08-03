@@ -142,7 +142,7 @@ pub async fn create_thread(
 ) -> ResponseResult<impl IntoResponse> {
     let thread = ThreadBuilder::new(state.db().clone())
         .with_goal(payload.goal)
-        .with_thread_type(ThreadType::Autonomous)
+        .autonomous()
         .build()
         .await
         .context("Failed to create thread")
@@ -256,7 +256,6 @@ pub async fn get_thread_children(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use sqlx::PgPool;
 
     #[sqlx::test(migrations = "../db/migrations")]
@@ -264,7 +263,7 @@ mod tests {
         // Create a thread using ThreadBuilder
         let thread = crate::agentic_threads::ThreadBuilder::new(pool.clone())
             .with_goal("Test thread goal".to_string())
-            .with_thread_type(ThreadType::Autonomous)
+            .autonomous()
             .build()
             .await
             .unwrap();

@@ -1,6 +1,6 @@
 use chrono::Utc;
 use chrono_tz::US::Eastern;
-use db::agentic_threads::{Stitch, Thread, ThreadType};
+use db::agentic_threads::{Stitch, Thread};
 use serde::{Deserialize, Serialize};
 
 use crate::{agentic_threads::ThreadBuilder, jobs::thread_processor::ProcessThreadStep, AppState};
@@ -116,7 +116,7 @@ impl StandupAgent {
         // Create a new thread with a high-level goal
         let thread = ThreadBuilder::new(self.app_state.db.clone())
             .with_goal("Generate daily standup message")
-            .with_thread_type(ThreadType::Autonomous)
+            .autonomous()
             .build()
             .await?;
 
