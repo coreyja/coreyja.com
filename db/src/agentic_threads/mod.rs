@@ -174,55 +174,26 @@ pub struct Stitch {
 }
 
 impl Thread {
-    pub async fn create(pool: &PgPool, goal: String) -> color_eyre::Result<Self> {
-        let thread = sqlx::query_as!(
-            Thread,
-            r#"
-            INSERT INTO threads (goal)
-            VALUES ($1)
-            RETURNING 
-                *
-            "#,
-            goal
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(thread)
-    }
-
-    pub async fn create_child(
+    pub async fn create(
         pool: &PgPool,
-        branching_stitch_id: Uuid,
         goal: String,
+        branching_stitch_id: Option<Uuid>,
+        thread_type: Option<ThreadType>,
     ) -> color_eyre::Result<Self> {
+        let thread_type_str =
+            thread_type.map_or_else(|| "autonomous".to_string(), |t| t.to_string());
+
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            INSERT INTO threads (branching_stitch_id, goal)
-            VALUES ($1, $2)
+            INSERT INTO threads (goal, branching_stitch_id, thread_type)
+            VALUES ($1, $2, $3)
             RETURNING 
                 *
             "#,
+            goal,
             branching_stitch_id,
-            goal
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(thread)
-    }
-
-    pub async fn create_interactive(pool: &PgPool, goal: String) -> color_eyre::Result<Self> {
-        let thread = sqlx::query_as!(
-            Thread,
-            r#"
-            INSERT INTO threads (goal, thread_type)
-            VALUES ($1, 'interactive')
-            RETURNING 
-                *
-            "#,
-            goal
+            thread_type_str
         )
         .fetch_one(pool)
         .await?;

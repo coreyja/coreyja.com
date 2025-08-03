@@ -1,9 +1,9 @@
 use chrono::Utc;
 use chrono_tz::US::Eastern;
-use db::agentic_threads::{Stitch, Thread};
+use db::agentic_threads::{Stitch, Thread, ThreadType};
 use serde::{Deserialize, Serialize};
 
-use crate::{jobs::thread_processor::ProcessThreadStep, AppState};
+use crate::{agentic_threads::ThreadBuilder, jobs::thread_processor::ProcessThreadStep, AppState};
 use cja::jobs::Job;
 
 #[derive(Debug, Serialize)]
@@ -114,16 +114,11 @@ impl StandupAgent {
 
     pub async fn generate_standup_message(&self) -> cja::Result<()> {
         // Create a new thread with a high-level goal
-        let thread = Thread::create(
-            &self.app_state.db,
-            "Generate daily standup message".to_string(),
-        )
-        .await?;
-
-        // Generate and store system prompt
-        let memory_manager = crate::memory::MemoryManager::new(self.app_state.db.clone());
-        let system_prompt = memory_manager.generate_system_prompt(false).await?;
-        Stitch::create_system_prompt(&self.app_state.db, thread.thread_id, system_prompt).await?;
+        let thread = ThreadBuilder::new(self.app_state.db.clone())
+            .with_goal("Generate daily standup message")
+            .with_thread_type(ThreadType::Autonomous)
+            .build()
+            .await?;
 
         // Update thread status to running
         Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;

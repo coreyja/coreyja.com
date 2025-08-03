@@ -42,6 +42,8 @@ pub(crate) mod al;
 
 pub(crate) mod memory;
 
+pub(crate) mod agentic_threads;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct CliArgs {

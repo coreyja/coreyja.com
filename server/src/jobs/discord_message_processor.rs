@@ -6,9 +6,10 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::agentic_threads::ThreadBuilder;
 use crate::state::AppState;
 use cja::jobs::Job as JobTrait;
-use db::agentic_threads::{Stitch, Thread, ThreadStatus};
+use db::agentic_threads::{Stitch, Thread, ThreadStatus, ThreadType};
 use db::discord_threads::DiscordThreadMetadata;
 use serenity::builder::CreateThread;
 
@@ -166,15 +167,11 @@ impl ProcessDiscordMessage {
         db: &PgPool,
         thread_name: &str,
     ) -> cja::Result<Thread> {
-        let thread =
-            Thread::create_interactive(db, format!("Interactive Discord thread: {thread_name}"))
-                .await?;
-
-        // Generate and store system prompt for Discord context
-        let memory_manager = crate::memory::MemoryManager::new(db.clone());
-        let system_prompt = memory_manager.generate_system_prompt(true).await?; // true for Discord
-
-        Stitch::create_system_prompt(db, thread.thread_id, system_prompt).await?;
+        let thread = ThreadBuilder::new(db.clone())
+            .with_goal(format!("Interactive Discord thread: {thread_name}"))
+            .with_thread_type(ThreadType::Interactive)
+            .build()
+            .await?;
 
         Ok(thread)
     }

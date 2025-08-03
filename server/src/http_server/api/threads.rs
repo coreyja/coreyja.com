@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
+    agentic_threads::ThreadBuilder,
     http_server::{auth::session::AdminUser, errors::WithStatus as _, ResponseResult},
     AppState,
 };
@@ -139,22 +140,12 @@ pub async fn create_thread(
     State(state): State<AppState>,
     Json(payload): Json<CreateThreadRequest>,
 ) -> ResponseResult<impl IntoResponse> {
-    let thread = Thread::create(state.db(), payload.goal)
+    let thread = ThreadBuilder::new(state.db().clone())
+        .with_goal(payload.goal)
+        .with_thread_type(ThreadType::Autonomous)
+        .build()
         .await
         .context("Failed to create thread")
-        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    // Generate and store system prompt
-    let memory_manager = crate::memory::MemoryManager::new(state.db().clone());
-    let system_prompt = memory_manager
-        .generate_system_prompt(false)
-        .await
-        .context("Failed to generate system prompt")
-        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    Stitch::create_system_prompt(state.db(), thread.thread_id, system_prompt)
-        .await
-        .context("Failed to create system prompt stitch")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok((StatusCode::CREATED, Json(thread)))
@@ -270,16 +261,11 @@ mod tests {
 
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_create_thread_includes_system_prompt(pool: PgPool) {
-        // Create a thread
-        let thread = Thread::create(&pool, "Test thread goal".to_string())
-            .await
-            .unwrap();
-
-        // Generate and store system prompt
-        let memory_manager = crate::memory::MemoryManager::new(pool.clone());
-        let system_prompt = memory_manager.generate_system_prompt(false).await.unwrap();
-
-        Stitch::create_system_prompt(&pool, thread.thread_id, system_prompt)
+        // Create a thread using ThreadBuilder
+        let thread = crate::agentic_threads::ThreadBuilder::new(pool.clone())
+            .with_goal("Test thread goal".to_string())
+            .with_thread_type(ThreadType::Autonomous)
+            .build()
             .await
             .unwrap();
 
