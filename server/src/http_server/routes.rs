@@ -97,6 +97,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             "/admin/tool-suggestions/{id}/skip",
             post(admin::tool_suggestions::skip_suggestion),
         )
+        .nest("/admin/persona", admin::persona::router())
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .route("/bytes", get(pages::bytes::bytes_index))
         .route("/bytes/{slug}", get(pages::bytes::byte_get))
