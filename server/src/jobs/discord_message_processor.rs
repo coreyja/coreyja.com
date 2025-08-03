@@ -166,7 +166,17 @@ impl ProcessDiscordMessage {
         db: &PgPool,
         thread_name: &str,
     ) -> cja::Result<Thread> {
-        Thread::create_interactive(db, format!("Interactive Discord thread: {thread_name}")).await
+        let thread =
+            Thread::create_interactive(db, format!("Interactive Discord thread: {thread_name}"))
+                .await?;
+
+        // Generate and store system prompt for Discord context
+        let memory_manager = crate::memory::MemoryManager::new(db.clone());
+        let system_prompt = memory_manager.generate_system_prompt(true).await?; // true for Discord
+
+        Stitch::create_system_prompt(db, thread.thread_id, system_prompt).await?;
+
+        Ok(thread)
     }
 
     async fn create_discord_thread(

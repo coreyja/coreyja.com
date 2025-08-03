@@ -1,4 +1,3 @@
-use crate::memory::MemoryManager;
 use cja::jobs::Job;
 use color_eyre::eyre::bail;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
@@ -93,7 +92,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         }
     }
 
-    let mut messages = reconstruct_messages(&app_state.db, thread_id).await?;
+    let messages = reconstruct_messages(&app_state.db, thread_id).await?;
 
     // Set up tools based on thread type first to know the context
     let mut tools = ToolBag::default();
@@ -105,27 +104,6 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         None
     };
     let is_discord_thread = discord_metadata.is_some();
-
-    // Build composite system message if we have at least one message
-    if !messages.is_empty() {
-        // Generate system prompt using the MemoryManager
-        let memory_manager = MemoryManager::new(app_state.db.clone());
-        let system_content = memory_manager
-            .generate_system_prompt(is_discord_thread)
-            .await?;
-
-        // Insert system message at the beginning
-        messages.insert(
-            0,
-            Message {
-                role: "system".to_string(),
-                content: vec![Content::Text(TextContent {
-                    text: system_content,
-                    cache_control: None,
-                })],
-            },
-        );
-    }
 
     if is_discord_thread {
         // For interactive Discord threads, use the thread-specific message tool
@@ -407,6 +385,50 @@ mod tests {
 
         let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
         assert!(messages.is_empty());
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_reconstruct_messages_with_system_prompt(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string())
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create system prompt stitch
+        Stitch::create_system_prompt(
+            &pool,
+            thread_id,
+            "You are a helpful AI assistant.".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Create user message
+        Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
+            .await
+            .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Should have both system and user messages
+        assert_eq!(messages.len(), 2);
+
+        // First message should be system
+        assert_eq!(messages[0].role, "system");
+        if let Content::Text(text) = &messages[0].content[0] {
+            assert_eq!(text.text, "You are a helpful AI assistant.");
+        } else {
+            panic!("Expected text content for system message");
+        }
+
+        // Second message should be user
+        assert_eq!(messages[1].role, "user");
+        if let Content::Text(text) = &messages[1].content[0] {
+            assert_eq!(text.text, "Hello");
+        } else {
+            panic!("Expected text content for user message");
+        }
     }
 
     #[sqlx::test(migrations = "../db/migrations")]

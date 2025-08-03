@@ -144,6 +144,19 @@ pub async fn create_thread(
         .context("Failed to create thread")
         .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // Generate and store system prompt
+    let memory_manager = crate::memory::MemoryManager::new(state.db().clone());
+    let system_prompt = memory_manager
+        .generate_system_prompt(false)
+        .await
+        .context("Failed to generate system prompt")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Stitch::create_system_prompt(state.db(), thread.thread_id, system_prompt)
+        .await
+        .context("Failed to create system prompt stitch")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+
     Ok((StatusCode::CREATED, Json(thread)))
 }
 
@@ -248,4 +261,54 @@ pub async fn get_thread_children(
     Ok(Json(ChildrenResponse {
         children: children_with_counts,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_create_thread_includes_system_prompt(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread goal".to_string())
+            .await
+            .unwrap();
+
+        // Generate and store system prompt
+        let memory_manager = crate::memory::MemoryManager::new(pool.clone());
+        let system_prompt = memory_manager.generate_system_prompt(false).await.unwrap();
+
+        Stitch::create_system_prompt(&pool, thread.thread_id, system_prompt)
+            .await
+            .unwrap();
+
+        // Verify the thread has a system prompt stitch
+        let stitches = thread.get_stitches(&pool).await.unwrap();
+        assert_eq!(stitches.len(), 1);
+
+        let first_stitch = &stitches[0];
+        assert_eq!(
+            first_stitch.stitch_type,
+            db::agentic_threads::StitchType::InitialPrompt
+        );
+        assert!(first_stitch.previous_stitch_id.is_none());
+
+        // Verify the stitch contains a system message
+        let request = first_stitch.llm_request.as_ref().unwrap();
+        let messages = request.get("messages").unwrap().as_array().unwrap();
+        assert_eq!(messages.len(), 1);
+
+        let message = &messages[0];
+        assert_eq!(message.get("role").unwrap().as_str().unwrap(), "system");
+
+        let content = message.get("content").unwrap().as_array().unwrap();
+        assert_eq!(content.len(), 1);
+
+        let text_content = &content[0];
+        assert_eq!(text_content.get("type").unwrap().as_str().unwrap(), "text");
+
+        let text = text_content.get("text").unwrap().as_str().unwrap();
+        assert!(text.contains("AI assistant")); // From base instructions
+    }
 }

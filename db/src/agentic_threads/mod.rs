@@ -623,6 +623,37 @@ impl Stitch {
         Ok(stitch)
     }
 
+    pub async fn create_system_prompt(
+        pool: &PgPool,
+        thread_id: Uuid,
+        system_prompt: String,
+    ) -> color_eyre::Result<Self> {
+        let request = json!({
+            "messages": [{
+                "role": "system",
+                "content": [{
+                    "type": "text",
+                    "text": system_prompt
+                }]
+            }]
+        });
+
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, NULL, 'initial_prompt', $2)
+            RETURNING *
+            "#,
+            thread_id,
+            request
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
     pub async fn get_last_stitch(
         pool: &PgPool,
         thread_id: Uuid,

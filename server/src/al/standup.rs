@@ -120,6 +120,11 @@ impl StandupAgent {
         )
         .await?;
 
+        // Generate and store system prompt
+        let memory_manager = crate::memory::MemoryManager::new(self.app_state.db.clone());
+        let system_prompt = memory_manager.generate_system_prompt(false).await?;
+        Stitch::create_system_prompt(&self.app_state.db, thread.thread_id, system_prompt).await?;
+
         // Update thread status to running
         Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;
 
