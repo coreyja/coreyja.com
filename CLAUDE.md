@@ -27,7 +27,7 @@ This is coreyja.com - a personal website built with:
 ./scripts/build-frontend.sh
 ```
 
-**IMPORTANT**: Do not run the server binary or `./scripts/start.sh` as it starts an interactive web server that will block the terminal.
+**IMPORTANT**: Do not run the server binary or `./scripts/start.sh`. The server will be tested locally by the user - the agent doesn't need to worry about running or testing the server.
 
 ## Development Commands
 
@@ -61,6 +61,9 @@ cargo test --workspace
 
 # Run specific test
 cargo test test_name
+
+# Frontend tests
+cd thread-frontend && npm test
 
 # Linting and formatting
 cargo clippy --all-targets --all-features --workspace --tests
@@ -112,26 +115,90 @@ The React admin UI is built and embedded into the Rust binary at compile time:
 
 ## Version Control with jj
 
-This project uses `jj` instead of `git`:
+This project uses `jj` instead of `git`.
+
+### Key Rule: ALWAYS run `jj status` first
+
+Before any jj operation, run `jj status` to understand your current state.
+
+### Essential Commands:
 
 ```bash
-jj describe -m "commit message"  # Describe current change
-jj new                          # Create new change
-jj status                       # Show status
-jj log                         # Show history
+jj status                       # Shows current state - ALWAYS run this first
+jj diff                         # Review changes in current commit
+jj describe -m "commit message" # Describe current commit
+jj new                          # Create new empty commit
+jj squash                       # Move current changes into previous commit
+jj log                          # Show commit history
 ```
 
-Don't run a `jj describe` without first running `jj status` to understand if the current changes already have a description.
+### Basic Workflow:
 
-You should prefer to start new work in a new commit. Use `jj status` to understand if you are currently in an empty commit. If so proceed. If not, you should make a new commit. First we need to check if the current commit has a description. If it does, you are free to make a new commit with `jj new`. If it does not you should first run `jj diff` to understand the current commit. Then describe it, before making a new commit.
+1. **Check your state:** Run `jj status`
+
+   - "Working copy is clean" = you're in an empty commit, ready to work
+   - Shows file changes = you have uncommitted work
+   - Shows description = current commit is already described
+
+2. **Make changes:** Edit files as needed
+
+3. **Describe your work:** Run `jj describe -m "Clear commit message"`
+
+4. **Start new work:** Run `jj new` (creates empty commit for next task)
+
+### When to use `jj squash`:
+
+Started a new commit but realized the changes belong with the previous one? Just run `jj squash` to move them back. This is the preferred approach - don't worry about getting it perfect the first time.
+
+### Example:
+
+```bash
+# Check state before starting
+jj status
+
+# Work on feature A
+# ... edit files ...
+jj describe -m "Add user authentication"
+
+# Start feature B
+jj new
+# ... edit files ...
+# Oops, these changes are still part of authentication
+jj squash  # Moves changes back to "Add user authentication"
+
+# Now really start feature B
+jj new
+# ... edit different files ...
+jj describe -m "Add user profile page"
+```
+
+### Working with Bookmarks & PRs:
+
+```bash
+jj bookmark list                # List all bookmarks
+jj git push --change @           # Push current commit, auto-creates bookmark
+jj bookmark set <name> -r @    # Set bookmark manually if needed
+```
+
+### PR Workflow:
+
+All changes must go through PRs - no direct pushes to main.
+
+1. Make your changes and describe them
+2. Run `jj git push --change @` to push and create a bookmark (note the bookmark name it creates)
+3. Create PR with GitHub CLI: `gh pr create --head <bookmark-name>`
+   - You must specify the bookmark name with `--head` since gh uses git and won't know the current jj bookmark
+   - Get the bookmark name from the output of `jj git push` or run `jj log -r @ --no-graph` to see it
 
 ## Environment Setup
 
 Required environment variables (see `.envrc` for full list):
 
-- `DATABASE_URL` - PostgreSQL connection
+- `DATABASE_URL` - PostgreSQL connection (database will be pre-configured, agent doesn't need to set this up)
 - `APP_BASE_URL` - Application base URL
 - Various API keys for integrations (GitHub, Google, OpenAI, etc.)
+
+Note: Database setup and migrations are handled by the user. The agent can run migrations with `cargo sqlx migrate run` if needed, but shouldn't need to create or configure the database.
 
 ## Testing Approach
 

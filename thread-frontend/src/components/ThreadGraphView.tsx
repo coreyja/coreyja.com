@@ -14,6 +14,7 @@ import {
 import { ThreadNode } from './ThreadNode'
 import { StitchNode } from './StitchNode'
 import { ThreadDetailPanel } from './ThreadDetailPanel'
+import { DateFilter } from './DateFilter'
 
 const nodeTypes = {
   thread: ThreadNode,
@@ -23,15 +24,20 @@ const nodeTypes = {
 interface ThreadGraphViewProps {
   threadId?: string
   stitchId?: string
+  daysBack?: number
 }
 
-export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stitchId }) => {
+export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({
+  threadId,
+  stitchId,
+  daysBack = 3,
+}) => {
   const navigate = useNavigate()
 
   console.log('threadId', threadId)
   console.log('stitchId', stitchId)
 
-  const { data: recentThreads, isLoading } = useRecentThreads()
+  const { data: recentThreads, isLoading } = useRecentThreads(daysBack)
   const { data: selectedThreadDetails } = useThread(threadId)
   const { data: selectedThreadChildren } = useThreadChildren(threadId)
 
@@ -64,7 +70,7 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
             thread,
             opacity,
             onClick: async (t: Thread | ThreadWithCounts) => {
-              await navigate({ to: '.', search: { thread: t.thread_id } })
+              await navigate({ to: '.', search: { thread: t.thread_id, days: daysBack } })
             },
           },
         }
@@ -93,7 +99,7 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
             thread: childThread,
             opacity: 0.8,
             onClick: (t: Thread | ThreadWithCounts) => {
-              navigate({ to: '.', search: { thread: t.thread_id } })
+              navigate({ to: '.', search: { thread: t.thread_id, days: daysBack } })
             },
           },
         }
@@ -126,7 +132,7 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
             thread: parentThread,
             opacity: 0.5,
             onClick: (t: Thread | ThreadWithCounts) => {
-              navigate({ to: '.', search: { thread: t.thread_id } })
+              navigate({ to: '.', search: { thread: t.thread_id, days: daysBack } })
             },
           },
         }
@@ -190,7 +196,7 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
               onClick: (s: Stitch) => {
                 navigate({
                   to: '.',
-                  search: { thread: threadId, stitch: s.stitch_id },
+                  search: { thread: threadId, stitch: s.stitch_id, days: daysBack },
                 })
               },
             },
@@ -289,7 +295,7 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
                 thread: childThread,
                 opacity: threadId === childThread.thread_id ? 1 : 0.7,
                 onClick: (t: Thread) => {
-                  navigate({ to: '.', search: { thread: t.thread_id } })
+                  navigate({ to: '.', search: { thread: t.thread_id, days: daysBack } })
                 },
               },
             }
@@ -319,11 +325,19 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
     isSelectedThreadTopLevel,
     parentThreads,
     navigate,
+    daysBack,
   ])
 
   const handlePaneClick = useCallback(() => {
-    navigate({ to: '.', search: {} })
-  }, [navigate])
+    navigate({ to: '.', search: { days: daysBack } })
+  }, [navigate, daysBack])
+
+  const handleDaysChange = useCallback(
+    (newDays: number) => {
+      navigate({ to: '.', search: { thread: threadId, stitch: stitchId, days: newDays } })
+    },
+    [navigate, threadId, stitchId]
+  )
 
   if (isLoading) {
     return (
@@ -361,7 +375,7 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
             : undefined
         }
         onClose={() => {
-          navigate({ to: '.', search: {} })
+          navigate({ to: '.', search: { days: daysBack } })
         }}
       />
 
@@ -377,6 +391,10 @@ export const ThreadGraphView: React.FC<ThreadGraphViewProps> = ({ threadId, stit
         }}
       >
         <h3 style={{ margin: '0 0 10px 0' }}>Agentic Threads Visualization</h3>
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ fontSize: '14px', marginRight: '8px' }}>Show threads from:</label>
+          <DateFilter value={daysBack} onChange={handleDaysChange} />
+        </div>
         <div style={{ fontSize: '12px', color: '#666' }}>
           <div>• Click a thread to see details</div>
           <div>• Auto-refreshes every 2 seconds</div>
