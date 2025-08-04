@@ -3,7 +3,7 @@ use chrono_tz::US::Eastern;
 use db::agentic_threads::{Stitch, Thread};
 use serde::{Deserialize, Serialize};
 
-use crate::{jobs::thread_processor::ProcessThreadStep, AppState};
+use crate::{agentic_threads::ThreadBuilder, jobs::thread_processor::ProcessThreadStep, AppState};
 use cja::jobs::Job;
 
 #[derive(Debug, Serialize)]
@@ -114,11 +114,11 @@ impl StandupAgent {
 
     pub async fn generate_standup_message(&self) -> cja::Result<()> {
         // Create a new thread with a high-level goal
-        let thread = Thread::create(
-            &self.app_state.db,
-            "Generate daily standup message".to_string(),
-        )
-        .await?;
+        let thread = ThreadBuilder::new(self.app_state.db.clone())
+            .with_goal("Generate daily standup message")
+            .autonomous()
+            .build()
+            .await?;
 
         // Update thread status to running
         Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;

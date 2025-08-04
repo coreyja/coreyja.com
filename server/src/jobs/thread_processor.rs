@@ -92,9 +92,9 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         }
     }
 
-    let mut messages = reconstruct_messages(&app_state.db, thread_id).await?;
+    let messages = reconstruct_messages(&app_state.db, thread_id).await?;
 
-    // Set up tools based on thread type
+    // Set up tools based on thread type first to know the context
     let mut tools = ToolBag::default();
 
     // Check if this is an interactive Discord thread
@@ -114,17 +114,6 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tools.add_tool(ReactToMessage::new())?;
         // Add the emoji list tool for interactive threads
         tools.add_tool(ListServerEmojis::new())?;
-
-        // Add a user message for Discord context if this is the first message
-        if messages.len() == 1 {
-            messages.insert(0, Message {
-                role: "user".to_string(),
-                content: vec![Content::Text(TextContent {
-                    text: "You are an AI assistant participating in a Discord thread. Be conversational and friendly. Keep responses concise (Discord has a 2000 char limit). Use Discord markdown formatting when appropriate. Maintain context across the conversation. You can react to messages using emojis when appropriate. Each message shows the Message ID that you can use to react to specific messages. You can list available custom server emojis using the list_server_emojis tool.".to_string(),
-                    cache_control: None,
-                })],
-            });
-        }
     } else {
         // For regular threads, use the standard Discord message tool
         tools.add_tool(SendDiscordMessage)?;
@@ -389,7 +378,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_empty_stitches(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -399,9 +388,53 @@ mod tests {
     }
 
     #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_reconstruct_messages_with_system_prompt(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create system prompt stitch
+        Stitch::create_system_prompt(
+            &pool,
+            thread_id,
+            "You are a helpful AI assistant.".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Create user message
+        Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
+            .await
+            .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Should have both system and user messages
+        assert_eq!(messages.len(), 2);
+
+        // First message should be system
+        assert_eq!(messages[0].role, "system");
+        if let Content::Text(text) = &messages[0].content[0] {
+            assert_eq!(text.text, "You are a helpful AI assistant.");
+        } else {
+            panic!("Expected text content for system message");
+        }
+
+        // Second message should be user
+        assert_eq!(messages[1].role, "user");
+        if let Content::Text(text) = &messages[1].content[0] {
+            assert_eq!(text.text, "Hello");
+        } else {
+            panic!("Expected text content for user message");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_single_llm_call(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -452,7 +485,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_tool_calls(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -549,7 +582,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_tool_error(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -619,7 +652,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_discord_after_tool_call(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -767,7 +800,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_multiple_tool_results_grouped(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -864,7 +897,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_cache_control(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -972,7 +1005,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_duplicate_tool_calls(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string())
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;

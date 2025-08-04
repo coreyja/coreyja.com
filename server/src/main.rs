@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(clippy::unused_async)]
+#![allow(clippy::struct_field_names)]
 
 use std::sync::Arc;
 
@@ -38,6 +39,10 @@ pub(crate) mod discord_interactive;
 pub(crate) mod bsky;
 
 pub(crate) mod al;
+
+pub(crate) mod memory;
+
+pub(crate) mod agentic_threads;
 
 #[derive(Parser)]
 #[command(author, version, about)]
