@@ -67,9 +67,6 @@ impl ThreadBuilder {
             ));
         }
 
-        // Capture thread_type for later use
-        let is_discord = self.thread_type == ThreadType::Interactive;
-
         // Create the thread using the unified method
         let thread = Thread::create(
             &self.pool,
@@ -94,7 +91,7 @@ impl ThreadBuilder {
         }
 
         let memory_manager = MemoryManager::new(self.pool.clone());
-        let system_prompt = memory_manager.generate_system_prompt(is_discord).await?;
+        let system_prompt = memory_manager.generate_system_prompt(&thread).await?;
 
         // Create system prompt stitch
         Stitch::create_system_prompt(&self.pool, thread.thread_id, system_prompt).await?;

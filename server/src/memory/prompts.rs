@@ -1,5 +1,7 @@
 use color_eyre::Result;
+use db::agentic_threads::{Thread, ThreadType};
 use sqlx::PgPool;
+use std::fmt::Write;
 
 use super::blocks::MemoryBlock;
 
@@ -11,20 +13,23 @@ impl PromptGenerator {
         Self
     }
 
-    pub async fn generate_system_prompt(pool: &PgPool, is_discord_context: bool) -> Result<String> {
+    pub async fn generate_system_prompt(pool: &PgPool, thread: &Thread) -> Result<String> {
         // Base instructions (always included)
         let mut system_content = Self::base_instructions().to_string();
+
+        // Add thread goal
+        write!(system_content, "\nCurrent goal: {}\n", thread.goal)?;
 
         // Add persona if available
         let persona = MemoryBlock::get_persona(pool).await?;
         if let Some(persona_block) = persona {
-            system_content.push('\n');
+            system_content.push_str("\n--- PERSONA MEMORY BLOCK ---\n");
             system_content.push_str(&persona_block.content);
-            system_content.push('\n');
+            system_content.push_str("\n--- END PERSONA MEMORY BLOCK ---\n");
         }
 
-        // Add context-specific instructions
-        if is_discord_context {
+        // Add context-specific instructions for Discord
+        if thread.thread_type == ThreadType::Interactive {
             system_content.push_str(Self::discord_instructions());
         }
 
@@ -54,6 +59,7 @@ impl PromptGenerator {
 mod tests {
     use super::*;
     use crate::memory::blocks::MemoryBlockType;
+    use db::agentic_threads::{Thread, ThreadType};
 
     #[test]
     fn test_prompt_generator_new() {
@@ -88,14 +94,27 @@ mod tests {
 
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_generate_system_prompt_without_persona(pool: PgPool) {
+        // Create a test thread
+        let thread = Thread::create(
+            &pool,
+            "Test thread goal".to_string(),
+            None,
+            Some(ThreadType::Autonomous),
+        )
+        .await
+        .unwrap();
+
         // Generate prompt without persona
-        let prompt = PromptGenerator::generate_system_prompt(&pool, false)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
             .await
             .unwrap();
 
         // Should contain base instructions
         assert!(prompt.contains("AI assistant"));
         assert!(prompt.contains("helpful"));
+
+        // Should contain thread goal
+        assert!(prompt.contains("Current goal: Test thread goal"));
 
         // Should not contain Discord instructions
         assert!(!prompt.contains("Discord"));
@@ -111,8 +130,18 @@ mod tests {
             .await
             .unwrap();
 
+        // Create a test thread
+        let thread = Thread::create(
+            &pool,
+            "Test thread goal".to_string(),
+            None,
+            Some(ThreadType::Autonomous),
+        )
+        .await
+        .unwrap();
+
         // Generate prompt with persona
-        let prompt = PromptGenerator::generate_system_prompt(&pool, false)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
             .await
             .unwrap();
 
@@ -121,6 +150,8 @@ mod tests {
 
         // Should contain persona content
         assert!(prompt.contains(persona_content));
+        assert!(prompt.contains("--- PERSONA MEMORY BLOCK ---"));
+        assert!(prompt.contains("--- END PERSONA MEMORY BLOCK ---"));
 
         // Should not contain Discord instructions
         assert!(!prompt.contains("Discord"));
@@ -128,13 +159,26 @@ mod tests {
 
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_generate_system_prompt_discord_context(pool: PgPool) {
+        // Create an interactive thread
+        let thread = Thread::create(
+            &pool,
+            "Discord thread goal".to_string(),
+            None,
+            Some(ThreadType::Interactive),
+        )
+        .await
+        .unwrap();
+
         // Generate prompt for Discord context
-        let prompt = PromptGenerator::generate_system_prompt(&pool, true)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
             .await
             .unwrap();
 
         // Should contain base instructions
         assert!(prompt.contains("AI assistant"));
+
+        // Should contain thread goal
+        assert!(prompt.contains("Current goal: Discord thread goal"));
 
         // Should contain Discord instructions
         assert!(prompt.contains("Discord"));
@@ -150,14 +194,26 @@ mod tests {
             .await
             .unwrap();
 
+        // Create an interactive thread
+        let thread = Thread::create(
+            &pool,
+            "Interactive Discord goal".to_string(),
+            None,
+            Some(ThreadType::Interactive),
+        )
+        .await
+        .unwrap();
+
         // Generate prompt for Discord context
-        let prompt = PromptGenerator::generate_system_prompt(&pool, true)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
             .await
             .unwrap();
 
-        // Should contain all three: base, persona, and Discord instructions
+        // Should contain all: base, goal, persona, and Discord instructions
         assert!(prompt.contains("AI assistant"));
+        assert!(prompt.contains("Current goal: Interactive Discord goal"));
         assert!(prompt.contains(persona_content));
+        assert!(prompt.contains("--- PERSONA MEMORY BLOCK ---"));
         assert!(prompt.contains("Discord"));
         assert!(prompt.contains("2000 characters"));
     }

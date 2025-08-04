@@ -1,4 +1,5 @@
 use color_eyre::Result;
+use db::agentic_threads::Thread;
 use sqlx::PgPool;
 
 use super::blocks::{MemoryBlock, MemoryBlockType};
@@ -38,8 +39,8 @@ impl MemoryManager {
     }
 
     /// Build complete system prompt with persona
-    pub async fn generate_system_prompt(&self, is_discord_context: bool) -> Result<String> {
-        PromptGenerator::generate_system_prompt(&self.pool, is_discord_context).await
+    pub async fn generate_system_prompt(&self, thread: &Thread) -> Result<String> {
+        PromptGenerator::generate_system_prompt(&self.pool, thread).await
     }
 
     /// Get reference to the database pool
@@ -51,6 +52,7 @@ impl MemoryManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use db::agentic_threads::{Thread, ThreadType};
 
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_memory_manager_new_and_pool_access(pool: PgPool) {
@@ -103,14 +105,40 @@ mod tests {
     async fn test_memory_manager_generate_system_prompt(pool: PgPool) {
         let manager = MemoryManager::new(pool.clone());
 
+        // Create test threads
+        let autonomous_thread = Thread::create(
+            &pool,
+            "Autonomous goal".to_string(),
+            None,
+            Some(ThreadType::Autonomous),
+        )
+        .await
+        .unwrap();
+        let interactive_thread = Thread::create(
+            &pool,
+            "Interactive goal".to_string(),
+            None,
+            Some(ThreadType::Interactive),
+        )
+        .await
+        .unwrap();
+
         // Test without persona, non-Discord
-        let prompt = manager.generate_system_prompt(false).await.unwrap();
+        let prompt = manager
+            .generate_system_prompt(&autonomous_thread)
+            .await
+            .unwrap();
         assert!(prompt.contains("AI assistant"));
+        assert!(prompt.contains("Current goal: Autonomous goal"));
         assert!(!prompt.contains("Discord"));
 
         // Test with Discord context
-        let discord_prompt = manager.generate_system_prompt(true).await.unwrap();
+        let discord_prompt = manager
+            .generate_system_prompt(&interactive_thread)
+            .await
+            .unwrap();
         assert!(discord_prompt.contains("AI assistant"));
+        assert!(discord_prompt.contains("Current goal: Interactive goal"));
         assert!(discord_prompt.contains("Discord"));
 
         // Add persona and test again
@@ -120,7 +148,11 @@ mod tests {
             .await
             .unwrap();
 
-        let prompt_with_persona = manager.generate_system_prompt(false).await.unwrap();
+        let prompt_with_persona = manager
+            .generate_system_prompt(&autonomous_thread)
+            .await
+            .unwrap();
         assert!(prompt_with_persona.contains(persona_content));
+        assert!(prompt_with_persona.contains("--- PERSONA MEMORY BLOCK ---"));
     }
 }
