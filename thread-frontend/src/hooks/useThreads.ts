@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { threadsApi } from '../api/threads'
 import { ThreadWithCounts } from '../types'
 
-export const THREADS_QUERY_KEY = ['threads'] as const
+export const THREADS_QUERY_KEY = (daysBack?: number) => ['threads', daysBack] as const
 export const RECENT_THREADS_QUERY_KEY = ['threads', 'recent'] as const
 export const THREAD_QUERY_KEY = (id: string) => ['thread', id] as const
 export const THREAD_CHILDREN_QUERY_KEY = (id: string) => ['thread', id, 'children'] as const
@@ -10,18 +10,18 @@ export const THREAD_PARENTS_QUERY_KEY = (id: string) => ['thread', id, 'parents'
 export const ALL_THREAD_DETAILS_QUERY_KEY = (threadIds: string[]) =>
   ['all-thread-details', threadIds] as const
 
-export const useThreads = () => {
+export const useThreads = (daysBack?: number) => {
   return useQuery({
-    queryKey: THREADS_QUERY_KEY,
-    queryFn: threadsApi.listThreads,
+    queryKey: THREADS_QUERY_KEY(daysBack),
+    queryFn: () => threadsApi.listThreads(daysBack),
     refetchInterval: 2000, // Auto-refresh every 2 seconds to match current behavior
   })
 }
 
-export const useRecentThreads = () => {
+export const useRecentThreads = (daysBack: number = 3) => {
   return useQuery({
-    queryKey: RECENT_THREADS_QUERY_KEY,
-    queryFn: threadsApi.listRecentThreads,
+    queryKey: ['threads', 'recent', daysBack] as const,
+    queryFn: () => threadsApi.listRecentThreads(daysBack),
     refetchInterval: 2000, // Auto-refresh every 2 seconds to match current behavior
   })
 }

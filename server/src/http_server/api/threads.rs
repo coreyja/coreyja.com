@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -52,15 +52,32 @@ pub(crate) struct CreateThreadRequest {
     goal: String,
 }
 
+#[derive(Deserialize)]
+pub(crate) struct ListThreadsQuery {
+    #[serde(default)]
+    days_back: Option<i32>,
+}
+
 #[axum_macros::debug_handler]
 pub async fn list_threads(
     _admin: AdminUser,
     State(state): State<AppState>,
+    Query(query): Query<ListThreadsQuery>,
 ) -> ResponseResult<impl IntoResponse> {
-    let threads = Thread::list_all(state.db())
-        .await
-        .context("Failed to fetch threads")
-        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
+    // Cap days_back at 7 days maximum
+    let days_back = query.days_back.map(|d| d.min(7));
+
+    let threads = if let Some(days) = days_back {
+        Thread::list_within_days(state.db(), days)
+            .await
+            .context("Failed to fetch threads")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        Thread::list_all(state.db())
+            .await
+            .context("Failed to fetch threads")
+            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
+    };
 
     let mut threads_with_counts = Vec::new();
     for thread in threads {

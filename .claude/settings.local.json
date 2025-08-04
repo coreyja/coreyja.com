@@ -35,7 +35,10 @@
       "Bash(gh pr diff:*)",
       "WebFetch(domain:serenity-rs.github.io)",
       "Bash(./auto-fix-all.sh:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(./scripts/dev-build.sh:*)",
+      "Bash(./scripts/build-frontend.sh:*)",
+      "Bash(./scripts/build-all.sh:*)"
     ],
     "deny": []
   }

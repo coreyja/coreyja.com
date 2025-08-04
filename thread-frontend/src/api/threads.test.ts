@@ -54,7 +54,37 @@ describe('threadsApi', () => {
 
       const result = await threadsApi.listThreads()
 
-      expect(mockAxiosGet).toHaveBeenCalledWith('/threads')
+      expect(mockAxiosGet).toHaveBeenCalledWith('/threads', {
+        params: undefined,
+      })
+      expect(result).toEqual(mockThreads)
+    })
+
+    it('fetches threads list with days_back parameter', async () => {
+      const mockThreads: Thread[] = [
+        {
+          thread_id: '123',
+          branching_stitch_id: null,
+          goal: 'Test thread',
+          tasks: [],
+          status: 'running',
+          result: null,
+          pending_child_results: [],
+          thread_type: 'autonomous',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]
+
+      mockAxiosGet.mockResolvedValue({
+        data: { threads: mockThreads },
+      })
+
+      const result = await threadsApi.listThreads(3)
+
+      expect(mockAxiosGet).toHaveBeenCalledWith('/threads', {
+        params: { days_back: 3 },
+      })
       expect(result).toEqual(mockThreads)
     })
 

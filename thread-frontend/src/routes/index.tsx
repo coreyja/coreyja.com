@@ -6,6 +6,7 @@ import { z } from 'zod'
 const threadSearchSchema = z.object({
   thread: z.string().optional(),
   stitch: z.string().optional(),
+  days: z.coerce.number().int().min(1).max(7).optional().default(3),
 })
 
 export const Route = createFileRoute('/')({
@@ -14,6 +15,6 @@ export const Route = createFileRoute('/')({
 })
 
 function Home() {
-  const { thread, stitch } = Route.useSearch()
-  return <ThreadGraphView threadId={thread} stitchId={stitch} />
+  const { thread, stitch, days } = Route.useSearch()
+  return <ThreadGraphView threadId={thread} stitchId={stitch} daysBack={days} />
 }

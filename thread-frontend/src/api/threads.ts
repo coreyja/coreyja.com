@@ -18,13 +18,17 @@ const api = axios.create({
 })
 
 export const threadsApi = {
-  listThreads: async (): Promise<ThreadWithCounts[]> => {
-    const response = await api.get<ThreadsWithCountsResponse>('/threads')
+  listThreads: async (daysBack?: number): Promise<ThreadWithCounts[]> => {
+    const response = await api.get<ThreadsWithCountsResponse>('/threads', {
+      params: daysBack !== undefined ? { days_back: daysBack } : undefined,
+    })
     return response.data.threads
   },
 
-  listRecentThreads: async (): Promise<ThreadWithCounts[]> => {
-    const response = await api.get<ThreadsWithCountsResponse>('/threads/recent')
+  listRecentThreads: async (daysBack: number = 3): Promise<ThreadWithCounts[]> => {
+    const response = await api.get<ThreadsWithCountsResponse>('/threads', {
+      params: { days_back: daysBack },
+    })
     return response.data.threads
   },
 

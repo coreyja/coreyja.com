@@ -238,6 +238,24 @@ impl Thread {
         Ok(threads)
     }
 
+    pub async fn list_within_days(pool: &PgPool, days: i32) -> color_eyre::Result<Vec<Self>> {
+        let threads = sqlx::query_as!(
+            Thread,
+            r#"
+            SELECT 
+                *
+            FROM threads
+            WHERE created_at >= NOW() - INTERVAL '1 day' * $1
+            ORDER BY created_at DESC
+            "#,
+            days as f64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(threads)
+    }
+
     pub async fn update_status(
         pool: &PgPool,
         id: Uuid,
