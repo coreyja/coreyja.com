@@ -9,7 +9,7 @@ import * as api from '../api/threads'
 // Mock the API module
 vi.mock('../api/threads', () => ({
   threadsApi: {
-    listRecentThreads: vi.fn(),
+    listThreads: vi.fn(),
     getThread: vi.fn(),
     getThreadChildren: vi.fn(),
     getThreadParents: vi.fn(),
@@ -69,7 +69,7 @@ describe('ThreadGraphView date filter integration', () => {
       },
     ]
 
-    vi.mocked(api.threadsApi.listRecentThreads).mockResolvedValue(mockThreads)
+    vi.mocked(api.threadsApi.listThreads).mockResolvedValue(mockThreads)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -79,7 +79,7 @@ describe('ThreadGraphView date filter integration', () => {
 
     // Wait for initial render with default 3 days
     await waitFor(() => {
-      expect(api.threadsApi.listRecentThreads).toHaveBeenCalledWith(3)
+      expect(api.threadsApi.listThreads).toHaveBeenCalledWith(3)
     })
 
     // Find and change the date filter
@@ -90,7 +90,7 @@ describe('ThreadGraphView date filter integration', () => {
 
     // Verify API was called with 7 days
     await waitFor(() => {
-      expect(api.threadsApi.listRecentThreads).toHaveBeenCalledWith(7)
+      expect(api.threadsApi.listThreads).toHaveBeenCalledWith(7)
     })
   })
 
@@ -112,7 +112,7 @@ describe('ThreadGraphView date filter integration', () => {
       },
     ]
 
-    vi.mocked(api.threadsApi.listRecentThreads).mockResolvedValue(mockThreads)
+    vi.mocked(api.threadsApi.listThreads).mockResolvedValue(mockThreads)
 
     // Start with days=7 in the URL
     const history = createMemoryHistory({
@@ -132,7 +132,7 @@ describe('ThreadGraphView date filter integration', () => {
 
     // Verify initial API call with 7 days
     await waitFor(() => {
-      expect(api.threadsApi.listRecentThreads).toHaveBeenCalledWith(7)
+      expect(api.threadsApi.listThreads).toHaveBeenCalledWith(7)
     })
 
     // Verify the select shows 7 days

@@ -25,13 +25,6 @@ export const threadsApi = {
     return response.data.threads
   },
 
-  listRecentThreads: async (daysBack: number = 3): Promise<ThreadWithCounts[]> => {
-    const response = await api.get<ThreadsWithCountsResponse>('/threads', {
-      params: { days_back: daysBack },
-    })
-    return response.data.threads
-  },
-
   getThread: async (id: string): Promise<ThreadWithStitches> => {
     const response = await api.get<ThreadWithStitches>(`/threads/${id}`)
     return response.data

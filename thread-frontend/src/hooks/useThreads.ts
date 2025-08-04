@@ -21,7 +21,7 @@ export const useThreads = (daysBack?: number) => {
 export const useRecentThreads = (daysBack: number = 3) => {
   return useQuery({
     queryKey: ['threads', 'recent', daysBack] as const,
-    queryFn: () => threadsApi.listRecentThreads(daysBack),
+    queryFn: () => threadsApi.listThreads(daysBack),
     refetchInterval: 2000, // Auto-refresh every 2 seconds to match current behavior
   })
 }

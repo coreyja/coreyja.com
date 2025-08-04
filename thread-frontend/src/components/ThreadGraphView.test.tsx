@@ -7,8 +7,7 @@ import { renderWithProviders } from '../test-utils'
 // Mock the API
 vi.mock('../api/threads', () => ({
   threadsApi: {
-    listThreads: vi.fn(() => Promise.resolve([])),
-    listRecentThreads: vi.fn(() => new Promise(() => {})), // Never resolves to simulate loading
+    listThreads: vi.fn(() => new Promise(() => {})), // Never resolves to simulate loading
     getThread: vi.fn(),
     getThreadChildren: vi.fn(() => Promise.resolve([])),
     getThreadParents: vi.fn(() => Promise.resolve([])),
@@ -47,7 +46,7 @@ describe('ThreadGraphView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset mocks to default behavior (loading state)
-    vi.mocked(threadsApi.listRecentThreads).mockImplementation(() => new Promise(() => {}))
+    vi.mocked(threadsApi.listThreads).mockImplementation(() => new Promise(() => {}))
   })
 
   it('renders loading state initially', async () => {
@@ -66,17 +65,17 @@ describe('ThreadGraphView', () => {
 
   it('calls listThreads API on mount', async () => {
     // Reset the mock to resolve properly for this test
-    vi.mocked(threadsApi.listRecentThreads).mockResolvedValue([])
+    vi.mocked(threadsApi.listThreads).mockResolvedValue([])
 
     renderWithProviders(<ThreadGraphView />)
 
     await waitFor(() => {
-      expect(threadsApi.listRecentThreads).toHaveBeenCalledTimes(1)
+      expect(threadsApi.listThreads).toHaveBeenCalledTimes(1)
     })
   })
 
   it('renders without crashing when API returns empty array', async () => {
-    vi.mocked(threadsApi.listRecentThreads).mockResolvedValue([])
+    vi.mocked(threadsApi.listThreads).mockResolvedValue([])
 
     const { container } = renderWithProviders(<ThreadGraphView />)
 
@@ -86,7 +85,7 @@ describe('ThreadGraphView', () => {
   })
 
   it('renders without crashing when API fails', async () => {
-    vi.mocked(threadsApi.listRecentThreads).mockRejectedValue(new Error('API Error'))
+    vi.mocked(threadsApi.listThreads).mockRejectedValue(new Error('API Error'))
 
     // Suppress console.error for this test
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
