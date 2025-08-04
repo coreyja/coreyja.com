@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO GoogleUsers (google_user_id, user_id, external_google_id, external_google_email, encrypted_access_token, access_token_expires_at, encrypted_refresh_token, scope)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bytea",
+        "Timestamptz",
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "91cbb48da130669505a720a25f5c82b53f522a9452de1fccc685c1c7547da3a0"
+}

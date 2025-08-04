@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)\n            VALUES ($1, NULL, 'initial_prompt', $2)\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)\n            VALUES ($1, NULL, 'system_prompt', $2)\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -85,5 +85,5 @@
       false
     ]
   },
-  "hash": "219f25453149ed79d24995121c618cb98d17aaedb205599c02ba0f41338730de"
+  "hash": "e118f220e3418075b2604a4ecdb45fc2c33b83d867828bd172d93091d244635b"
 }

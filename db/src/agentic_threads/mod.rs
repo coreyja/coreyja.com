@@ -18,6 +18,8 @@ pub enum StitchType {
     ThreadResult,
     #[serde(rename = "discord_message")]
     DiscordMessage,
+    #[serde(rename = "system_prompt")]
+    SystemPrompt,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -56,6 +58,7 @@ impl fmt::Display for StitchType {
             StitchType::ToolCall => write!(f, "tool_call"),
             StitchType::ThreadResult => write!(f, "thread_result"),
             StitchType::DiscordMessage => write!(f, "discord_message"),
+            StitchType::SystemPrompt => write!(f, "system_prompt"),
         }
     }
 }
@@ -70,6 +73,7 @@ impl std::str::FromStr for StitchType {
             "tool_call" => Ok(StitchType::ToolCall),
             "thread_result" => Ok(StitchType::ThreadResult),
             "discord_message" => Ok(StitchType::DiscordMessage),
+            "system_prompt" => Ok(StitchType::SystemPrompt),
             _ => Err(format!("Unknown stitch type: {s}")),
         }
     }
@@ -600,20 +604,14 @@ impl Stitch {
         system_prompt: String,
     ) -> color_eyre::Result<Self> {
         let request = json!({
-            "messages": [{
-                "role": "system",
-                "content": [{
-                    "type": "text",
-                    "text": system_prompt
-                }]
-            }]
+            "text": system_prompt
         });
 
         let stitch = sqlx::query_as!(
             Stitch,
             r#"
             INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
-            VALUES ($1, NULL, 'initial_prompt', $2)
+            VALUES ($1, NULL, 'system_prompt', $2)
             RETURNING *
             "#,
             thread_id,
