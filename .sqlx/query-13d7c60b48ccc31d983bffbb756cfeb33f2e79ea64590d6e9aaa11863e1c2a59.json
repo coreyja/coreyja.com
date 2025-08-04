@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE linear_webhook_events\n        SET processed_at = NOW()\n        WHERE linear_webhook_event_id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "13d7c60b48ccc31d983bffbb756cfeb33f2e79ea64590d6e9aaa11863e1c2a59"
+}

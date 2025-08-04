@@ -20,6 +20,13 @@ pub async fn create_test_app(pool: PgPool) -> Router {
     std::env::set_var("OPENAI_API_KEY", "test-openai-key");
     std::env::set_var("COOKIE_KEY", "test-cookie-key-32-bytes-long!!!!");
     std::env::set_var("ENCRYPT_KEY", "test-encrypt-key-32-bytes-long!!");
+    std::env::set_var("LINEAR_CLIENT_ID", "test-linear-id");
+    std::env::set_var("LINEAR_CLIENT_SECRET", "test-linear-secret");
+    std::env::set_var(
+        "LINEAR_REDIRECT_URI",
+        "http://localhost:3000/api/linear/callback",
+    );
+    std::env::set_var("LINEAR_WEBHOOK_SECRET", "test-webhook-secret");
 
     let discord_setup = crate::discord::setup().await.unwrap();
 
@@ -29,6 +36,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         github: crate::github::GithubConfig::from_env().unwrap(),
         open_ai: openai::OpenAiConfig::from_env().unwrap(),
         google: crate::google::GoogleConfig::from_env().unwrap(),
+        linear: crate::linear::LinearConfig::from_env().unwrap(),
         app: AppConfig::from_env().unwrap(),
         standup: crate::state::StandupConfig::from_env().unwrap(),
         syntax_highlighting_context: SyntaxHighlightingContext::default(),

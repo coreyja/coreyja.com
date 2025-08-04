@@ -42,7 +42,8 @@
       "mcp__Linear__get_issue",
       "mcp__Linear__list_issue_statuses",
       "mcp__Linear__list_teams",
-      "mcp__Linear__search_documentation"
+      "mcp__Linear__search_documentation",
+      "Bash(./scripts/auto-fix-all.sh:*)"
     ],
     "deny": []
   }
