@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT player_github_username, score\n            FROM CookdWebhooks\n            WHERE slug = $1 and subdomain = $2\n            ORDER BY score DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "player_github_username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "score",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "7bbcb0798ecf0ac1fc6d67648b1be387c5d412ea9c19ebeb7932a315a4f51458"
+}

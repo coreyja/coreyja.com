@@ -38,7 +38,8 @@
       "Bash(mkdir:*)",
       "Bash(./scripts/dev-build.sh:*)",
       "Bash(./scripts/build-frontend.sh:*)",
-      "Bash(./scripts/build-all.sh:*)"
+      "Bash(./scripts/build-all.sh:*)",
+      "Bash(jj bookmark:*)"
     ],
     "deny": []
   }

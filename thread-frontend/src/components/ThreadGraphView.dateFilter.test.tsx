@@ -40,7 +40,7 @@ describe('ThreadGraphView date filter integration', () => {
         },
       },
     })
-    
+
     const history = createMemoryHistory({
       initialEntries: ['/'],
     })
@@ -85,7 +85,7 @@ describe('ThreadGraphView date filter integration', () => {
     // Find and change the date filter
     const select = screen.getByRole('combobox')
     const user = userEvent.setup()
-    
+
     await user.selectOptions(select, '7')
 
     // Verify API was called with 7 days

@@ -248,7 +248,7 @@ impl Thread {
             WHERE created_at >= NOW() - INTERVAL '1 day' * $1
             ORDER BY created_at DESC
             "#,
-            days as f64
+            f64::from(days)
         )
         .fetch_all(pool)
         .await?;

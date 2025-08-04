@@ -64,20 +64,13 @@ pub async fn list_threads(
     State(state): State<AppState>,
     Query(query): Query<ListThreadsQuery>,
 ) -> ResponseResult<impl IntoResponse> {
-    // Cap days_back at 7 days maximum
-    let days_back = query.days_back.map(|d| d.min(7));
+    // Default to 3 days if not specified, cap at 7 days maximum
+    let days_back = query.days_back.unwrap_or(3).min(7);
 
-    let threads = if let Some(days) = days_back {
-        Thread::list_within_days(state.db(), days)
-            .await
-            .context("Failed to fetch threads")
-            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
-    } else {
-        Thread::list_all(state.db())
-            .await
-            .context("Failed to fetch threads")
-            .with_status(StatusCode::INTERNAL_SERVER_ERROR)?
-    };
+    let threads = Thread::list_within_days(state.db(), days_back)
+        .await
+        .context("Failed to fetch threads")
+        .with_status(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mut threads_with_counts = Vec::new();
     for thread in threads {
