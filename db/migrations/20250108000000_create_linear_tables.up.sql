@@ -3,7 +3,6 @@ CREATE TABLE linear_installations (
     linear_installation_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     external_workspace_id text NOT NULL,
     encrypted_access_token bytea NOT NULL,
-    encrypted_refresh_token bytea,
     token_expires_at timestamp with time zone,
     scopes text[],
     created_at timestamp with time zone NOT NULL DEFAULT now(),

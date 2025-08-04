@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::{
     encrypt::encrypt,
     http_server::{auth::session::DBSession, ResponseResult},
+    linear::graphql::get_me,
     AppState,
 };
 
@@ -40,26 +41,6 @@ struct LinearOAuthTokenResponse {
     token_type: String,
     expires_in: Option<u64>,
     scope: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct LinearWorkspaceResponse {
-    data: LinearWorkspaceData,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct LinearWorkspaceData {
-    viewer: LinearViewer,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct LinearViewer {
-    organization: LinearOrganization,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct LinearOrganization {
-    id: String,
 }
 
 #[axum_macros::debug_handler(state = AppState)]
@@ -133,27 +114,12 @@ pub(crate) async fn linear_callback(
         .await
         .wrap_err("Failed to exchange authorization code for access token")?;
 
-    let workspace_response: LinearWorkspaceResponse = client
-        .post("https://api.linear.app/graphql")
-        .header("Authorization", token_response.access_token.to_string())
-        .json(&serde_json::json!({
-            "query": r"
-                query {
-                    viewer {
-                        organization {
-                            id
-                        }
-                    }
-                }
-            "
-        }))
-        .send()
-        .await?
-        .json()
+    let me_data = get_me(&token_response.access_token)
         .await
-        .wrap_err("Failed to fetch workspace information")?;
+        .wrap_err("Failed to fetch user and application information")?;
 
-    let workspace_id = workspace_response.data.viewer.organization.id;
+    let workspace_id = me_data.viewer.organization.id;
+    let actor_id = me_data.viewer.id;
 
     let existing_installation = sqlx::query!(
         r#"
@@ -170,12 +136,14 @@ pub(crate) async fn linear_callback(
             r#"
             UPDATE linear_installations
             SET
-                encrypted_access_token = $1,
-                token_expires_at = $2,
-                scopes = $3,
+                external_actor_id = $1,
+                encrypted_access_token = $2,
+                token_expires_at = $3,
+                scopes = $4,
                 updated_at = NOW()
-            WHERE linear_installation_id = $4
+            WHERE linear_installation_id = $5
             "#,
+            actor_id,
             encrypt(&token_response.access_token, &app_state.encrypt_config)?,
             token_response
                 .expires_in
@@ -195,14 +163,16 @@ pub(crate) async fn linear_callback(
             INSERT INTO linear_installations (
                 linear_installation_id,
                 external_workspace_id,
+                external_actor_id,
                 encrypted_access_token,
                 token_expires_at,
                 scopes
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6)
             "#,
             Uuid::new_v4(),
             workspace_id,
+            actor_id,
             encrypt(&token_response.access_token, &app_state.encrypt_config)?,
             token_response
                 .expires_in

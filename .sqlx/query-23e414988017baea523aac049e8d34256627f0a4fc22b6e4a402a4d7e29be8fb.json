@@ -20,28 +20,28 @@
       },
       {
         "ordinal": 3,
-        "name": "encrypted_refresh_token",
-        "type_info": "Bytea"
-      },
-      {
-        "ordinal": 4,
         "name": "token_expires_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "scopes",
         "type_info": "TextArray"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "external_actor_id",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -53,9 +53,9 @@
       false,
       true,
       true,
-      true,
       false,
-      false
+      false,
+      true
     ]
   },
   "hash": "23e414988017baea523aac049e8d34256627f0a4fc22b6e4a402a4d7e29be8fb"

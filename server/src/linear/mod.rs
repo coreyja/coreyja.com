@@ -1,6 +1,8 @@
 use cja::color_eyre::eyre::Context;
 use serde::{Deserialize, Serialize};
 
+pub mod graphql;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LinearConfig {
     pub client_id: String,
