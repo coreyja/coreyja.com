@@ -78,8 +78,21 @@ CREATE INDEX idx_linear_thread_metadata_workspace_id ON linear_thread_metadata(w
 3. **Update Stitch Types**
 
 ```sql
--- Add linear_activity stitch type for Linear-specific activities
-ALTER TYPE stitch_type ADD VALUE 'linear_activity';
+-- Drop the existing check constraint
+ALTER TABLE stitches DROP CONSTRAINT IF EXISTS stitches_stitch_type_check;
+
+-- Add the new constraint with additional stitch types
+ALTER TABLE stitches ADD CONSTRAINT stitches_stitch_type_check 
+CHECK (stitch_type IN (
+    'initial_prompt',
+    'llm_call',
+    'tool_call',
+    'thread_result',
+    'discord_message',
+    'agent_thought',          -- NEW: Internal agent reasoning
+    'clarification_request',  -- NEW: Requesting user clarification  
+    'error'                   -- NEW: Error states
+));
 ```
 
 4. **Create Platform Metadata Models**
@@ -110,7 +123,52 @@ impl LinearThreadMetadata {
 }
 ```
 
-5. **Thread Extension Methods**
+5. **Extend ThreadBuilder for Linear**
+
+```rust
+// In server/src/agentic_threads/builder.rs
+
+pub struct LinearMetadata {
+    pub session_id: String,
+    pub workspace_id: String,
+    pub issue_id: Option<String>,
+    pub issue_title: Option<String>,
+    pub project_id: Option<String>,
+    pub team_id: Option<String>,
+    pub created_by_user_id: String,
+}
+
+impl ThreadBuilder {
+    // Add Linear metadata field
+    linear_metadata: Option<LinearMetadata>,
+
+    pub fn interactive_linear(mut self, metadata: LinearMetadata) -> Self {
+        self.thread_type = ThreadType::Interactive;
+        self.linear_metadata = Some(metadata);
+        self
+    }
+
+    // Update build() to handle Linear metadata
+    pub async fn build(self) -> Result<Thread> {
+        // ... existing validation ...
+
+        // Create Linear metadata if this is a Linear interactive thread
+        if let Some(linear_meta) = self.linear_metadata {
+            LinearThreadMetadata::create(
+                &self.pool,
+                thread.thread_id,
+                linear_meta.session_id,
+                linear_meta.workspace_id,
+                // ... other fields
+            ).await?;
+        }
+
+        // ... rest of build logic ...
+    }
+}
+```
+
+6. **Thread Extension Methods**
 
 ```rust
 impl Thread {
@@ -126,13 +184,74 @@ impl Thread {
 
 ### Usage Examples
 
-**Discord-only thread:**
+The codebase now uses a `ThreadBuilder` pattern for thread creation, which handles:
+
+- Thread creation with proper validation
+- Automatic system prompt generation via `MemoryManager`
+- Platform metadata creation in a single transaction
+
+**Discord-only thread (current implementation):**
 
 ```rust
-let thread = Thread::create_interactive(pool, "Help user with code review").await?;
+use crate::agentic_threads::{ThreadBuilder, DiscordMetadata};
+
+let discord_metadata = DiscordMetadata {
+    discord_thread_id: thread.id.to_string(),
+    channel_id: channel_id.to_string(),
+    guild_id: guild_id.to_string(),
+    created_by: msg.author.tag(),
+    thread_name: thread_name.clone(),
+};
+
+let thread = ThreadBuilder::new(pool.clone())
+    .with_goal(format!("Interactive Discord thread: {thread_name}"))
+    .interactive_discord(discord_metadata)
+    .build()
+    .await?;
+```
+
+**Linear-only thread (proposed):**
+
+```rust
+// Extend ThreadBuilder with Linear support
+impl ThreadBuilder {
+    pub fn interactive_linear(mut self, metadata: LinearMetadata) -> Self {
+        self.thread_type = ThreadType::Interactive;
+        self.linear_metadata = Some(metadata);
+        self
+    }
+}
+
+// Usage
+let linear_metadata = LinearMetadata {
+    session_id: webhook.session_id,
+    workspace_id: webhook.workspace_id,
+    issue_id: webhook.issue_id,
+    // ... other fields
+};
+
+let thread = ThreadBuilder::new(pool.clone())
+    .with_goal(format!("Linear issue: {}", issue_title))
+    .interactive_linear(linear_metadata)
+    .build()
+    .await?;
+```
+
+**Cross-platform thread (Linear → Discord):**
+
+```rust
+// Initial Linear thread creation
+let thread = ThreadBuilder::new(pool.clone())
+    .with_goal("Research API options")
+    .interactive_linear(linear_metadata)
+    .build()
+    .await?;
+
+// Later, when user continues in Discord
+// Simply create Discord metadata for the existing thread
 let discord_meta = DiscordThreadMetadata::create(
     pool,
-    thread.thread_id,
+    thread.thread_id, // Link to existing thread!
     discord_thread_id,
     channel_id,
     guild_id,
@@ -141,34 +260,14 @@ let discord_meta = DiscordThreadMetadata::create(
 ).await?;
 ```
 
-**Linear-only thread:**
+**Autonomous thread (for background tasks):**
 
 ```rust
-let thread = Thread::create_interactive(pool, "Implement dark mode").await?;
-let linear_meta = LinearThreadMetadata::create(
-    pool,
-    thread.thread_id,
-    session_id,
-    workspace_id,
-    Some(issue_id),
-    // ... other params
-).await?;
-```
-
-**Cross-platform thread (Linear → Discord):**
-
-```rust
-// User mentions agent in Linear
-let thread = Thread::create_interactive(pool, "Research API options").await?;
-let linear_meta = LinearThreadMetadata::create(pool, thread.thread_id, /* ... */).await?;
-
-// Later, user continues in Discord
-let discord_meta = DiscordThreadMetadata::create(
-    pool,
-    thread.thread_id, // Same thread!
-    discord_thread_id,
-    // ... other params
-).await?;
+let thread = ThreadBuilder::new(pool.clone())
+    .with_goal("Generate daily standup message")
+    .autonomous()
+    .build()
+    .await?;
 ```
 
 ### Benefits of This Approach
@@ -180,54 +279,217 @@ let discord_meta = DiscordThreadMetadata::create(
 5. **Clean Queries**: No JSONB parsing needed, direct column access
 6. **Platform Independence**: Core thread logic doesn't need to know about platforms
 
+### New Generic Stitch Types
+
+To support Linear and future platforms, we need to add new generic stitch types:
+
+#### 1. **agent_thought** - For internal agent reasoning
+
+This stitch type captures the agent's internal thinking process, useful for debugging and transparency:
+
+```rust
+impl Stitch {
+    pub async fn create_agent_thought(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        thought: String,
+        metadata: Option<JsonValue>,
+    ) -> Result<Self> {
+        let thought_data = json!({
+            "thought": thought,
+            "metadata": metadata,
+            "timestamp": Utc::now().to_rfc3339(),
+        });
+        
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, $2, 'agent_thought', $3)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            thought_data
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        Ok(stitch)
+    }
+}
+```
+
+#### 2. **clarification_request** - For requesting clarification from users
+
+When the agent needs more information from the user:
+
+```rust
+impl Stitch {
+    pub async fn create_clarification_request(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        question: String,
+        context: Option<JsonValue>,
+    ) -> Result<Self> {
+        let request_data = json!({
+            "question": question,
+            "context": context,
+            "awaiting_response": true,
+            "timestamp": Utc::now().to_rfc3339(),
+        });
+        
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, $2, 'clarification_request', $3)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            request_data
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        Ok(stitch)
+    }
+}
+```
+
+#### 3. **error** - For error states
+
+A generic error stitch type for any platform:
+
+```rust
+impl Stitch {
+    pub async fn create_error(
+        pool: &PgPool,
+        thread_id: Uuid,
+        previous_stitch_id: Option<Uuid>,
+        error_message: String,
+        error_details: Option<JsonValue>,
+    ) -> Result<Self> {
+        let error_data = json!({
+            "error_message": error_message,
+            "error_details": error_details,
+            "timestamp": Utc::now().to_rfc3339(),
+        });
+        
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, $2, 'error', $3)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            error_data
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        Ok(stitch)
+    }
+}
+```
+
 ### Handling Platform-Specific Features
 
-**Linear Activities → Stitches Mapping:**
+**Linear Activities → Generic Stitch Types:**
 
 ```rust
 // When receiving Linear webhook with activity
 match activity_type {
     "thought" => {
-        // Store as linear_activity stitch with internal thoughts
-        Stitch::create_linear_activity(pool, thread_id, prev_stitch_id, json!({
-            "activity_type": "thought",
-            "content": activity.content,
-            "session_id": session_id
-        })).await?
+        // Map to generic agent_thought type
+        Stitch::create_agent_thought(
+            pool, 
+            thread_id, 
+            prev_stitch_id,
+            activity.content,
+            Some(json!({
+                "source": "linear",
+                "session_id": session_id
+            }))
+        ).await?
     },
     "action" => {
-        // Map to tool_call stitch for consistency
-        Stitch::create_tool_call(pool, thread_id, prev_stitch_id,
+        // Map to existing tool_call stitch
+        Stitch::create_tool_call(
+            pool, 
+            thread_id, 
+            prev_stitch_id,
             activity.tool_name,
             activity.tool_input,
             activity.tool_output
         ).await?
     },
     "response" => {
-        // Store as llm_call stitch with the response
-        Stitch::create_llm_call(pool, thread_id, prev_stitch_id,
+        // Map to existing llm_call stitch 
+        Stitch::create_llm_call(
+            pool, 
+            thread_id, 
+            prev_stitch_id,
             json!({"role": "assistant"}),
             json!({"content": activity.content})
         ).await?
     },
     "elicitation" => {
-        // Store as linear_activity requesting more info
-        Stitch::create_linear_activity(pool, thread_id, prev_stitch_id, json!({
-            "activity_type": "elicitation",
-            "question": activity.content,
-            "session_id": session_id
-        })).await?
+        // Map to generic clarification_request type
+        Stitch::create_clarification_request(
+            pool, 
+            thread_id, 
+            prev_stitch_id,
+            activity.question,
+            Some(json!({
+                "source": "linear",
+                "session_id": session_id
+            }))
+        ).await?
     },
     "error" => {
-        // Store as linear_activity with error details
-        Stitch::create_linear_activity(pool, thread_id, prev_stitch_id, json!({
-            "activity_type": "error",
-            "error": activity.error_details,
-            "session_id": session_id
-        })).await?
+        // Map to generic error type
+        Stitch::create_error(
+            pool, 
+            thread_id, 
+            prev_stitch_id,
+            activity.error_message,
+            Some(json!({
+                "source": "linear",
+                "session_id": session_id,
+                "details": activity.error_details
+            }))
+        ).await?
     }
 }
 ```
+
+**Linear User Prompts:**
+```rust
+// When user mentions agent or delegates issue
+// Use existing initial_prompt stitch type with Linear context
+Stitch::create_initial_user_message(
+    pool,
+    thread_id,
+    format!("{}\n\nContext: Linear issue #{} - {}", 
+        prompt_text, 
+        issue_id, 
+        issue_title
+    )
+).await?
+```
+
+**Why This Approach:**
+- **Platform-agnostic types** that any integration can use
+- **Reuse existing types** where possible (initial_prompt, tool_call, llm_call)
+- **Generic new types** for common patterns (thoughts, elicitations, errors)
+- **Platform context** stored in metadata, not in type names
+- **Future-proof** for adding more platforms
 
 **Discord Messages → Stitches:**
 
