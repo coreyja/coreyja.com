@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE GithubLinks\n            SET\n                encrypted_access_token = $1,\n                encrypted_refresh_token = $2,\n                access_token_expires_at = $3,\n                refresh_token_expires_at = $4,\n                external_github_login = $5\n            WHERE github_link_id = $6\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "50cafd5e9455b8fb069b3d3b42ceffb17a70cf580cbde006bc5fd14b1ab0419b"
+}

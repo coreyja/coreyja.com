@@ -275,25 +275,13 @@ mod tests {
         let first_stitch = &stitches[0];
         assert_eq!(
             first_stitch.stitch_type,
-            db::agentic_threads::StitchType::InitialPrompt
+            db::agentic_threads::StitchType::SystemPrompt
         );
         assert!(first_stitch.previous_stitch_id.is_none());
 
-        // Verify the stitch contains a system message
+        // Verify the stitch contains the system prompt text
         let request = first_stitch.llm_request.as_ref().unwrap();
-        let messages = request.get("messages").unwrap().as_array().unwrap();
-        assert_eq!(messages.len(), 1);
-
-        let message = &messages[0];
-        assert_eq!(message.get("role").unwrap().as_str().unwrap(), "system");
-
-        let content = message.get("content").unwrap().as_array().unwrap();
-        assert_eq!(content.len(), 1);
-
-        let text_content = &content[0];
-        assert_eq!(text_content.get("type").unwrap().as_str().unwrap(), "text");
-
-        let text = text_content.get("text").unwrap().as_str().unwrap();
+        let text = request.get("text").unwrap().as_str().unwrap();
         assert!(text.contains("AI assistant")); // From base instructions
     }
 }

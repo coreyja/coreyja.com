@@ -86,13 +86,15 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
             db::agentic_threads::StitchType::ThreadResult => todo!(),
             db::agentic_threads::StitchType::InitialPrompt
             | db::agentic_threads::StitchType::ToolCall
-            | db::agentic_threads::StitchType::DiscordMessage => {
+            | db::agentic_threads::StitchType::DiscordMessage
+            | db::agentic_threads::StitchType::SystemPrompt => {
                 // This is the expected types that we can process here right now
             }
         }
     }
 
     let messages = reconstruct_messages(&app_state.db, thread_id).await?;
+    let system_prompt = extract_system_prompt(&app_state.db, thread_id).await?;
 
     // Set up tools based on thread type first to know the context
     let mut tools = ToolBag::default();
@@ -128,6 +130,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     let request = AnthropicRequest {
         model: "claude-sonnet-4-0".to_string(),
         max_tokens: 1024,
+        system: system_prompt,
         messages: messages.clone(),
         tools: tools.as_api(),
         tool_choice: Some(ToolChoice {
@@ -206,6 +209,28 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     }
 
     Ok(())
+}
+
+pub async fn extract_system_prompt(db: &PgPool, thread_id: Uuid) -> cja::Result<Option<String>> {
+    let stitches = Stitch::get_by_thread_ordered(db, thread_id).await?;
+
+    let mut system_prompt = None;
+
+    for stitch in stitches {
+        if stitch.stitch_type == db::agentic_threads::StitchType::SystemPrompt {
+            if system_prompt.is_some() {
+                bail!("Multiple system prompts found in thread");
+            }
+
+            if let Some(request) = stitch.llm_request {
+                if let Some(text) = request.get("text").and_then(|v| v.as_str()) {
+                    system_prompt = Some(text.to_string());
+                }
+            }
+        }
+    }
+
+    Ok(system_prompt)
 }
 
 #[allow(clippy::too_many_lines)]
@@ -306,6 +331,9 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
             }
             db::agentic_threads::StitchType::ThreadResult => {
                 todo!("Thread results would be handled here when we add child thread support");
+            }
+            db::agentic_threads::StitchType::SystemPrompt => {
+                // Skip system prompts - they're handled separately
             }
             db::agentic_threads::StitchType::DiscordMessage => {
                 // First, add any pending tool results before the Discord message
@@ -411,24 +439,80 @@ mod tests {
 
         let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
 
-        // Should have both system and user messages
-        assert_eq!(messages.len(), 2);
+        // Should only have user message (system prompts are excluded)
+        assert_eq!(messages.len(), 1);
 
-        // First message should be system
-        assert_eq!(messages[0].role, "system");
+        // Should be user message
+        assert_eq!(messages[0].role, "user");
         if let Content::Text(text) = &messages[0].content[0] {
-            assert_eq!(text.text, "You are a helpful AI assistant.");
-        } else {
-            panic!("Expected text content for system message");
-        }
-
-        // Second message should be user
-        assert_eq!(messages[1].role, "user");
-        if let Content::Text(text) = &messages[1].content[0] {
             assert_eq!(text.text, "Hello");
         } else {
             panic!("Expected text content for user message");
         }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_extract_system_prompt(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Test with no system prompt
+        let system_prompt = extract_system_prompt(&pool, thread_id).await.unwrap();
+        assert!(system_prompt.is_none());
+
+        // Create system prompt stitch
+        Stitch::create_system_prompt(
+            &pool,
+            thread_id,
+            "You are a helpful AI assistant.".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Test with system prompt
+        let system_prompt = extract_system_prompt(&pool, thread_id).await.unwrap();
+        assert_eq!(
+            system_prompt,
+            Some("You are a helpful AI assistant.".to_string())
+        );
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_extract_system_prompt_multiple_error(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+            .await
+            .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create first system prompt stitch
+        Stitch::create_system_prompt(&pool, thread_id, "First system prompt".to_string())
+            .await
+            .unwrap();
+
+        // Create second system prompt stitch (this should not happen in practice)
+        sqlx::query!(
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, NULL, 'system_prompt', $2)
+            "#,
+            thread_id,
+            json!({"text": "Second system prompt"})
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Should error on multiple system prompts
+        let result = extract_system_prompt(&pool, thread_id).await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Multiple system prompts found"));
     }
 
     #[sqlx::test(migrations = "../db/migrations")]
@@ -976,6 +1060,7 @@ mod tests {
         let request = AnthropicRequest {
             model: "claude-3-opus-20240229".to_string(),
             max_tokens: 1024,
+            system: None,
             messages,
             tools: vec![],
             tool_choice: None,
