@@ -321,6 +321,21 @@ impl Stitch {
 }
 ```
 
+**Message Reconstruction:**
+```rust
+// Agent thoughts are included as assistant messages
+// This allows the agent to see its own reasoning process
+StitchType::AgentThought => {
+    messages.push(json!({
+        "role": "assistant",
+        "content": [{
+            "type": "text",
+            "text": stitch.llm_request["thought"].as_str().unwrap()
+        }]
+    }));
+}
+```
+
 #### 2. **clarification_request** - For requesting clarification from users
 
 When the agent needs more information from the user:
@@ -360,6 +375,21 @@ impl Stitch {
 }
 ```
 
+**Message Reconstruction:**
+```rust
+// Clarification requests are included as assistant messages
+// They represent the agent asking for more information
+StitchType::ClarificationRequest => {
+    messages.push(json!({
+        "role": "assistant",
+        "content": [{
+            "type": "text",
+            "text": stitch.llm_request["question"].as_str().unwrap()
+        }]
+    }));
+}
+```
+
 #### 3. **error** - For error states
 
 A generic error stitch type for any platform:
@@ -395,6 +425,21 @@ impl Stitch {
         
         Ok(stitch)
     }
+}
+```
+
+**Message Reconstruction:**
+```rust
+// Errors are included as assistant messages to provide context
+// The LLM needs to know what went wrong to adjust its approach
+StitchType::Error => {
+    messages.push(json!({
+        "role": "assistant", 
+        "content": [{
+            "type": "text",
+            "text": format!("Error: {}", stitch.llm_request["error_message"].as_str().unwrap())
+        }]
+    }));
 }
 ```
 
@@ -495,6 +540,118 @@ Stitch::create_initial_user_message(
 
 - Continue using `discord_message` stitch type as-is
 - No changes needed to existing Discord handling
+
+### Complete Message Reconstruction Example
+
+Here's how all stitch types work together when building the messages array:
+
+```rust
+pub async fn build_messages_from_stitches(stitches: &[Stitch]) -> Vec<JsonValue> {
+    let mut messages = vec![];
+    
+    for stitch in stitches {
+        match stitch.stitch_type.as_str() {
+            // System/initial prompts
+            "initial_prompt" => {
+                // Extract messages from llm_request
+                if let Some(msgs) = stitch.llm_request.get("messages") {
+                    messages.extend(msgs.as_array().unwrap().clone());
+                }
+            },
+            
+            // LLM interactions
+            "llm_call" => {
+                // Add both request and response
+                if let Some(req_msgs) = stitch.llm_request.as_ref().and_then(|r| r.get("messages")) {
+                    messages.extend(req_msgs.as_array().unwrap().clone());
+                }
+                if let Some(response) = &stitch.llm_response {
+                    messages.push(json!({
+                        "role": "assistant",
+                        "content": response["content"].clone()
+                    }));
+                }
+            },
+            
+            // Tool usage
+            "tool_call" => {
+                // Add tool call and result as function messages
+                messages.push(json!({
+                    "role": "assistant",
+                    "tool_calls": [{
+                        "type": "function",
+                        "function": {
+                            "name": stitch.tool_name,
+                            "arguments": stitch.tool_input.to_string()
+                        }
+                    }]
+                }));
+                messages.push(json!({
+                    "role": "tool",
+                    "content": stitch.tool_output.to_string()
+                }));
+            },
+            
+            // Platform-specific messages
+            "discord_message" => {
+                let msg_data = &stitch.llm_request["data"];
+                messages.push(json!({
+                    "role": "user",
+                    "content": [{
+                        "type": "text",
+                        "text": format!("{}: {}", 
+                            msg_data["author"]["username"].as_str().unwrap(),
+                            msg_data["content"].as_str().unwrap()
+                        )
+                    }]
+                }));
+            },
+            
+            // New generic types
+            "clarification_request" => {
+                messages.push(json!({
+                    "role": "assistant",
+                    "content": [{
+                        "type": "text",
+                        "text": stitch.llm_request["question"].as_str().unwrap()
+                    }]
+                }));
+            },
+            
+            "error" => {
+                messages.push(json!({
+                    "role": "assistant",
+                    "content": [{
+                        "type": "text",
+                        "text": format!("Error: {}", 
+                            stitch.llm_request["error_message"].as_str().unwrap()
+                        )
+                    }]
+                }));
+            },
+            
+            "agent_thought" => {
+                messages.push(json!({
+                    "role": "assistant",
+                    "content": [{
+                        "type": "text",
+                        "text": stitch.llm_request["thought"].as_str().unwrap()
+                    }]
+                }));
+            },
+            
+            // Skip internal types
+            "thread_result" => continue,  // Used for thread composition, not messages
+            
+            _ => {
+                tracing::warn!("Unknown stitch type: {}", stitch.stitch_type);
+            }
+        }
+    }
+    
+    messages
+}
+```
 
 ### Practical Considerations
 
