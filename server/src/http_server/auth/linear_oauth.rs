@@ -63,10 +63,11 @@ pub(crate) async fn linear_auth(
     .execute(&app_state.db)
     .await?;
 
+    let redirect_uri = app_state.app.app_url("/api/linear/callback");
     let auth_url = format!(
         "https://linear.app/oauth/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}&actor=app",
         app_state.linear.client_id,
-        urlencoding::encode(&app_state.linear.redirect_uri),
+        urlencoding::encode(&redirect_uri),
         urlencoding::encode("read,write,app:assignable,app:mentionable,issues:create,comments:create,timeSchedule:write"),
         state_id
     );
@@ -98,10 +99,11 @@ pub(crate) async fn linear_callback(
 
     let client = reqwest::Client::new();
 
+    let redirect_uri = app_state.app.app_url("/api/linear/callback");
     let token_request = LinearOAuthTokenRequest {
         client_id: app_state.linear.client_id.clone(),
         client_secret: app_state.linear.client_secret.clone(),
-        redirect_uri: app_state.linear.redirect_uri.clone(),
+        redirect_uri,
         grant_type: "authorization_code".to_string(),
         code: query.code.clone(),
         actor: "app".to_string(),

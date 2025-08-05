@@ -45,7 +45,6 @@ This document outlines the plan for integrating Linear's API as an AI agent usin
 ```env
 LINEAR_CLIENT_ID=<from OAuth app creation>
 LINEAR_CLIENT_SECRET=<from OAuth app creation>
-LINEAR_REDIRECT_URI=https://coreyja.com/api/linear/callback
 LINEAR_WEBHOOK_SECRET=<generated webhook signing secret>
 ```
 
@@ -59,7 +58,7 @@ LINEAR_WEBHOOK_SECRET=<generated webhook signing secret>
 GET https://linear.app/oauth/authorize
 Parameters:
 - client_id: ${LINEAR_CLIENT_ID}
-- redirect_uri: ${LINEAR_REDIRECT_URI}
+- redirect_uri: ${APP_BASE_URL}/api/linear/callback
 - response_type: code
 - scope: read,write,admin,app:assignable,app:mentionable,issue:create,comment:create
 - state: ${RANDOM_UUID} (random UUID for state tracking)
@@ -73,7 +72,7 @@ POST https://api.linear.app/oauth/token
 Body:
 - client_id: ${LINEAR_CLIENT_ID}
 - client_secret: ${LINEAR_CLIENT_SECRET}
-- redirect_uri: ${LINEAR_REDIRECT_URI}
+- redirect_uri: ${APP_BASE_URL}/api/linear/callback
 - grant_type: authorization_code
 - code: ${AUTHORIZATION_CODE}
 - actor: app

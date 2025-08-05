@@ -22,10 +22,6 @@ pub async fn create_test_app(pool: PgPool) -> Router {
     std::env::set_var("ENCRYPT_KEY", "test-encrypt-key-32-bytes-long!!");
     std::env::set_var("LINEAR_CLIENT_ID", "test-linear-id");
     std::env::set_var("LINEAR_CLIENT_SECRET", "test-linear-secret");
-    std::env::set_var(
-        "LINEAR_REDIRECT_URI",
-        "http://localhost:3000/api/linear/callback",
-    );
     std::env::set_var("LINEAR_WEBHOOK_SECRET", "test-webhook-secret");
 
     let discord_setup = crate::discord::setup().await.unwrap();
