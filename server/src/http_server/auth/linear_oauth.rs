@@ -67,7 +67,7 @@ pub(crate) async fn linear_auth(
         "https://linear.app/oauth/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}&actor=app",
         app_state.linear.client_id,
         urlencoding::encode(&app_state.linear.redirect_uri),
-        urlencoding::encode("read,write,admin,app:assignable,app:mentionable,issue:create,comment:create"),
+        urlencoding::encode("read,write,app:assignable,app:mentionable,issues:create,comments:create,timeSchedule:write"),
         state_id
     );
 
@@ -107,11 +107,13 @@ pub(crate) async fn linear_callback(
         actor: "app".to_string(),
     };
 
-    let token_response: LinearOAuthTokenResponse = client
+    let token_response = client
         .post("https://api.linear.app/oauth/token")
-        .json(&token_request)
+        .form(&token_request)
         .send()
-        .await?
+        .await?;
+
+    let token_response: LinearOAuthTokenResponse = token_response
         .json()
         .await
         .wrap_err("Failed to exchange authorization code for access token")?;
