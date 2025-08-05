@@ -3,6 +3,7 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use cja::{color_eyre::eyre::Context, server::session::Session};
+use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 use uuid::Uuid;
@@ -74,6 +75,7 @@ pub(crate) async fn linear_auth(
 }
 
 #[axum_macros::debug_handler(state = AppState)]
+#[allow(clippy::too_many_lines)]
 pub(crate) async fn linear_callback(
     State(app_state): State<AppState>,
     Query(query): Query<LinearOAuthCode>,
@@ -131,6 +133,13 @@ pub(crate) async fn linear_callback(
     .fetch_optional(&app_state.db)
     .await?;
 
+    let expires_in = token_response
+        .expires_in
+        .ok_or_else(|| eyre!("No expiration time provided"))?
+        .try_into()?;
+
+    let expires_at = chrono::Utc::now() + chrono::Duration::seconds(expires_in);
+
     if let Some(installation) = existing_installation {
         sqlx::query!(
             r#"
@@ -145,9 +154,7 @@ pub(crate) async fn linear_callback(
             "#,
             actor_id,
             encrypt(&token_response.access_token, &app_state.encrypt_config)?,
-            token_response
-                .expires_in
-                .map(|exp| chrono::Utc::now() + chrono::Duration::seconds(exp as i64)),
+            expires_at,
             &token_response
                 .scope
                 .split(',')
@@ -174,9 +181,7 @@ pub(crate) async fn linear_callback(
             workspace_id,
             actor_id,
             encrypt(&token_response.access_token, &app_state.encrypt_config)?,
-            token_response
-                .expires_in
-                .map(|exp| chrono::Utc::now() + chrono::Duration::seconds(exp as i64)),
+            expires_at,
             &token_response
                 .scope
                 .split(',')

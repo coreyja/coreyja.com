@@ -9,6 +9,7 @@ use super::{
     COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()
         .route("/_", get(pages::admin::versions))
