@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use cja::color_eyre::eyre::Context;
+use color_eyre::eyre::Context as _;
 use serde::{Deserialize, Serialize};
+use tokio::time::sleep;
 use tracing::info;
 
 use crate::{
@@ -58,12 +59,23 @@ impl JobTrait<AppState> for ProcessLinearWebhook {
                             &app_state.encrypt_config,
                         )?;
 
-                        // Send initial thought activity
-                        let content = AgentActivityContent::thought("Processing request...");
+                        create_agent_activity(
+                            &access_token,
+                            &event.agent_session.id,
+                            AgentActivityContent::thought("Processing request..."),
+                        )
+                        .await
+                        .wrap_err("Failed to emit initial thought activity")?;
 
-                        create_agent_activity(&access_token, &event.agent_session.id, content)
-                            .await
-                            .wrap_err("Failed to emit initial thought activity")?;
+                        sleep(std::time::Duration::from_secs(5)).await;
+
+                        create_agent_activity(
+                            &access_token,
+                            &event.agent_session.id,
+                            AgentActivityContent::response("All done! I can't do much right now"),
+                        )
+                        .await
+                        .wrap_err("Failed to emit initial thought activity")?;
 
                         info!("Successfully sent initial thought activity");
                     }
@@ -82,13 +94,6 @@ impl JobTrait<AppState> for ProcessLinearWebhook {
                         info!(action = event.action, "Unhandled agent session action");
                     }
                 }
-            }
-            LinearWebhookPayload::Other(generic) => {
-                info!(
-                    event_type = generic.event_type,
-                    action = generic.action,
-                    "Unhandled webhook event type"
-                );
             }
         }
 

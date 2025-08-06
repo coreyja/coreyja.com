@@ -8,7 +8,6 @@ use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use tracing::{info, warn};
-use uuid::Uuid;
 
 use crate::{
     http_server::{ResponseResult, ServerError},
@@ -21,18 +20,14 @@ type HmacSha256 = Hmac<Sha256>;
 
 // Generic webhook payload structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum LinearWebhookPayload {
     AgentSessionEvent(AgentSessionEventPayload),
-    // Fallback for other webhook types we haven't implemented yet
-    Other(GenericWebhookPayload),
 }
 
 // Agent session event specific payload
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AgentSessionEventPayload {
-    #[serde(rename = "type")]
-    pub event_type: String, // Should be "AgentSessionEvent"
     pub action: String, // "created" or "prompted"
     #[serde(rename = "createdAt")]
     pub created_at: String,
@@ -130,60 +125,32 @@ pub(crate) async fn linear_webhook(
         return Err(cja::color_eyre::eyre::eyre!("Unauthorized: Invalid webhook signature").into());
     }
 
-    let payload: LinearWebhookPayload =
-        serde_json::from_slice(&body).wrap_err("Failed to parse webhook payload")?;
+    let generic_payload: serde_json::Value = serde_json::from_slice(&body)?;
 
     // Log the webhook based on its type
-    match &payload {
-        LinearWebhookPayload::AgentSessionEvent(event) => {
-            info!(
-                action = event.action,
-                event_type = event.event_type,
-                session_id = event.agent_session.id,
-                "Received Linear agent session webhook"
-            );
-        }
-        LinearWebhookPayload::Other(generic) => {
-            info!(
-                action = generic.action,
-                event_type = generic.event_type,
-                "Received Linear webhook"
-            );
-        }
+    let (event_type, action) = (
+        generic_payload
+            .get("type")
+            .map(|v| v.as_str().unwrap_or_default())
+            .unwrap_or_default()
+            .to_string(),
+        generic_payload
+            .get("action")
+            .map(|v| v.as_str().unwrap_or_default())
+            .unwrap_or_default()
+            .to_string(),
+    );
+
+    if let Ok(payload) = serde_json::from_slice(&body) {
+        // Enqueue the job to process the webhook in the background
+        ProcessLinearWebhook { payload }
+            .enqueue(app_state.clone(), "Linear webhook processing".to_string())
+            .await?;
     }
 
-    // Store event type for database logging
-    let (event_type, action) = match &payload {
-        LinearWebhookPayload::AgentSessionEvent(event) => {
-            (event.event_type.clone(), event.action.clone())
-        }
-        LinearWebhookPayload::Other(generic) => {
-            (generic.event_type.clone(), generic.action.clone())
-        }
-    };
-
-    let event_id = sqlx::query!(
-        r#"
-        INSERT INTO linear_webhook_events (linear_webhook_event_id, event_type, payload)
-        VALUES ($1, $2, $3)
-        RETURNING linear_webhook_event_id
-        "#,
-        Uuid::new_v4(),
-        format!("{}.{}", event_type, action),
-        serde_json::to_value(&payload)?
-    )
-    .fetch_one(&app_state.db)
-    .await?
-    .linear_webhook_event_id;
-
-    // Enqueue the job to process the webhook in the background
-    ProcessLinearWebhook { payload }
-        .enqueue(app_state.clone(), "Linear webhook processing".to_string())
-        .await?;
-
     info!(
-        event_id = %event_id,
-        "Linear webhook enqueued for background processing"
+        event_type,
+        action, "Linear webhook enqueued for background processing"
     );
 
     ResponseResult::Ok(StatusCode::OK)

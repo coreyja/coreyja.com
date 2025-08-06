@@ -97,10 +97,12 @@ pub async fn create_agent_activity(
     // Serialize the content to JSON for the GraphQL input
     let content_json = serde_json::to_value(&content)?;
 
+    let agent_session_id = agent_session_id.into();
+
     let variables = agent_activity_create::Variables {
         input: agent_activity_create::AgentActivityCreateInput {
-            id: None,
-            agent_session_id: agent_session_id.into(),
+            id: Some(uuid::Uuid::new_v4().to_string()),
+            agent_session_id,
             content: content_json,
         },
     };

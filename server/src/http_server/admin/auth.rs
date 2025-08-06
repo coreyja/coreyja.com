@@ -80,8 +80,6 @@ pub(crate) async fn google_auth_callback(
         Err(_) => return Err("Failed to parse token response".into()),
     };
 
-    dbg!(&token_data);
-
     // Use the access token to retrieve some user information
     let userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo";
     let user_info_response = client
