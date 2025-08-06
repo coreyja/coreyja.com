@@ -48,16 +48,26 @@ pub struct AgentSession {
     pub previous_comments: Option<Vec<LinearCommentContext>>,
     #[serde(rename = "agentActivity")]
     pub agent_activity: Option<AgentActivityPrompt>, // Present when action is "prompted"
+    pub creator: Option<LinearUserContext>,
 }
 
-// Minimal typing for issue context - add more fields as needed
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct LinearIssueContext {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LinearTeamContext {
     pub id: String,
+    pub key: String,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LinearIssueContext {
+    pub description: String,
+    pub id: String,
+    pub identifier: String,
+    pub team: LinearTeamContext,
+    #[serde(rename = "teamId")]
+    pub team_id: String,
     pub title: String,
-    pub description: Option<String>,
-    #[serde(flatten)]
-    pub other_fields: serde_json::Map<String, serde_json::Value>,
+    pub url: String,
 }
 
 // Minimal typing for comment context - add more fields as needed
@@ -65,13 +75,23 @@ pub struct LinearIssueContext {
 pub struct LinearCommentContext {
     pub id: String,
     pub body: String,
-    #[serde(flatten)]
-    pub other_fields: serde_json::Map<String, serde_json::Value>,
+    #[serde(rename = "issueId")]
+    pub issue_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AgentActivityPrompt {
     pub body: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LinearUserContext {
+    #[serde(rename = "avatarUrl")]
+    pub avatar_url: String,
+    pub email: String,
+    pub id: String,
+    pub name: String,
+    pub url: String,
 }
 
 // Fallback for other webhook types we haven't implemented yet

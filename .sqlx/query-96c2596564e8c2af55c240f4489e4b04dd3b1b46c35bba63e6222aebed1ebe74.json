@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO linear_thread_metadata (\n                thread_id, session_id, workspace_id, issue_id, issue_title,\n                project_id, team_id, created_by_user_id\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "session_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "workspace_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "issue_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "issue_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "project_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "team_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_by_user_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "session_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_activity_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "96c2596564e8c2af55c240f4489e4b04dd3b1b46c35bba63e6222aebed1ebe74"
+}

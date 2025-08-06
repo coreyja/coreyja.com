@@ -20,6 +20,12 @@ pub enum StitchType {
     DiscordMessage,
     #[serde(rename = "system_prompt")]
     SystemPrompt,
+    #[serde(rename = "agent_thought")]
+    AgentThought,
+    #[serde(rename = "clarification_request")]
+    ClarificationRequest,
+    #[serde(rename = "error")]
+    Error,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -59,6 +65,9 @@ impl fmt::Display for StitchType {
             StitchType::ThreadResult => write!(f, "thread_result"),
             StitchType::DiscordMessage => write!(f, "discord_message"),
             StitchType::SystemPrompt => write!(f, "system_prompt"),
+            StitchType::AgentThought => write!(f, "agent_thought"),
+            StitchType::ClarificationRequest => write!(f, "clarification_request"),
+            StitchType::Error => write!(f, "error"),
         }
     }
 }
@@ -74,6 +83,9 @@ impl std::str::FromStr for StitchType {
             "thread_result" => Ok(StitchType::ThreadResult),
             "discord_message" => Ok(StitchType::DiscordMessage),
             "system_prompt" => Ok(StitchType::SystemPrompt),
+            "agent_thought" => Ok(StitchType::AgentThought),
+            "clarification_request" => Ok(StitchType::ClarificationRequest),
+            "error" => Ok(StitchType::Error),
             _ => Err(format!("Unknown stitch type: {s}")),
         }
     }
@@ -634,6 +646,41 @@ impl Stitch {
             "#,
             thread_id,
             request
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(stitch)
+    }
+
+    // Alias for create_initial_user_message for backward compatibility
+    pub async fn create_initial_prompt(
+        pool: &PgPool,
+        thread_id: Uuid,
+        prompt: String,
+    ) -> color_eyre::Result<Self> {
+        Self::create_initial_user_message(pool, thread_id, prompt).await
+    }
+
+    // Generic create method for any stitch type
+    pub async fn create(
+        pool: &PgPool,
+        thread_id: Uuid,
+        stitch_type: &str,
+        data: JsonValue,
+        previous_stitch_id: Option<Uuid>,
+    ) -> color_eyre::Result<Self> {
+        let stitch = sqlx::query_as!(
+            Stitch,
+            r#"
+            INSERT INTO stitches (thread_id, previous_stitch_id, stitch_type, llm_request)
+            VALUES ($1, $2, $3::text, $4)
+            RETURNING *
+            "#,
+            thread_id,
+            previous_stitch_id,
+            stitch_type,
+            data
         )
         .fetch_one(pool)
         .await?;

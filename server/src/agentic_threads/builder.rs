@@ -1,6 +1,7 @@
 use color_eyre::eyre::{eyre, Result};
 use db::agentic_threads::{Stitch, Thread, ThreadType};
 use db::discord_threads::DiscordThreadMetadata;
+use db::linear_threads::LinearThreadMetadata;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -14,12 +15,23 @@ pub struct DiscordMetadata {
     pub thread_name: String,
 }
 
+pub struct LinearMetadata {
+    pub session_id: String,
+    pub workspace_id: String,
+    pub issue_id: Option<String>,
+    pub issue_title: Option<String>,
+    pub project_id: Option<String>,
+    pub team_id: Option<String>,
+    pub created_by_user_id: String,
+}
+
 pub struct ThreadBuilder {
     pool: PgPool,
     goal: String,
     thread_type: ThreadType,
     branching_stitch_id: Option<Uuid>,
     discord_metadata: Option<DiscordMetadata>,
+    linear_metadata: Option<LinearMetadata>,
 }
 
 impl ThreadBuilder {
@@ -30,6 +42,7 @@ impl ThreadBuilder {
             thread_type: ThreadType::Autonomous,
             branching_stitch_id: None,
             discord_metadata: None,
+            linear_metadata: None,
         }
     }
 
@@ -49,6 +62,12 @@ impl ThreadBuilder {
         self
     }
 
+    pub fn interactive_linear(mut self, metadata: LinearMetadata) -> Self {
+        self.thread_type = ThreadType::Interactive;
+        self.linear_metadata = Some(metadata);
+        self
+    }
+
     pub fn child_of(mut self, parent_stitch_id: Uuid) -> Self {
         self.branching_stitch_id = Some(parent_stitch_id);
         self
@@ -60,10 +79,13 @@ impl ThreadBuilder {
             return Err(eyre!("Thread goal cannot be empty"));
         }
 
-        // Validate Discord metadata if thread type is Interactive
-        if self.thread_type == ThreadType::Interactive && self.discord_metadata.is_none() {
+        // Validate metadata if thread type is Interactive
+        if self.thread_type == ThreadType::Interactive
+            && self.discord_metadata.is_none()
+            && self.linear_metadata.is_none()
+        {
             return Err(eyre!(
-                "Interactive threads must have Discord metadata. This should"
+                "Interactive threads must have either Discord or Linear metadata"
             ));
         }
 
@@ -76,7 +98,7 @@ impl ThreadBuilder {
         )
         .await?;
 
-        // Create Discord metadata if this is an interactive thread
+        // Create Discord metadata if this is a Discord interactive thread
         if let Some(discord_meta) = self.discord_metadata {
             DiscordThreadMetadata::create(
                 &self.pool,
@@ -86,6 +108,22 @@ impl ThreadBuilder {
                 discord_meta.guild_id,
                 discord_meta.created_by,
                 discord_meta.thread_name,
+            )
+            .await?;
+        }
+
+        // Create Linear metadata if this is a Linear interactive thread
+        if let Some(linear_meta) = self.linear_metadata {
+            LinearThreadMetadata::create(
+                &self.pool,
+                thread.thread_id,
+                linear_meta.session_id,
+                linear_meta.workspace_id,
+                linear_meta.issue_id,
+                linear_meta.issue_title,
+                linear_meta.project_id,
+                linear_meta.team_id,
+                linear_meta.created_by_user_id,
             )
             .await?;
         }
