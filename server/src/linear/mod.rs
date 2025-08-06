@@ -1,6 +1,7 @@
 use cja::color_eyre::eyre::Context;
 use serde::{Deserialize, Serialize};
 
+pub mod agent;
 pub mod graphql;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

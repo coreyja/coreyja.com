@@ -6,7 +6,6 @@ use axum::{
 use cja::color_eyre::eyre::Context;
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::Sha256;
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -20,31 +19,76 @@ use cja::jobs::Job as JobTrait;
 
 type HmacSha256 = Hmac<Sha256>;
 
+// Generic webhook payload structure
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct LinearWebhookPayload {
+#[serde(untagged)]
+pub enum LinearWebhookPayload {
+    AgentSessionEvent(AgentSessionEventPayload),
+    // Fallback for other webhook types we haven't implemented yet
+    Other(GenericWebhookPayload),
+}
+
+// Agent session event specific payload
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AgentSessionEventPayload {
+    #[serde(rename = "type")]
+    pub event_type: String, // Should be "AgentSessionEvent"
+    pub action: String, // "created" or "prompted"
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "organizationId")]
+    pub organization_id: String,
+    #[serde(rename = "oauthClientId")]
+    pub oauth_client_id: String,
+    #[serde(rename = "agentSession")]
+    pub agent_session: AgentSession,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AgentSession {
+    pub id: String,
+    pub issue: Option<LinearIssueContext>,
+    pub comment: Option<LinearCommentContext>,
+    #[serde(rename = "previousComments")]
+    pub previous_comments: Option<Vec<LinearCommentContext>>,
+    #[serde(rename = "agentActivity")]
+    pub agent_activity: Option<AgentActivityPrompt>, // Present when action is "prompted"
+}
+
+// Minimal typing for issue context - add more fields as needed
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LinearIssueContext {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    #[serde(flatten)]
+    pub other_fields: serde_json::Map<String, serde_json::Value>,
+}
+
+// Minimal typing for comment context - add more fields as needed
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LinearCommentContext {
+    pub id: String,
+    pub body: String,
+    #[serde(flatten)]
+    pub other_fields: serde_json::Map<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AgentActivityPrompt {
+    pub body: String,
+}
+
+// Fallback for other webhook types we haven't implemented yet
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GenericWebhookPayload {
     pub action: String,
     #[serde(rename = "type")]
     pub event_type: String,
-    pub data: Value,
+    pub data: serde_json::Value,
     pub url: Option<String>,
     #[serde(rename = "createdAt")]
     pub created_at: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct LinearAgentActivity {
-    #[serde(rename = "type")]
-    pub activity_type: LinearActivityType,
-    pub message: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum LinearActivityType {
-    Thought,
-    Action,
-    Response,
-    Error,
 }
 
 async fn verify_webhook_signature(
@@ -89,11 +133,34 @@ pub(crate) async fn linear_webhook(
     let payload: LinearWebhookPayload =
         serde_json::from_slice(&body).wrap_err("Failed to parse webhook payload")?;
 
-    info!(
-        action = payload.action,
-        event_type = payload.event_type,
-        "Received Linear webhook"
-    );
+    // Log the webhook based on its type
+    match &payload {
+        LinearWebhookPayload::AgentSessionEvent(event) => {
+            info!(
+                action = event.action,
+                event_type = event.event_type,
+                session_id = event.agent_session.id,
+                "Received Linear agent session webhook"
+            );
+        }
+        LinearWebhookPayload::Other(generic) => {
+            info!(
+                action = generic.action,
+                event_type = generic.event_type,
+                "Received Linear webhook"
+            );
+        }
+    }
+
+    // Store event type for database logging
+    let (event_type, action) = match &payload {
+        LinearWebhookPayload::AgentSessionEvent(event) => {
+            (event.event_type.clone(), event.action.clone())
+        }
+        LinearWebhookPayload::Other(generic) => {
+            (generic.event_type.clone(), generic.action.clone())
+        }
+    };
 
     let event_id = sqlx::query!(
         r#"
@@ -102,7 +169,7 @@ pub(crate) async fn linear_webhook(
         RETURNING linear_webhook_event_id
         "#,
         Uuid::new_v4(),
-        format!("{}.{}", payload.event_type, payload.action),
+        format!("{}.{}", event_type, action),
         serde_json::to_value(&payload)?
     )
     .fetch_one(&app_state.db)

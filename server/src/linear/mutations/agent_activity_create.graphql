@@ -1,0 +1,9 @@
+mutation AgentActivityCreate($input: AgentActivityCreateInput!) {
+  agentActivityCreate(input: $input) {
+    success
+    agentActivity {
+      id
+      createdAt
+    }
+  }
+}

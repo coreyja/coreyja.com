@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use cja::color_eyre::eyre::Context;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::info;
 
 use crate::{
-    http_server::webhooks::linear::{
-        LinearActivityType, LinearAgentActivity, LinearWebhookPayload,
-    },
+    encrypt::decrypt,
+    http_server::webhooks::linear::LinearWebhookPayload,
+    linear::{agent::AgentActivityContent, graphql::create_agent_activity},
     state::AppState,
 };
 use cja::jobs::Job as JobTrait;
@@ -20,34 +20,73 @@ pub struct ProcessLinearWebhook {
 impl JobTrait<AppState> for ProcessLinearWebhook {
     const NAME: &'static str = "ProcessLinearWebhook";
 
-    async fn run(&self, _app_state: AppState) -> cja::Result<()> {
-        let payload = &self.payload;
+    async fn run(&self, app_state: AppState) -> cja::Result<()> {
+        match &self.payload {
+            LinearWebhookPayload::AgentSessionEvent(event) => {
+                info!(
+                    action = event.action,
+                    session_id = event.agent_session.id,
+                    "Processing Linear agent session webhook"
+                );
 
-        info!(
-            action = payload.action,
-            event_type = payload.event_type,
-            "Processing Linear webhook in background job"
-        );
+                match event.action.as_str() {
+                    "created" => {
+                        info!("Agent session created, acknowledging with thought activity");
 
-        match (payload.event_type.as_str(), payload.action.as_str()) {
-            ("AgentSession", "created") => {
-                info!("Agent session created, acknowledging with thought activity");
+                        // Look up the access token by workspace/organization ID
+                        let installation = sqlx::query!(
+                            r#"
+                            SELECT encrypted_access_token
+                            FROM linear_installations
+                            WHERE external_workspace_id = $1
+                            ORDER BY updated_at DESC
+                            LIMIT 1
+                            "#,
+                            event.organization_id
+                        )
+                        .fetch_optional(&app_state.db)
+                        .await?
+                        .ok_or_else(|| {
+                            cja::color_eyre::eyre::eyre!(
+                                "No Linear installation found for workspace {}",
+                                event.organization_id
+                            )
+                        })?;
 
-                if let Some(webhook_url) = &payload.url {
-                    let activity = LinearAgentActivity {
-                        activity_type: LinearActivityType::Thought,
-                        message: "Processing request...".to_string(),
-                    };
+                        let access_token = decrypt(
+                            &installation.encrypted_access_token,
+                            &app_state.encrypt_config,
+                        )?;
 
-                    emit_agent_activity(webhook_url, activity)
-                        .await
-                        .wrap_err("Failed to emit initial thought activity")?;
+                        // Send initial thought activity
+                        let content = AgentActivityContent::thought("Processing request...");
+
+                        create_agent_activity(&access_token, &event.agent_session.id, content)
+                            .await
+                            .wrap_err("Failed to emit initial thought activity")?;
+
+                        info!("Successfully sent initial thought activity");
+                    }
+                    "prompted" => {
+                        info!("Agent session prompted with user message");
+
+                        // Handle prompted events here when needed
+                        // The user has sent a message, available in event.agent_session.agent_activity
+                        if let Some(activity) = &event.agent_session.agent_activity {
+                            info!(user_message = activity.body, "Received user prompt");
+                        }
+
+                        // TODO: Process the user's message and respond appropriately
+                    }
+                    _ => {
+                        info!(action = event.action, "Unhandled agent session action");
+                    }
                 }
             }
-            _ => {
+            LinearWebhookPayload::Other(generic) => {
                 info!(
-                    event_type = payload.event_type,
-                    action = payload.action,
+                    event_type = generic.event_type,
+                    action = generic.action,
                     "Unhandled webhook event type"
                 );
             }
@@ -55,25 +94,4 @@ impl JobTrait<AppState> for ProcessLinearWebhook {
 
         Ok(())
     }
-}
-
-async fn emit_agent_activity(webhook_url: &str, activity: LinearAgentActivity) -> cja::Result<()> {
-    let client = reqwest::Client::new();
-
-    let response = client
-        .post(webhook_url)
-        .json(&activity)
-        .send()
-        .await
-        .wrap_err("Failed to emit agent activity")?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(cja::color_eyre::eyre::eyre!(
-            "Failed to emit agent activity: {status} - {body}"
-        ));
-    }
-
-    Ok(())
 }
