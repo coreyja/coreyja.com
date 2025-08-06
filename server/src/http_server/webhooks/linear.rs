@@ -8,37 +8,39 @@ use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Sha256;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 use crate::{
     http_server::{ResponseResult, ServerError},
+    jobs::linear_webhook_processor::ProcessLinearWebhook,
     AppState,
 };
+use cja::jobs::Job as JobTrait;
 
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LinearWebhookPayload {
-    action: String,
+    pub action: String,
     #[serde(rename = "type")]
-    event_type: String,
-    data: Value,
-    url: Option<String>,
+    pub event_type: String,
+    pub data: Value,
+    pub url: Option<String>,
     #[serde(rename = "createdAt")]
-    created_at: String,
+    pub created_at: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct LinearAgentActivity {
+pub struct LinearAgentActivity {
     #[serde(rename = "type")]
-    activity_type: LinearActivityType,
-    message: String,
+    pub activity_type: LinearActivityType,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-enum LinearActivityType {
+pub enum LinearActivityType {
     Thought,
     Action,
     Response,
@@ -64,31 +66,6 @@ async fn verify_webhook_signature(
 
     if signature != expected_signature {
         return Err(cja::color_eyre::eyre::eyre!("Invalid webhook signature").into());
-    }
-
-    Ok(())
-}
-
-async fn emit_agent_activity(
-    webhook_url: &str,
-    activity: LinearAgentActivity,
-) -> Result<(), ServerError> {
-    let client = reqwest::Client::new();
-
-    let response = client
-        .post(webhook_url)
-        .json(&activity)
-        .send()
-        .await
-        .wrap_err("Failed to emit agent activity")?;
-
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(cja::color_eyre::eyre::eyre!(
-            "Failed to emit agent activity: {status} - {body}"
-        )
-        .into());
     }
 
     Ok(())
@@ -132,40 +109,15 @@ pub(crate) async fn linear_webhook(
     .await?
     .linear_webhook_event_id;
 
-    match (payload.event_type.as_str(), payload.action.as_str()) {
-        ("AgentSession", "created") => {
-            info!("Agent session created, acknowledging with thought activity");
+    // Enqueue the job to process the webhook in the background
+    ProcessLinearWebhook { payload }
+        .enqueue(app_state.clone(), "Linear webhook processing".to_string())
+        .await?;
 
-            if let Some(webhook_url) = payload.url {
-                let activity = LinearAgentActivity {
-                    activity_type: LinearActivityType::Thought,
-                    message: "Processing request...".to_string(),
-                };
-
-                if let Err(e) = emit_agent_activity(&webhook_url, activity).await {
-                    error!("Failed to emit initial thought activity: {e}");
-                }
-            }
-        }
-        _ => {
-            info!(
-                event_type = payload.event_type,
-                action = payload.action,
-                "Unhandled webhook event type"
-            );
-        }
-    }
-
-    sqlx::query!(
-        r#"
-        UPDATE linear_webhook_events
-        SET processed_at = NOW()
-        WHERE linear_webhook_event_id = $1
-        "#,
-        event_id
-    )
-    .execute(&app_state.db)
-    .await?;
+    info!(
+        event_id = %event_id,
+        "Linear webhook enqueued for background processing"
+    );
 
     ResponseResult::Ok(StatusCode::OK)
 }
