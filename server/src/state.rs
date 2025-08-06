@@ -12,7 +12,8 @@ use url::Url;
 
 use crate::{
     discord::DiscordClient, encrypt, github::GithubConfig, google::GoogleConfig,
-    http_server::pages::blog::md::SyntaxHighlightingContext, twitch::TwitchConfig,
+    http_server::pages::blog::md::SyntaxHighlightingContext, linear::LinearConfig,
+    twitch::TwitchConfig,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -96,6 +97,7 @@ pub(crate) struct AppState {
     pub github: GithubConfig,
     pub open_ai: OpenAiConfig,
     pub google: GoogleConfig,
+    pub linear: LinearConfig,
     pub app: AppConfig,
     pub standup: StandupConfig,
     pub syntax_highlighting_context: SyntaxHighlightingContext,
@@ -135,6 +137,7 @@ impl AppState {
             standup: StandupConfig::from_env()?,
             open_ai: OpenAiConfig::from_env()?,
             google: GoogleConfig::from_env()?,
+            linear: LinearConfig::from_env()?,
             syntax_highlighting_context: SyntaxHighlightingContext::default(),
             versions: VersionInfo::from_env(),
             blog_posts,
