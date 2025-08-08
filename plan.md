@@ -1,91 +1,342 @@
-# Plan: Fix System Prompt Handling for Anthropic API
+# AI Agent Modes Implementation Plan
 
-## Problem
-The current implementation includes system messages in the messages array, which is not allowed by the Anthropic API. System prompts should be provided as a top-level `system` parameter in the request, not as a message with role "system" in the messages array.
-There is also a Rust enum. There's just not a database enum. We do want to update the Rust enum, of course.
-## Current Implementation Issues
+## Overview
 
-1. **In `thread_processor.rs`**:
-   - The `reconstruct_messages` function includes system messages in the messages array
-   - The `AnthropicRequest` struct doesn't have a `system` field
+This plan outlines how to add different modes to the AI agent, starting with a cooking mode as the first implementation. The system will allow Discord channels to be associated with specific modes, automatically selecting the appropriate mode based on the channel context.
 
-2. **In `db/src/agentic_threads/mod.rs`**:
-   - `create_system_prompt` stores the system prompt as a message with role "system" in the messages array
-   - System prompts are stored as `InitialPrompt` stitch type, which is also used for initial user messages
+## Current Architecture Analysis
 
-## Required Changes
+### Existing Components
 
-### 1. Add new `SystemPrompt` stitch type
-- Update the database check constraint to include 'system_prompt' as a valid stitch_type value
-- This will cleanly separate system prompts from initial user messages
-- Add `SystemPrompt` variant to the `StitchType` enum in Rust code (`db/src/agentic_threads/mod.rs`)
+1. **Thread System**
+   - `Thread` struct with `goal`, `status`, `thread_type` (Autonomous/Interactive)
+   - `Stitch` system for tracking individual steps/messages
+   - `ThreadBuilder` for creating new threads with Discord metadata
 
-### 2. Update `AnthropicRequest` struct (`server/src/al/standup.rs`)
-- Add an optional `system` field to the struct:
-  ```rust
-  pub struct AnthropicRequest {
-      pub model: String,
-      pub max_tokens: u32,
-      pub system: Option<String>,  // Add this field
-      pub messages: Vec<Message>,
-      pub tools: Vec<AnthropicTool>,
-      pub tool_choice: Option<ToolChoice>,
-  }
-  ```
+2. **Discord Integration**
+   - `DiscordThreadMetadata` links threads to Discord channels/threads
+   - Stores `channel_id`, `guild_id`, `thread_name`
+   - Discord messages processor creates interactive threads
 
-### 3. Create new `extract_system_prompt` function (`server/src/jobs/thread_processor.rs`)
-- Create a new function that returns `Option<String>`
-- Look for a `SystemPrompt` stitch type
-- Extract and return the system prompt text from the `llm_request` field (expecting format: `{"text": "system prompt content"}`)
-- Error if multiple system prompts are found in a thread
+3. **Memory System**
+   - `MemoryBlock` table with `block_type` (currently only 'persona')
+   - `MemoryManager` handles memory operations
+   - System prompts generated dynamically with persona integration
 
-### 4. Update `reconstruct_messages` function (`server/src/jobs/thread_processor.rs`)
-- Add a new match arm for `SystemPrompt` stitch type that does nothing (skip it)
-- Remove the current logic that handles system messages within `InitialPrompt`
-- Only process actual initial user messages from `InitialPrompt` stitches
+4. **System Prompts**
+   - `PromptGenerator` creates system prompts based on thread type
+   - Includes base instructions, persona, and Discord-specific instructions
+   - Different behavior for Interactive vs Autonomous threads
 
-### 5. Update `process_single_step` function (`server/src/jobs/thread_processor.rs`)
-- Call `extract_system_prompt` to get the system prompt
-- Pass the system prompt to the `AnthropicRequest` constructor
-- Update the match statement for previous stitch types to include `SystemPrompt`
+## Proposed Mode System Design
 
-### 6. Update `create_system_prompt` function (`db/src/agentic_threads/mod.rs`)
-- Change to use the new `SystemPrompt` stitch type instead of `InitialPrompt`
-- Store the system prompt in `llm_request` as: `{"text": "system prompt content"}`
-- Update the SQL query to use 'system_prompt' as the stitch_type
+### Core Concepts
 
-### 7. Database Migration
-- Create a migration to update the check constraint on the stitch_type column to include 'system_prompt'
-- The migration will need to:
-  - Drop the existing check constraint
-  - Add a new check constraint that includes 'system_prompt' as a valid value
+1. **Mode Definition**
+   - Each mode represents a specialized behavior set (cooking, coding, general, etc.)
+   - Modes define: system prompts, available tools, memory contexts, behavioral guidelines
 
-### 8. Update tests
-- All tests in `thread_processor.rs` that involve system prompts need to be updated
-- `test_reconstruct_messages_with_system_prompt` should verify system messages are excluded from the messages array
-- Add new tests for `extract_system_prompt` function
-- Update test that creates system prompts to use the new stitch type
+2. **Channel-Mode Mapping**
+   - Discord channels linked to specific modes
+   - When thread created in channel, inherits channel's mode
+   - Default mode for unmapped channels
 
-## Implementation Order
+### Database Schema Changes
 
-1. Create database migration to update the stitch_type check constraint
-2. Add `SystemPrompt` to the `StitchType` enum in the Rust code
-3. Update the `AnthropicRequest` struct to add the `system` field
-4. Update `create_system_prompt` to use the new stitch type
-5. Create the new `extract_system_prompt` function
-6. Update `reconstruct_messages` to handle the new stitch type
-7. Update `process_single_step` to use both functions
-8. Update all affected tests
-9. Run tests to ensure everything works correctly
+```sql
+-- 1. Add mode to threads table
+ALTER TABLE threads ADD COLUMN mode text;
+ALTER TABLE threads ADD CONSTRAINT threads_mode_check 
+    CHECK (mode IN ('general', 'cooking', 'project_manager'));
+UPDATE threads SET mode = 'general' WHERE mode IS NULL;
+ALTER TABLE threads ALTER COLUMN mode SET NOT NULL;
+ALTER TABLE threads ALTER COLUMN mode SET DEFAULT 'general';
+
+-- 2. Add mode column to existing DiscordChannels table
+ALTER TABLE DiscordChannels ADD COLUMN mode text;
+ALTER TABLE DiscordChannels ADD CONSTRAINT discord_channels_mode_check 
+    CHECK (mode IN ('general', 'cooking', 'project_manager'));
+-- Default all existing channels to 'general' mode
+UPDATE DiscordChannels SET mode = 'general' WHERE mode IS NULL;
+ALTER TABLE DiscordChannels ALTER COLUMN mode SET DEFAULT 'general';
+```
+
+### Code Structure Changes
+
+#### 1. Create Mode Enum
+```rust
+// db/src/agentic_threads/mod.rs
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+pub enum ThreadMode {
+    General,
+    Cooking,
+    ProjectManager,
+}
+```
+
+#### 2. Update Thread Model
+```rust
+// db/src/agentic_threads/mod.rs
+pub struct Thread {
+    // ... existing fields
+    pub mode: ThreadMode, // Defaults to General
+}
+```
+
+#### 3. Update DiscordChannel Model
+```rust
+// db/src/lib.rs (or wherever DiscordChannel is defined)
+pub struct DiscordChannel {
+    // ... existing fields
+    pub mode: ThreadMode, // Defaults to General
+}
+```
+
+#### 4. Mode-Specific System Prompts
+```rust
+// server/src/memory/prompts.rs
+impl PromptGenerator {
+    pub async fn generate_mode_instructions(mode: &ThreadMode) -> &'static str {
+        match mode {
+            ThreadMode::Cooking => {
+                "You are a culinary assistant specializing in:
+                - Recipe suggestions and modifications
+                - Meal planning and preparation
+                - Ingredient substitutions
+                - Cooking techniques and tips
+                - Dietary accommodations
+                Track recipes discussed and modifications made."
+            },
+            ThreadMode::ProjectManager => {
+                "You are a project management assistant specializing in:
+                - Task breakdown and prioritization
+                - Timeline and milestone planning
+                - Resource allocation and dependency tracking
+                - Risk assessment and mitigation strategies
+                - Progress monitoring and status reporting
+                Help organize work into actionable tasks with clear deliverables."
+            },
+            ThreadMode::General => {
+                "" // General mode uses standard base instructions
+            }
+        }
+    }
+}
+```
+
+#### 5. Mode-Specific Tools
+```rust
+// server/src/al/tools/mod.rs
+pub fn get_tools_for_mode(mode: &ThreadMode) -> Vec<Tool> {
+    let mut tools = vec![/* base tools always available */];
+    
+    match mode {
+        ThreadMode::Cooking => {
+            tools.extend(vec![
+                Tool::SearchRecipes,
+                Tool::SaveRecipe,
+                Tool::GetRecipeHistory,
+                Tool::UpdateInventory,
+                // Future: ScanReceipt, PlanMeals
+            ]);
+        },
+        ThreadMode::ProjectManager => {
+            tools.extend(vec![
+                Tool::CreateTask,
+                Tool::UpdateTaskStatus,
+                Tool::CreateMilestone,
+                Tool::TrackDependencies,
+                Tool::GenerateStatusReport,
+                // Future: GanttChart, ResourcePlanning
+            ]);
+        },
+        ThreadMode::General => {
+            // Standard tool set, no mode-specific additions
+        }
+    }
+    tools
+}
+```
+
+### Implementation Phases
+
+## Phase 1: Core Mode Infrastructure (Week 1)
+
+1. **Database Migration**
+   - Add mode column to threads table
+   - Add mode column to DiscordChannels table
+   - Set default mode for existing channels
+
+2. **Model Updates**
+   - Add ThreadMode enum
+   - Update Thread struct
+   - Update DiscordChannel struct with mode field
+
+3. **Thread Creation Updates**
+   - ThreadBuilder accepts mode parameter
+   - Look up channel mode from DiscordChannels when creating Discord threads
+   - Default to 'general' mode if not specified
+
+4. **System Prompt Integration**
+   - Update PromptGenerator for mode-specific instructions
+   - Combine base + persona + mode + context instructions
+
+## Phase 2: Cooking Mode MVP (Week 2)
+
+1. **Cooking-Specific System Prompt**
+   - Culinary expertise instructions
+   - Recipe tracking guidelines
+   - Meal planning context
+
+2. **Basic Recipe Tools**
+   - SearchRecipes: Find recipes from web/database
+   - SaveRecipe: Store recipes with metadata
+   - GetRecipeHistory: Retrieve past recipes and modifications
+
+3. **Recipe Storage**
+   - Create recipes table
+   - Store full recipe content (not just links)
+   - Track modifications and ratings
+
+4. **Discord Channel Setup**
+   - Create cooking channel
+   - Map channel to cooking mode
+   - Test thread creation with cooking mode
+
+## Phase 3: Project Manager Mode (Week 3)
+
+1. **Project Management Tools**
+   - Task creation and tracking
+   - Milestone management
+   - Dependency tracking between tasks
+   - Status report generation
+
+2. **Project Context**
+   - Store project goals and constraints
+   - Track team members and resources
+   - Timeline and deadline management
+
+3. **Integration Features**
+   - Link tasks to Discord threads
+   - Progress notifications
+   - Weekly status summaries
+
+## Phase 4: Enhanced Cooking Features (Week 4)
+
+1. **Recipe Management**
+   - Recipe rating system
+   - Post-meal feedback collection
+   - Recipe version history
+
+2. **Cooking Context Tracking**
+   - Store cooking preferences per thread
+   - Track dietary restrictions in thread metadata
+   - Remember favorite recipes in recipe history
+
+3. **Proactive Interactions**
+   - Meal planning reminders
+   - Recipe suggestions based on history
+   - Follow-up on recent meals
+
+## Phase 5: Mode Management UI (Week 5)
+
+1. **Admin Interface**
+   - View/edit DiscordChannels mode settings
+   - Create new modes
+   - View mode usage statistics
+
+2. **Mode Switching**
+   - Command to change channel mode
+   - Temporary mode override for threads
+   - Mode inheritance for child threads
+
+## Future Enhancements
+
+### Additional Modes
+- **Writing Mode**: Blog posts, documentation, creative writing
+- **Learning Mode**: Educational content, study assistance
+- **Coding Mode**: Code review, debugging, architecture discussions
+
+### Advanced Features
+- Mid-thread mode switching
+- Mode-specific context persistence
+- Cross-mode knowledge sharing
+- Mode performance analytics
+
+### Cooking Mode Phase 2
+- Inventory management system
+- Receipt scanning and processing
+- Instacart integration
+- Automated shopping lists
+- Meal planning calendar
 
 ## Testing Strategy
 
-1. Unit tests should verify:
-   - System prompts are extracted correctly
-   - Messages array only contains user and assistant messages
-   - The API request is formed correctly with system as a top-level field
-   - Error is thrown when multiple system prompts exist in a thread
+1. **Unit Tests**
+   - Mode selection logic
+   - Tool filtering by mode
+   - System prompt generation
 
-2. Integration testing should verify:
-   - The Anthropic API accepts the new request format
-   - System prompts are properly applied to the model's behavior
+2. **Integration Tests**
+   - Thread creation with modes
+   - Channel mode lookup from DiscordChannels
+   - Mode-specific tool execution
+
+3. **E2E Tests**
+   - Discord message to thread creation
+   - Mode inheritance
+   - Tool availability per mode
+
+## Migration Path
+
+1. All existing threads get 'general' mode (preserving current behavior)
+2. All channels default to 'general' mode initially
+3. Gradual rollout: change specific channels to cooking/project_manager modes as needed
+4. Monitor and adjust based on usage
+
+## Success Metrics
+
+- Successful mode selection based on channel
+- Mode-appropriate responses
+- Tool usage aligned with mode
+- User satisfaction with specialized behavior
+- Reduced context switching for mode-specific tasks
+
+## Risk Mitigation
+
+1. **Backwards Compatibility**
+   - General mode preserves existing functionality
+   - Gradual rollout minimizes disruption
+
+2. **Mode Confusion**
+   - Clear mode indicators in responses
+   - Ability to query current mode
+   - Override mechanisms available
+
+3. **Performance**
+   - Lazy load mode-specific tools
+   - Cache mode mappings
+   - Optimize prompt generation
+
+## Development Checklist
+
+- [ ] Database migrations for threads and DiscordChannels
+- [ ] ThreadMode enum implementation (General, Cooking, ProjectManager)
+- [ ] Update DiscordChannel model with mode field
+- [ ] ThreadBuilder mode support
+- [ ] Mode lookup from DiscordChannels on thread creation
+- [ ] Mode-specific system prompts
+- [ ] Mode-specific tool filtering
+- [ ] Cooking mode system prompt
+- [ ] Basic recipe tools
+- [ ] Recipe storage schema
+- [ ] Project Manager mode system prompt
+- [ ] Basic project management tools
+- [ ] Task/milestone storage schema
+- [ ] Discord commands to set channel mode
+- [ ] Mode indicator in thread viewer
+- [ ] Tests for mode selection
+- [ ] Tests for cooking mode
+- [ ] Tests for project manager mode
+- [ ] Documentation updates
