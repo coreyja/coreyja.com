@@ -39,7 +39,9 @@
       "Bash(./scripts/dev-build.sh:*)",
       "Bash(./scripts/build-frontend.sh:*)",
       "Bash(./scripts/build-all.sh:*)",
-      "Bash(jj bookmark:*)"
+      "Bash(jj bookmark:*)",
+      "Bash(./scripts/auto-fix-all.sh:*)",
+      "Bash(cargo sqlx mig:*)"
     ],
     "deny": []
   }

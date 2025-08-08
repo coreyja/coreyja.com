@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 
 pub mod agentic_threads;
+pub use agentic_threads::ThreadMode;
 pub mod discord_threads;
 pub mod tool_suggestions;
 pub mod twitch_chatters;
@@ -55,6 +56,7 @@ pub struct DiscordChannel {
     pub channel_topic: Option<String>,
     pub channel_id: String,
     pub purpose: String,
+    pub mode: ThreadMode,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

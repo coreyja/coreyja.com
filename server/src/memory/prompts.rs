@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use db::agentic_threads::{Thread, ThreadType};
+use db::agentic_threads::{Thread, ThreadMode, ThreadType};
 use sqlx::PgPool;
 use std::fmt::Write;
 
@@ -19,6 +19,14 @@ impl PromptGenerator {
 
         // Add thread goal
         write!(system_content, "\nCurrent goal: {}\n", thread.goal)?;
+
+        // Add mode-specific instructions
+        let mode_instructions = Self::generate_mode_instructions(&thread.mode);
+        if !mode_instructions.is_empty() {
+            system_content.push_str("\n--- MODE-SPECIFIC INSTRUCTIONS ---\n");
+            system_content.push_str(mode_instructions);
+            system_content.push_str("\n--- END MODE-SPECIFIC INSTRUCTIONS ---\n");
+        }
 
         // Add persona if available
         let persona = MemoryBlock::get_persona(pool).await?;
@@ -52,6 +60,32 @@ impl PromptGenerator {
         - You can react to messages using emojis when appropriate\n\
         - Each message shows the Message ID that you can use to react to specific messages\n\
         - You can list available custom server emojis using the list_server_emojis tool"
+    }
+
+    pub fn generate_mode_instructions(mode: &ThreadMode) -> &'static str {
+        match mode {
+            ThreadMode::Cooking => {
+                "You are a culinary assistant specializing in:\n\
+                - Recipe suggestions and modifications\n\
+                - Meal planning and preparation\n\
+                - Ingredient substitutions\n\
+                - Cooking techniques and tips\n\
+                - Dietary accommodations\n\
+                Track recipes discussed and modifications made."
+            }
+            ThreadMode::ProjectManager => {
+                "You are a project management assistant specializing in:\n\
+                - Task breakdown and prioritization\n\
+                - Timeline and milestone planning\n\
+                - Resource allocation and dependency tracking\n\
+                - Risk assessment and mitigation strategies\n\
+                - Progress monitoring and status reporting\n\
+                Help organize work into actionable tasks with clear deliverables."
+            }
+            ThreadMode::General => {
+                "" // General mode uses standard base instructions only
+            }
+        }
     }
 }
 
@@ -100,6 +134,7 @@ mod tests {
             "Test thread goal".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            None,
         )
         .await
         .unwrap();
@@ -136,6 +171,7 @@ mod tests {
             "Test thread goal".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            None,
         )
         .await
         .unwrap();
@@ -165,6 +201,7 @@ mod tests {
             "Discord thread goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            None,
         )
         .await
         .unwrap();
@@ -200,6 +237,7 @@ mod tests {
             "Interactive Discord goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            None,
         )
         .await
         .unwrap();

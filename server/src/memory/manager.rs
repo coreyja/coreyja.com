@@ -111,6 +111,7 @@ mod tests {
             "Autonomous goal".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            None,
         )
         .await
         .unwrap();
@@ -119,6 +120,7 @@ mod tests {
             "Interactive goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            None,
         )
         .await
         .unwrap();

@@ -1,0 +1,2 @@
+- Make ThreadMode implement Default as `general` and use that unstead of `map_or_else` when we want the default
+- Use the frontend agent to add mode to the frontend
