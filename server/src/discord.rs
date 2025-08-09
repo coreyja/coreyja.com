@@ -66,8 +66,11 @@ pub(crate) struct DiscordSetup {
     pub app_state_holder: Arc<Mutex<Option<AppState>>>,
 }
 
-pub(crate) async fn setup() -> cja::Result<DiscordSetup> {
-    let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
+pub(crate) async fn setup() -> cja::Result<Option<DiscordSetup>> {
+    let Ok(token) = std::env::var("DISCORD_TOKEN") else {
+        tracing::info!("DISCORD_TOKEN not set, skipping Discord setup");
+        return Ok(None);
+    };
     let intents =
         serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
@@ -102,11 +105,11 @@ pub(crate) async fn setup() -> cja::Result<DiscordSetup> {
         cache: client.cache.clone(),
     };
 
-    Ok(DiscordSetup {
+    Ok(Some(DiscordSetup {
         bot: DiscordBot(client),
         client: outside_client,
         app_state_holder,
-    })
+    }))
 }
 
 async fn event_handler(
