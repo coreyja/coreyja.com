@@ -74,9 +74,15 @@ impl Tool for SendDiscordMessage {
         let create_message = CreateMessage::new().content(message.build());
         let discord_channel_id = ChannelId::new(input.channel_id);
 
+        // Check if Discord is configured
+        let discord = app_state
+            .discord
+            .as_ref()
+            .ok_or_else(|| cja::color_eyre::eyre::eyre!("Discord not configured"))?;
+
         // Send the message
         discord_channel_id
-            .send_message(&app_state.discord, create_message)
+            .send_message(discord, create_message)
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to send Discord message: {}", e))?;
 
@@ -170,9 +176,15 @@ impl Tool for SendDiscordThreadMessage {
             create_message = create_message.reference_message((channel_id, message_id));
         }
 
+        // Check if Discord is configured
+        let discord = app_state
+            .discord
+            .as_ref()
+            .ok_or_else(|| cja::color_eyre::eyre::eyre!("Discord not configured"))?;
+
         // Send the message
         let sent_message = channel_id
-            .send_message(&app_state.discord, create_message)
+            .send_message(discord, create_message)
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to send Discord message: {}", e))?;
 
@@ -369,9 +381,14 @@ impl Tool for ReactToMessage {
             serenity::all::ReactionType::Unicode(input.emoji.clone())
         };
 
-        // Add the reaction
-        app_state
+        // Check if Discord is configured
+        let discord = app_state
             .discord
+            .as_ref()
+            .ok_or_else(|| cja::color_eyre::eyre::eyre!("Discord not configured"))?;
+
+        // Add the reaction
+        discord
             .http
             .create_reaction(channel_id, message_id, &reaction_type)
             .await
@@ -457,15 +474,21 @@ impl Tool for ListServerEmojis {
                 .map_err(|_| cja::color_eyre::eyre::eyre!("Invalid guild ID"))?,
         );
 
+        // Check if Discord is configured
+        let discord = app_state
+            .discord
+            .as_ref()
+            .ok_or_else(|| cja::color_eyre::eyre::eyre!("Discord not configured"))?;
+
         // Get the guild
         let guild = guild_id
-            .to_partial_guild(&app_state.discord.http)
+            .to_partial_guild(&discord.http)
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to get guild: {}", e))?;
 
         // Get emojis from the guild
         let emojis = guild
-            .emojis(&app_state.discord.http)
+            .emojis(&discord.http)
             .await
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to get emojis: {}", e))?;
 

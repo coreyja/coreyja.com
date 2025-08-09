@@ -32,9 +32,14 @@ impl JobTrait<AppState> for ProcessDiscordMessage {
             return Ok(());
         }
 
+        let Some(ref discord) = app_state.discord else {
+            tracing::info!("Discord not configured, skipping message processing");
+            return Ok(());
+        };
+
         // Get the channel to check its type
-        let channel = msg.channel_id.to_channel(&app_state.discord).await?;
-        let bot_user = app_state.discord.cache.current_user().clone();
+        let channel = msg.channel_id.to_channel(discord).await?;
+        let bot_user = discord.cache.current_user().clone();
 
         // Check if this is in a thread
         if let Some(guild_channel) = channel.guild() {
@@ -75,7 +80,11 @@ impl ProcessDiscordMessage {
 
         let thread = if let Some(discord_meta) = existing_discord {
             self.get_existing_thread(db, discord_meta.thread_id).await?
-        } else if Self::is_bot_mentioned(&self.message, &app_state.discord.cache.current_user()) {
+        } else if app_state
+            .discord
+            .as_ref()
+            .is_some_and(|d| Self::is_bot_mentioned(&self.message, &d.cache.current_user()))
+        {
             self.create_new_thread_from_discord(db, &thread_id, guild_channel)
                 .await?
         } else {
@@ -175,7 +184,7 @@ impl ProcessDiscordMessage {
             .auto_archive_duration(serenity::AutoArchiveDuration::OneDay);
 
         guild_channel
-            .create_thread_from_message(&app_state.discord.http, msg.id, builder)
+            .create_thread_from_message(&app_state.discord.as_ref().unwrap().http, msg.id, builder)
             .await
             .map_err(Into::into)
     }
