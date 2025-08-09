@@ -1,5 +1,5 @@
 use color_eyre::eyre::{eyre, Result};
-use db::agentic_threads::{Stitch, Thread, ThreadType};
+use db::agentic_threads::{Stitch, Thread, ThreadMode, ThreadType};
 use db::discord_threads::DiscordThreadMetadata;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -20,6 +20,7 @@ pub struct ThreadBuilder {
     thread_type: ThreadType,
     branching_stitch_id: Option<Uuid>,
     discord_metadata: Option<DiscordMetadata>,
+    mode: ThreadMode,
 }
 
 impl ThreadBuilder {
@@ -30,6 +31,7 @@ impl ThreadBuilder {
             thread_type: ThreadType::Autonomous,
             branching_stitch_id: None,
             discord_metadata: None,
+            mode: ThreadMode::default(),
         }
     }
 
@@ -54,6 +56,11 @@ impl ThreadBuilder {
         self
     }
 
+    pub fn with_mode(mut self, mode: ThreadMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
     pub async fn build(self) -> Result<Thread> {
         // Validate
         if self.goal.is_empty() {
@@ -73,6 +80,7 @@ impl ThreadBuilder {
             self.goal,
             self.branching_stitch_id,
             Some(self.thread_type),
+            Some(self.mode),
         )
         .await?;
 
