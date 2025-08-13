@@ -406,7 +406,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_empty_stitches(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -418,7 +418,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_system_prompt(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -454,7 +454,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_extract_system_prompt(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -483,7 +483,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_extract_system_prompt_multiple_error(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -518,7 +518,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_single_llm_call(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -569,7 +569,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_tool_calls(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -666,7 +666,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_tool_error(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -736,7 +736,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_discord_after_tool_call(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -884,7 +884,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_multiple_tool_results_grouped(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -981,7 +981,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_cache_control(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;
@@ -1090,7 +1090,7 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_duplicate_tool_calls(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
+        let thread = Thread::create(&pool, "Test thread".to_string(), None, None, None)
             .await
             .unwrap();
         let thread_id = thread.thread_id;

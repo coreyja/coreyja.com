@@ -147,6 +147,47 @@ impl From<String> for ThreadStatus {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "text")]
+#[sqlx(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[derive(Default)]
+pub enum ThreadMode {
+    #[default]
+    General,
+    Cooking,
+    ProjectManager,
+}
+
+impl fmt::Display for ThreadMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ThreadMode::General => write!(f, "general"),
+            ThreadMode::Cooking => write!(f, "cooking"),
+            ThreadMode::ProjectManager => write!(f, "project_manager"),
+        }
+    }
+}
+
+impl std::str::FromStr for ThreadMode {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "general" => Ok(ThreadMode::General),
+            "cooking" => Ok(ThreadMode::Cooking),
+            "project_manager" => Ok(ThreadMode::ProjectManager),
+            _ => Err(format!("Unknown thread mode: {s}")),
+        }
+    }
+}
+
+impl From<String> for ThreadMode {
+    fn from(s: String) -> Self {
+        s.parse().expect("Invalid thread mode")
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Thread {
     pub thread_id: Uuid,
@@ -157,6 +198,7 @@ pub struct Thread {
     pub result: Option<JsonValue>,
     pub pending_child_results: JsonValue,
     pub thread_type: ThreadType,
+    pub mode: ThreadMode,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -183,21 +225,24 @@ impl Thread {
         goal: String,
         branching_stitch_id: Option<Uuid>,
         thread_type: Option<ThreadType>,
+        mode: Option<ThreadMode>,
     ) -> color_eyre::Result<Self> {
         let thread_type_str =
             thread_type.map_or_else(|| "autonomous".to_string(), |t| t.to_string());
+        let mode_str = mode.map_or_else(|| "general".to_string(), |m| m.to_string());
 
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            INSERT INTO threads (goal, branching_stitch_id, thread_type)
-            VALUES ($1, $2, $3)
+            INSERT INTO threads (goal, branching_stitch_id, thread_type, mode)
+            VALUES ($1, $2, $3, $4)
             RETURNING 
                 *
             "#,
             goal,
             branching_stitch_id,
-            thread_type_str
+            thread_type_str,
+            mode_str
         )
         .fetch_one(pool)
         .await?;

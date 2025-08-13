@@ -1,3 +1,4 @@
+use ::serenity::all::ChannelId;
 use async_trait::async_trait;
 use chrono::Utc;
 use poise::serenity_prelude as serenity;
@@ -9,8 +10,9 @@ use uuid::Uuid;
 use crate::agentic_threads::{builder::DiscordMetadata, ThreadBuilder};
 use crate::state::AppState;
 use cja::jobs::Job as JobTrait;
-use db::agentic_threads::{Stitch, Thread, ThreadStatus};
+use db::agentic_threads::{Stitch, Thread, ThreadMode, ThreadStatus};
 use db::discord_threads::DiscordThreadMetadata;
+use db::DiscordChannel;
 use serenity::builder::CreateThread;
 
 use super::thread_processor::ProcessThreadStep;
@@ -61,6 +63,33 @@ impl ProcessDiscordMessage {
         msg.mentions.iter().any(|u| u.id == bot_user.id)
     }
 
+    async fn get_channel_mode(db: &PgPool, discord_channel_id: &ChannelId) -> Option<ThreadMode> {
+        // Look up the channel in the database to get its mode
+        let discord_channel_id = discord_channel_id.to_string();
+        let channel = sqlx::query_as!(
+            DiscordChannel,
+            r#"
+            SELECT 
+                discord_channel_id,
+                channel_name,
+                channel_topic,
+                channel_id,
+                purpose,
+                mode as "mode: ThreadMode",
+                created_at,
+                updated_at
+            FROM DiscordChannels 
+            WHERE channel_id = $1
+            "#,
+            discord_channel_id
+        )
+        .fetch_optional(db)
+        .await
+        .ok()
+        .flatten()?;
+
+        Some(channel.mode)
+    }
     async fn handle_thread_message(
         &self,
         app_state: &AppState,
@@ -100,6 +129,9 @@ impl ProcessDiscordMessage {
         let db = &app_state.db;
         let msg = &self.message;
 
+        // Get the channel's mode
+        let mode = Self::get_channel_mode(db, &guild_channel.id).await;
+
         // Create a new Discord thread
         let thread_name = format!("Thread with {}", msg.author.name);
         let new_discord_thread = self
@@ -117,6 +149,7 @@ impl ProcessDiscordMessage {
 
         let ai_thread = ThreadBuilder::new(db.clone())
             .with_goal(format!("Interactive Discord thread: {thread_name}"))
+            .with_mode(mode.unwrap_or_default())
             .interactive_discord(discord_metadata)
             .build()
             .await?;
@@ -146,6 +179,10 @@ impl ProcessDiscordMessage {
         let thread_name = guild_channel.name.clone();
         let msg = &self.message;
 
+        // Get the parent channel's mode
+        let parent_channel_id = guild_channel.parent_id.unwrap_or(msg.channel_id);
+        let mode = Self::get_channel_mode(db, &parent_channel_id).await;
+
         // Create new interactive thread with Discord metadata
         let discord_metadata = DiscordMetadata {
             discord_thread_id: discord_thread_id.to_string(),
@@ -155,8 +192,14 @@ impl ProcessDiscordMessage {
             thread_name: thread_name.clone(),
         };
 
-        let thread = ThreadBuilder::new(db.clone())
-            .with_goal(format!("Interactive Discord thread: {thread_name}"))
+        let mut thread_builder = ThreadBuilder::new(db.clone())
+            .with_goal(format!("Interactive Discord thread: {thread_name}"));
+
+        if let Some(mode) = mode {
+            thread_builder = thread_builder.with_mode(mode);
+        }
+
+        let thread = thread_builder
             .interactive_discord(discord_metadata)
             .build()
             .await?;
