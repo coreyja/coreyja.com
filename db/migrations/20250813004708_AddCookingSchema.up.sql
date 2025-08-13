@@ -13,9 +13,23 @@ CREATE TABLE
     -- Author tracking
     author_user_id UUID NOT NULL, -- references users table in your main schema
     generated_by_stitch UUID NULL REFERENCES stitches (stitch_id),
+    -- Recipe relations
+    inspired_by_recipe_id UUID REFERENCES recipes (recipe_id) ON DELETE SET NULL,
+    forked_from_recipe_id UUID REFERENCES recipes (recipe_id) ON DELETE SET NULL,
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+-- Recipe variations (many-to-many self-referential)
+CREATE TABLE
+  recipe_variations (
+    recipe_id UUID REFERENCES recipes (recipe_id) ON DELETE CASCADE,
+    variation_id UUID REFERENCES recipes (recipe_id) ON DELETE CASCADE,
+    variation_notes TEXT, -- e.g., "Vegan version", "Gluten-free adaptation"
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (recipe_id, variation_id),
+    CHECK (recipe_id != variation_id)
   );
 
 -- Units table
@@ -80,6 +94,7 @@ CREATE TABLE
     quantity DECIMAL NOT NULL,
     unit_id UUID REFERENCES units (unit_id) ON DELETE RESTRICT,
     display_order INTEGER,
+    ingredient_group TEXT, -- e.g., "For the sauce", "For the filling", "Topping"
     preparation TEXT CHECK (
       preparation IN (
         'diced',
@@ -193,8 +208,18 @@ CREATE TABLE
     ingredient_id UUID REFERENCES ingredients (ingredient_id) ON DELETE CASCADE,
     quantity DECIMAL NOT NULL,
     unit_id UUID REFERENCES units (unit_id) ON DELETE RESTRICT,
+    confidence_level TEXT CHECK (
+      confidence_level IN (
+        'exact',      -- Just measured/counted
+        'high',       -- Pretty sure, recently checked
+        'medium',     -- Rough estimate
+        'low',        -- Wild guess
+        'empty'       -- Know it's gone
+      )
+    ) DEFAULT 'medium',
     expiration_date DATE,
     location_id UUID REFERENCES locations (location_id) ON DELETE SET NULL,
+    notes TEXT, -- e.g., "Half used", "Need to check"
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -235,6 +260,8 @@ CREATE INDEX idx_inventory_ingredient_id ON inventory (ingredient_id);
 CREATE INDEX idx_inventory_location_id ON inventory (location_id);
 CREATE INDEX idx_meal_plan_entries_meal_plan_id ON meal_plan_entries (meal_plan_id);
 CREATE INDEX idx_meal_plan_entries_date ON meal_plan_entries (date);
+CREATE INDEX idx_recipe_variations_recipe_id ON recipe_variations (recipe_id);
+CREATE INDEX idx_recipe_variations_variation_id ON recipe_variations (variation_id);
 
 -- Trigger to update updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
