@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 
 pub mod agentic_threads;
+pub use agentic_threads::ThreadMode;
+pub mod cooking;
 pub mod discord_threads;
 pub mod linear_threads;
 pub mod models;

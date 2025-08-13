@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO recipe_equipment (\n                recipe_id, equipment_id, is_optional, notes\n            )\n            VALUES ($1, $2, $3, $4)\n            RETURNING \n                recipe_id,\n                equipment_id,\n                is_optional,\n                notes\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "recipe_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "equipment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_optional",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "9076b6b3317f0e5b06d2465a71691189dfc8602a9847762e31a70c011e8ddeba"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM step_ingredients WHERE step_id = $1 AND recipe_ingredient_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bb15732741b1210bab593057955de10395b1ff4e97a15da08eb516d31e9cf117"
+}
