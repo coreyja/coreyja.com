@@ -305,7 +305,7 @@ mod tests {
     async fn test_insert_sponsors_upsert_behavior(pool: PgPool) {
         let sponsor = create_test_sponsor("gh_user_1", "testuser1", true);
 
-        let result = insert_sponsors(&[sponsor.clone()], &pool).await;
+        let result = insert_sponsors(std::slice::from_ref(&sponsor), &pool).await;
         assert!(result.is_ok());
 
         let mut updated_sponsor = sponsor;
