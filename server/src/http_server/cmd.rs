@@ -136,7 +136,7 @@ pub(crate) async fn serve() -> Result<()> {
         futures.push(tokio::spawn(job_worker(
             app_state.clone(),
             job_registry,
-            Duration::from_secs(3),
+            Duration::from_millis(500),
         )));
     } else {
         info!("Jobs Disabled");

@@ -9,6 +9,7 @@ use super::{
     COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
     Router::new()
         .route("/_", get(pages::admin::versions))
@@ -45,6 +46,11 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .nest("/blog", old_blog_routes())
         .route("/newsletter", get(newsletter_get))
         .route("/auth/github", get(auth::github_oauth::github_oauth))
+        .route("/api/linear/auth", get(auth::linear_oauth::linear_auth))
+        .route(
+            "/api/linear/callback",
+            get(auth::linear_oauth::linear_callback),
+        )
         .nest("/login", pages::login::routes())
         .route("/my/account", get(pages::account::account_page))
         .route("/my/sponsorship", get(pages::account::sponsorship_page))
@@ -99,6 +105,10 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         )
         .nest("/admin/persona", admin::persona::router())
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
+        .route(
+            "/api/linear/webhooks",
+            post(webhooks::linear::linear_webhook),
+        )
         .route("/bytes", get(pages::bytes::bytes_index))
         .route("/bytes/{slug}", get(pages::bytes::byte_get))
         .route(

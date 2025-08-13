@@ -1,0 +1,9 @@
+query GetWorkspace {
+  viewer {
+    organization {
+      id
+      name
+      urlKey
+    }
+  }
+}

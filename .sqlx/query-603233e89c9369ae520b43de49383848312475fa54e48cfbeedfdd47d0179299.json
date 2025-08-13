@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE linear_installations\n            SET\n                external_actor_id = $1,\n                encrypted_access_token = $2,\n                token_expires_at = $3,\n                scopes = $4,\n                updated_at = NOW()\n            WHERE linear_installation_id = $5\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bytea",
+        "Timestamptz",
+        "TextArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "603233e89c9369ae520b43de49383848312475fa54e48cfbeedfdd47d0179299"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT encrypted_access_token, external_actor_id\n                    FROM linear_installations\n                    WHERE external_workspace_id = $1\n                    ORDER BY updated_at DESC\n                    LIMIT 1\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "encrypted_access_token",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 1,
+        "name": "external_actor_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "fbaa6b1986534589c7a7756ff2b49cd7b2d30d6513d3c23ee2e0642ba83619b6"
+}

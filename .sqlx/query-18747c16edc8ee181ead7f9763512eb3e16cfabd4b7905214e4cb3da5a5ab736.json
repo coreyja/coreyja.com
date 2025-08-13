@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE GithubLoginStates\n        SET state = 'linear_completed'\n        WHERE github_login_state_id = $1 AND state = 'created'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18747c16edc8ee181ead7f9763512eb3e16cfabd4b7905214e4cb3da5a5ab736"
+}

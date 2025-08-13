@@ -32,6 +32,15 @@ pub(crate) async fn dashboard(
     .fetch_optional(&app_state.db)
     .await?;
 
+    let linear_installation = sqlx::query!(
+        "
+    SELECT *
+    FROM linear_installations
+    LIMIT 1"
+    )
+    .fetch_optional(&app_state.db)
+    .await?;
+
     let last_refresh_ats = sqlx::query!("SELECT * FROM LastRefreshAts")
         .fetch_all(&app_state.db)
         .await?;
@@ -90,6 +99,22 @@ pub(crate) async fn dashboard(
             } @else {
                 p { "No Google User Found" }
                 a href="/admin/auth/google" { "Login now" }
+            }
+
+            h3 class="py-2 text-lg" { "Linear Integration" }
+            @if let Some(installation) = linear_installation {
+                p { "Linear Workspace ID: " (installation.external_workspace_id) }
+                @if let Some(actor_id) = &installation.external_actor_id {
+                    p { "Linear Actor ID: " (actor_id) }
+                }
+                p { "Installation Created: " (Timestamp(installation.created_at)) }
+                p { "Last Updated: " (Timestamp(installation.updated_at)) }
+                a href="/api/linear/auth" class="text-blue-500 hover:underline" { "Re-authenticate Linear" }
+            } @else {
+                p { "No Linear installation found" }
+                a href="/api/linear/auth" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block" {
+                    "Connect Linear Agent"
+                }
             }
         },
         OpenGraph::default(),
