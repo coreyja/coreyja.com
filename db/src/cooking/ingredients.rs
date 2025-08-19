@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
@@ -154,31 +155,31 @@ impl std::str::FromStr for IngredientTemperature {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Unit {
     pub unit_id: Uuid,
     pub name: String,
-    pub r#type: Option<UnitType>,
+    #[sqlx(rename = "type")]
+    pub unit_type: Option<UnitType>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl Unit {
     pub async fn get_by_id(pool: &PgPool, unit_id: Uuid) -> Result<Option<Self>> {
-        let unit = sqlx::query_as!(
-            Unit,
-            r#"
-            SELECT 
+        let unit = sqlx::query_as::<_, Unit>(
+            "
+            SELECT
                 unit_id,
                 name,
-                type as "r#type: UnitType",
+                type,
                 created_at,
                 updated_at
             FROM units
             WHERE unit_id = $1
-            "#,
-            unit_id
+            ",
         )
+        .bind(unit_id)
         .fetch_optional(pool)
         .await?;
 
@@ -186,20 +187,19 @@ impl Unit {
     }
 
     pub async fn get_by_name(pool: &PgPool, name: &str) -> Result<Option<Self>> {
-        let unit = sqlx::query_as!(
-            Unit,
-            r#"
-            SELECT 
+        let unit = sqlx::query_as::<_, Unit>(
+            "
+            SELECT
                 unit_id,
                 name,
-                type as "r#type: UnitType",
+                type,
                 created_at,
                 updated_at
             FROM units
             WHERE name = $1
-            "#,
-            name
+            ",
         )
+        .bind(name)
         .fetch_optional(pool)
         .await?;
 
@@ -229,7 +229,7 @@ impl Ingredient {
             r#"
             INSERT INTO ingredients (name, category, default_unit_id)
             VALUES ($1, $2, $3)
-            RETURNING 
+            RETURNING
                 ingredient_id,
                 name,
                 category,
@@ -251,7 +251,7 @@ impl Ingredient {
         let ingredient = sqlx::query_as!(
             Ingredient,
             r#"
-            SELECT 
+            SELECT
                 ingredient_id,
                 name,
                 category,
@@ -273,7 +273,7 @@ impl Ingredient {
         let ingredient = sqlx::query_as!(
             Ingredient,
             r#"
-            SELECT 
+            SELECT
                 ingredient_id,
                 name,
                 category,
@@ -292,37 +292,41 @@ impl Ingredient {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct RecipeIngredient {
     pub recipe_ingredient_id: Uuid,
     pub recipe_id: Uuid,
     pub ingredient_id: Uuid,
-    pub quantity: f64,
+    pub quantity: BigDecimal,
     pub unit_id: Uuid,
     pub display_order: Option<i32>,
     pub ingredient_group: Option<String>,
     pub preparation: Option<IngredientPreparation>,
     pub temperature: Option<IngredientTemperature>,
-    pub is_optional: bool,
+    pub is_optional: Option<bool>,
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl RecipeIngredient {
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         pool: &PgPool,
         recipe_id: Uuid,
         ingredient_id: Uuid,
-        quantity: f64,
+        quantity: BigDecimal,
         unit_id: Uuid,
         display_order: Option<i32>,
         ingredient_group: Option<String>,
         preparation: Option<IngredientPreparation>,
         temperature: Option<IngredientTemperature>,
-        is_optional: bool,
+        is_optional: Option<bool>,
         notes: Option<String>,
     ) -> Result<Self> {
+        let preparation_str = preparation.as_ref().map(std::string::ToString::to_string);
+        let temperature_str = temperature.as_ref().map(std::string::ToString::to_string);
+
         let recipe_ingredient = sqlx::query_as!(
             RecipeIngredient,
             r#"
@@ -331,12 +335,12 @@ impl RecipeIngredient {
                 ingredient_group, preparation, temperature, is_optional, notes
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING 
-                recipe_ingredient_id,
-                recipe_id,
-                ingredient_id,
+            RETURNING
+                recipe_ingredient_id as "recipe_ingredient_id!",
+                recipe_id as "recipe_id!",
+                ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id,
+                unit_id as "unit_id!",
                 display_order,
                 ingredient_group,
                 preparation as "preparation: IngredientPreparation",
@@ -348,12 +352,12 @@ impl RecipeIngredient {
             "#,
             recipe_id,
             ingredient_id,
-            quantity as f64,
+            quantity,
             unit_id,
             display_order,
             ingredient_group,
-            preparation as Option<IngredientPreparation>,
-            temperature as Option<IngredientTemperature>,
+            preparation_str,
+            temperature_str,
             is_optional,
             notes
         )
@@ -367,12 +371,12 @@ impl RecipeIngredient {
         let ingredients = sqlx::query_as!(
             RecipeIngredient,
             r#"
-            SELECT 
-                recipe_ingredient_id,
-                recipe_id,
-                ingredient_id,
+            SELECT
+                recipe_ingredient_id as "recipe_ingredient_id!",
+                recipe_id as "recipe_id!",
+                ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id,
+                unit_id as "unit_id!",
                 display_order,
                 ingredient_group,
                 preparation as "preparation: IngredientPreparation",
@@ -393,6 +397,7 @@ impl RecipeIngredient {
         Ok(ingredients)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update(
         &self,
         pool: &PgPool,
@@ -419,12 +424,12 @@ impl RecipeIngredient {
                 notes = $9,
                 updated_at = NOW()
             WHERE recipe_ingredient_id = $1
-            RETURNING 
-                recipe_ingredient_id,
-                recipe_id,
-                ingredient_id,
+            RETURNING
+                recipe_ingredient_id as "recipe_ingredient_id!",
+                recipe_id as "recipe_id!",
+                ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id,
+                unit_id as "unit_id!",
                 display_order,
                 ingredient_group,
                 preparation as "preparation: IngredientPreparation",

@@ -44,10 +44,9 @@ impl std::str::FromStr for MealType {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct MealPlan {
     pub meal_plan_id: Uuid,
-    pub user_id: Uuid,
     pub name: String,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
@@ -59,7 +58,6 @@ pub struct MealPlan {
 impl MealPlan {
     pub async fn create(
         pool: &PgPool,
-        user_id: Uuid,
         name: String,
         start_date: NaiveDate,
         end_date: NaiveDate,
@@ -69,12 +67,11 @@ impl MealPlan {
             MealPlan,
             r#"
             INSERT INTO meal_plans (
-                user_id, name, start_date, end_date, notes
+                name, start_date, end_date, notes
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4)
             RETURNING 
                 meal_plan_id,
-                user_id,
                 name,
                 start_date,
                 end_date,
@@ -82,7 +79,6 @@ impl MealPlan {
                 created_at,
                 updated_at
             "#,
-            user_id,
             name,
             start_date,
             end_date,
@@ -100,7 +96,6 @@ impl MealPlan {
             r#"
             SELECT 
                 meal_plan_id,
-                user_id,
                 name,
                 start_date,
                 end_date,
@@ -120,7 +115,6 @@ impl MealPlan {
 
     pub async fn get_by_date_range(
         pool: &PgPool,
-        user_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<Self>> {
@@ -129,7 +123,6 @@ impl MealPlan {
             r#"
             SELECT 
                 meal_plan_id,
-                user_id,
                 name,
                 start_date,
                 end_date,
@@ -137,12 +130,10 @@ impl MealPlan {
                 created_at,
                 updated_at
             FROM meal_plans
-            WHERE user_id = $1
-                AND start_date <= $3
-                AND end_date >= $2
+            WHERE start_date <= $2
+                AND end_date >= $1
             ORDER BY start_date
             "#,
-            user_id,
             start_date,
             end_date
         )
@@ -153,16 +144,14 @@ impl MealPlan {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct MealPlanEntry {
     pub meal_plan_entry_id: Uuid,
     pub meal_plan_id: Uuid,
     pub recipe_id: Uuid,
-    pub planned_date: NaiveDate,
-    pub meal_type: MealType,
-    pub servings: i32,
-    pub notes: Option<String>,
-    pub is_prepared: bool,
+    pub date: NaiveDate,
+    pub meal_type: Option<MealType>,
+    pub servings_override: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -172,37 +161,35 @@ impl MealPlanEntry {
         pool: &PgPool,
         meal_plan_id: Uuid,
         recipe_id: Uuid,
-        planned_date: NaiveDate,
-        meal_type: MealType,
-        servings: i32,
-        notes: Option<String>,
+        date: NaiveDate,
+        meal_type: Option<MealType>,
+        servings_override: Option<i32>,
     ) -> Result<Self> {
+        let meal_type_str = meal_type.as_ref().map(std::string::ToString::to_string);
+
         let entry = sqlx::query_as!(
             MealPlanEntry,
             r#"
             INSERT INTO meal_plan_entries (
-                meal_plan_id, recipe_id, planned_date, meal_type, 
-                servings, notes, is_prepared
+                meal_plan_id, recipe_id, date, meal_type, 
+                servings_override
             )
-            VALUES ($1, $2, $3, $4, $5, $6, false)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING 
-                meal_plan_entry_id,
-                meal_plan_id,
-                recipe_id,
-                planned_date,
+                meal_plan_entry_id as "meal_plan_entry_id!",
+                meal_plan_id as "meal_plan_id!",
+                recipe_id as "recipe_id!",
+                date,
                 meal_type as "meal_type: MealType",
-                servings,
-                notes,
-                is_prepared,
+                servings_override,
                 created_at,
                 updated_at
             "#,
             meal_plan_id,
             recipe_id,
-            planned_date,
-            meal_type as MealType,
-            servings,
-            notes
+            date,
+            meal_type_str,
+            servings_override
         )
         .fetch_one(pool)
         .await?;
@@ -215,19 +202,17 @@ impl MealPlanEntry {
             MealPlanEntry,
             r#"
             SELECT 
-                meal_plan_entry_id,
-                meal_plan_id,
-                recipe_id,
-                planned_date,
+                meal_plan_entry_id as "meal_plan_entry_id!",
+                meal_plan_id as "meal_plan_id!",
+                recipe_id as "recipe_id!",
+                date,
                 meal_type as "meal_type: MealType",
-                servings,
-                notes,
-                is_prepared,
+                servings_override,
                 created_at,
                 updated_at
             FROM meal_plan_entries
             WHERE meal_plan_id = $1
-            ORDER BY planned_date, meal_type
+            ORDER BY date, meal_type
             "#,
             meal_plan_id
         )
@@ -237,33 +222,24 @@ impl MealPlanEntry {
         Ok(entries)
     }
 
-    pub async fn get_by_date(
-        pool: &PgPool,
-        user_id: Uuid,
-        planned_date: NaiveDate,
-    ) -> Result<Vec<Self>> {
+    pub async fn get_by_date(pool: &PgPool, date: NaiveDate) -> Result<Vec<Self>> {
         let entries = sqlx::query_as!(
             MealPlanEntry,
             r#"
             SELECT 
-                mpe.meal_plan_entry_id,
-                mpe.meal_plan_id,
-                mpe.recipe_id,
-                mpe.planned_date,
-                mpe.meal_type as "meal_type: MealType",
-                mpe.servings,
-                mpe.notes,
-                mpe.is_prepared,
-                mpe.created_at,
-                mpe.updated_at
-            FROM meal_plan_entries mpe
-            JOIN meal_plans mp ON mpe.meal_plan_id = mp.meal_plan_id
-            WHERE mp.user_id = $1
-                AND mpe.planned_date = $2
-            ORDER BY mpe.meal_type
+                meal_plan_entry_id as "meal_plan_entry_id!",
+                meal_plan_id as "meal_plan_id!",
+                recipe_id as "recipe_id!",
+                date,
+                meal_type as "meal_type: MealType",
+                servings_override,
+                created_at,
+                updated_at
+            FROM meal_plan_entries
+            WHERE date = $1
+            ORDER BY meal_type
             "#,
-            user_id,
-            planned_date
+            date
         )
         .fetch_all(pool)
         .await?;
@@ -271,12 +247,10 @@ impl MealPlanEntry {
         Ok(entries)
     }
 
-    pub async fn mark_prepared(&self, pool: &PgPool) -> Result<()> {
+    pub async fn delete(&self, pool: &PgPool) -> Result<()> {
         sqlx::query!(
             r#"
-            UPDATE meal_plan_entries
-            SET is_prepared = true,
-                updated_at = NOW()
+            DELETE FROM meal_plan_entries
             WHERE meal_plan_entry_id = $1
             "#,
             self.meal_plan_entry_id
@@ -293,19 +267,17 @@ impl MealPlan {
         &self,
         pool: &PgPool,
         recipe_id: Uuid,
-        planned_date: NaiveDate,
-        meal_type: MealType,
-        servings: i32,
-        notes: Option<String>,
+        date: NaiveDate,
+        meal_type: Option<MealType>,
+        servings_override: Option<i32>,
     ) -> Result<MealPlanEntry> {
         MealPlanEntry::create(
             pool,
             self.meal_plan_id,
             recipe_id,
-            planned_date,
+            date,
             meal_type,
-            servings,
-            notes,
+            servings_override,
         )
         .await
     }

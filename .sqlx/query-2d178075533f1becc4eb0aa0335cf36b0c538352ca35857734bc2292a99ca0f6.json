@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                meal_plan_entry_id as \"meal_plan_entry_id!\",\n                meal_plan_id as \"meal_plan_id!\",\n                recipe_id as \"recipe_id!\",\n                date,\n                meal_type as \"meal_type: MealType\",\n                servings_override,\n                created_at,\n                updated_at\n            FROM meal_plan_entries\n            WHERE meal_plan_id = $1\n            ORDER BY date, meal_type\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "meal_plan_entry_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "meal_plan_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "recipe_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "meal_type: MealType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "servings_override",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "2d178075533f1becc4eb0aa0335cf36b0c538352ca35857734bc2292a99ca0f6"
+}

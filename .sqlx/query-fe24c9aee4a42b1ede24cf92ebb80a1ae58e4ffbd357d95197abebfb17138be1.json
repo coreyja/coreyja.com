@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO meal_plans (\n                name, start_date, end_date, notes\n            )\n            VALUES ($1, $2, $3, $4)\n            RETURNING \n                meal_plan_id,\n                name,\n                start_date,\n                end_date,\n                notes,\n                created_at,\n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "meal_plan_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Date",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "fe24c9aee4a42b1ede24cf92ebb80a1ae58e4ffbd357d95197abebfb17138be1"
+}

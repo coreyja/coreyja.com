@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM meal_plan_entries\n            WHERE meal_plan_entry_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad4843bac99372d3a90d3e7f950947deb68a76d621a2b1ad4ccfa36de8093d94"
+}

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO meal_plan_entries (\n                meal_plan_id, recipe_id, date, meal_type, \n                servings_override\n            )\n            VALUES ($1, $2, $3, $4, $5)\n            RETURNING \n                meal_plan_entry_id as \"meal_plan_entry_id!\",\n                meal_plan_id as \"meal_plan_id!\",\n                recipe_id as \"recipe_id!\",\n                date,\n                meal_type as \"meal_type: MealType\",\n                servings_override,\n                created_at,\n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "meal_plan_entry_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "meal_plan_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "recipe_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "meal_type: MealType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "servings_override",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c1e84cf2c1c755807bad7af29e3301d1dce141543da25de7b6fcfda2b5c4c93b"
+}

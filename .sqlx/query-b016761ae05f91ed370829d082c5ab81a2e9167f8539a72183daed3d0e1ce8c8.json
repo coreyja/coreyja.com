@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                recipe_id,\n                name,\n                description,\n                prep_time,\n                cook_time,\n                servings,\n                yield_amount,\n                yield_unit,\n                author_user_id,\n                generated_by_stitch,\n                inspired_by_recipe_id,\n                forked_from_recipe_id,\n                created_at,\n                updated_at\n            FROM recipes\n            WHERE recipe_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "recipe_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "prep_time",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "cook_time",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "servings",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "yield_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "yield_unit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "author_user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "generated_by_stitch",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "inspired_by_recipe_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "forked_from_recipe_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "b016761ae05f91ed370829d082c5ab81a2e9167f8539a72183daed3d0e1ce8c8"
+}

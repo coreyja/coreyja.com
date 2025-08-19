@@ -60,12 +60,12 @@ impl std::str::FromStr for EquipmentCategory {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Equipment {
     pub equipment_id: Uuid,
     pub name: String,
     pub category: Option<EquipmentCategory>,
-    pub is_optional: bool,
+    pub is_optional: Option<bool>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -75,8 +75,10 @@ impl Equipment {
         pool: &PgPool,
         name: String,
         category: Option<EquipmentCategory>,
-        is_optional: bool,
+        is_optional: Option<bool>,
     ) -> Result<Self> {
+        let category_str = category.as_ref().map(std::string::ToString::to_string);
+
         let equipment = sqlx::query_as!(
             Equipment,
             r#"
@@ -91,7 +93,7 @@ impl Equipment {
                 updated_at
             "#,
             name,
-            category as Option<EquipmentCategory>,
+            category_str,
             is_optional
         )
         .fetch_one(pool)
@@ -146,11 +148,11 @@ impl Equipment {
 }
 
 // Note: recipe_equipment uses composite primary key (recipe_id, equipment_id)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct RecipeEquipment {
     pub recipe_id: Uuid,
     pub equipment_id: Uuid,
-    pub is_optional: bool,
+    pub is_optional: Option<bool>,
     pub notes: Option<String>,
 }
 
@@ -159,7 +161,7 @@ impl RecipeEquipment {
         pool: &PgPool,
         recipe_id: Uuid,
         equipment_id: Uuid,
-        is_optional: bool,
+        is_optional: Option<bool>,
         notes: Option<String>,
     ) -> Result<Self> {
         let recipe_equipment = sqlx::query_as!(

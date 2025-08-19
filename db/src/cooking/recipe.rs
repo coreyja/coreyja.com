@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
@@ -16,7 +17,7 @@ pub struct Recipe {
     pub prep_time: Option<i32>, // minutes
     pub cook_time: Option<i32>, // minutes
     pub servings: i32,
-    pub yield_amount: Option<f64>,
+    pub yield_amount: Option<BigDecimal>,
     pub yield_unit: Option<String>,
     pub author_user_id: Uuid,
     pub generated_by_stitch: Option<Uuid>,
@@ -27,6 +28,7 @@ pub struct Recipe {
 }
 
 impl Recipe {
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         pool: &PgPool,
         name: String,
@@ -50,7 +52,7 @@ impl Recipe {
                 generated_by_stitch, inspired_by_recipe_id, forked_from_recipe_id
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING 
+            RETURNING
                 recipe_id,
                 name,
                 description,
@@ -72,7 +74,7 @@ impl Recipe {
             prep_time,
             cook_time,
             servings,
-            yield_amount,
+            yield_amount.map(|v| v.to_string().parse::<BigDecimal>().unwrap()),
             yield_unit,
             generated_by_stitch,
             inspired_by_recipe_id,
@@ -88,7 +90,7 @@ impl Recipe {
         let recipe = sqlx::query_as!(
             Recipe,
             r#"
-            SELECT 
+            SELECT
                 recipe_id,
                 name,
                 description,
@@ -118,7 +120,7 @@ impl Recipe {
         let recipes = sqlx::query_as!(
             Recipe,
             r#"
-            SELECT 
+            SELECT
                 recipe_id,
                 name,
                 description,
@@ -145,6 +147,7 @@ impl Recipe {
         Ok(recipes)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update(
         &self,
         pool: &PgPool,
@@ -169,7 +172,7 @@ impl Recipe {
                 yield_unit = $8,
                 updated_at = NOW()
             WHERE recipe_id = $1
-            RETURNING 
+            RETURNING
                 recipe_id,
                 name,
                 description,
@@ -191,7 +194,7 @@ impl Recipe {
             prep_time,
             cook_time,
             servings,
-            yield_amount,
+            yield_amount.map(|v| v.to_string().parse::<BigDecimal>().unwrap()),
             yield_unit
         )
         .fetch_one(pool)
@@ -250,7 +253,7 @@ impl RecipeVariation {
                 recipe_id, variation_id, variation_notes
             )
             VALUES ($1, $2, $3)
-            RETURNING 
+            RETURNING
                 recipe_id,
                 variation_id,
                 variation_notes,
@@ -270,7 +273,7 @@ impl RecipeVariation {
         let variations = sqlx::query_as!(
             RecipeVariation,
             r#"
-            SELECT 
+            SELECT
                 recipe_id,
                 variation_id,
                 variation_notes,
@@ -290,7 +293,7 @@ impl RecipeVariation {
         let variations = sqlx::query_as!(
             RecipeVariation,
             r#"
-            SELECT 
+            SELECT
                 recipe_id,
                 variation_id,
                 variation_notes,

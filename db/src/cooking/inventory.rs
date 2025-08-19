@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDate, Utc};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
@@ -107,14 +108,12 @@ impl std::str::FromStr for ConfidenceLevel {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Location {
     pub location_id: Uuid,
     pub name: String,
-    pub location_type: LocationType,
-    pub parent_location_id: Option<Uuid>,
-    pub temperature_controlled: bool,
-    pub notes: Option<String>,
+    pub parent_id: Option<Uuid>,
+    pub location_type: Option<LocationType>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -123,34 +122,31 @@ impl Location {
     pub async fn create(
         pool: &PgPool,
         name: String,
-        location_type: LocationType,
-        parent_location_id: Option<Uuid>,
-        temperature_controlled: bool,
-        notes: Option<String>,
+        parent_id: Option<Uuid>,
+        location_type: Option<LocationType>,
     ) -> Result<Self> {
+        let location_type_str = location_type.as_ref().map(std::string::ToString::to_string);
+
         let location = sqlx::query_as!(
             Location,
             r#"
             INSERT INTO locations (
-                name, location_type, parent_location_id, 
-                temperature_controlled, notes
-            )
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING 
-                location_id,
                 name,
+                parent_id,
+                location_type
+            )
+            VALUES ($1, $2, $3)
+            RETURNING
+                location_id as "location_id!",
+                name,
+                parent_id,
                 location_type as "location_type: LocationType",
-                parent_location_id,
-                temperature_controlled,
-                notes,
                 created_at,
                 updated_at
             "#,
             name,
-            location_type as LocationType,
-            parent_location_id,
-            temperature_controlled,
-            notes
+            parent_id,
+            location_type_str
         )
         .fetch_one(pool)
         .await?;
@@ -162,13 +158,11 @@ impl Location {
         let location = sqlx::query_as!(
             Location,
             r#"
-            SELECT 
-                location_id,
+            SELECT
+                location_id as "location_id!",
                 name,
+                parent_id,
                 location_type as "location_type: LocationType",
-                parent_location_id,
-                temperature_controlled,
-                notes,
                 created_at,
                 updated_at
             FROM locations
@@ -182,23 +176,26 @@ impl Location {
         Ok(location)
     }
 
-    pub async fn get_by_type(pool: &PgPool, location_type: LocationType) -> Result<Vec<Self>> {
+    pub async fn get_by_type(
+        pool: &PgPool,
+        location_type: Option<LocationType>,
+    ) -> Result<Vec<Self>> {
+        let location_type_str = location_type.as_ref().map(std::string::ToString::to_string);
+
         let locations = sqlx::query_as!(
             Location,
             r#"
-            SELECT 
-                location_id,
+            SELECT
+                location_id as "location_id!",
                 name,
+                parent_id,
                 location_type as "location_type: LocationType",
-                parent_location_id,
-                temperature_controlled,
-                notes,
                 created_at,
                 updated_at
             FROM locations
-            WHERE location_type = $1
+            WHERE $1::TEXT IS NULL OR location_type = $1
             "#,
-            location_type as LocationType
+            location_type_str
         )
         .fetch_all(pool)
         .await?;
@@ -207,66 +204,67 @@ impl Location {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Inventory {
     pub inventory_id: Uuid,
     pub ingredient_id: Uuid,
-    pub location_id: Uuid,
-    pub quantity: f64,
-    pub unit_id: Uuid,
+    pub quantity: BigDecimal,
+    pub unit_id: Option<Uuid>,
+    pub confidence_level: Option<ConfidenceLevel>,
     pub expiration_date: Option<NaiveDate>,
-    pub purchase_date: Option<NaiveDate>,
-    pub confidence_level: ConfidenceLevel,
-    pub minimum_quantity: Option<f64>,
+    pub location_id: Option<Uuid>,
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl Inventory {
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         pool: &PgPool,
         ingredient_id: Uuid,
-        location_id: Uuid,
-        quantity: f64,
-        unit_id: Uuid,
+        quantity: BigDecimal,
+        unit_id: Option<Uuid>,
+        confidence_level: Option<ConfidenceLevel>,
         expiration_date: Option<NaiveDate>,
-        purchase_date: Option<NaiveDate>,
-        confidence_level: ConfidenceLevel,
-        minimum_quantity: Option<f64>,
+        location_id: Option<Uuid>,
         notes: Option<String>,
     ) -> Result<Self> {
+        let confidence_level_str = confidence_level
+            .as_ref()
+            .map(std::string::ToString::to_string);
+
         let inventory = sqlx::query_as!(
             Inventory,
             r#"
             INSERT INTO inventory (
-                ingredient_id, location_id, quantity, unit_id,
-                expiration_date, purchase_date, confidence_level,
-                minimum_quantity, notes
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING 
-                inventory_id,
                 ingredient_id,
-                location_id,
                 quantity,
                 unit_id,
+                confidence_level,
                 expiration_date,
-                purchase_date,
+                location_id,
+                notes
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING
+                inventory_id as "inventory_id!",
+                ingredient_id as "ingredient_id!",
+                quantity,
+                unit_id as "unit_id!",
                 confidence_level as "confidence_level: ConfidenceLevel",
-                minimum_quantity,
+                expiration_date,
+                location_id as "location_id!",
                 notes,
                 created_at,
                 updated_at
             "#,
             ingredient_id,
-            location_id,
             quantity,
             unit_id,
+            confidence_level_str,
             expiration_date,
-            purchase_date,
-            confidence_level as ConfidenceLevel,
-            minimum_quantity,
+            location_id,
             notes
         )
         .fetch_one(pool)
@@ -275,37 +273,51 @@ impl Inventory {
         Ok(inventory)
     }
 
-    pub async fn update_quantity(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update(
         &self,
         pool: &PgPool,
-        quantity: f64,
-        confidence_level: ConfidenceLevel,
+        quantity: Option<BigDecimal>,
+        unit_id: Option<Uuid>,
+        confidence_level: Option<ConfidenceLevel>,
+        expiration_date: Option<NaiveDate>,
+        location_id: Option<Uuid>,
+        notes: Option<String>,
     ) -> Result<Self> {
+        let confidence_level_str = confidence_level
+            .as_ref()
+            .map(std::string::ToString::to_string);
+
         let updated = sqlx::query_as!(
             Inventory,
             r#"
             UPDATE inventory
-            SET quantity = $2,
-                confidence_level = $3,
-                updated_at = NOW()
+            SET quantity = COALESCE($2, quantity),
+                unit_id = COALESCE($3, unit_id),
+                confidence_level = COALESCE($4::TEXT, confidence_level),
+                expiration_date = COALESCE($5, expiration_date),
+                location_id = COALESCE($6, location_id),
+                notes = COALESCE($7, notes)
             WHERE inventory_id = $1
-            RETURNING 
-                inventory_id,
-                ingredient_id,
-                location_id,
+            RETURNING
+                inventory_id as "inventory_id!",
+                ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id,
-                expiration_date,
-                purchase_date,
+                unit_id as "unit_id!",
                 confidence_level as "confidence_level: ConfidenceLevel",
-                minimum_quantity,
+                expiration_date,
+                location_id as "location_id!",
                 notes,
                 created_at,
                 updated_at
             "#,
             self.inventory_id,
             quantity,
-            confidence_level as ConfidenceLevel
+            unit_id,
+            confidence_level_str,
+            expiration_date,
+            location_id,
+            notes
         )
         .fetch_one(pool)
         .await?;
@@ -313,20 +325,44 @@ impl Inventory {
         Ok(updated)
     }
 
+    pub async fn get_by_location(pool: &PgPool, location_id: Uuid) -> Result<Vec<Self>> {
+        let inventory = sqlx::query_as!(
+            Inventory,
+            r#"
+            SELECT
+                inventory_id as "inventory_id!",
+                ingredient_id as "ingredient_id!",
+                quantity,
+                unit_id as "unit_id!",
+                confidence_level as "confidence_level: ConfidenceLevel",
+                expiration_date,
+                location_id as "location_id!",
+                notes,
+                created_at,
+                updated_at
+            FROM inventory
+            WHERE location_id = $1
+            "#,
+            location_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(inventory)
+    }
+
     pub async fn get_by_ingredient(pool: &PgPool, ingredient_id: Uuid) -> Result<Vec<Self>> {
         let inventory = sqlx::query_as!(
             Inventory,
             r#"
-            SELECT 
-                inventory_id,
-                ingredient_id,
-                location_id,
+            SELECT
+                inventory_id as "inventory_id!",
+                ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id,
-                expiration_date,
-                purchase_date,
+                unit_id as "unit_id!",
                 confidence_level as "confidence_level: ConfidenceLevel",
-                minimum_quantity,
+                expiration_date,
+                location_id as "location_id!",
                 notes,
                 created_at,
                 updated_at
@@ -342,29 +378,27 @@ impl Inventory {
         Ok(inventory)
     }
 
-    pub async fn get_low_items(pool: &PgPool) -> Result<Vec<Self>> {
+    pub async fn get_expiring_soon(pool: &PgPool, days: i32) -> Result<Vec<Self>> {
         let inventory = sqlx::query_as!(
             Inventory,
             r#"
-            SELECT 
-                inventory_id,
-                ingredient_id,
-                location_id,
+            SELECT
+                inventory_id as "inventory_id!",
+                ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id,
-                expiration_date,
-                purchase_date,
+                unit_id as "unit_id!",
                 confidence_level as "confidence_level: ConfidenceLevel",
-                minimum_quantity,
+                expiration_date,
+                location_id as "location_id!",
                 notes,
                 created_at,
                 updated_at
             FROM inventory
-            WHERE minimum_quantity IS NOT NULL
-                AND quantity < minimum_quantity
-                AND confidence_level != 'empty'
-            ORDER BY (quantity / minimum_quantity)
+            WHERE expiration_date IS NOT NULL
+                AND expiration_date <= CURRENT_DATE + INTERVAL '1 day' * $1
+            ORDER BY expiration_date
             "#,
+            f64::from(days)
         )
         .fetch_all(pool)
         .await?;

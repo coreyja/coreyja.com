@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM DiscordChannels WHERE purpose = 'byte_submissions'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "discord_channel_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_topic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "channel_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "purpose",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f6c5bc93c1c4b697eb7a9e752686f5e72038d3047671d53d33c9a6826f38c2ac"
+}

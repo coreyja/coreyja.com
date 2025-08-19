@@ -53,7 +53,7 @@ impl RecipeStep {
     pub async fn save_all_for_recipe(
         pool: &PgPool,
         recipe_id: Uuid,
-        steps: Vec<(String, Option<i32>, Option<i32>, Option<TemperatureUnit>)>,
+        steps: Vec<Self>,
     ) -> Result<Vec<Self>> {
         let mut transaction = pool.begin().await?;
 
@@ -63,20 +63,26 @@ impl RecipeStep {
 
         let mut saved_steps = Vec::new();
 
-        for (index, (instruction, duration, temperature, temperature_unit)) in
-            steps.into_iter().enumerate()
-        {
+        for (index, step) in steps.into_iter().enumerate() {
+            let temperature_unit_str = step
+                .temperature_unit
+                .as_ref()
+                .map(std::string::ToString::to_string);
+
+            let index: i32 = index.try_into()?;
+            let step_number = index + 1;
+
             let step = sqlx::query_as!(
                 RecipeStep,
                 r#"
                 INSERT INTO recipe_steps (
-                    recipe_id, step_number, instruction, duration, 
+                    recipe_id, step_number, instruction, duration,
                     temperature, temperature_unit
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING 
-                    step_id,
-                    recipe_id,
+                RETURNING
+                    step_id as "step_id!",
+                    recipe_id as "recipe_id!",
                     step_number,
                     instruction,
                     duration,
@@ -86,11 +92,11 @@ impl RecipeStep {
                     updated_at
                 "#,
                 recipe_id,
-                (index as i32) + 1,
-                instruction,
-                duration,
-                temperature,
-                temperature_unit as Option<TemperatureUnit>
+                step_number,
+                step.instruction,
+                step.duration,
+                step.temperature,
+                temperature_unit_str,
             )
             .fetch_one(&mut *transaction)
             .await?;
@@ -107,9 +113,9 @@ impl RecipeStep {
         let steps = sqlx::query_as!(
             RecipeStep,
             r#"
-            SELECT 
-                step_id,
-                recipe_id,
+            SELECT
+                step_id as "step_id!",
+                recipe_id as "recipe_id!",
                 step_number,
                 instruction,
                 duration,
@@ -144,7 +150,7 @@ impl StepIngredient {
             r#"
             INSERT INTO step_ingredients (step_id, recipe_ingredient_id)
             VALUES ($1, $2)
-            RETURNING 
+            RETURNING
                 step_id,
                 recipe_ingredient_id
             "#,
@@ -161,7 +167,7 @@ impl StepIngredient {
         let ingredients = sqlx::query_as!(
             StepIngredient,
             r#"
-            SELECT 
+            SELECT
                 step_id,
                 recipe_ingredient_id
             FROM step_ingredients
@@ -202,7 +208,7 @@ impl StepEquipment {
             r#"
             INSERT INTO step_equipment (step_id, equipment_id)
             VALUES ($1, $2)
-            RETURNING 
+            RETURNING
                 step_id,
                 equipment_id
             "#,
@@ -219,7 +225,7 @@ impl StepEquipment {
         let equipment = sqlx::query_as!(
             StepEquipment,
             r#"
-            SELECT 
+            SELECT
                 step_id,
                 equipment_id
             FROM step_equipment

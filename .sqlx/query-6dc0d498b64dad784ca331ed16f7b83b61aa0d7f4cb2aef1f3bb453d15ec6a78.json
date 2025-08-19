@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO step_equipment (step_id, equipment_id)\n            VALUES ($1, $2)\n            RETURNING\n                step_id,\n                equipment_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "step_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "equipment_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "6dc0d498b64dad784ca331ed16f7b83b61aa0d7f4cb2aef1f3bb453d15ec6a78"
+}
