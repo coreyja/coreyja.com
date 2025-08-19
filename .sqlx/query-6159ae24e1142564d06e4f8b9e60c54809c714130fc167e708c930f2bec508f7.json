@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * FROM linear_thread_metadata\n            WHERE workspace_id = $1 \n                AND session_status NOT IN ('complete', 'error')\n            ORDER BY last_activity_at DESC\n            ",
+  "query": "\n            SELECT * FROM linear_thread_metadata\n            WHERE workspace_id = $1\n                AND session_status NOT IN ('complete', 'error')\n            ORDER BY last_activity_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -84,5 +84,5 @@
       false
     ]
   },
-  "hash": "a8464024eedde4dbdc78f65025280b94a9246cc397e6c7d5a705209f5cbf2629"
+  "hash": "6159ae24e1142564d06e4f8b9e60c54809c714130fc167e708c930f2bec508f7"
 }

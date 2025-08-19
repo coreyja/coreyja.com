@@ -20,6 +20,7 @@ pub struct LinearThreadMetadata {
 }
 
 impl LinearThreadMetadata {
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         pool: &PgPool,
         thread_id: Uuid,
@@ -158,7 +159,7 @@ impl LinearThreadMetadata {
             LinearThreadMetadata,
             r#"
             SELECT * FROM linear_thread_metadata
-            WHERE workspace_id = $1 
+            WHERE workspace_id = $1
                 AND session_status NOT IN ('complete', 'error')
             ORDER BY last_activity_at DESC
             "#,

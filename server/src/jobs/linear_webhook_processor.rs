@@ -24,6 +24,7 @@ pub struct ProcessLinearWebhook {
 impl JobTrait<AppState> for ProcessLinearWebhook {
     const NAME: &'static str = "ProcessLinearWebhook";
 
+    #[allow(clippy::too_many_lines)]
     async fn run(&self, app_state: AppState) -> cja::Result<()> {
         match &self.payload {
             LinearWebhookPayload::AgentSessionEvent(event) => {
