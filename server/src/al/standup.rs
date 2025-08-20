@@ -162,8 +162,8 @@ impl StandupAgent {
         // Get Linear API key from environment or thread metadata
         let api_key = crate::al::tools::linear_graphql::get_linear_api_key(&self.app_state).await?;
 
-        const DEV_TEAM_ID: &str = "DEV";
-        const COREY_USER_ID: &str = "coreyja";
+        const DEV_TEAM_ID: &str = "affbc39a-f0d9-467c-9d67-d221e570bb19";
+        const COREY_USER_ID: &str = "14817796-bf9f-4444-910a-a2ed1db58f23";
         let standup_data =
             crate::linear::graphql::get_standup_data(&api_key, DEV_TEAM_ID, COREY_USER_ID).await?;
         let standup_data_json = serde_json::to_string(&standup_data)?;

@@ -1,0 +1,24 @@
+query StandupViewerAndTeam($teamId: String!) {
+    # Get the current user (the bot/app making the request)
+    viewer {
+        id
+        name
+        email
+        displayName
+        teams {
+            nodes {
+                id
+                key
+                name
+            }
+        }
+    }
+
+    # Get basic team information
+    team(id: $teamId) {
+        id
+        name
+        key
+        timezone
+    }
+}

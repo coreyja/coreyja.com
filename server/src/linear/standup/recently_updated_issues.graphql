@@ -1,0 +1,94 @@
+query StandupRecentlyUpdatedIssues($userId: ID!) {
+    # Recently updated issues (last 24 hours)
+    recentlyUpdatedIssues: issues(
+        first: 50
+        filter: {
+            assignee: { id: { eq: $userId } }
+            updatedAt: { gte: "-P1D" }
+        }
+        orderBy: updatedAt
+    ) {
+        nodes {
+            ...IssueCompact
+        }
+    }
+}
+
+# Compact fragment for recently updated issues
+fragment IssueCompact on Issue {
+    id
+    identifier
+    title
+    url
+
+    # Status information
+    state {
+        id
+        name
+        type
+        color
+    }
+
+    # Priority
+    priority
+    priorityLabel
+
+    # Timestamps
+    updatedAt
+    startedAt
+    completedAt
+
+    # Team
+    team {
+        id
+        key
+        name
+    }
+
+    # Assignee
+    assignee {
+        id
+        name
+        displayName
+    }
+
+    # Project information
+    project {
+        id
+        name
+    }
+
+    # Labels
+    labels {
+        nodes {
+            id
+            name
+            color
+        }
+    }
+
+    # Recent comments (last 24 hours)
+    comments(
+        first: 5
+        filter: { createdAt: { gte: "-P1D" } }
+        orderBy: createdAt
+    ) {
+        nodes {
+            id
+            body
+            createdAt
+            user {
+                id
+                name
+                displayName
+            }
+        }
+    }
+
+    # Cycle information
+    cycle {
+        id
+        number
+        name
+    }
+}

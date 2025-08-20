@@ -1,0 +1,112 @@
+query StandupInProgressIssues($userId: ID!) {
+    # All in-progress issues regardless of cycle
+    inProgressIssues: issues(
+        first: 50
+        filter: {
+            assignee: { id: { eq: $userId } }
+            state: { type: { eq: "started" } }
+        }
+        orderBy: updatedAt
+    ) {
+        nodes {
+            ...IssueWithRelations
+        }
+    }
+}
+
+# Fragment for issues with relations
+fragment IssueWithRelations on Issue {
+    id
+    identifier
+    title
+    description
+    url
+    branchName
+
+    # Status information
+    state {
+        id
+        name
+        type
+        color
+    }
+
+    # Priority
+    priority
+    priorityLabel
+
+    # Timestamps
+    createdAt
+    updatedAt
+    startedAt
+    dueDate
+
+    # Estimate
+    estimate
+
+    # Team
+    team {
+        id
+        key
+        name
+    }
+
+    # Assignee
+    assignee {
+        id
+        name
+        displayName
+        email
+    }
+
+    # Project information
+    project {
+        id
+        name
+        state
+        startDate
+        targetDate
+    }
+
+    # Labels
+    labels {
+        nodes {
+            id
+            name
+            color
+        }
+    }
+
+    # Parent issue
+    parent {
+        id
+        identifier
+        title
+        state {
+            name
+            type
+        }
+    }
+
+    # Sub-issues
+    children {
+        nodes {
+            id
+            identifier
+            title
+            state {
+                name
+                type
+            }
+        }
+    }
+
+    # Cycle information
+    cycle {
+        id
+        number
+        name
+        startsAt
+        endsAt
+    }
+}

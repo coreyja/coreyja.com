@@ -1,0 +1,85 @@
+query StandupPreviousCycle($teamId: String!, $userId: ID!) {
+    # Get the previous cycle for context
+    team(id: $teamId) {
+        id
+        previousCycle: cycles(
+            filter: { endsAt: { lt: "-P0D" } }
+            first: 1
+            orderBy: updatedAt
+        ) {
+            nodes {
+                id
+                number
+                name
+                startsAt
+                endsAt
+
+                # Recently completed issues from previous cycle
+                issues(
+                    first: 50
+                    filter: {
+                        assignee: { id: { eq: $userId } }
+                        state: { type: { in: ["completed", "canceled"] } }
+                    }
+                ) {
+                    nodes {
+                        ...IssueBasic
+                    }
+                }
+            }
+        }
+    }
+}
+
+# Simplified fragment for previous cycle issues
+fragment IssueBasic on Issue {
+    id
+    identifier
+    title
+    url
+
+    # Status information
+    state {
+        id
+        name
+        type
+        color
+    }
+
+    # Priority
+    priority
+    priorityLabel
+
+    # Timestamps
+    completedAt
+    canceledAt
+
+    # Team
+    team {
+        id
+        key
+        name
+    }
+
+    # Assignee
+    assignee {
+        id
+        name
+        displayName
+    }
+
+    # Project information
+    project {
+        id
+        name
+    }
+
+    # Labels
+    labels {
+        nodes {
+            id
+            name
+            color
+        }
+    }
+}

@@ -1,0 +1,72 @@
+query StandupBacklogIssues($teamId: ID!) {
+    # Backlog issues that could be picked up
+    backlogIssues: issues(
+        first: 20
+        filter: {
+            state: { type: { eq: "backlog" } }
+            assignee: { null: true }
+            team: { id: { eq: $teamId } }
+        }
+        orderBy: updatedAt
+    ) {
+        nodes {
+            ...IssueSimple
+        }
+    }
+}
+
+# Simple fragment for backlog issues
+fragment IssueSimple on Issue {
+    id
+    identifier
+    title
+    description
+    url
+
+    # Status information
+    state {
+        id
+        name
+        type
+    }
+
+    # Priority
+    priority
+    priorityLabel
+
+    # Timestamps
+    createdAt
+    updatedAt
+
+    # Estimate
+    estimate
+
+    # Team
+    team {
+        id
+        key
+        name
+    }
+
+    # Creator
+    creator {
+        id
+        name
+        displayName
+    }
+
+    # Project information
+    project {
+        id
+        name
+    }
+
+    # Labels
+    labels {
+        nodes {
+            id
+            name
+            color
+        }
+    }
+}
