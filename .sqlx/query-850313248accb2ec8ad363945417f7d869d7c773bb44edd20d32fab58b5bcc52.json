@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                COUNT(*) as total_executions,\n                COUNT(CASE WHEN success = true THEN 1 END) as successful_executions,\n                COUNT(CASE WHEN success = false THEN 1 END) as failed_executions,\n                MAX(executed_at) as last_executed_at\n            FROM linear_query_usage\n            WHERE query_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_executions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "successful_executions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "failed_executions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_executed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "850313248accb2ec8ad363945417f7d869d7c773bb44edd20d32fab58b5bcc52"
+}

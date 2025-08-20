@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                    MAX(executed_at) as last_used,\n                    COUNT(*) as use_count\n                FROM linear_query_usage\n                WHERE query_id = $1 AND success = true\n                ",
+  "query": "\n                SELECT\n                    MAX(executed_at) as last_used,\n                    COUNT(*) as use_count\n                FROM linear_query_usage\n                WHERE query_id = $1 AND success = true\n                ",
   "describe": {
     "columns": [
       {
@@ -24,5 +24,5 @@
       null
     ]
   },
-  "hash": "a31f4c67c607328f7ee33525453b1862b0c7e2d063ac75d07d9f3ee460e87925"
+  "hash": "77594594bfc9aa24416a4337549e82b60a5748796b34d9d5ab1c6c8f052de2e9"
 }

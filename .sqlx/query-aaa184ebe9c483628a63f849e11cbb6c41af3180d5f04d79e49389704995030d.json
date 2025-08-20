@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                    id,\n                    name,\n                    description,\n                    query,\n                    variables_schema,\n                    tags,\n                    created_at,\n                    updated_at,\n                    created_by\n                FROM linear_saved_queries\n                WHERE tags && $1\n                ORDER BY created_at DESC\n                LIMIT $2\n                ",
+  "query": "\n            SELECT\n                id,\n                name,\n                description,\n                query,\n                variables_schema,\n                tags,\n                created_at,\n                updated_at,\n                created_by\n            FROM linear_saved_queries\n            WHERE name = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -51,8 +51,7 @@
     ],
     "parameters": {
       "Left": [
-        "TextArray",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -67,5 +66,5 @@
       true
     ]
   },
-  "hash": "794374454129f55cd6c53cbf8c780f4be8ed3733ab4a89ce6a1a50cbf6115d13"
+  "hash": "aaa184ebe9c483628a63f849e11cbb6c41af3180d5f04d79e49389704995030d"
 }

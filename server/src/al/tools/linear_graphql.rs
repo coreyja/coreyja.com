@@ -29,7 +29,7 @@ pub struct ExecuteLinearQueryOutput {
     /// Any errors from the query
     errors: Option<Vec<GraphQLError>>,
     /// Execution time in milliseconds
-    execution_time_ms: i32,
+    execution_time_ms: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,8 +81,8 @@ impl Tool for ExecuteLinearQuery {
             .send()
             .await?;
 
-        let execution_time_ms = start.elapsed().as_millis() as i32;
-        let _response_bytes = response.content_length().unwrap_or(0) as i32;
+        let execution_time_ms = start.elapsed().as_millis();
+        let _response_bytes = response.content_length().unwrap_or(0);
         let _status = response.status();
         let response_json: JsonValue = response.json().await?;
 
@@ -92,13 +92,10 @@ impl Tool for ExecuteLinearQuery {
             .get("errors")
             .and_then(|e| serde_json::from_value::<Vec<GraphQLError>>(e.clone()).ok());
 
-        // Track usage if it's from a saved query
-        // For now, we'll skip tracking as we don't know if it's from a saved query
-
         Ok(ExecuteLinearQueryOutput {
             data,
             errors,
-            execution_time_ms,
+            execution_time_ms: execution_time_ms.to_string(),
         })
     }
 }
@@ -156,7 +153,7 @@ impl Tool for SearchLinearQueries {
     ) -> cja::Result<Self::ToolOutput> {
         let mut conn = app_state.db.acquire().await?;
 
-        let limit = input.limit.min(50).max(1);
+        let limit = input.limit.clamp(1, 50);
 
         let queries = LinearSavedQueryWithStats::find_with_stats(
             &mut conn,
@@ -302,7 +299,6 @@ impl Tool for ExecuteSavedLinearQuery {
 
         // Execute the query
         let execute_tool = ExecuteLinearQuery;
-        let start = Instant::now();
 
         let result = execute_tool
             .run(
@@ -315,16 +311,9 @@ impl Tool for ExecuteSavedLinearQuery {
             )
             .await;
 
-        let execution_time_ms = start.elapsed().as_millis() as i32;
-
         // Track usage
         let success = result.is_ok();
         let error_message = result.as_ref().err().map(std::string::ToString::to_string);
-        let response_size = result
-            .as_ref()
-            .ok()
-            .and_then(|r| r.data.as_ref())
-            .map(|d| serde_json::to_string(d).unwrap_or_default().len() as i32);
 
         LinearQueryUsage::create(
             &mut conn,
@@ -332,8 +321,6 @@ impl Tool for ExecuteSavedLinearQuery {
             Some(input.variables),
             success,
             error_message,
-            response_size,
-            Some(execution_time_ms),
         )
         .await?;
 

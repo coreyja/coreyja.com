@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \n                    id,\n                    name,\n                    description,\n                    query,\n                    variables_schema,\n                    tags,\n                    created_at,\n                    updated_at,\n                    created_by\n                FROM linear_saved_queries\n                WHERE name ILIKE $1 OR description ILIKE $1\n                ORDER BY created_at DESC\n                LIMIT $2\n                ",
+  "query": "\n            INSERT INTO linear_saved_queries (name, description, query, variables_schema, tags, created_by)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING\n                id,\n                name,\n                description,\n                query,\n                variables_schema,\n                tags,\n                created_at,\n                updated_at,\n                created_by\n            ",
   "describe": {
     "columns": [
       {
@@ -51,8 +51,12 @@
     ],
     "parameters": {
       "Left": [
+        "Varchar",
         "Text",
-        "Int8"
+        "Text",
+        "Jsonb",
+        "TextArray",
+        "Varchar"
       ]
     },
     "nullable": [
@@ -67,5 +71,5 @@
       true
     ]
   },
-  "hash": "669c4ed58c66ba9e2f461f22b071a032e56ebf44f6296e5cbb5e51d4c0b91cb1"
+  "hash": "9a5b7be6f01f222e3891af67e16b601894b6f2070d7c39006b763e146a0a943a"
 }

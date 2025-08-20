@@ -12,8 +12,6 @@ pub struct LinearQueryUsage {
     pub variables: Option<JsonValue>,
     pub success: bool,
     pub error_message: Option<String>,
-    pub response_size_bytes: Option<i32>,
-    pub execution_time_ms: Option<i32>,
 }
 
 impl LinearQueryUsage {
@@ -23,37 +21,29 @@ impl LinearQueryUsage {
         variables: Option<JsonValue>,
         success: bool,
         error_message: Option<String>,
-        response_size_bytes: Option<i32>,
-        execution_time_ms: Option<i32>,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as!(
             LinearQueryUsage,
             r#"
             INSERT INTO linear_query_usage (
-                query_id, 
-                variables, 
-                success, 
-                error_message, 
-                response_size_bytes, 
-                execution_time_ms
+                query_id,
+                variables,
+                success,
+                error_message
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING 
+            VALUES ($1, $2, $3, $4)
+            RETURNING
                 id,
                 query_id,
                 executed_at,
                 variables,
                 success,
-                error_message,
-                response_size_bytes,
-                execution_time_ms
+                error_message
             "#,
             query_id,
             variables,
             success,
             error_message,
-            response_size_bytes,
-            execution_time_ms
         )
         .fetch_one(conn)
         .await
@@ -67,15 +57,13 @@ impl LinearQueryUsage {
         sqlx::query_as!(
             LinearQueryUsage,
             r#"
-            SELECT 
+            SELECT
                 id,
                 query_id,
                 executed_at,
                 variables,
                 success,
-                error_message,
-                response_size_bytes,
-                execution_time_ms
+                error_message
             FROM linear_query_usage
             WHERE query_id = $1
             ORDER BY executed_at DESC
@@ -94,11 +82,10 @@ impl LinearQueryUsage {
     ) -> Result<QueryUsageStats, sqlx::Error> {
         let stats = sqlx::query!(
             r#"
-            SELECT 
+            SELECT
                 COUNT(*) as total_executions,
                 COUNT(CASE WHEN success = true THEN 1 END) as successful_executions,
                 COUNT(CASE WHEN success = false THEN 1 END) as failed_executions,
-                AVG(execution_time_ms)::INTEGER as avg_execution_time_ms,
                 MAX(executed_at) as last_executed_at
             FROM linear_query_usage
             WHERE query_id = $1
@@ -112,7 +99,6 @@ impl LinearQueryUsage {
             total_executions: stats.total_executions.unwrap_or(0),
             successful_executions: stats.successful_executions.unwrap_or(0),
             failed_executions: stats.failed_executions.unwrap_or(0),
-            avg_execution_time_ms: stats.avg_execution_time_ms.map(f64::from),
             last_executed_at: stats.last_executed_at,
         })
     }
@@ -140,6 +126,5 @@ pub struct QueryUsageStats {
     pub total_executions: i64,
     pub successful_executions: i64,
     pub failed_executions: i64,
-    pub avg_execution_time_ms: Option<f64>,
     pub last_executed_at: Option<DateTime<Utc>>,
 }

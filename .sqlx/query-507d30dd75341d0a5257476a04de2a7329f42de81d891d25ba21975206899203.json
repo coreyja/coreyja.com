@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id,\n                name,\n                description,\n                query,\n                variables_schema,\n                tags,\n                created_at,\n                updated_at,\n                created_by\n            FROM linear_saved_queries\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT\n                id,\n                name,\n                description,\n                query,\n                variables_schema,\n                tags,\n                created_at,\n                updated_at,\n                created_by\n            FROM linear_saved_queries\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -66,5 +66,5 @@
       true
     ]
   },
-  "hash": "105f856ae67dcc61578ccf289ceb003e8157eda499d9026bb97f012dd91b6ff5"
+  "hash": "507d30dd75341d0a5257476a04de2a7329f42de81d891d25ba21975206899203"
 }

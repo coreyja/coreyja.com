@@ -22,9 +22,7 @@ CREATE TABLE linear_query_usage (
     executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     variables JSONB,
     success BOOLEAN NOT NULL,
-    error_message TEXT,
-    response_size_bytes INTEGER,
-    execution_time_ms INTEGER
+    error_message TEXT
 );
 
 CREATE INDEX idx_query_usage_query_id ON linear_query_usage(query_id);

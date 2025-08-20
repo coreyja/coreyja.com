@@ -17,6 +17,10 @@ use crate::{
                 ListServerEmojis, ListenToThread, ReactToMessage, SendDiscordMessage,
                 SendDiscordThreadMessage,
             },
+            linear_graphql::{
+                ExecuteLinearQuery, ExecuteSavedLinearQuery, GetLinearSchema, SaveLinearQuery,
+                SearchLinearQueries,
+            },
             threads::CompleteThread,
             ThreadContext, ToolBag,
         },
@@ -119,6 +123,13 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tools.add_tool(ReactToMessage::new())?;
         // Add the emoji list tool for interactive threads
         tools.add_tool(ListServerEmojis::new())?;
+
+        // Add Linear GraphQL tools for Discord threads
+        tools.add_tool(ExecuteLinearQuery)?;
+        tools.add_tool(SearchLinearQueries)?;
+        tools.add_tool(SaveLinearQuery)?;
+        tools.add_tool(ExecuteSavedLinearQuery)?;
+        tools.add_tool(GetLinearSchema)?;
     } else {
         // For regular threads, use the standard Discord message tool
         tools.add_tool(SendDiscordMessage)?;

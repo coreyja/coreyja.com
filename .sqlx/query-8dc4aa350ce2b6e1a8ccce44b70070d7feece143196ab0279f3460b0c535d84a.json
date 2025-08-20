@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id,\n                name,\n                description,\n                query,\n                variables_schema,\n                tags,\n                created_at,\n                updated_at,\n                created_by\n            FROM linear_saved_queries\n            WHERE name = $1\n            ",
+  "query": "\n            UPDATE linear_saved_queries\n            SET\n                name = $2,\n                description = $3,\n                query = $4,\n                variables_schema = $5,\n                tags = $6,\n                updated_at = NOW()\n            WHERE id = $1\n            RETURNING\n                id,\n                name,\n                description,\n                query,\n                variables_schema,\n                tags,\n                created_at,\n                updated_at,\n                created_by\n            ",
   "describe": {
     "columns": [
       {
@@ -51,7 +51,12 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Text",
+        "Jsonb",
+        "TextArray"
       ]
     },
     "nullable": [
@@ -66,5 +71,5 @@
       true
     ]
   },
-  "hash": "2bd6f387cf5d854690fa5d04695e27f0567b82e6b91fe41084eb733668e580e6"
+  "hash": "8dc4aa350ce2b6e1a8ccce44b70070d7feece143196ab0279f3460b0c535d84a"
 }

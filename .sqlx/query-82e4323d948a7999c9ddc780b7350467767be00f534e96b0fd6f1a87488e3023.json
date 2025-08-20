@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id,\n                query_id,\n                executed_at,\n                variables,\n                success,\n                error_message,\n                response_size_bytes,\n                execution_time_ms\n            FROM linear_query_usage\n            WHERE query_id = $1\n            ORDER BY executed_at DESC\n            LIMIT $2\n            ",
+  "query": "\n            INSERT INTO linear_query_usage (\n                query_id,\n                variables,\n                success,\n                error_message\n            )\n            VALUES ($1, $2, $3, $4)\n            RETURNING\n                id,\n                query_id,\n                executed_at,\n                variables,\n                success,\n                error_message\n            ",
   "describe": {
     "columns": [
       {
@@ -32,22 +32,14 @@
         "ordinal": 5,
         "name": "error_message",
         "type_info": "Text"
-      },
-      {
-        "ordinal": 6,
-        "name": "response_size_bytes",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 7,
-        "name": "execution_time_ms",
-        "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "Int8"
+        "Jsonb",
+        "Bool",
+        "Text"
       ]
     },
     "nullable": [
@@ -56,10 +48,8 @@
       false,
       true,
       false,
-      true,
-      true,
       true
     ]
   },
-  "hash": "a3834909c2a380d038d1f88c7517e360a5fd2d32864141679f7c76dbd08b3f21"
+  "hash": "82e4323d948a7999c9ddc780b7350467767be00f534e96b0fd6f1a87488e3023"
 }
