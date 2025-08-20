@@ -24,7 +24,7 @@ impl Job<AppState> for RefreshVideos {
         let hub = google_youtube3::YouTube::new(
             google_youtube3::hyper::Client::builder().build(
                 google_youtube3::hyper_rustls::HttpsConnectorBuilder::new()
-                    .with_native_roots()
+                    .with_native_roots()?
                     .https_or_http()
                     .enable_http1()
                     .build(),

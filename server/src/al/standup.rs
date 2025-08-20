@@ -2,8 +2,13 @@ use chrono::Utc;
 use chrono_tz::US::Eastern;
 use db::agentic_threads::{Stitch, Thread};
 use serde::{Deserialize, Serialize};
+use serenity::all::Channel;
 
-use crate::{agentic_threads::ThreadBuilder, jobs::thread_processor::ProcessThreadStep, AppState};
+use crate::{
+    agentic_threads::{builder::DiscordMetadata, ThreadBuilder},
+    jobs::thread_processor::ProcessThreadStep,
+    AppState,
+};
 use cja::jobs::Job;
 
 #[derive(Debug, Serialize)]
@@ -115,15 +120,9 @@ impl StandupAgent {
     }
 
     pub async fn generate_standup_message(&self) -> cja::Result<()> {
-        // Create a new thread with a high-level goal
-        let thread = ThreadBuilder::new(self.app_state.db.clone())
-            .with_goal("Generate daily standup message")
-            .autonomous()
-            .build()
-            .await?;
-
-        // Update thread status to running
-        Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;
+        let now_eastern = Utc::now().with_timezone(&Eastern);
+        let date_str = now_eastern.format("%A, %B %d, %Y at %I:%M %p").to_string();
+        let thread_name = format!("Standup for {date_str}");
 
         // Get configuration for the prompt
         let channel_id = self.app_state.standup.discord_channel_id.ok_or_else(|| {
@@ -133,18 +132,61 @@ impl StandupAgent {
             cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_USER_ID not configured")
         })?;
 
-        let now_eastern = Utc::now().with_timezone(&Eastern);
-        let date_str = now_eastern.format("%A, %B %d, %Y at %I:%M %p").to_string();
+        let channel_id = serenity::all::ChannelId::new(channel_id);
+        let channel = channel_id.to_channel(&self.app_state.discord).await?;
+        let Channel::Guild(guild_channel) = channel else {
+            color_eyre::eyre::bail!("Channel is not a guild channel");
+        };
+        let builder = serenity::all::CreateThread::new(thread_name.clone())
+            .auto_archive_duration(serenity::all::AutoArchiveDuration::OneDay);
+        let new_discord_thread = guild_channel
+            .create_thread(&self.app_state.discord, builder)
+            .await?;
+        let discord_metadata = DiscordMetadata {
+            discord_thread_id: new_discord_thread.id.to_string(),
+            channel_id: guild_channel.id.to_string(),
+            guild_id: guild_channel.guild_id.to_string(),
+            created_by: "Al".to_string(),
+            thread_name: thread_name.clone(),
+        };
+
+        let thread = ThreadBuilder::new(self.app_state.db.clone())
+            .with_goal("Generate daily standup message")
+            .interactive_discord(discord_metadata)
+            .autonomous()
+            .build()
+            .await?;
+
+        // Update thread status to running
+        Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;
 
         let prompt = format!(
-            "You are a friendly AI assistant helping with daily standup messages. \
-            Generate a warm, encouraging good morning message for a developer's daily standup. \
-            Keep it brief (2-3 sentences max), professional but friendly. \
-            Include the current time: {date_str}. \
-            Vary the message each day - be creative but appropriate for a work context. \
-            End with encouragement for the standup meeting.
-            Send the message to the following discord channel: {channel_id}
-            And tag the following user: {user_id}"
+            r"You are a daily standup assistant. Your job is to help me prepare for and run my daily standup.
+
+            Follow these steps:
+
+            1. Check Linear for context:
+               - Get the current cycle for my team
+               - List all my in-progress issues
+               - Check recently updated issues assigned to me
+
+            2. Summarize my current work:
+               - What I worked on yesterday (based on recent issue updates)
+               - What I'm planning to work on today (in-progress issues)
+               - Any blockers or dependencies
+
+            3. Task management:
+               - Ensure I have 1-2 tasks assigned for today
+               - If I have fewer, suggest picking up new issues from the backlog
+               - If I have more than 2, ask which to prioritize
+
+            4. Output a brief standup update in this format:
+               - Yesterday: [completed/progressed items]
+               - Today: [1-2 focused tasks]
+               - Blockers: [any blockers or needs]
+
+            Keep the update concise and action-oriented. Focus on deliverables, not activities.
+            Tag me {user_id} in the thread"
         );
 
         // Create the initial user message stitch with the full prompt

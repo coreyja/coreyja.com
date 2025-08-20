@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::unreachable;
 
 use markdown::mdast::{
-    BlockQuote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link, List,
+    Blockquote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link, List,
     ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
 };
 use maud::{html, Markup, PreEscaped};
@@ -65,7 +65,7 @@ impl IntoHtml for Node {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
         match self {
             Node::Root(r) => r.into_html(config, context),
-            Node::BlockQuote(x) => x.into_html(config, context),
+            Node::Blockquote(x) => x.into_html(config, context),
             Node::FootnoteDefinition(_) => Ok(html! {}), // Skipping for now
             Node::List(l) => l.into_html(config, context),
             Node::Yaml(y) => y.into_html(config, context),
@@ -174,7 +174,7 @@ impl IntoHtml for Table {
     }
 }
 
-impl IntoHtml for BlockQuote {
+impl IntoHtml for Blockquote {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! {
           blockquote {
