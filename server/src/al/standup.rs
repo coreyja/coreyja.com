@@ -153,7 +153,6 @@ impl StandupAgent {
         let thread = ThreadBuilder::new(self.app_state.db.clone())
             .with_goal("Generate daily standup message")
             .interactive_discord(discord_metadata)
-            .autonomous()
             .build()
             .await?;
 
