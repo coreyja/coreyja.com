@@ -32,7 +32,7 @@ impl LinearSavedQuery {
             r#"
             INSERT INTO linear_saved_queries (name, description, query, variables_schema, tags, created_by)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING 
+            RETURNING
                 id,
                 name,
                 description,
@@ -61,7 +61,7 @@ impl LinearSavedQuery {
         sqlx::query_as!(
             LinearSavedQuery,
             r#"
-            SELECT 
+            SELECT
                 id,
                 name,
                 description,
@@ -87,7 +87,7 @@ impl LinearSavedQuery {
         sqlx::query_as!(
             LinearSavedQuery,
             r#"
-            SELECT 
+            SELECT
                 id,
                 name,
                 description,
@@ -112,54 +112,11 @@ impl LinearSavedQuery {
         tags: Option<&[String]>,
         limit: i64,
     ) -> Result<Vec<Self>, sqlx::Error> {
-        let mut query = String::from(
-            r"
-            SELECT 
-                q.id,
-                q.name,
-                q.description,
-                q.query,
-                q.variables_schema,
-                q.tags,
-                q.created_at,
-                q.updated_at,
-                q.created_by
-            FROM linear_saved_queries q
-            WHERE 1=1
-            ",
-        );
-
-        let mut params: Vec<String> = Vec::new();
-        let mut param_count = 0;
-
-        if let Some(term) = search_term {
-            param_count += 1;
-            query.push_str(&format!(
-                " AND (q.name ILIKE ${param_count} OR q.description ILIKE ${param_count})"
-            ));
-            params.push(format!("%{term}%"));
-        }
-
-        if let Some(tag_list) = tags {
-            if !tag_list.is_empty() {
-                param_count += 1;
-                query.push_str(&format!(" AND q.tags && ${param_count}"));
-            }
-        }
-
-        query.push_str(" ORDER BY q.created_at DESC");
-
-        param_count += 1;
-        query.push_str(&format!(" LIMIT ${param_count}"));
-
-        // This is a simplified version - you may need to adjust based on your exact requirements
-        // For now, let's use a simpler approach with separate queries
-
         if search_term.is_some() && tags.is_some() {
             sqlx::query_as!(
                 LinearSavedQuery,
                 r#"
-                SELECT 
+                SELECT
                     id,
                     name,
                     description,
@@ -185,7 +142,7 @@ impl LinearSavedQuery {
             sqlx::query_as!(
                 LinearSavedQuery,
                 r#"
-                SELECT 
+                SELECT
                     id,
                     name,
                     description,
@@ -209,7 +166,7 @@ impl LinearSavedQuery {
             sqlx::query_as!(
                 LinearSavedQuery,
                 r#"
-                SELECT 
+                SELECT
                     id,
                     name,
                     description,
@@ -233,7 +190,7 @@ impl LinearSavedQuery {
             sqlx::query_as!(
                 LinearSavedQuery,
                 r#"
-                SELECT 
+                SELECT
                     id,
                     name,
                     description,
@@ -259,7 +216,7 @@ impl LinearSavedQuery {
             LinearSavedQuery,
             r#"
             UPDATE linear_saved_queries
-            SET 
+            SET
                 name = $2,
                 description = $3,
                 query = $4,
@@ -267,7 +224,7 @@ impl LinearSavedQuery {
                 tags = $6,
                 updated_at = NOW()
             WHERE id = $1
-            RETURNING 
+            RETURNING
                 id,
                 name,
                 description,
@@ -320,7 +277,7 @@ impl LinearSavedQueryWithStats {
         for query in queries {
             let stats = sqlx::query!(
                 r#"
-                SELECT 
+                SELECT
                     MAX(executed_at) as last_used,
                     COUNT(*) as use_count
                 FROM linear_query_usage
