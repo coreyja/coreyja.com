@@ -43,5 +43,5 @@ grace_period = "1s"
 restart_limit = 0
 
 [[vm]]
-size = "shared-cpu-1x"
-memory = "2gb"
+size = "shared-cpu-2x"
+memory = "4gb"
