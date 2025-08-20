@@ -1,4 +1,4 @@
-query StandupData($teamId: String!, $userId: String!) {
+query StandupData($teamId: String! $teamIdId: ID!, $userId: ID!) {
   # Get the current user (the bot/app making the request)
   viewer {
     id
@@ -13,14 +13,14 @@ query StandupData($teamId: String!, $userId: String!) {
       }
     }
   }
-  
+
   # Get the team and its current cycle
   team(id: $teamId) {
     id
     name
     key
     timezone
-    
+
     # Current active cycle
     activeCycle {
       id
@@ -32,7 +32,7 @@ query StandupData($teamId: String!, $userId: String!) {
       completedIssueCountHistory
       scopeHistory
       completedScopeHistory
-      
+
       # All issues in the current cycle (not filtered by assignee)
       issues(first: 100) {
         nodes {
@@ -40,12 +40,12 @@ query StandupData($teamId: String!, $userId: String!) {
         }
       }
     }
-    
+
     # Previous cycle for context
     previousCycle: cycles(
-      filter: { endsAt: { lt: "now" } }
+      filter: { endsAt: { lt: "-P0D" } }
       first: 1
-      orderBy: endsAt
+      orderBy: updatedAt
     ) {
       nodes {
         id
@@ -53,7 +53,7 @@ query StandupData($teamId: String!, $userId: String!) {
         name
         startsAt
         endsAt
-        
+
         # Recently completed issues from previous cycle
         issues(
           first: 50
@@ -69,7 +69,7 @@ query StandupData($teamId: String!, $userId: String!) {
       }
     }
   }
-  
+
   # All in-progress issues regardless of cycle
   inProgressIssues: issues(
     first: 50
@@ -83,7 +83,7 @@ query StandupData($teamId: String!, $userId: String!) {
       ...IssueDetails
     }
   }
-  
+
   # Recently updated issues (last 24 hours)
   recentlyUpdatedIssues: issues(
     first: 50
@@ -97,22 +97,22 @@ query StandupData($teamId: String!, $userId: String!) {
       ...IssueDetails
     }
   }
-  
+
   # Backlog issues that could be picked up
   backlogIssues: issues(
     first: 20
     filter: {
       state: { type: { eq: "backlog" } }
       assignee: { null: true }
-      team: { id: { eq: $teamId } }
+      team: { id: { eq: $teamIdId } }
     }
-    orderBy: priority
+    orderBy: updatedAt
   ) {
     nodes {
       ...IssueDetails
     }
   }
-  
+
   # Issues with blocking dependencies
   issuesWithBlockers: issues(
     first: 20
@@ -135,7 +135,7 @@ fragment IssueDetails on Issue {
   description
   url
   branchName
-  
+
   # Status information
   state {
     id
@@ -144,11 +144,11 @@ fragment IssueDetails on Issue {
     color
     position
   }
-  
+
   # Priority
   priority
   priorityLabel
-  
+
   # Timestamps
   createdAt
   updatedAt
@@ -156,17 +156,17 @@ fragment IssueDetails on Issue {
   completedAt
   canceledAt
   dueDate
-  
+
   # Estimate
   estimate
-  
+
   # Team
   team {
     id
     key
     name
   }
-  
+
   # Assignee
   assignee {
     id
@@ -175,14 +175,14 @@ fragment IssueDetails on Issue {
     email
     avatarUrl
   }
-  
+
   # Creator
   creator {
     id
     name
     displayName
   }
-  
+
   # Project information
   project {
     id
@@ -190,9 +190,9 @@ fragment IssueDetails on Issue {
     state
     startDate
     targetDate
-    
+
     # Current milestone
-    projectMilestones(first: 1, filter: { completed: { eq: false } }) {
+    projectMilestones(first: 1) {
       nodes {
         id
         name
@@ -200,7 +200,7 @@ fragment IssueDetails on Issue {
       }
     }
   }
-  
+
   # Labels
   labels {
     nodes {
@@ -209,7 +209,7 @@ fragment IssueDetails on Issue {
       color
     }
   }
-  
+
   # Recent comments (last 48 hours for context)
   comments(
     first: 10
@@ -227,7 +227,7 @@ fragment IssueDetails on Issue {
       }
     }
   }
-  
+
   # Attachments (PRs, docs, etc)
   attachments {
     nodes {
@@ -243,7 +243,7 @@ fragment IssueDetails on Issue {
       }
     }
   }
-  
+
   # Sub-issues
   children {
     nodes {
@@ -261,7 +261,7 @@ fragment IssueDetails on Issue {
       }
     }
   }
-  
+
   # Parent issue
   parent {
     id
@@ -272,7 +272,7 @@ fragment IssueDetails on Issue {
       type
     }
   }
-  
+
   # Relations - issues that this issue blocks or is related to
   relations {
     nodes {
@@ -294,7 +294,7 @@ fragment IssueDetails on Issue {
       }
     }
   }
-  
+
   # Inverse relations - issues that block this issue
   inverseRelations {
     nodes {
@@ -316,12 +316,12 @@ fragment IssueDetails on Issue {
       }
     }
   }
-  
+
   # SLA timestamps if configured
   slaBreachesAt
   slaStartedAt
   slaType
-  
+
   # Cycle information
   cycle {
     id

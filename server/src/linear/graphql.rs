@@ -146,6 +146,7 @@ pub async fn get_standup_data(
     user_id: &str,
 ) -> Result<standup_data::ResponseData> {
     let team_id = team_id.to_string();
+    let team_id_id = team_id.clone();
     let user_id = user_id.to_string();
     let client = Client::builder()
         .user_agent("github.com/coreyja/coreyja.com")
@@ -161,7 +162,11 @@ pub async fn get_standup_data(
     let response = post_graphql::<StandupData, _>(
         &client,
         "https://api.linear.app/graphql",
-        standup_data::Variables { team_id, user_id },
+        standup_data::Variables {
+            team_id,
+            team_id_id,
+            user_id,
+        },
     )
     .await?;
 

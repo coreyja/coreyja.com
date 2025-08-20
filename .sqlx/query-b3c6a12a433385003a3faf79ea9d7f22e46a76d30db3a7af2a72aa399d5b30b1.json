@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                *\n            FROM threads\n            WHERE created_at >= NOW() - INTERVAL '1 day' * $1\n            ORDER BY created_at DESC\n            ",
+  "query": "\n            UPDATE threads\n            SET status = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING\n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -56,7 +56,8 @@
     ],
     "parameters": {
       "Left": [
-        "Float8"
+        "Text",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -72,5 +73,5 @@
       false
     ]
   },
-  "hash": "d80a304a0683f469271702e7ba6f74c552fbdad5d64b936f36ba9fcf6d29cbfb"
+  "hash": "b3c6a12a433385003a3faf79ea9d7f22e46a76d30db3a7af2a72aa399d5b30b1"
 }

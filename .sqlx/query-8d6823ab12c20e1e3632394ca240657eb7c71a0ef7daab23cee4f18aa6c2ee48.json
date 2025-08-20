@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                *\n            FROM threads\n            WHERE thread_id = $1\n            ",
+  "query": "\n            SELECT\n                t.*\n            FROM threads t\n            JOIN stitches s ON t.branching_stitch_id = s.stitch_id\n            WHERE s.thread_id = $1\n            ORDER BY t.created_at ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "4d17a33c6219cf92e47445bf28874bebc53abdeab62bb593b92e5bea592d5127"
+  "hash": "8d6823ab12c20e1e3632394ca240657eb7c71a0ef7daab23cee4f18aa6c2ee48"
 }

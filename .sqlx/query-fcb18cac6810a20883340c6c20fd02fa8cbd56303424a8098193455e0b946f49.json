@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO threads (goal, branching_stitch_id, thread_type)\n            VALUES ($1, $2, $3)\n            RETURNING \n                *\n            ",
+  "query": "\n            SELECT\n                *\n            FROM threads\n            ORDER BY created_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -55,11 +55,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text",
-        "Uuid",
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -74,5 +70,5 @@
       false
     ]
   },
-  "hash": "bc4ce811e0272dc3a42e98b58a55814212ab1353e3ed9dcd6afc90cb62daa0d7"
+  "hash": "fcb18cac6810a20883340c6c20fd02fa8cbd56303424a8098193455e0b946f49"
 }

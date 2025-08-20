@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET tasks = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
+  "query": "\n            SELECT\n                *\n            FROM threads\n            WHERE thread_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -56,7 +56,6 @@
     ],
     "parameters": {
       "Left": [
-        "Jsonb",
         "Uuid"
       ]
     },
@@ -73,5 +72,5 @@
       false
     ]
   },
-  "hash": "84926e3a08bcebaac1d40cdb7dc364d9afe1b89a62657b2c43c4cc31950eb074"
+  "hash": "80a3ee06def6beb3097def983c53d20426fdf7d347b21225e4df134e80e7ef2b"
 }

@@ -490,7 +490,7 @@ mod tests {
         .unwrap();
 
         // Create user message
-        Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
+        Stitch::create_initial_user_message(&pool, thread_id, "Hello")
             .await
             .unwrap();
 
@@ -581,10 +581,9 @@ mod tests {
         let thread_id = thread.thread_id;
 
         // Create initial user message
-        let initial_stitch =
-            Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
-                .await
-                .unwrap();
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
 
         // Create LLM response
         let response = json!({
@@ -632,13 +631,10 @@ mod tests {
         let thread_id = thread.thread_id;
 
         // Create initial user message
-        let initial_stitch = Stitch::create_initial_user_message(
-            &pool,
-            thread_id,
-            "What's the weather?".to_string(),
-        )
-        .await
-        .unwrap();
+        let initial_stitch =
+            Stitch::create_initial_user_message(&pool, thread_id, "What's the weather?")
+                .await
+                .unwrap();
 
         // First LLM response with tool use
         let response1 = json!({
@@ -729,10 +725,9 @@ mod tests {
         let thread_id = thread.thread_id;
 
         // Create initial user message
-        let initial_stitch =
-            Stitch::create_initial_user_message(&pool, thread_id, "Do something".to_string())
-                .await
-                .unwrap();
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Do something")
+            .await
+            .unwrap();
 
         // LLM response with tool use
         let response = json!({
@@ -799,10 +794,9 @@ mod tests {
         let thread_id = thread.thread_id;
 
         // Create initial user message
-        let initial_stitch =
-            Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
-                .await
-                .unwrap();
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
 
         // LLM response with listen tool use
         let response1 = json!({
@@ -948,7 +942,7 @@ mod tests {
 
         // Create initial user message
         let initial_stitch =
-            Stitch::create_initial_user_message(&pool, thread_id, "Do multiple things".to_string())
+            Stitch::create_initial_user_message(&pool, thread_id, "Do multiple things")
                 .await
                 .unwrap();
 
@@ -1044,10 +1038,9 @@ mod tests {
         let thread_id = thread.thread_id;
 
         // Create initial user message
-        let initial_stitch =
-            Stitch::create_initial_user_message(&pool, thread_id, "Hello".to_string())
-                .await
-                .unwrap();
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
 
         // Create LLM response
         let response = json!({
@@ -1153,13 +1146,9 @@ mod tests {
         let thread_id = thread.thread_id;
 
         // Create initial user message
-        let initial_stitch = Stitch::create_initial_user_message(
-            &pool,
-            thread_id,
-            "Do the same thing twice".to_string(),
-        )
-        .await
-        .unwrap();
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "prompt")
+            .await
+            .unwrap();
 
         // LLM response with two identical tool uses (same tool name)
         let response = json!({
