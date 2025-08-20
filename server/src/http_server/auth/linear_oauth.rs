@@ -54,8 +54,8 @@ pub(crate) async fn linear_auth(
 
     sqlx::query!(
         r#"
-        INSERT INTO GithubLoginStates (github_login_state_id, state, return_to, app)
-        VALUES ($1, 'created', $2, 'linear')
+        INSERT INTO LinearOauthStates (linear_oauth_state_id, state, return_to)
+        VALUES ($1, 'created', $2)
         "#,
         state_id,
         query.return_to.clone()
@@ -89,8 +89,8 @@ pub(crate) async fn linear_callback(
 
     let state_record = sqlx::query!(
         r#"
-        SELECT * FROM GithubLoginStates
-        WHERE github_login_state_id = $1 AND state = 'created' AND app = 'linear'
+        SELECT * FROM LinearOauthStates
+        WHERE linear_oauth_state_id = $1 AND state = 'created'
         "#,
         state
     )
@@ -198,9 +198,9 @@ pub(crate) async fn linear_callback(
 
     sqlx::query!(
         r#"
-        UPDATE GithubLoginStates
-        SET state = 'linear_completed'
-        WHERE github_login_state_id = $1 AND state = 'created'
+        UPDATE LinearOauthStates
+        SET state = 'completed', updated_at = NOW()
+        WHERE linear_oauth_state_id = $1 AND state = 'created'
         "#,
         state
     )

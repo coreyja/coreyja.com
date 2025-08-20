@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO LinearOauthStates (linear_oauth_state_id, state, return_to)\n        VALUES ($1, 'created', $2)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1d354f8161ef64e71b521f3696bd7c5a1c48cf6366773a4c304a1df14293840c"
+}
