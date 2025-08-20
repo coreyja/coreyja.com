@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM linear_query_usage\n            WHERE executed_at < NOW() - INTERVAL '1 day' * $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "873be0614fd3c1442fe8b5828897b139e7f0b4f4f9de8147a7aa0c4696ec5f9d"
+}

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                COUNT(*) as total_executions,\n                COUNT(CASE WHEN success = true THEN 1 END) as successful_executions,\n                COUNT(CASE WHEN success = false THEN 1 END) as failed_executions,\n                AVG(execution_time_ms)::INTEGER as avg_execution_time_ms,\n                MAX(executed_at) as last_executed_at\n            FROM linear_query_usage\n            WHERE query_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_executions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "successful_executions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "failed_executions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "avg_execution_time_ms",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_executed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "86de6bbff35574baf2b1b66102d32c440d915ac6190a096876f38c3bc7f303f5"
+}

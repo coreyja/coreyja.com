@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                    id,\n                    name,\n                    description,\n                    query,\n                    variables_schema,\n                    tags,\n                    created_at,\n                    updated_at,\n                    created_by\n                FROM linear_saved_queries\n                WHERE (name ILIKE $1 OR description ILIKE $1)\n                    AND tags && $2\n                ORDER BY created_at DESC\n                LIMIT $3\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "query",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "variables_schema",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_by",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "196286418d9195d183336b48a4ffdb96c55a0add24e6a197cc26d56a744deb7b"
+}
