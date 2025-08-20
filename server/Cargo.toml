@@ -94,6 +94,9 @@ axum-extra = { workspace = true }
 schemars = "1.0.4"
 const_panic = "0.2.12"
 static_assertions = "1.1.0"
+hmac = "0.12.1"
+sha2 = "0.10.9"
+hex = "0.4.3"
 
 [build-dependencies]
 vergen = { workspace = true, features = ["git", "gitoxide", "rustc"] }

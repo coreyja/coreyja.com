@@ -8,6 +8,7 @@ use crate::{
     AppState,
 };
 pub mod discord;
+pub mod linear_graphql;
 pub mod threads;
 pub mod tool_suggestions;
 

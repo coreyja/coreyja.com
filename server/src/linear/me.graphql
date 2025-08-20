@@ -1,0 +1,8 @@
+query Me {
+  viewer {
+    id
+    organization {
+      id
+    }
+  }
+}

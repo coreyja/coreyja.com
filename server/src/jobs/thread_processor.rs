@@ -17,6 +17,10 @@ use crate::{
                 ListServerEmojis, ListenToThread, ReactToMessage, SendDiscordMessage,
                 SendDiscordThreadMessage,
             },
+            linear_graphql::{
+                ExecuteLinearQuery, ExecuteSavedLinearQuery, GetLinearSchema, SaveLinearQuery,
+                SearchLinearQueries,
+            },
             threads::CompleteThread,
             ThreadContext, ToolBag,
         },
@@ -87,7 +91,10 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
             db::agentic_threads::StitchType::InitialPrompt
             | db::agentic_threads::StitchType::ToolCall
             | db::agentic_threads::StitchType::DiscordMessage
-            | db::agentic_threads::StitchType::SystemPrompt => {
+            | db::agentic_threads::StitchType::SystemPrompt
+            | db::agentic_threads::StitchType::AgentThought
+            | db::agentic_threads::StitchType::ClarificationRequest
+            | db::agentic_threads::StitchType::Error => {
                 // This is the expected types that we can process here right now
             }
         }
@@ -116,6 +123,13 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tools.add_tool(ReactToMessage::new())?;
         // Add the emoji list tool for interactive threads
         tools.add_tool(ListServerEmojis::new())?;
+
+        // Add Linear GraphQL tools for Discord threads
+        tools.add_tool(ExecuteLinearQuery)?;
+        tools.add_tool(SearchLinearQueries)?;
+        tools.add_tool(SaveLinearQuery)?;
+        tools.add_tool(ExecuteSavedLinearQuery)?;
+        tools.add_tool(GetLinearSchema)?;
     } else {
         // For regular threads, use the standard Discord message tool
         tools.add_tool(SendDiscordMessage)?;
@@ -369,6 +383,49 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                             role: "user".to_string(),
                             content: vec![Content::Text(TextContent {
                                 text: formatted_message,
+                                cache_control: None,
+                            })],
+                        });
+                    }
+                }
+            }
+            db::agentic_threads::StitchType::AgentThought => {
+                // Agent thoughts are internal reasoning that should be included in the context
+                // but marked appropriately
+                if let Some(data) = stitch.llm_request {
+                    if let Some(thought) = data.get("thought").and_then(|v| v.as_str()) {
+                        messages.push(Message {
+                            role: "assistant".to_string(),
+                            content: vec![Content::Text(TextContent {
+                                text: format!("[AGENT THOUGHT]: {thought}"),
+                                cache_control: None,
+                            })],
+                        });
+                    }
+                }
+            }
+            db::agentic_threads::StitchType::ClarificationRequest => {
+                // Clarification requests are questions from the agent to the user
+                if let Some(data) = stitch.llm_request {
+                    if let Some(question) = data.get("question").and_then(|v| v.as_str()) {
+                        messages.push(Message {
+                            role: "assistant".to_string(),
+                            content: vec![Content::Text(TextContent {
+                                text: format!("[CLARIFICATION REQUEST]: {question}"),
+                                cache_control: None,
+                            })],
+                        });
+                    }
+                }
+            }
+            db::agentic_threads::StitchType::Error => {
+                // Error states should be included to show what went wrong
+                if let Some(data) = stitch.llm_request {
+                    if let Some(error) = data.get("error").and_then(|v| v.as_str()) {
+                        messages.push(Message {
+                            role: "assistant".to_string(),
+                            content: vec![Content::Text(TextContent {
+                                text: format!("[ERROR]: {error}"),
                                 cache_control: None,
                             })],
                         });

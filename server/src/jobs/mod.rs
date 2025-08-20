@@ -4,13 +4,15 @@ use crate::state::AppState;
 
 use self::{
     discord_message_processor::ProcessDiscordMessage,
-    discord_thread_create_processor::ProcessDiscordThreadCreate, sponsors::RefreshSponsors,
+    discord_thread_create_processor::ProcessDiscordThreadCreate,
+    linear_webhook_processor::ProcessLinearWebhook, sponsors::RefreshSponsors,
     thread_processor::ProcessThreadStep, youtube_videos::RefreshVideos,
 };
 
 pub mod bytes_discord_posts;
 pub mod discord_message_processor;
 pub mod discord_thread_create_processor;
+pub mod linear_webhook_processor;
 pub mod refresh_discord;
 pub mod sponsors;
 pub mod standup_message;
@@ -26,5 +28,6 @@ impl_job_registry!(
     standup_message::StandupMessage,
     ProcessThreadStep,
     ProcessDiscordMessage,
-    ProcessDiscordThreadCreate
+    ProcessDiscordThreadCreate,
+    ProcessLinearWebhook
 );

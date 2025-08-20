@@ -47,7 +47,6 @@ pub(crate) async fn generate_server_token(
     )?;
 
     let url = format!("https://api.github.com/app/installations/{installation_id}/access_tokens");
-    dbg!(&url);
     let client = reqwest::Client::new();
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("Accept", "application/vnd.github+json".parse()?);
@@ -56,11 +55,8 @@ pub(crate) async fn generate_server_token(
     headers.insert("User-Agent", "github.com/coreyja/coreyja.com".parse()?);
 
     let token_response = client.post(&url).headers(headers).send().await?;
-    dbg!(&token_response);
 
     let token_response = token_response.json::<serde_json::Value>().await?;
-
-    dbg!(&token_response);
 
     let token = token_response["token"]
         .as_str()

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-
+set -e
 
 pushd "$(git rev-parse --show-toplevel)" || exit
   pushd thread-frontend || exit

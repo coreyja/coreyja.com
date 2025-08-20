@@ -5,6 +5,8 @@ use sqlx::postgres::PgPoolOptions;
 
 pub mod agentic_threads;
 pub mod discord_threads;
+pub mod linear_threads;
+pub mod models;
 pub mod tool_suggestions;
 pub mod twitch_chatters;
 pub mod users;

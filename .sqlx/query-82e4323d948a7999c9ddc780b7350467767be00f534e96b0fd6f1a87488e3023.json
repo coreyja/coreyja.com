@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO linear_query_usage (\n                query_id,\n                variables,\n                success,\n                error_message\n            )\n            VALUES ($1, $2, $3, $4)\n            RETURNING\n                id,\n                query_id,\n                executed_at,\n                variables,\n                success,\n                error_message\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "query_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "executed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "variables",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "success",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "error_message",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "82e4323d948a7999c9ddc780b7350467767be00f534e96b0fd6f1a87488e3023"
+}

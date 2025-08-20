@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE LinearOauthStates\n        SET state = 'completed', updated_at = NOW()\n        WHERE linear_oauth_state_id = $1 AND state = 'created'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fa6ccc6e603a1d670e145c529647d30c1678c1a3eed218cc749762cf0c567105"
+}

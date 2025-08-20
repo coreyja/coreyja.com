@@ -18,8 +18,8 @@ unsafe_code = "forbid"
 [workspace.dependencies]
 clap = { version = "4.2", features = ["derive"] }
 reqwest = { version = "0.11.12", features = [
-  "json",
-  "rustls-tls",
+    "json",
+    "rustls-tls",
 ], default-features = false }
 
 tokio = { version = "1.21", features = ["full"] }
@@ -30,9 +30,9 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.2.2"
 opentelemetry = { version = "0.23.0", features = [], default-features = false }
 opentelemetry-otlp = { version = "0.16.0", features = [
-  "http-proto",
-  "reqwest-rustls",
-  "reqwest-client",
+    "http-proto",
+    "reqwest-rustls",
+    "reqwest-client",
 ], default-features = false }
 
 serde = { version = "1.0", features = ["derive"] }
@@ -46,12 +46,12 @@ include_dir = { version = "0.7.3", features = ["metadata", "glob"] }
 path-absolutize = "3.0"
 
 sqlx = { version = "0.8.6", features = [
-  "postgres",
-  "runtime-tokio-rustls",
-  "chrono",
-  "migrate",
-  "macros",
-  "uuid",
+    "postgres",
+    "runtime-tokio-rustls",
+    "chrono",
+    "migrate",
+    "macros",
+    "uuid",
 ] }
 
 uuid = { version = "1.6.1", features = ["v4", "serde"] }
@@ -71,7 +71,7 @@ debug-ignore = "1.0.5"
 futures = "0.3.29"
 google-youtube3 = "5.0.3"
 gql_client = { version = "1.0.8", default-features = false, features = [
-  "rustls-tls",
+    "rustls-tls",
 ] }
 graphql_client = "0.13.0"
 indoc = "2.0"
@@ -91,7 +91,7 @@ sentry-tower = "0.31.5"
 sentry-tracing = "0.31.8"
 serde_urlencoded = "0.7.1"
 serde_yaml = "0.9"
-serenity = "0.12.2"
+serenity = { version = "0.12.2", features = ["model"] }
 syntect = "5.0"
 thiserror = "1.0.44"
 tower = "0.4.13"

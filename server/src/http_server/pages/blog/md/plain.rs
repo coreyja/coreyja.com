@@ -16,7 +16,7 @@ impl IntoPlainText for Node {
 
         match self {
             Node::Root(x) => x.children.plain_text(),
-            Node::BlockQuote(x) => x.children.plain_text(),
+            Node::Blockquote(x) => x.children.plain_text(),
             Node::FootnoteDefinition(x) => x.children.plain_text(),
             Node::List(x) => x.children.plain_text(),
             Node::InlineCode(x) => x.value.clone(),
@@ -90,7 +90,7 @@ mod test {
     #[ignore = "The newlines around paragraphs aren't quite right"]
     fn heading() {
         let original = "# Hello, world!
-        
+
 This is a test.
 
 More words
