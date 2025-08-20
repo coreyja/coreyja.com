@@ -1,0 +1,333 @@
+query StandupData($teamId: String!, $userId: String!) {
+  # Get the current user (the bot/app making the request)
+  viewer {
+    id
+    name
+    email
+    displayName
+    teams {
+      nodes {
+        id
+        key
+        name
+      }
+    }
+  }
+  
+  # Get the team and its current cycle
+  team(id: $teamId) {
+    id
+    name
+    key
+    timezone
+    
+    # Current active cycle
+    activeCycle {
+      id
+      number
+      name
+      startsAt
+      endsAt
+      progress
+      completedIssueCountHistory
+      scopeHistory
+      completedScopeHistory
+      
+      # All issues in the current cycle (not filtered by assignee)
+      issues(first: 100) {
+        nodes {
+          ...IssueDetails
+        }
+      }
+    }
+    
+    # Previous cycle for context
+    previousCycle: cycles(
+      filter: { endsAt: { lt: "now" } }
+      first: 1
+      orderBy: endsAt
+    ) {
+      nodes {
+        id
+        number
+        name
+        startsAt
+        endsAt
+        
+        # Recently completed issues from previous cycle
+        issues(
+          first: 50
+          filter: {
+            assignee: { id: { eq: $userId } }
+            state: { type: { in: ["completed", "canceled"] } }
+          }
+        ) {
+          nodes {
+            ...IssueDetails
+          }
+        }
+      }
+    }
+  }
+  
+  # All in-progress issues regardless of cycle
+  inProgressIssues: issues(
+    first: 50
+    filter: {
+      assignee: { id: { eq: $userId } }
+      state: { type: { eq: "started" } }
+    }
+    orderBy: updatedAt
+  ) {
+    nodes {
+      ...IssueDetails
+    }
+  }
+  
+  # Recently updated issues (last 24 hours)
+  recentlyUpdatedIssues: issues(
+    first: 50
+    filter: {
+      assignee: { id: { eq: $userId } }
+      updatedAt: { gte: "-P1D" }
+    }
+    orderBy: updatedAt
+  ) {
+    nodes {
+      ...IssueDetails
+    }
+  }
+  
+  # Backlog issues that could be picked up
+  backlogIssues: issues(
+    first: 20
+    filter: {
+      state: { type: { eq: "backlog" } }
+      assignee: { null: true }
+      team: { id: { eq: $teamId } }
+    }
+    orderBy: priority
+  ) {
+    nodes {
+      ...IssueDetails
+    }
+  }
+  
+  # Issues with blocking dependencies
+  issuesWithBlockers: issues(
+    first: 20
+    filter: {
+      assignee: { id: { eq: $userId } }
+      hasBlockedByRelations: { eq: true }
+    }
+  ) {
+    nodes {
+      ...IssueDetails
+    }
+  }
+}
+
+# Fragment for complete issue details
+fragment IssueDetails on Issue {
+  id
+  identifier
+  title
+  description
+  url
+  branchName
+  
+  # Status information
+  state {
+    id
+    name
+    type
+    color
+    position
+  }
+  
+  # Priority
+  priority
+  priorityLabel
+  
+  # Timestamps
+  createdAt
+  updatedAt
+  startedAt
+  completedAt
+  canceledAt
+  dueDate
+  
+  # Estimate
+  estimate
+  
+  # Team
+  team {
+    id
+    key
+    name
+  }
+  
+  # Assignee
+  assignee {
+    id
+    name
+    displayName
+    email
+    avatarUrl
+  }
+  
+  # Creator
+  creator {
+    id
+    name
+    displayName
+  }
+  
+  # Project information
+  project {
+    id
+    name
+    state
+    startDate
+    targetDate
+    
+    # Current milestone
+    projectMilestones(first: 1, filter: { completed: { eq: false } }) {
+      nodes {
+        id
+        name
+        targetDate
+      }
+    }
+  }
+  
+  # Labels
+  labels {
+    nodes {
+      id
+      name
+      color
+    }
+  }
+  
+  # Recent comments (last 48 hours for context)
+  comments(
+    first: 10
+    filter: { createdAt: { gte: "-P2D" } }
+    orderBy: createdAt
+  ) {
+    nodes {
+      id
+      body
+      createdAt
+      user {
+        id
+        name
+        displayName
+      }
+    }
+  }
+  
+  # Attachments (PRs, docs, etc)
+  attachments {
+    nodes {
+      id
+      title
+      subtitle
+      url
+      sourceType
+      createdAt
+      creator {
+        id
+        name
+      }
+    }
+  }
+  
+  # Sub-issues
+  children {
+    nodes {
+      id
+      identifier
+      title
+      state {
+        name
+        type
+      }
+      assignee {
+        id
+        name
+        displayName
+      }
+    }
+  }
+  
+  # Parent issue
+  parent {
+    id
+    identifier
+    title
+    state {
+      name
+      type
+    }
+  }
+  
+  # Relations - issues that this issue blocks or is related to
+  relations {
+    nodes {
+      id
+      type
+      relatedIssue {
+        id
+        identifier
+        title
+        state {
+          name
+          type
+        }
+        assignee {
+          id
+          name
+          displayName
+        }
+      }
+    }
+  }
+  
+  # Inverse relations - issues that block this issue
+  inverseRelations {
+    nodes {
+      id
+      type
+      issue {
+        id
+        identifier
+        title
+        state {
+          name
+          type
+        }
+        assignee {
+          id
+          name
+          displayName
+        }
+      }
+    }
+  }
+  
+  # SLA timestamps if configured
+  slaBreachesAt
+  slaStartedAt
+  slaType
+  
+  # Cycle information
+  cycle {
+    id
+    number
+    name
+    startsAt
+    endsAt
+  }
+}

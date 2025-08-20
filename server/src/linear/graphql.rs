@@ -6,6 +6,7 @@ use super::agent::AgentActivityContent;
 
 type DateTime = chrono::DateTime<chrono::Utc>;
 type JSONObject = serde_json::Value;
+type TimelessDate = String; // Linear uses YYYY-MM-DD format for dates
 
 // The paths are relative to the directory where your `Cargo.toml` is located.
 // Both json and the GraphQL schema language are supported as sources for the schema
@@ -129,4 +130,46 @@ pub async fn create_agent_activity(
     }
 
     Ok(())
+}
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/linear/schema.graphql",
+    query_path = "src/linear/standup.graphql",
+    response_derives = "Debug, Serialize"
+)]
+pub struct StandupData;
+
+pub async fn get_standup_data(
+    access_token: &str,
+    team_id: &str,
+    user_id: &str,
+) -> Result<standup_data::ResponseData> {
+    let team_id = team_id.to_string();
+    let user_id = user_id.to_string();
+    let client = Client::builder()
+        .user_agent("github.com/coreyja/coreyja.com")
+        .default_headers(
+            std::iter::once((
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {access_token}"))?,
+            ))
+            .collect(),
+        )
+        .build()?;
+
+    let response = post_graphql::<StandupData, _>(
+        &client,
+        "https://api.linear.app/graphql",
+        standup_data::Variables { team_id, user_id },
+    )
+    .await?;
+
+    if let Some(errors) = response.errors {
+        return Err(cja::color_eyre::eyre::eyre!("GraphQL errors: {:?}", errors));
+    }
+
+    response
+        .data
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("No data returned from Linear API"))
 }

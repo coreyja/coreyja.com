@@ -51,12 +51,12 @@ impl Tool for ExecuteLinearQuery {
         &self,
         input: Self::ToolInput,
         app_state: AppState,
-        context: ThreadContext,
+        _context: ThreadContext,
     ) -> cja::Result<Self::ToolOutput> {
         let start = Instant::now();
 
         // Get Linear API key from environment or thread metadata
-        let api_key = get_linear_api_key(&app_state, &context).await?;
+        let api_key = get_linear_api_key(&app_state).await?;
 
         // Execute the GraphQL query
         let client = reqwest::Client::builder()
@@ -356,9 +356,9 @@ impl Tool for GetLinearSchema {
         &self,
         input: Self::ToolInput,
         app_state: AppState,
-        context: ThreadContext,
+        _context: ThreadContext,
     ) -> cja::Result<Self::ToolOutput> {
-        let api_key = get_linear_api_key(&app_state, &context).await?;
+        let api_key = get_linear_api_key(&app_state).await?;
 
         // Build introspection query
         let query = if let Some(type_name) = input.type_name {
@@ -459,7 +459,7 @@ impl Tool for GetLinearSchema {
     }
 }
 
-async fn get_linear_api_key(app_state: &AppState, _context: &ThreadContext) -> cja::Result<String> {
+pub async fn get_linear_api_key(app_state: &AppState) -> cja::Result<String> {
     // TODO: We would ideally like to not just grab the first installation. But I'll only have 1 for now so it'll be fine
 
     let installation = sqlx::query!(

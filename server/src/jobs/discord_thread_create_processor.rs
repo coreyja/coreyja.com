@@ -26,8 +26,7 @@ impl JobTrait<AppState> for ProcessDiscordThreadCreate {
             "Hello! I'm here to help you in this Discord thread. Feel free to ask me anything!";
 
         // Create an initial prompt stitch
-        let _stitch =
-            Stitch::create_initial_user_message(db, self.thread_id, greeting.to_string()).await?;
+        let _stitch = Stitch::create_initial_user_message(db, self.thread_id, greeting).await?;
 
         // Update thread status to running
         Thread::update_status(db, self.thread_id, "running").await?;
