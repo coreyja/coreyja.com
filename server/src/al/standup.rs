@@ -180,9 +180,10 @@ impl StandupAgent {
             ## Your Task
             Analyze the Linear data and help me create a standup update following these steps:
 
-            ### 1. Review Yesterday
+            ### 1. Review Yesterday and the current cycle
             - Identify issues I updated/closed in the last 24 hours (or since Friday if today is Monday)
             - Focus on outcomes achieved, not just activity
+            - Review the current cycle's progress and see how much is planned for the remaining days
             - Ask if there is anything else I completed that wasn't tracked.
                 If there is we will want to add completed cards to the Cycle to track how much we are doing even if its not all planned
 
