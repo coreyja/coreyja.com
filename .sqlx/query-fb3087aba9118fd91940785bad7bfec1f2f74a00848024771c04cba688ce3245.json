@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                *\n            FROM threads\n            WHERE branching_stitch_id IS NULL\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
+  "query": "\n            SELECT\n                *\n            FROM threads\n            WHERE branching_stitch_id IS NULL\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "a0409fb07b2d9ca0526ef0c3a834ad22cf5cd053d5c9789924c937bcde66c7b3"
+  "hash": "fb3087aba9118fd91940785bad7bfec1f2f74a00848024771c04cba688ce3245"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'failed', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
+  "query": "\n            UPDATE threads\n            SET status = 'completed', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING\n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -73,5 +73,5 @@
       false
     ]
   },
-  "hash": "aff2ca5afa9aea1bcee67581290bef8365593e392415b7b971957da7dc1ba000"
+  "hash": "b0afca34bbff3fb8be6142886d3fc924e7620a01f20eecc96232e34a8e2240b8"
 }

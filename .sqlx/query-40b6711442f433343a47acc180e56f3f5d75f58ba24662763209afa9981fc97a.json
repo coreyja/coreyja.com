@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE threads\n            SET status = 'aborted', result = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING \n                *\n            ",
+  "query": "\n            INSERT INTO threads (goal, branching_stitch_id, thread_type)\n            VALUES ($1, $2, $3)\n            RETURNING\n                *\n            ",
   "describe": {
     "columns": [
       {
@@ -56,8 +56,9 @@
     ],
     "parameters": {
       "Left": [
-        "Jsonb",
-        "Uuid"
+        "Text",
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
@@ -73,5 +74,5 @@
       false
     ]
   },
-  "hash": "1d0ab5c901f2bdc5201adbed28d66cf6837ab33b0cc00dccf2574a722a1750b2"
+  "hash": "40b6711442f433343a47acc180e56f3f5d75f58ba24662763209afa9981fc97a"
 }

@@ -159,34 +159,47 @@ impl StandupAgent {
         // Update thread status to running
         Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;
 
+        // Get Linear API key from environment or thread metadata
+        let api_key = crate::al::tools::linear_graphql::get_linear_api_key(&self.app_state).await?;
+
+        const DEV_TEAM_ID: &str = "affbc39a-f0d9-467c-9d67-d221e570bb19";
+        const COREY_USER_ID: &str = "14817796-bf9f-4444-910a-a2ed1db58f23";
+        let standup_data =
+            crate::linear::graphql::get_standup_data(&api_key, DEV_TEAM_ID, COREY_USER_ID).await?;
+        let standup_data_json = serde_json::to_string(&standup_data)?;
+
         let prompt = format!(
-            r"You are a daily standup assistant. Your job is to help me prepare for and run my daily standup.
+            r"
+            You are a daily standup assistant. Your job is to help me prepare for and run my daily standup.
 
-            Follow these steps:
+            ## Linear Context Data
+            <linear_data>
+            {standup_data_json}
+            </linear_data>
 
-            1. Check Linear for context:
-               - Get the current cycle for my team
-               - List all my in-progress issues
-               - Check recently updated issues assigned to me
+            ## Instructions
+            Using the Linear data provided above:
 
-            2. Summarize my current work:
+            1. Summarize my current work:
                - What I worked on yesterday (based on recent issue updates)
                - What I'm planning to work on today (in-progress issues)
                - Any blockers or dependencies
 
-            3. Task management:
+            2. Task management:
                - Ensure I have 1-2 tasks assigned for today
                - If I have fewer, suggest picking up new issues from the backlog
                - If I have more than 2, ask which to prioritize
 
-            4. Output a brief standup update in this format:
+            3. Output a brief standup update in this format:
                - Yesterday: [completed/progressed items]
                - Today: [1-2 focused tasks]
                - Blockers: [any blockers or needs]
 
             Keep the update concise and action-oriented. Focus on deliverables, not activities.
-            Tag me {user_id} in the thread"
+            Tag me {user_id} in the thread
+            "
         );
+        let prompt = prompt.trim();
 
         // Create the initial user message stitch with the full prompt
         Stitch::create_initial_user_message(&self.app_state.db, thread.thread_id, prompt).await?;

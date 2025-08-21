@@ -204,7 +204,7 @@ impl Thread {
             r#"
             INSERT INTO threads (goal, branching_stitch_id, thread_type)
             VALUES ($1, $2, $3)
-            RETURNING 
+            RETURNING
                 *
             "#,
             goal,
@@ -221,7 +221,7 @@ impl Thread {
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            SELECT 
+            SELECT
                 *
             FROM threads
             WHERE thread_id = $1
@@ -238,7 +238,7 @@ impl Thread {
         let threads = sqlx::query_as!(
             Thread,
             r#"
-            SELECT 
+            SELECT
                 *
             FROM threads
             ORDER BY created_at DESC
@@ -254,7 +254,7 @@ impl Thread {
         let threads = sqlx::query_as!(
             Thread,
             r#"
-            SELECT 
+            SELECT
                 *
             FROM threads
             WHERE created_at >= NOW() - INTERVAL '1 day' * $1
@@ -279,7 +279,7 @@ impl Thread {
             UPDATE threads
             SET status = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING 
+            RETURNING
                 *
             "#,
             status,
@@ -302,7 +302,7 @@ impl Thread {
             UPDATE threads
             SET tasks = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING 
+            RETURNING
                 *
             "#,
             tasks,
@@ -325,7 +325,7 @@ impl Thread {
             UPDATE threads
             SET status = 'completed', result = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING 
+            RETURNING
                 *
             "#,
             result,
@@ -348,7 +348,7 @@ impl Thread {
             UPDATE threads
             SET status = 'failed', result = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING 
+            RETURNING
                 *
             "#,
             result,
@@ -400,7 +400,7 @@ impl Thread {
         let threads = sqlx::query_as!(
             Thread,
             r#"
-            SELECT 
+            SELECT
                 *
             FROM threads
             WHERE branching_stitch_id IS NULL
@@ -419,7 +419,7 @@ impl Thread {
         let children = sqlx::query_as!(
             Thread,
             r#"
-            SELECT 
+            SELECT
                 t.*
             FROM threads t
             JOIN stitches s ON t.branching_stitch_id = s.stitch_id
@@ -474,7 +474,7 @@ impl Thread {
             UPDATE threads
             SET status = 'aborted', result = $1, updated_at = NOW()
             WHERE thread_id = $2
-            RETURNING 
+            RETURNING
                 *
             "#,
             result,
@@ -568,7 +568,7 @@ impl Stitch {
     pub async fn create_initial_user_message(
         pool: &PgPool,
         thread_id: Uuid,
-        prompt: String,
+        prompt: &str,
     ) -> color_eyre::Result<Self> {
         // Create the request JSON with the user's initial message
         let request = json!({
@@ -659,7 +659,7 @@ impl Stitch {
         thread_id: Uuid,
         prompt: String,
     ) -> color_eyre::Result<Self> {
-        Self::create_initial_user_message(pool, thread_id, prompt).await
+        Self::create_initial_user_message(pool, thread_id, &prompt).await
     }
 
     // Generic create method for any stitch type
@@ -695,10 +695,10 @@ impl Stitch {
         let stitch = sqlx::query_as!(
             Stitch,
             r#"
-            SELECT * FROM stitches 
-            WHERE thread_id = $1 
+            SELECT * FROM stitches
+            WHERE thread_id = $1
             AND stitch_id NOT IN (
-                SELECT previous_stitch_id FROM stitches 
+                SELECT previous_stitch_id FROM stitches
                 WHERE thread_id = $1 AND previous_stitch_id IS NOT NULL
             )
             "#,
@@ -723,7 +723,7 @@ impl Stitch {
                 SELECT s.* FROM stitches s
                 JOIN thread_history th ON s.previous_stitch_id = th.stitch_id
             )
-            SELECT 
+            SELECT
                 stitch_id as "stitch_id!",
                 thread_id as "thread_id!",
                 previous_stitch_id,
@@ -736,7 +736,7 @@ impl Stitch {
                 child_thread_id,
                 thread_result_summary,
                 created_at as "created_at!"
-            FROM thread_history 
+            FROM thread_history
             ORDER BY created_at
             "#,
             thread_id

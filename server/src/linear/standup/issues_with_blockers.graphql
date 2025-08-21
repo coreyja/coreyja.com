@@ -1,0 +1,77 @@
+query StandupIssuesWithBlockers($userId: ID!) {
+    # Issues with blocking dependencies
+    issuesWithBlockers: issues(
+        first: 20
+        filter: {
+            assignee: { id: { eq: $userId } }
+            hasBlockedByRelations: { eq: true }
+        }
+    ) {
+        nodes {
+            ...IssueWithBlockers
+        }
+    }
+}
+
+# Fragment for issues with blockers
+fragment IssueWithBlockers on Issue {
+    id
+    identifier
+    title
+    url
+
+    # Status information
+    state {
+        id
+        name
+        type
+        color
+    }
+
+    # Priority
+    priority
+    priorityLabel
+
+    # Team
+    team {
+        id
+        key
+        name
+    }
+
+    # Assignee
+    assignee {
+        id
+        name
+        displayName
+    }
+
+    # Inverse relations - issues that block this issue
+    inverseRelations {
+        nodes {
+            id
+            type
+            issue {
+                id
+                identifier
+                title
+                state {
+                    name
+                    type
+                }
+                assignee {
+                    id
+                    name
+                    displayName
+                }
+            }
+        }
+    }
+
+    # Cycle information
+    cycle {
+        id
+        number
+        name
+    }
+}

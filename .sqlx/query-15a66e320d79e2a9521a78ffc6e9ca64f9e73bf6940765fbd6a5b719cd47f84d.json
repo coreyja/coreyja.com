@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                *\n            FROM threads\n            ORDER BY created_at DESC\n            ",
+  "query": "\n            SELECT\n                *\n            FROM threads\n            WHERE created_at >= NOW() - INTERVAL '1 day' * $1\n            ORDER BY created_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -55,7 +55,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Float8"
+      ]
     },
     "nullable": [
       false,
@@ -70,5 +72,5 @@
       false
     ]
   },
-  "hash": "446d1a1fbda040ed650c5504f4b0e95f7e5c3ea6ac218b4b70bbeeae1ea32b92"
+  "hash": "15a66e320d79e2a9521a78ffc6e9ca64f9e73bf6940765fbd6a5b719cd47f84d"
 }
