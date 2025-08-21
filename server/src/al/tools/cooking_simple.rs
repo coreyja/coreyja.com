@@ -519,7 +519,7 @@ impl Tool for GetRecipe {
 
                 ingredient_details.push(RecipeIngredientDetails {
                     ingredient_name: ingredient.name,
-                    quantity: ri.quantity.to_string().parse::<f64>().unwrap_or(0.0),
+                    quantity: ri.quantity.to_string().parse::<f64>()?,
                     unit_name: unit.name,
                     is_optional: ri.is_optional,
                     notes: ri.notes,
@@ -539,7 +539,7 @@ impl Tool for GetRecipe {
                     duration: step.duration,
                     temperature: step
                         .temperature
-                        .map(|t| t.to_string().parse::<f64>().unwrap_or(0.0)),
+                        .and_then(|t| t.to_string().parse::<f64>().ok()),
                     temperature_unit: step.temperature_unit.map(|t| t.to_string()),
                 })
                 .collect();
@@ -882,11 +882,9 @@ impl Tool for CheckInventory {
 
             inventory.push(InventoryItem {
                 ingredient_name: item.ingredient_name,
-                quantity: item.quantity.to_string().parse::<f64>().unwrap_or(0.0),
+                quantity: item.quantity.to_string().parse::<f64>()?,
                 unit_name,
-                confidence_level: item
-                    .confidence_level
-                    .unwrap_or_else(|| "medium".to_string()),
+                confidence_level: item.confidence_level.unwrap_or("medium".to_string()),
                 location_name,
                 expiration_date: item.expiration_date.map(|d| d.to_string()),
                 last_updated: item.updated_at.to_string(),
@@ -1003,7 +1001,7 @@ impl Tool for ListMealPlans {
                 .into_iter()
                 .map(|entry| MealPlanEntryItem {
                     date: entry.date.to_string(),
-                    meal_type: entry.meal_type.unwrap_or("unspecified".to_string()),
+                    meal_type: entry.meal_type.unwrap_or(MealType::Dinner.to_string()),
                     recipe_name: entry.recipe_name,
                 })
                 .collect();
@@ -1045,14 +1043,16 @@ impl Tool for CreateMealPlan {
     const NAME: &'static str = "create_meal_plan";
     const DESCRIPTION: &'static str = r#"
     Create a meal plan for a date range.
+    We are parsing the date strings with "%Y-%m-%d"
+    Follow the example format below:
 
     Example:
     ```json
     {
         "name": "January Meal Plan",
         "description": "Healthy meals for the new year",
-        "start_date": "2024-01-01T00:00:00Z",
-        "end_date": "2024-01-31T23:59:59Z",
+        "start_date": "2024-01-01",
+        "end_date": "2024-01-31",
         "author_user_id": "123e4567-e89b-12d3-a456-426614174000"
     }
     ```

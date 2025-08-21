@@ -401,7 +401,7 @@ impl RecipeIngredient {
     pub async fn update(
         &self,
         pool: &PgPool,
-        quantity: f64,
+        quantity: BigDecimal,
         unit_id: Uuid,
         display_order: Option<i32>,
         ingredient_group: Option<String>,
@@ -440,7 +440,7 @@ impl RecipeIngredient {
                 updated_at
             "#,
             self.recipe_ingredient_id,
-            quantity as f64,
+            quantity,
             unit_id,
             display_order,
             ingredient_group,
