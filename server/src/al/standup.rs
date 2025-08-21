@@ -170,33 +170,35 @@ impl StandupAgent {
 
         let prompt = format!(
             r"
-            You are a daily standup assistant. Your job is to help me prepare for and run my daily standup.
+            You are my daily standup assistant. Help me prepare a focused update and plan my day.
 
-            ## Linear Context Data
+            ## Linear Context
             <linear_data>
             {standup_data_json}
             </linear_data>
 
-            ## Instructions
-            Using the Linear data provided above:
+            ## Your Task
+            Analyze the Linear data and help me create a standup update following these steps:
 
-            1. Summarize my current work:
-               - What I worked on yesterday (based on recent issue updates)
-               - What I'm planning to work on today (in-progress issues)
-               - Any blockers or dependencies
+            ### 1. Review Yesterday
+            - Identify issues I updated/closed in the last 24 hours (or since Friday if today is Monday)
+            - Focus on outcomes achieved, not just activity
+            - Ask if there is anything else I completed that wasn't tracked.
+                If there is we will want to add completed cards to the Cycle to track how much we are doing even if its not all planned
 
-            2. Task management:
-               - Ensure I have 1-2 tasks assigned for today
-               - If I have fewer, suggest picking up new issues from the backlog
-               - If I have more than 2, ask which to prioritize
+            ### 2. Plan Today
+            - Check my in-progress issues
+            - Ensure I have ideally 1 focused tasks:
+              - If I have 0: Suggest high-priority unassigned issues from the current cycle. Or search the backlog if this cycle is empty
+              - If I have 2+: Ask which to prioritize today
+            - Each task should be completable or show meaningful progress today
 
-            3. Output a brief standup update in this format:
-               - Yesterday: [completed/progressed items]
-               - Today: [1-2 focused tasks]
-               - Blockers: [any blockers or needs]
+            ### 4. Output Format
+            Create a conversational update (not just bullets) and tag me in the update, my user id is {user_id}:
+            - **Yesterday:** What I shipped/completed
+            - **Today:** My 1-2 focus areas with clear deliverables
 
-            Keep the update concise and action-oriented. Focus on deliverables, not activities.
-            Tag me {user_id} in the thread
+            Make all issue IDs (e.g., DEV-123) clickable links to Linear. Ask clarifying questions about priorities or next tasks. Keep it brief but conversational.
             "
         );
         let prompt = prompt.trim();
