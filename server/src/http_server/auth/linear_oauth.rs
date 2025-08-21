@@ -63,12 +63,24 @@ pub(crate) async fn linear_auth(
     .execute(&app_state.db)
     .await?;
 
+    let scopes: Vec<&str> = vec![
+        "read",
+        "write",
+        "app:assignable",
+        "app:mentionable",
+        "issues:create",
+        "comments:create",
+        "timeSchedule:write",
+        "initiative:write",
+    ];
+    let scopes = scopes.join(",");
+
     let redirect_uri = app_state.app.app_url("/api/linear/callback");
     let auth_url = format!(
         "https://linear.app/oauth/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}&actor=app",
         app_state.linear.client_id,
         urlencoding::encode(&redirect_uri),
-        urlencoding::encode("read,write,app:assignable,app:mentionable,issues:create,comments:create,timeSchedule:write"),
+        urlencoding::encode(&scopes),
         state_id
     );
 
