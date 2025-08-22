@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    mpe.date,\n                    mpe.meal_type,\n                    r.name as recipe_name\n                FROM meal_plan_entries mpe\n                JOIN recipes r ON mpe.recipe_id = r.recipe_id\n                WHERE mpe.meal_plan_id = $1\n                ORDER BY mpe.date, mpe.meal_type\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "meal_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "recipe_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "9652e10c284fc12cc97e86caf474f501374af7096d68a7dc8bcf4203bca84adb"
+}

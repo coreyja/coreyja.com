@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                i.inventory_id,\n                ing.name as ingredient_name,\n                i.quantity,\n                i.unit_id,\n                i.confidence_level,\n                i.location_id,\n                i.expiration_date,\n                i.updated_at\n            FROM inventory i\n            JOIN ingredients ing ON i.ingredient_id = ing.ingredient_id\n            WHERE ($1::text[] IS NULL OR LOWER(ing.name) = ANY(\n                SELECT LOWER(unnest($1::text[]))\n            ))\n            ORDER BY ing.name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "inventory_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "ingredient_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "unit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "confidence_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "expiration_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "e91296718666934b6bf0d37e21d9bd7b91198bc295e398dd047ac378accf4dc5"
+}

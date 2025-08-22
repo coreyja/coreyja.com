@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO equipment (name, category, is_optional)\n            VALUES ($1, $2, $3)\n            RETURNING \n                equipment_id,\n                name,\n                category as \"category: EquipmentCategory\",\n                is_optional,\n                created_at,\n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "equipment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "category: EquipmentCategory",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_optional",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7c175ecbcf7bf5526b7517cf24bc0b4d1fcc77c4635bc1c09777ea3659d5cc56"
+}

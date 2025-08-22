@@ -13,6 +13,10 @@ use crate::{
             ToolChoice, ToolResult,
         },
         tools::{
+            cooking_simple::{
+                AddRecipeToMealPlan, CheckInventory, CreateMealPlan, GetRecipe, ListMealPlans,
+                UpdateInventory, UpsertRecipe,
+            },
             discord::{
                 ListServerEmojis, ListenToThread, ReactToMessage, SendDiscordMessage,
                 SendDiscordThreadMessage,
@@ -130,6 +134,15 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tools.add_tool(SaveLinearQuery)?;
         tools.add_tool(ExecuteSavedLinearQuery)?;
         tools.add_tool(GetLinearSchema)?;
+
+        // Add cooking tools for interactive threads
+        tools.add_tool(UpsertRecipe)?;
+        tools.add_tool(GetRecipe)?;
+        tools.add_tool(UpdateInventory)?;
+        tools.add_tool(CheckInventory)?;
+        tools.add_tool(CreateMealPlan)?;
+        tools.add_tool(AddRecipeToMealPlan)?;
+        tools.add_tool(ListMealPlans)?;
     } else {
         // For regular threads, use the standard Discord message tool
         tools.add_tool(SendDiscordMessage)?;
