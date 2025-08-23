@@ -137,7 +137,7 @@ impl Location {
             )
             VALUES ($1, $2, $3)
             RETURNING
-                location_id as "location_id!",
+                location_id,
                 name,
                 parent_id,
                 location_type as "location_type: LocationType",
@@ -159,7 +159,7 @@ impl Location {
             Location,
             r#"
             SELECT
-                location_id as "location_id!",
+                location_id,
                 name,
                 parent_id,
                 location_type as "location_type: LocationType",
@@ -186,7 +186,7 @@ impl Location {
             Location,
             r#"
             SELECT
-                location_id as "location_id!",
+                location_id,
                 name,
                 parent_id,
                 location_type as "location_type: LocationType",
@@ -251,10 +251,10 @@ impl Inventory {
                 inventory_id as "inventory_id!",
                 ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id as "unit_id!",
+                unit_id,
                 confidence_level as "confidence_level: ConfidenceLevel",
                 expiration_date,
-                location_id as "location_id!",
+                location_id,
                 notes,
                 created_at,
                 updated_at
@@ -303,10 +303,10 @@ impl Inventory {
                 inventory_id as "inventory_id!",
                 ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id as "unit_id!",
+                unit_id,
                 confidence_level as "confidence_level: ConfidenceLevel",
                 expiration_date,
-                location_id as "location_id!",
+                location_id,
                 notes,
                 created_at,
                 updated_at
@@ -333,10 +333,10 @@ impl Inventory {
                 inventory_id as "inventory_id!",
                 ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id as "unit_id!",
+                unit_id,
                 confidence_level as "confidence_level: ConfidenceLevel",
                 expiration_date,
-                location_id as "location_id!",
+                location_id,
                 notes,
                 created_at,
                 updated_at
@@ -359,10 +359,10 @@ impl Inventory {
                 inventory_id as "inventory_id!",
                 ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id as "unit_id!",
+                unit_id,
                 confidence_level as "confidence_level: ConfidenceLevel",
                 expiration_date,
-                location_id as "location_id!",
+                location_id,
                 notes,
                 created_at,
                 updated_at
@@ -386,10 +386,10 @@ impl Inventory {
                 inventory_id as "inventory_id!",
                 ingredient_id as "ingredient_id!",
                 quantity,
-                unit_id as "unit_id!",
+                unit_id,
                 confidence_level as "confidence_level: ConfidenceLevel",
                 expiration_date,
-                location_id as "location_id!",
+                location_id,
                 notes,
                 created_at,
                 updated_at
