@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use color_eyre::eyre::Context;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -63,17 +64,23 @@ impl Tool for UpdateInventory {
         let pool = &app_state.db;
 
         // Get or create ingredient
-        let ingredient =
-            match db::cooking::Ingredient::get_by_name(pool, &input.ingredient_name).await? {
-                Some(i) => i,
-                None => {
-                    db::cooking::Ingredient::create(pool, input.ingredient_name.clone(), None, None)
-                        .await?
-                }
-            };
+        let ingredient = match db::cooking::Ingredient::get_by_name(pool, &input.ingredient_name)
+            .await
+            .wrap_err("Failed to fetch ingredient by name")?
+        {
+            Some(i) => i,
+            None => {
+                db::cooking::Ingredient::create(pool, input.ingredient_name.clone(), None, None)
+                    .await
+                    .wrap_err("Failed to create new ingredient")?
+            }
+        };
 
         // Get or create unit
-        let unit = match db::cooking::Unit::get_by_name(pool, &input.unit_name).await? {
+        let unit = match db::cooking::Unit::get_by_name(pool, &input.unit_name)
+            .await
+            .wrap_err("Failed to fetch unit by name")?
+        {
             Some(u) => u,
             None => {
                 // Create unit with default type
@@ -89,7 +96,8 @@ impl Tool for UpdateInventory {
                     Some("volume")
                 )
                 .fetch_one(pool)
-                .await?
+                .await
+                .wrap_err("Failed to create new unit")?
             }
         };
 
@@ -101,7 +109,8 @@ impl Tool for UpdateInventory {
                 location_name
             )
             .fetch_optional(pool)
-            .await?;
+            .await
+            .wrap_err("Failed to fetch location by name")?;
 
             if let Some(loc) = existing {
                 Some(loc.location_id)
@@ -113,7 +122,8 @@ impl Tool for UpdateInventory {
                     None,
                     Some(db::cooking::LocationType::Pantry),
                 )
-                .await?;
+                .await
+                .wrap_err("Failed to create new location")?;
                 Some(location.location_id)
             }
         } else {
@@ -138,11 +148,14 @@ impl Tool for UpdateInventory {
         });
 
         // Convert quantity to BigDecimal
-        let quantity = sqlx::types::BigDecimal::from_str(&input.quantity.to_string())?;
+        let quantity = sqlx::types::BigDecimal::from_str(&input.quantity.to_string())
+            .wrap_err("Failed to convert quantity to BigDecimal")?;
 
         // Check if inventory exists for this ingredient
         let existing_inventory =
-            db::cooking::Inventory::get_by_ingredient(pool, ingredient.ingredient_id).await?;
+            db::cooking::Inventory::get_by_ingredient(pool, ingredient.ingredient_id)
+                .await
+                .wrap_err("Failed to fetch existing inventory for ingredient")?;
 
         let inventory = if let Some(inv) = existing_inventory.into_iter().next() {
             // Update existing inventory
@@ -155,7 +168,8 @@ impl Tool for UpdateInventory {
                 location_id,
                 None, // notes
             )
-            .await?
+            .await
+            .wrap_err("Failed to update existing inventory")?
         } else {
             // Create new inventory
             db::cooking::Inventory::create(
@@ -168,7 +182,8 @@ impl Tool for UpdateInventory {
                 location_id,
                 None, // notes
             )
-            .await?
+            .await
+            .wrap_err("Failed to create new inventory")?
         };
 
         Ok(UpdateInventoryOutput {
@@ -178,5 +193,74 @@ impl Tool for UpdateInventory {
                 input.ingredient_name, input.quantity, input.unit_name
             ),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_update_inventory_with_cucumbers(pool: PgPool) -> cja::Result<()> {
+        let discord = crate::discord::setup().await?;
+
+        let mut app_state = AppState::from_env(discord.client).await?;
+        app_state.db = pool.clone();
+
+        // Create test context
+        let context = ThreadContext {
+            previous_stitch_id: None,
+            thread: db::agentic_threads::Thread {
+                thread_id: Uuid::new_v4(),
+                branching_stitch_id: None,
+                goal: "Update inventory".to_string(),
+                tasks: serde_json::json!([]),
+                status: db::agentic_threads::ThreadStatus::Pending,
+                result: None,
+                pending_child_results: serde_json::json!([]),
+                thread_type: db::agentic_threads::ThreadType::Autonomous,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            },
+        };
+
+        // Create input from JSON
+        let json_input = r#"{
+            "quantity": 2,
+            "unit_name": "whole",
+            "ingredient_name": "cucumbers",
+            "confidence_level": "exact"
+        }"#;
+
+        let input: UpdateInventoryInput = serde_json::from_str(json_input).unwrap();
+
+        // Run the tool
+        let tool = UpdateInventory;
+        let result = tool.run(input, app_state, context).await;
+
+        // Assert the result is successful
+        assert!(result.is_ok(), "Tool execution failed: {:?}", result.err());
+
+        let output = result.unwrap();
+        assert!(!output.inventory_id.is_empty());
+        assert_eq!(
+            output.message,
+            "Updated inventory for cucumbers with 2 whole"
+        );
+
+        // Verify the inventory was created/updated in the database
+        let inventory_id = Uuid::parse_str(&output.inventory_id).unwrap();
+        let inventory = sqlx::query!(
+            "SELECT * FROM inventory WHERE inventory_id = $1",
+            inventory_id
+        )
+        .fetch_one(&pool)
+        .await?;
+
+        assert_eq!(inventory.quantity.to_string(), "2");
+        assert_eq!(inventory.confidence_level.as_deref(), Some("exact"));
+
+        Ok(())
     }
 }
