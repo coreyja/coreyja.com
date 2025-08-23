@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                UPDATE recipes\n                SET name = $2,\n                    description = $3,\n                    prep_time = $4,\n                    cook_time = $5,\n                    servings = $6,\n                    updated_at = NOW()\n                WHERE recipe_id = $1\n                RETURNING\n                    recipe_id,\n                    name,\n                    description,\n                    prep_time,\n                    cook_time,\n                    servings,\n                    yield_amount,\n                    yield_unit,\n                    author_user_id,\n                    generated_by_stitch,\n                    inspired_by_recipe_id,\n                    forked_from_recipe_id,\n                    created_at,\n                    updated_at\n                ",
+  "query": "\n            SELECT\n                recipe_id,\n                name,\n                description,\n                prep_time,\n                cook_time,\n                servings,\n                yield_amount,\n                yield_unit,\n                generated_by_stitch,\n                inspired_by_recipe_id,\n                forked_from_recipe_id,\n                created_at,\n                updated_at\n            FROM recipes\n            WHERE recipe_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -45,43 +45,33 @@
       },
       {
         "ordinal": 8,
-        "name": "author_user_id",
-        "type_info": "Uuid"
-      },
-      {
-        "ordinal": 9,
         "name": "generated_by_stitch",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "inspired_by_recipe_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "forked_from_recipe_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text",
-        "Text",
-        "Int4",
-        "Int4",
-        "Int4"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -93,7 +83,6 @@
       false,
       true,
       true,
-      false,
       true,
       true,
       true,
@@ -101,5 +90,5 @@
       false
     ]
   },
-  "hash": "3e53dd90592766ad1538d7a7bd29aaf4565bebf297dbf2708d61e313bce65dab"
+  "hash": "f57ff008d6cb120a10d371b1280c9e9d4788f843ace1784d24471623644f099b"
 }

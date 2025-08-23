@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                recipe_id,\n                name,\n                description,\n                prep_time,\n                cook_time,\n                servings,\n                yield_amount,\n                yield_unit,\n                author_user_id,\n                generated_by_stitch,\n                inspired_by_recipe_id,\n                forked_from_recipe_id,\n                created_at,\n                updated_at\n            FROM recipes\n            WHERE author_user_id = $1\n            ORDER BY created_at DESC\n            ",
+  "query": "\n                UPDATE recipes\n                SET name = $2,\n                    description = $3,\n                    prep_time = $4,\n                    cook_time = $5,\n                    servings = $6,\n                    updated_at = NOW()\n                WHERE recipe_id = $1\n                RETURNING\n                    recipe_id,\n                    name,\n                    description,\n                    prep_time,\n                    cook_time,\n                    servings,\n                    yield_amount,\n                    yield_unit,\n                    generated_by_stitch,\n                    inspired_by_recipe_id,\n                    forked_from_recipe_id,\n                    created_at,\n                    updated_at\n                ",
   "describe": {
     "columns": [
       {
@@ -45,38 +45,38 @@
       },
       {
         "ordinal": 8,
-        "name": "author_user_id",
-        "type_info": "Uuid"
-      },
-      {
-        "ordinal": 9,
         "name": "generated_by_stitch",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "inspired_by_recipe_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "forked_from_recipe_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4"
       ]
     },
     "nullable": [
@@ -88,7 +88,6 @@
       false,
       true,
       true,
-      false,
       true,
       true,
       true,
@@ -96,5 +95,5 @@
       false
     ]
   },
-  "hash": "1d50f7139276564e57620cfb7625c5c11edd82eeddfe973f8ae5999df7739cbe"
+  "hash": "c431da69c60dc96b9f74a07251033d734a2b7c2f0a20ac8319cfc9cb1a7e1bd7"
 }

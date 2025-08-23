@@ -19,7 +19,6 @@ pub struct Recipe {
     pub servings: i32,
     pub yield_amount: Option<BigDecimal>,
     pub yield_unit: Option<String>,
-    pub author_user_id: Uuid,
     pub generated_by_stitch: Option<Uuid>,
     pub inspired_by_recipe_id: Option<Uuid>,
     pub forked_from_recipe_id: Option<Uuid>,
@@ -33,7 +32,6 @@ impl Recipe {
         pool: &PgPool,
         name: String,
         description: Option<String>,
-        author_user_id: Uuid,
         prep_time: Option<i32>,
         cook_time: Option<i32>,
         servings: i32,
@@ -47,11 +45,11 @@ impl Recipe {
             Recipe,
             r#"
             INSERT INTO recipes (
-                name, description, author_user_id, prep_time,
+                name, description, prep_time,
                 cook_time, servings, yield_amount, yield_unit,
                 generated_by_stitch, inspired_by_recipe_id, forked_from_recipe_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING
                 recipe_id,
                 name,
@@ -61,7 +59,6 @@ impl Recipe {
                 servings,
                 yield_amount,
                 yield_unit,
-                author_user_id,
                 generated_by_stitch,
                 inspired_by_recipe_id,
                 forked_from_recipe_id,
@@ -70,7 +67,6 @@ impl Recipe {
             "#,
             name,
             description,
-            author_user_id,
             prep_time,
             cook_time,
             servings,
@@ -99,7 +95,6 @@ impl Recipe {
                 servings,
                 yield_amount,
                 yield_unit,
-                author_user_id,
                 generated_by_stitch,
                 inspired_by_recipe_id,
                 forked_from_recipe_id,
@@ -116,7 +111,7 @@ impl Recipe {
         Ok(recipe)
     }
 
-    pub async fn list_by_author(pool: &PgPool, author_user_id: Uuid) -> Result<Vec<Self>> {
+    pub async fn list_all(pool: &PgPool) -> Result<Vec<Self>> {
         let recipes = sqlx::query_as!(
             Recipe,
             r#"
@@ -129,17 +124,14 @@ impl Recipe {
                 servings,
                 yield_amount,
                 yield_unit,
-                author_user_id,
                 generated_by_stitch,
                 inspired_by_recipe_id,
                 forked_from_recipe_id,
                 created_at,
                 updated_at
             FROM recipes
-            WHERE author_user_id = $1
             ORDER BY created_at DESC
-            "#,
-            author_user_id
+            "#
         )
         .fetch_all(pool)
         .await?;
@@ -181,7 +173,6 @@ impl Recipe {
                 servings,
                 yield_amount,
                 yield_unit,
-                author_user_id,
                 generated_by_stitch,
                 inspired_by_recipe_id,
                 forked_from_recipe_id,
