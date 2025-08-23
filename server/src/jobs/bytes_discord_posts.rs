@@ -101,13 +101,16 @@ impl Job<AppState> for PostByteSubmission {
         .fetch_all(&app_state.db)
         .await?;
 
+        let Some(ref discord) = app_state.discord else {
+            tracing::info!("Discord not configured, skipping Discord post");
+            return Ok(());
+        };
+
         for channel in channels {
             let create_message = serenity::all::CreateMessage::new().content(&overall_msg);
             let channel_id = ChannelId::new(channel.channel_id.parse::<u64>()?);
 
-            channel_id
-                .send_message(&app_state.discord, create_message)
-                .await?;
+            channel_id.send_message(discord, create_message).await?;
         }
 
         Ok(())

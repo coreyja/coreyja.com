@@ -13,6 +13,11 @@ impl Job<AppState> for RefreshDiscordChannels {
     const NAME: &'static str = "RefreshDiscordChannels";
 
     async fn run(&self, state: AppState) -> cja::Result<()> {
+        let Some(ref discord) = state.discord else {
+            tracing::info!("Discord not configured, skipping channel refresh");
+            return Ok(());
+        };
+
         let channels = sqlx::query_as!(DiscordChannel, "SELECT * FROM DiscordChannels")
             .fetch_all(state.db())
             .await?;
@@ -22,7 +27,7 @@ impl Job<AppState> for RefreshDiscordChannels {
 
             let channel_id = ChannelId::new(channel.channel_id.parse::<u64>()?);
 
-            let channel = state.discord.http.get_channel(channel_id).await?;
+            let channel = discord.http.get_channel(channel_id).await?;
 
             let serenity::all::Channel::Guild(channel) = channel else {
                 tracing::error!("Channel is a DM Channel");
