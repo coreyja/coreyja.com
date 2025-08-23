@@ -7,7 +7,7 @@ use crate::{
     al::standup::{AnthropicTool, ToolUseContent},
     AppState,
 };
-pub mod cooking_simple;
+pub mod cooking;
 pub mod discord;
 pub mod linear_graphql;
 pub mod threads;

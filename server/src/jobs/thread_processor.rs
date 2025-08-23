@@ -13,7 +13,7 @@ use crate::{
             ToolChoice, ToolResult,
         },
         tools::{
-            cooking_simple::{
+            cooking::{
                 AddRecipeToMealPlan, CheckInventory, CreateMealPlan, GetRecipe, ListMealPlans,
                 UpdateInventory, UpsertRecipe,
             },
