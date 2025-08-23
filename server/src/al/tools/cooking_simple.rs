@@ -23,7 +23,6 @@ pub struct UpsertRecipeInput {
     pub prep_time: Option<i32>,
     pub cook_time: Option<i32>,
     pub servings: i32,
-    pub author_user_id: String,
     pub ingredients: Vec<RecipeIngredientInput>,
     pub steps: Vec<RecipeStepInput>,
     pub equipment: Vec<RecipeEquipmentInput>,
@@ -81,7 +80,6 @@ impl Tool for UpsertRecipe {
         "prep_time": 15,
         "cook_time": 12,
         "servings": 24,
-        "author_user_id": "123e4567-e89b-12d3-a456-426614174000",
         "ingredients": [
             {
                 "ingredient_name": "all-purpose flour",
@@ -143,7 +141,6 @@ impl Tool for UpsertRecipe {
             .as_ref()
             .map(|id| Uuid::parse_str(id))
             .transpose()?;
-        let author_user_id = Uuid::parse_str(&input.author_user_id)?;
 
         // Create or update the recipe
         let recipe = if let Some(recipe_id) = recipe_id {
@@ -168,7 +165,6 @@ impl Tool for UpsertRecipe {
                     servings,
                     yield_amount,
                     yield_unit,
-                    author_user_id,
                     generated_by_stitch,
                     inspired_by_recipe_id,
                     forked_from_recipe_id,
@@ -190,7 +186,6 @@ impl Tool for UpsertRecipe {
                 pool,
                 input.name,
                 input.description,
-                author_user_id,
                 input.prep_time,
                 input.cook_time,
                 input.servings,
@@ -1030,7 +1025,6 @@ pub struct CreateMealPlanInput {
     pub description: Option<String>,
     pub start_date: String,
     pub end_date: String,
-    pub author_user_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -1052,8 +1046,7 @@ impl Tool for CreateMealPlan {
         "name": "January Meal Plan",
         "description": "Healthy meals for the new year",
         "start_date": "2024-01-01",
-        "end_date": "2024-01-31",
-        "author_user_id": "123e4567-e89b-12d3-a456-426614174000"
+        "end_date": "2024-01-31"
     }
     ```
     "#;
