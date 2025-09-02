@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                location_id as \"location_id!\",\n                name,\n                parent_id,\n                location_type as \"location_type: LocationType\",\n                created_at,\n                updated_at\n            FROM locations\n            WHERE location_id = $1\n            ",
+  "query": "\n            SELECT\n                location_id,\n                name,\n                parent_id,\n                location_type as \"location_type: LocationType\",\n                created_at,\n                updated_at\n            FROM locations\n            WHERE location_id = $1\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "location_id!",
+        "name": "location_id",
         "type_info": "Uuid"
       },
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "384a8ed45fb8010fc3fa06bfc56c7922dd4255c4db0223202d76b2bbf05ec1af"
+  "hash": "1beec3ee14e2eaf044b9b90c87c127d54eb27aff456b88bba804c75bbd7efc12"
 }
