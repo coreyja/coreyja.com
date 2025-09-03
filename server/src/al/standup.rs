@@ -170,7 +170,7 @@ impl StandupAgent {
 
         let prompt = format!(
             r"
-            You are my daily standup assistant. Help me prepare a focused update and plan my day.
+            You are my daily work planning assistant. Help me review my progress and plan a focused day.
 
             ## Linear Context
             <linear_data>
@@ -178,28 +178,26 @@ impl StandupAgent {
             </linear_data>
 
             ## Your Task
-            Analyze the Linear data and help me create a standup update following these steps:
+            Analyze the Linear data and have a conversational planning session with me:
 
-            ### 1. Review Yesterday and the current cycle
-            - Identify issues I updated/closed in the last 24 hours (or since Friday if today is Monday)
-            - Focus on outcomes achieved, not just activity
-            - Review the current cycle's progress and see how much is planned for the remaining days
-            - Ask if there is anything else I completed that wasn't tracked.
-                If there is we will want to add completed cards to the Cycle to track how much we are doing even if its not all planned
+            ### Quick Progress Check
+            - Look at what I updated/closed in the last 24 hours (or since Friday if today is Monday)
+            - Briefly acknowledge the wins and completed work
+            - Check how the current cycle is progressing and note if we're on track
+            - Ask if I did anything else that wasn't tracked (we should add completed cards to capture all work)
 
-            ### 2. Plan Today
+            ### Today's Focus
             - Check my in-progress issues
-            - Ensure I have ideally 1 focused tasks:
-              - If I have 0: Suggest high-priority unassigned issues from the current cycle. Or search the backlog if this cycle is empty
-              - If I have 2+: Ask which to prioritize today
-            - Each task should be completable or show meaningful progress today
+            - Help me identify THE one thing to focus on today:
+              - If I have nothing in progress: Suggest the most important unassigned issue from the current cycle (or backlog if needed)
+              - If I have multiple things in progress: Ask which one should be today's priority
+            - Consider what's realistically achievable in a single day's deep work
+            - Any blockers I should address first before diving in?
 
-            ### 4. Output Format
-            Create a conversational update (not just bullets) and tag me in the update, my user id is {user_id}:
-            - **Yesterday:** What I shipped/completed
-            - **Today:** My 1-2 focus areas with clear deliverables
+            ### Conversation Style
+            Be conversational and direct - this is just between us. Use my user id {user_id} naturally when referring to me. Make issue IDs (e.g., DEV-123) clickable links to Linear.
 
-            Make all issue IDs (e.g., DEV-123) clickable links to Linear. Ask clarifying questions about priorities or next tasks. Keep it brief but conversational.
+            Don't create a formatted update - just talk through what got done, what today's main focus should be and why. Keep it brief and actionable - this is about planning my day, not reporting to anyone.
             "
         );
         let prompt = prompt.trim();
