@@ -14,9 +14,6 @@ This project requires both the frontend and Rust backend to be built. The fronte
 
 # For development (frontend + Rust debug build)
 ./scripts/dev-build.sh
-
-# Build only the frontend
-./scripts/build-frontend.sh
 ```
 
 ### Manual Build Steps

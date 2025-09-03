@@ -44,7 +44,9 @@
       "mcp__Linear__list_teams",
       "mcp__Linear__search_documentation",
       "Bash(./scripts/auto-fix-all.sh:*)",
-      "Bash(cargo doc:*)"
+      "Bash(cargo doc:*)",
+      "mcp__Linear__list_my_issues",
+      "mcp__Linear__list_issues"
     ],
     "deny": []
   }
