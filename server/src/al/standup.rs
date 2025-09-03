@@ -198,6 +198,7 @@ impl StandupAgent {
             Be conversational and direct - this is just between us. Use my user id {user_id} naturally when referring to me. Make issue IDs (e.g., DEV-123) clickable links to Linear.
 
             Don't create a formatted update - just talk through what got done, what today's main focus should be and why. Keep it brief and actionable - this is about planning my day, not reporting to anyone.
+            Make sure to tag my in the response or else I won't get a notification for the new thread!
             "
         );
         let prompt = prompt.trim();
