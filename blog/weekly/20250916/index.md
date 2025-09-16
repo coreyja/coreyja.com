@@ -1,5 +1,5 @@
 ---
-title: Introducing backup.blue: Back Up Your AtProto Account to Your iPhone (or Mac)
+title: "Introducing backup.blue: Back Up Your AtProto Account to Your iPhone (or Mac)"
 author: Corey Alexander
 date: 2025-09-16
 is_newsletter: true
