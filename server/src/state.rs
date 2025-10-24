@@ -109,12 +109,12 @@ pub(crate) struct AppState {
     pub cookie_key: CookieKey,
     pub encrypt_config: encrypt::Config,
     pub posthog_key: Option<String>,
-    pub discord: DiscordClient,
+    pub discord: Option<DiscordClient>,
 }
 
 impl AppState {
     #[instrument(name = "AppState::from_env", err, skip(discord))]
-    pub async fn from_env(discord: DiscordClient) -> cja::Result<Self> {
+    pub async fn from_env(discord: Option<DiscordClient>) -> cja::Result<Self> {
         let blog_posts = BlogPosts::from_static_dir()?;
         let blog_posts = Arc::new(blog_posts);
 

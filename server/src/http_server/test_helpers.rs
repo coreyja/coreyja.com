@@ -25,6 +25,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
     std::env::set_var("LINEAR_WEBHOOK_SECRET", "test-webhook-secret");
 
     let discord_setup = crate::discord::setup().await.unwrap();
+    let discord_client = discord_setup.map(|d| d.client);
 
     // Create a minimal test state
     let state = AppState {
@@ -47,7 +48,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         cookie_key: cja::server::cookies::CookieKey::from_env_or_generate().unwrap(),
         encrypt_config: crate::encrypt::Config::from_env().unwrap(),
         posthog_key: None,
-        discord: discord_setup.client,
+        discord: discord_client,
     };
 
     let syntax_css = String::new(); // Empty for tests
