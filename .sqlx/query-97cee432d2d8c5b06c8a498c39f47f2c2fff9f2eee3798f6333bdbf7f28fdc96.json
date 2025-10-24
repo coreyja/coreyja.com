@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                inventory_id as \"inventory_id!\",\n                ingredient_id as \"ingredient_id!\",\n                quantity,\n                unit_id as \"unit_id!\",\n                confidence_level as \"confidence_level: ConfidenceLevel\",\n                expiration_date,\n                location_id as \"location_id!\",\n                notes,\n                created_at,\n                updated_at\n            FROM inventory\n            WHERE expiration_date IS NOT NULL\n                AND expiration_date <= CURRENT_DATE + INTERVAL '1 day' * $1\n            ORDER BY expiration_date\n            ",
+  "query": "\n            SELECT\n                inventory_id as \"inventory_id!\",\n                ingredient_id as \"ingredient_id!\",\n                quantity,\n                unit_id,\n                confidence_level as \"confidence_level: ConfidenceLevel\",\n                expiration_date,\n                location_id,\n                notes,\n                created_at,\n                updated_at\n            FROM inventory\n            WHERE expiration_date IS NOT NULL\n                AND expiration_date <= CURRENT_DATE + INTERVAL '1 day' * $1\n            ORDER BY expiration_date\n            ",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "unit_id!",
+        "name": "unit_id",
         "type_info": "Uuid"
       },
       {
@@ -35,7 +35,7 @@
       },
       {
         "ordinal": 6,
-        "name": "location_id!",
+        "name": "location_id",
         "type_info": "Uuid"
       },
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "e0231f2332449b67f3404b9c73a60a69d371ca429098a5043abf4e5b03952353"
+  "hash": "97cee432d2d8c5b06c8a498c39f47f2c2fff9f2eee3798f6333bdbf7f28fdc96"
 }

@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE inventory\n            SET quantity = COALESCE($2, quantity),\n                unit_id = COALESCE($3, unit_id),\n                confidence_level = COALESCE($4::TEXT, confidence_level),\n                expiration_date = COALESCE($5, expiration_date),\n                location_id = COALESCE($6, location_id),\n                notes = COALESCE($7, notes)\n            WHERE inventory_id = $1\n            RETURNING\n                inventory_id as \"inventory_id!\",\n                ingredient_id as \"ingredient_id!\",\n                quantity,\n                unit_id,\n                confidence_level as \"confidence_level: ConfidenceLevel\",\n                expiration_date,\n                location_id,\n                notes,\n                created_at,\n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "inventory_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "ingredient_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "unit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "confidence_level: ConfidenceLevel",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "expiration_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "location_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Uuid",
+        "Text",
+        "Date",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a8119c0ef79185617f26dfaf54c9f21b68e636c4f63db234147ffc0ecd1376c2"
+}

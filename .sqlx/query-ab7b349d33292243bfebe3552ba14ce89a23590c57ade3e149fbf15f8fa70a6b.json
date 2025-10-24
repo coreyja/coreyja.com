@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                inventory_id as \"inventory_id!\",\n                ingredient_id as \"ingredient_id!\",\n                quantity,\n                unit_id as \"unit_id!\",\n                confidence_level as \"confidence_level: ConfidenceLevel\",\n                expiration_date,\n                location_id as \"location_id!\",\n                notes,\n                created_at,\n                updated_at\n            FROM inventory\n            WHERE location_id = $1\n            ",
+  "query": "SELECT * FROM inventory WHERE inventory_id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "inventory_id!",
+        "name": "inventory_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "ingredient_id!",
+        "name": "ingredient_id",
         "type_info": "Uuid"
       },
       {
@@ -20,12 +20,12 @@
       },
       {
         "ordinal": 3,
-        "name": "unit_id!",
+        "name": "unit_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 4,
-        "name": "confidence_level: ConfidenceLevel",
+        "name": "confidence_level",
         "type_info": "Text"
       },
       {
@@ -35,7 +35,7 @@
       },
       {
         "ordinal": 6,
-        "name": "location_id!",
+        "name": "location_id",
         "type_info": "Uuid"
       },
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "c494507c06eb90aea765c875624fe650ec3e1794f8c1fbccfc667f3312eedaf7"
+  "hash": "ab7b349d33292243bfebe3552ba14ce89a23590c57ade3e149fbf15f8fa70a6b"
 }

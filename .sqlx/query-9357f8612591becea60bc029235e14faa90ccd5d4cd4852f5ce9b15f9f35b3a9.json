@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO inventory (\n                ingredient_id,\n                quantity,\n                unit_id,\n                confidence_level,\n                expiration_date,\n                location_id,\n                notes\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING\n                inventory_id as \"inventory_id!\",\n                ingredient_id as \"ingredient_id!\",\n                quantity,\n                unit_id as \"unit_id!\",\n                confidence_level as \"confidence_level: ConfidenceLevel\",\n                expiration_date,\n                location_id as \"location_id!\",\n                notes,\n                created_at,\n                updated_at\n            ",
+  "query": "\n            INSERT INTO inventory (\n                ingredient_id,\n                quantity,\n                unit_id,\n                confidence_level,\n                expiration_date,\n                location_id,\n                notes\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING\n                inventory_id as \"inventory_id!\",\n                ingredient_id as \"ingredient_id!\",\n                quantity,\n                unit_id,\n                confidence_level as \"confidence_level: ConfidenceLevel\",\n                expiration_date,\n                location_id,\n                notes,\n                created_at,\n                updated_at\n            ",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "unit_id!",
+        "name": "unit_id",
         "type_info": "Uuid"
       },
       {
@@ -35,7 +35,7 @@
       },
       {
         "ordinal": 6,
-        "name": "location_id!",
+        "name": "location_id",
         "type_info": "Uuid"
       },
       {
@@ -78,5 +78,5 @@
       false
     ]
   },
-  "hash": "9dc73058b840006549ba030adda4e75f65362bbd4ce49c902efb7e6ede7edfe9"
+  "hash": "9357f8612591becea60bc029235e14faa90ccd5d4cd4852f5ce9b15f9f35b3a9"
 }
