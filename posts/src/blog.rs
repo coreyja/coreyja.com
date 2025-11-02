@@ -79,7 +79,7 @@ impl BlogPost {
 
         if canonical == path {
             Some(MatchesPath::CanonicalPath)
-        } else if canonical == PathBuf::from(path.canonical_path()) {
+        } else if canonical == path.canonical_path() {
             Some(MatchesPath::RedirectToCanonicalPath)
         } else {
             None

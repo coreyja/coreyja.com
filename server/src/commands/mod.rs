@@ -5,17 +5,14 @@ pub(crate) mod info;
 pub(crate) mod validate;
 
 #[derive(Subcommand)]
+#[derive(Default)]
 pub(crate) enum Command {
+    #[default]
     Serve,
     Print,
     Validate,
 }
 
-impl Default for Command {
-    fn default() -> Self {
-        Self::Serve
-    }
-}
 
 impl Command {
     pub(crate) async fn run(&self) -> Result<()> {

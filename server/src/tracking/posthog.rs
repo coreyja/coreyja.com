@@ -37,7 +37,7 @@ pub(crate) async fn capture_event(
     if let Some(user_id) = user_id {
         properties.insert(
             "distinct_id".to_string(),
-            serde_json::Value::String(user_id.to_string()),
+            serde_json::Value::String(user_id.clone()),
         );
     } else {
         properties.insert(
