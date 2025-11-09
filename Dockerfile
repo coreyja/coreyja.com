@@ -11,14 +11,14 @@ COPY thread-frontend/ ./
 RUN npm run build
 
 # Rust build stages
-FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.91 AS chef
 WORKDIR /app
 
 FROM chef AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder 
+FROM chef AS builder
 RUN rustc --version; cargo --version; rustup --version
 
 RUN apt-get update && apt-get install -y \

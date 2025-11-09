@@ -24,3 +24,5 @@ server/src/local.rs
 thread-frontend/.output
 thread-frontend/.tanstack
 thread-frontend/dist
+
+agent-os/specs/
