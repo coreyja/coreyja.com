@@ -104,6 +104,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             post(admin::tool_suggestions::skip_suggestion),
         )
         .nest("/admin/persona", admin::persona::router())
+        .nest("/admin/memories", admin::memories::router())
         .route("/webhooks/cookd", post(webhooks::cookd::handler))
         .route(
             "/api/linear/webhooks",

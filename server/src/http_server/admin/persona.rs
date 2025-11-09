@@ -7,10 +7,7 @@ use axum::{
 use maud::html;
 use serde::Deserialize;
 
-use crate::{
-    memory::blocks::{MemoryBlock, MemoryBlockType},
-    state::AppState,
-};
+use crate::{memory::blocks::MemoryBlock, state::AppState};
 
 use super::super::{
     auth::session::AdminUser,
@@ -139,7 +136,13 @@ async fn update_persona(
     if let Some(persona) = existing_persona {
         MemoryBlock::update_content(&state.db, persona.memory_block_id, form.content).await?;
     } else {
-        MemoryBlock::create(&state.db, MemoryBlockType::Persona, form.content).await?;
+        MemoryBlock::create(
+            &state.db,
+            "persona".to_string(),
+            "default".to_string(),
+            form.content,
+        )
+        .await?;
     }
 
     Ok(Redirect::to("/admin/persona").into_response())

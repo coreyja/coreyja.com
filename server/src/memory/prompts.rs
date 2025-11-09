@@ -13,7 +13,11 @@ impl PromptGenerator {
         Self
     }
 
-    pub async fn generate_system_prompt(pool: &PgPool, thread: &Thread) -> Result<String> {
+    pub async fn generate_system_prompt(
+        pool: &PgPool,
+        thread: &Thread,
+        person_identifier: Option<String>,
+    ) -> Result<String> {
         // Base instructions (always included)
         let mut system_content = Self::base_instructions().to_string();
 
@@ -26,6 +30,19 @@ impl PromptGenerator {
             system_content.push_str("\n--- PERSONA MEMORY BLOCK ---\n");
             system_content.push_str(&persona_block.content);
             system_content.push_str("\n--- END PERSONA MEMORY BLOCK ---\n");
+        }
+
+        // Add person memory if identifier provided
+        if let Some(identifier) = person_identifier {
+            if let Some(person_block) =
+                MemoryBlock::find_by_type_and_identifier(pool, "person".to_string(), identifier)
+                    .await?
+            {
+                system_content.push_str("\n--- PERSON MEMORY BLOCK ---\n");
+                system_content.push_str(&person_block.content);
+                system_content.push_str("\n--- END PERSON MEMORY BLOCK ---\n");
+            }
+            // Fail gracefully if person memory doesn't exist - just skip injection
         }
 
         // Add context-specific instructions for Discord
@@ -58,7 +75,6 @@ impl PromptGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory::blocks::MemoryBlockType;
     use db::agentic_threads::{Thread, ThreadType};
 
     #[test]
@@ -104,8 +120,8 @@ mod tests {
         .await
         .unwrap();
 
-        // Generate prompt without persona
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
+        // Generate prompt without persona (pass None for person_identifier)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
             .await
             .unwrap();
 
@@ -126,9 +142,14 @@ mod tests {
         // Create a persona
         let persona_content =
             "I am a friendly and knowledgeable assistant who loves to help with coding.";
-        MemoryBlock::create(&pool, MemoryBlockType::Persona, persona_content.to_string())
-            .await
-            .unwrap();
+        MemoryBlock::create(
+            &pool,
+            "persona".to_string(),
+            "default".to_string(),
+            persona_content.to_string(),
+        )
+        .await
+        .unwrap();
 
         // Create a test thread
         let thread = Thread::create(
@@ -140,8 +161,8 @@ mod tests {
         .await
         .unwrap();
 
-        // Generate prompt with persona
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
+        // Generate prompt with persona (pass None for person_identifier)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
             .await
             .unwrap();
 
@@ -169,8 +190,8 @@ mod tests {
         .await
         .unwrap();
 
-        // Generate prompt for Discord context
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
+        // Generate prompt for Discord context (pass None for person_identifier)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
             .await
             .unwrap();
 
@@ -190,9 +211,14 @@ mod tests {
     async fn test_generate_system_prompt_discord_with_persona(pool: PgPool) {
         // Create a persona
         let persona_content = "I am Discord bot with a playful personality.";
-        MemoryBlock::create(&pool, MemoryBlockType::Persona, persona_content.to_string())
-            .await
-            .unwrap();
+        MemoryBlock::create(
+            &pool,
+            "persona".to_string(),
+            "default".to_string(),
+            persona_content.to_string(),
+        )
+        .await
+        .unwrap();
 
         // Create an interactive thread
         let thread = Thread::create(
@@ -204,8 +230,8 @@ mod tests {
         .await
         .unwrap();
 
-        // Generate prompt for Discord context
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread)
+        // Generate prompt for Discord context (pass None for person_identifier)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
             .await
             .unwrap();
 
@@ -216,5 +242,175 @@ mod tests {
         assert!(prompt.contains("--- PERSONA MEMORY BLOCK ---"));
         assert!(prompt.contains("Discord"));
         assert!(prompt.contains("2000 characters"));
+    }
+
+    // New tests for person memory injection (Task 4.1)
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_generate_system_prompt_with_person_memory(pool: PgPool) {
+        // Create persona
+        MemoryBlock::create(
+            &pool,
+            "persona".to_string(),
+            "default".to_string(),
+            "I am a friendly AI assistant.".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Create person memory
+        let person_content =
+            "Corey is a software engineer who loves Rust and functional programming.";
+        MemoryBlock::create(
+            &pool,
+            "person".to_string(),
+            "corey#1234".to_string(),
+            person_content.to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Create thread
+        let thread = Thread::create(
+            &pool,
+            "Help Corey with code".to_string(),
+            None,
+            Some(ThreadType::Interactive),
+        )
+        .await
+        .unwrap();
+
+        // Generate prompt with person identifier
+        let prompt =
+            PromptGenerator::generate_system_prompt(&pool, &thread, Some("corey#1234".to_string()))
+                .await
+                .unwrap();
+
+        // Should contain person memory block
+        assert!(prompt.contains("--- PERSON MEMORY BLOCK ---"));
+        assert!(prompt.contains(person_content));
+        assert!(prompt.contains("--- END PERSON MEMORY BLOCK ---"));
+
+        // Should also contain persona
+        assert!(prompt.contains("--- PERSONA MEMORY BLOCK ---"));
+
+        // Person memory should come after persona
+        let persona_pos = prompt.find("--- PERSONA MEMORY BLOCK ---").unwrap();
+        let person_pos = prompt.find("--- PERSON MEMORY BLOCK ---").unwrap();
+        assert!(person_pos > persona_pos);
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_generate_system_prompt_person_memory_not_found(pool: PgPool) {
+        // Create thread
+        let thread = Thread::create(
+            &pool,
+            "Test goal".to_string(),
+            None,
+            Some(ThreadType::Interactive),
+        )
+        .await
+        .unwrap();
+
+        // Generate prompt with non-existent person identifier - should not error
+        let prompt = PromptGenerator::generate_system_prompt(
+            &pool,
+            &thread,
+            Some("nonexistent#0000".to_string()),
+        )
+        .await
+        .unwrap();
+
+        // Should NOT contain person memory block
+        assert!(!prompt.contains("--- PERSON MEMORY BLOCK ---"));
+
+        // Should still contain base instructions
+        assert!(prompt.contains("AI assistant"));
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_generate_system_prompt_person_memory_without_persona(pool: PgPool) {
+        // Create person memory only (no persona)
+        let person_content = "Jane is a product manager who enjoys design thinking.";
+        MemoryBlock::create(
+            &pool,
+            "person".to_string(),
+            "jane#5678".to_string(),
+            person_content.to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Create thread
+        let thread = Thread::create(
+            &pool,
+            "Discuss product strategy".to_string(),
+            None,
+            Some(ThreadType::Autonomous),
+        )
+        .await
+        .unwrap();
+
+        // Generate prompt with person identifier but no persona
+        let prompt =
+            PromptGenerator::generate_system_prompt(&pool, &thread, Some("jane#5678".to_string()))
+                .await
+                .unwrap();
+
+        // Should contain person memory
+        assert!(prompt.contains("--- PERSON MEMORY BLOCK ---"));
+        assert!(prompt.contains(person_content));
+
+        // Should NOT contain persona memory
+        assert!(!prompt.contains("--- PERSONA MEMORY BLOCK ---"));
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_generate_system_prompt_person_memory_order(pool: PgPool) {
+        // Create both persona and person memory
+        MemoryBlock::create(
+            &pool,
+            "persona".to_string(),
+            "default".to_string(),
+            "I am helpful.".to_string(),
+        )
+        .await
+        .unwrap();
+
+        MemoryBlock::create(
+            &pool,
+            "person".to_string(),
+            "user#0001".to_string(),
+            "This user prefers concise answers.".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let thread = Thread::create(
+            &pool,
+            "Answer questions".to_string(),
+            None,
+            Some(ThreadType::Interactive),
+        )
+        .await
+        .unwrap();
+
+        // Generate prompt
+        let prompt =
+            PromptGenerator::generate_system_prompt(&pool, &thread, Some("user#0001".to_string()))
+                .await
+                .unwrap();
+
+        // Verify order: base instructions, goal, persona, person, discord instructions
+        let base_pos = prompt.find("AI assistant").unwrap();
+        let goal_pos = prompt.find("Current goal:").unwrap();
+        let persona_pos = prompt.find("--- PERSONA MEMORY BLOCK ---").unwrap();
+        let person_pos = prompt.find("--- PERSON MEMORY BLOCK ---").unwrap();
+        let discord_pos = prompt.find("Discord").unwrap();
+
+        assert!(base_pos < goal_pos);
+        assert!(goal_pos < persona_pos);
+        assert!(persona_pos < person_pos);
+        assert!(person_pos < discord_pos);
     }
 }

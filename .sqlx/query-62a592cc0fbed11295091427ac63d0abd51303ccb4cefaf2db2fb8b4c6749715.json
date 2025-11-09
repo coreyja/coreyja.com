@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO memory_blocks (type, identifier, content)\n            VALUES ($1, $2, $3)\n            RETURNING\n                memory_block_id,\n                type as memory_type,\n                identifier,\n                content,\n                created_at,\n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "memory_block_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "memory_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "identifier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "62a592cc0fbed11295091427ac63d0abd51303ccb4cefaf2db2fb8b4c6749715"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM memory_blocks\n            WHERE type = $1 AND identifier = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "957015fa636c083f8b9a4c6f153f37746e14b2a75509cf09d2a173bd14827ac4"
+}

@@ -1,35 +1,83 @@
 # Product Roadmap
 
-1. [ ] Enhanced Thread Visualization - Add filtering, search, and timeline views to the thread visualization interface to help users understand agent conversation history at a glance `M`
+## Active Roadmap Items
 
-2. [ ] Real-time Agent Status Dashboard - Build a real-time dashboard showing active agents, current tasks, and system health with WebSocket updates for live monitoring `M`
+### 1. Agent-Initiated Memory Updates
+**Status:** Not Started
+**Priority:** High
+**Dependencies:** Typed Memory Blocks (✅ Complete)
 
-3. [ ] Blog Post Scheduling & Drafts - Implement draft status and scheduled publishing for blog posts, allowing content to be prepared in advance and published automatically `S`
+**Overview:**
+Enable the AI agent to update its own memory blocks during conversations, allowing it to learn and remember information about users dynamically without requiring manual admin intervention.
 
-4. [ ] Discord Command Extensions - Expand Discord bot with commands for querying blog posts, checking task status, and triggering agent workflows directly from Discord `M`
+**Key Features:**
+- Agent can create/update person memory blocks during Discord conversations
+- Agent can record learned preferences, facts, and context about users
+- Proper permissions system to limit agent write access to appropriate memory types
+- Audit logging for all agent-initiated memory changes
+- Prompt instructions guiding the agent on when and how to update memories
 
-5. [ ] Thread Analytics & Insights - Add analytics tracking for agent performance, conversation patterns, and decision-making metrics with visualization in the admin UI `L`
+**Use Cases:**
+- Agent learns user's programming language preferences during conversation
+- Agent remembers user's timezone, communication style, or project preferences
+- Agent updates person memory: "coreyja prefers Rust over Python for systems programming"
+- Next conversation automatically includes these learned preferences in system prompt
 
-6. [ ] Multi-Agent Orchestration - Build a system for coordinating multiple AI agents working together on complex tasks with dependency management and shared context `L`
+**Technical Requirements:**
+- Add memory update tool/function to agent's available actions
+- Implement permissions system (allow writes to "person" type only, for active conversation users)
+- Create audit log table tracking agent-initiated memory changes (who, what, when)
+- Add prompt instructions for memory management best practices
+- Implement rate limiting to prevent excessive memory updates
 
-7. [ ] Public API for Agent Interactions - Create a REST API allowing external systems to interact with agents, query thread history, and trigger workflows `M`
+**Success Criteria:**
+- Agent can successfully update person memory during Discord conversations
+- Person memory updates persist and appear in subsequent threads
+- Audit logs capture all agent-initiated changes
+- Agent follows guidelines about when to update memory (not too frequent, not too rare)
+- No ability to modify other memory types (persona, etc.) or other users' memories
 
-8. [ ] Advanced Memory System - Enhance agent memory with semantic search, automatic summarization, and context pruning to maintain relevant long-term memory `L`
+**Estimated Complexity:** Medium (2-3 weeks)
 
-9. [ ] Content Recommendation Engine - Build an ML-based system that recommends related blog posts and TIL entries to readers based on their browsing patterns `M`
+---
 
-10. [ ] Mobile Admin Interface - Create a mobile-optimized admin interface for managing agents and publishing content from smartphones and tablets `L`
+## Future Roadmap Items
 
-11. [ ] Automated Content Distribution - Implement automatic cross-posting of new blog posts to Bluesky, Discord, and other platforms with custom formatting per platform `S`
+### 8. Advanced Memory System
+**Status:** Planning
+**Priority:** Medium
+**Dependencies:** Typed Memory Blocks (✅ Complete), Agent-Initiated Memory Updates
 
-12. [ ] Agent Playground & Testing - Build an isolated testing environment where new agent behaviors and prompts can be tested without affecting production systems `M`
+**Overview:**
+Enhance agent memory with semantic search, automatic summarization, and context pruning to maintain relevant long-term memory.
 
-13. [ ] RSS Feed & Newsletter - Add RSS feed support and optional email newsletter subscription for blog posts and TIL entries `S`
+**Key Features:**
+- Semantic search across memory blocks using embeddings
+- Automatic summarization of long memory blocks
+- Context-aware memory retrieval (only inject relevant memories)
+- Memory pruning and archiving for old/outdated information
+- Memory importance scoring and prioritization
 
-14. [ ] Thread Replay & Debugging - Create a tool that allows replaying agent conversations step-by-step to debug issues and understand decision-making processes `M`
+**Success Criteria:**
+- Agent can find relevant memories using semantic search
+- Long conversations are automatically summarized
+- System prompt size stays bounded despite growing memory
+- Memory retrieval time remains fast even with thousands of blocks
 
-15. [ ] Performance Monitoring Dashboard - Implement detailed performance tracking for page load times, database queries, and API response times with alerting `S`
+**Estimated Complexity:** Large (4-6 weeks)
 
-> Notes
-> - Order items by technical dependencies and product architecture
-> - Each item should represent an end-to-end (frontend + backend) functional and testable feature
+---
+
+## Completed Items
+
+### Typed Memory Blocks
+**Completed:** 2025-11-08
+**Spec:** `agent-os/specs/typed-memory-blocks/`
+
+Implemented foundational memory structure with type-identifier pairs, two-level CRUD admin UI, and person memory injection for Discord threads.
+
+**Key Achievements:**
+- Database schema with flexible (type, identifier) structure
+- Admin UI for managing memory blocks at `/admin/memories`
+- Person memory injection in Discord threads based on user
+- 28 feature-specific tests, all passing

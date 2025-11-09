@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                memory_block_id,\n                block_type as \"block_type: MemoryBlockType\",\n                content,\n                created_at,\n                updated_at\n            FROM memory_blocks\n            WHERE memory_block_id = $1\n            ",
+  "query": "\n            SELECT\n                memory_block_id,\n                type as memory_type,\n                identifier,\n                content,\n                created_at,\n                updated_at\n            FROM memory_blocks\n            WHERE memory_block_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -10,21 +10,26 @@
       },
       {
         "ordinal": 1,
-        "name": "block_type: MemoryBlockType",
+        "name": "memory_type",
         "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "content",
+        "name": "identifier",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -39,8 +44,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "ffd467e5faa247288b63f7e47c07fb1385fce04eca0993ba06f6a42e461a1340"
+  "hash": "7e89bbb999eedfcaf2dfbff6dbc6e0184ec75905e2fb0f8f9059c0efe64bd35e"
 }
