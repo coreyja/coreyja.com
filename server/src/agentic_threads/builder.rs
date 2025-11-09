@@ -98,6 +98,12 @@ impl ThreadBuilder {
         )
         .await?;
 
+        // Extract person identifier from Discord metadata if present
+        let person_identifier = self
+            .discord_metadata
+            .as_ref()
+            .map(|meta| meta.created_by.clone());
+
         // Create Discord metadata if this is a Discord interactive thread
         if let Some(discord_meta) = self.discord_metadata {
             DiscordThreadMetadata::create(
@@ -129,11 +135,153 @@ impl ThreadBuilder {
         }
 
         let memory_manager = MemoryManager::new(self.pool.clone());
-        let system_prompt = memory_manager.generate_system_prompt(&thread).await?;
+        let system_prompt = memory_manager
+            .generate_system_prompt(&thread, person_identifier)
+            .await?;
 
         // Create system prompt stitch
         Stitch::create_system_prompt(&self.pool, thread.thread_id, system_prompt).await?;
 
         Ok(thread)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::memory::blocks::MemoryBlock;
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_thread_builder_extracts_discord_author_for_person_memory(pool: PgPool) {
+        // Create person memory for a Discord user
+        let person_content = "Test user who loves Rust programming.";
+        MemoryBlock::create(
+            &pool,
+            "person".to_string(),
+            "testuser#1234".to_string(),
+            person_content.to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Create Discord metadata with the same user (use valid Discord snowflake IDs)
+        let discord_meta = DiscordMetadata {
+            discord_thread_id: "123456789012345678".to_string(),
+            channel_id: "234567890123456789".to_string(),
+            guild_id: "345678901234567890".to_string(),
+            created_by: "testuser#1234".to_string(),
+            thread_name: "Test Thread".to_string(),
+        };
+
+        // Build a Discord thread
+        let thread = ThreadBuilder::new(pool.clone())
+            .with_goal("Help with Rust code")
+            .interactive_discord(discord_meta)
+            .build()
+            .await
+            .unwrap();
+
+        // Fetch the system prompt stitch
+        let stitches = db::agentic_threads::Stitch::get_by_thread_ordered(&pool, thread.thread_id)
+            .await
+            .unwrap();
+
+        // Find system prompt stitch
+        let system_stitch = stitches
+            .iter()
+            .find(|s| s.stitch_type == db::agentic_threads::StitchType::SystemPrompt)
+            .expect("Should have system prompt stitch");
+
+        // Extract content from llm_request
+        let content = system_stitch
+            .llm_request
+            .as_ref()
+            .and_then(|r| r.get("text"))
+            .and_then(|t| t.as_str())
+            .expect("Should have text in llm_request");
+
+        // Verify person memory was injected
+        assert!(content.contains("--- PERSON MEMORY BLOCK ---"));
+        assert!(content.contains(person_content));
+        assert!(content.contains("Test user who loves Rust programming"));
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_thread_builder_handles_missing_person_memory_gracefully(pool: PgPool) {
+        // Create Discord metadata for user without person memory (use valid Discord snowflake IDs)
+        let discord_meta = DiscordMetadata {
+            discord_thread_id: "999888777666555444".to_string(),
+            channel_id: "888777666555444333".to_string(),
+            guild_id: "777666555444333222".to_string(),
+            created_by: "unknownuser#9999".to_string(),
+            thread_name: "Test Thread".to_string(),
+        };
+
+        // Build thread - should not fail
+        let thread = ThreadBuilder::new(pool.clone())
+            .with_goal("Help with code")
+            .interactive_discord(discord_meta)
+            .build()
+            .await
+            .unwrap();
+
+        // Fetch the system prompt stitch
+        let stitches = db::agentic_threads::Stitch::get_by_thread_ordered(&pool, thread.thread_id)
+            .await
+            .unwrap();
+
+        let system_stitch = stitches
+            .iter()
+            .find(|s| s.stitch_type == db::agentic_threads::StitchType::SystemPrompt)
+            .expect("Should have system prompt stitch");
+
+        // Extract content from llm_request
+        let content = system_stitch
+            .llm_request
+            .as_ref()
+            .and_then(|r| r.get("text"))
+            .and_then(|t| t.as_str())
+            .expect("Should have text in llm_request");
+
+        // Should NOT contain person memory block
+        assert!(!content.contains("--- PERSON MEMORY BLOCK ---"));
+
+        // Should still have base instructions
+        assert!(content.contains("AI assistant"));
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_thread_builder_autonomous_thread_no_person_memory(pool: PgPool) {
+        // Build autonomous thread (no Discord metadata)
+        let thread = ThreadBuilder::new(pool.clone())
+            .with_goal("Autonomous task")
+            .autonomous()
+            .build()
+            .await
+            .unwrap();
+
+        // Fetch the system prompt stitch
+        let stitches = db::agentic_threads::Stitch::get_by_thread_ordered(&pool, thread.thread_id)
+            .await
+            .unwrap();
+
+        let system_stitch = stitches
+            .iter()
+            .find(|s| s.stitch_type == db::agentic_threads::StitchType::SystemPrompt)
+            .expect("Should have system prompt stitch");
+
+        // Extract content from llm_request
+        let content = system_stitch
+            .llm_request
+            .as_ref()
+            .and_then(|r| r.get("text"))
+            .and_then(|t| t.as_str())
+            .expect("Should have text in llm_request");
+
+        // Should NOT contain person memory block (no Discord metadata)
+        assert!(!content.contains("--- PERSON MEMORY BLOCK ---"));
+
+        // Should have base instructions
+        assert!(content.contains("AI assistant"));
     }
 }
