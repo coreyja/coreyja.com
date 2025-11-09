@@ -20,12 +20,12 @@ use super::super::{
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_types))
-        .route("/:type", get(view_type).post(create_memory))
+        .route("/{type}", get(view_type).post(create_memory))
         .route(
-            "/:type/:identifier/edit",
+            "/{type}/{identifier}/edit",
             get(edit_memory_form).post(update_memory),
         )
-        .route("/:type/:identifier/delete", post(delete_memory))
+        .route("/{type}/{identifier}/delete", post(delete_memory))
 }
 
 async fn list_types(
