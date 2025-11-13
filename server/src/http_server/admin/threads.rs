@@ -701,5 +701,43 @@ fn render_content_block(content: &Content) -> Markup {
                 }
             }
         }
+        Content::Image(image_content) => {
+            html! {
+                div class="border rounded p-2 bg-blue-50" {
+                    div class="text-sm font-medium mb-2" {
+                        "🖼️ Image"
+                    }
+                    @if let Some(data) = &image_content.source.data {
+                        @if let Some(media_type) = &image_content.source.media_type {
+                            img class="max-w-full h-auto rounded" src=(format!("data:{};base64,{}", media_type, data));
+                        } @else {
+                            p class="text-xs text-gray-600" { "Image (base64 encoded)" }
+                        }
+                    } @else if let Some(url) = &image_content.source.url {
+                        img class="max-w-full h-auto rounded" src=(url);
+                    }
+                }
+            }
+        }
+        Content::Document(document_content) => {
+            html! {
+                div class="border rounded p-2 bg-green-50" {
+                    div class="text-sm font-medium mb-2" {
+                        "📄 Document"
+                    }
+                    div class="text-xs" {
+                        @if let Some(media_type) = &document_content.source.media_type {
+                            p { "Type: " (media_type) }
+                        }
+                        @if let Some(data) = &document_content.source.data {
+                            p { "Size: ~" (data.len() * 3 / 4) " bytes (base64 encoded)" }
+                        }
+                        @if let Some(url) = &document_content.source.url {
+                            p { a href=(url) target="_blank" { "View document" } }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

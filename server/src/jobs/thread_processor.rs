@@ -191,24 +191,60 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
             Content::ToolResult(_) => {
                 unreachable!("ToolResult should not appear in assistant response")
             }
+            Content::Image(_) => {
+                unreachable!("Image should not appear in assistant response")
+            }
+            Content::Document(_) => {
+                unreachable!("Document should not appear in assistant response")
+            }
         }
     }
 
     Ok(())
 }
 
+// Size limits for attachments (based on Anthropic API limits)
+const MAX_IMAGE_SIZE: u64 = 3_750_000; // 3.75MB
+const MAX_PDF_SIZE: u64 = 32_000_000; // 32MB
+
+/// Detect content type from attachment, with fallback to file extension
+fn detect_content_type(attachment: &poise::serenity_prelude::Attachment) -> Option<String> {
+    // First, try the provided content_type
+    if let Some(ct) = &attachment.content_type {
+        return Some(ct.clone());
+    }
+
+    // Fallback to file extension
+    let filename = attachment.filename.to_lowercase();
+    if filename.ends_with(".jpg") || filename.ends_with(".jpeg") {
+        Some("image/jpeg".to_string())
+    } else if filename.ends_with(".png") {
+        Some("image/png".to_string())
+    } else if filename.ends_with(".gif") {
+        Some("image/gif".to_string())
+    } else if filename.ends_with(".webp") {
+        Some("image/webp".to_string())
+    } else if filename.ends_with(".pdf") {
+        Some("application/pdf".to_string())
+    } else {
+        None
+    }
+}
+
 /// Helper function to download and encode Discord attachments as base64
 async fn process_discord_attachment(
     attachment: &poise::serenity_prelude::Attachment,
 ) -> cja::Result<Option<Content>> {
-    // Check content type
-    let content_type = attachment.content_type.as_deref();
+    // Detect content type with fallback to file extension
+    let content_type = detect_content_type(attachment);
 
     let is_image = content_type
+        .as_ref()
         .map(|ct| ct.starts_with("image/"))
         .unwrap_or(false);
 
     let is_pdf = content_type
+        .as_ref()
         .map(|ct| ct == "application/pdf")
         .unwrap_or(false);
 
@@ -218,19 +254,42 @@ async fn process_discord_attachment(
         return Ok(None);
     }
 
-    // Get media type
-    let media_type = content_type
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| {
-            if is_pdf {
-                "application/pdf".to_string()
-            } else {
-                "image/png".to_string()
-            }
-        });
+    // Check size limits before downloading
+    if is_image && u64::from(attachment.size) > MAX_IMAGE_SIZE {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Image '{}' exceeds size limit: {} bytes (max {} bytes / 3.75MB)",
+            attachment.filename,
+            attachment.size,
+            MAX_IMAGE_SIZE
+        ));
+    }
 
-    // Download the attachment
-    let response = reqwest::get(&attachment.url).await?;
+    if is_pdf && u64::from(attachment.size) > MAX_PDF_SIZE {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "PDF '{}' exceeds size limit: {} bytes (max {} bytes / 32MB)",
+            attachment.filename,
+            attachment.size,
+            MAX_PDF_SIZE
+        ));
+    }
+
+    // Get media type
+    let media_type = content_type.unwrap_or_else(|| {
+        if is_pdf {
+            "application/pdf".to_string()
+        } else {
+            "image/png".to_string()
+        }
+    });
+
+    // Download the attachment with timeout
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&attachment.url)
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await?;
+
     if !response.status().is_success() {
         return Err(cja::color_eyre::eyre::eyre!(
             "Failed to download attachment: {}",
