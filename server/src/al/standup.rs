@@ -50,6 +50,8 @@ pub struct AnthropicResponse {
 pub enum Content {
     #[serde(rename = "text")]
     Text(TextContent),
+    #[serde(rename = "image")]
+    Image(ImageContent),
     #[serde(rename = "tool_use")]
     ToolUse(ToolUseContent),
     #[serde(rename = "tool_result")]
@@ -61,6 +63,9 @@ impl Content {
         match self {
             Content::Text(text_content) => {
                 text_content.cache_control = Some(cache_control);
+            }
+            Content::Image(image_content) => {
+                image_content.cache_control = Some(cache_control);
             }
             Content::ToolUse(tool_use_content) => {
                 tool_use_content.cache_control = Some(cache_control);
@@ -74,6 +79,7 @@ impl Content {
     pub fn cache_control(&self) -> Option<&CacheControl> {
         match self {
             Content::Text(text_content) => text_content.cache_control.as_ref(),
+            Content::Image(image_content) => image_content.cache_control.as_ref(),
             Content::ToolUse(tool_use_content) => tool_use_content.cache_control.as_ref(),
             Content::ToolResult(tool_result) => tool_result.cache_control.as_ref(),
         }
@@ -85,6 +91,24 @@ pub struct TextContent {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_control: Option<CacheControl>,
+}
+
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct ImageContent {
+    pub source: ImageSource,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
+}
+
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct ImageSource {
+    pub r#type: String, // "base64" or "url"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>, // "image/jpeg", "image/png", "image/gif", "image/webp"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<String>, // base64-encoded image data
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>, // URL to image
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]

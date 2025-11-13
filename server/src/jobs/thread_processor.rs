@@ -8,8 +8,8 @@ use sqlx::{types::Uuid, PgPool};
 use crate::{
     al::{
         standup::{
-            AnthropicRequest, AnthropicResponse, CacheControl, Content, Message, TextContent,
-            ToolChoice, ToolResult,
+            AnthropicRequest, AnthropicResponse, CacheControl, Content, ImageContent,
+            ImageSource, Message, TextContent, ToolChoice, ToolResult,
         },
         tools::{ThreadContext, ToolBag},
     },
@@ -196,6 +196,52 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     Ok(())
 }
 
+/// Helper function to download and encode Discord attachments as base64
+async fn process_discord_attachment(
+    attachment: &poise::serenity_prelude::Attachment,
+) -> cja::Result<Option<Content>> {
+    // Only process image attachments
+    let is_image = attachment
+        .content_type
+        .as_ref()
+        .map(|ct| ct.starts_with("image/"))
+        .unwrap_or(false);
+
+    if !is_image {
+        // For non-image attachments, just mention them in text
+        return Ok(None);
+    }
+
+    // Get media type
+    let media_type = attachment
+        .content_type
+        .as_ref()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "image/png".to_string());
+
+    // Download the attachment
+    let response = reqwest::get(&attachment.url).await?;
+    if !response.status().is_success() {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Failed to download attachment: {}",
+            response.status()
+        ));
+    }
+
+    let bytes = response.bytes().await?;
+    let base64_data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+
+    Ok(Some(Content::Image(ImageContent {
+        source: ImageSource {
+            r#type: "base64".to_string(),
+            media_type: Some(media_type),
+            data: Some(base64_data),
+            url: None,
+        },
+        cache_control: None,
+    })))
+}
+
 pub async fn extract_system_prompt(db: &PgPool, thread_id: Uuid) -> cja::Result<Option<String>> {
     let stitches = Stitch::get_by_thread_ordered(db, thread_id).await?;
 
@@ -336,6 +382,8 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                         let message: serenity::all::Message =
                             serde_json::from_value(message_data.clone())?;
 
+                        let mut content_parts = Vec::new();
+
                         // Format message with user information and message ID
                         let formatted_message = format!(
                             "[{} (@{}, ID: {}, Message ID: {})]: {}",
@@ -350,12 +398,48 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                             message.content
                         );
 
+                        content_parts.push(Content::Text(TextContent {
+                            text: formatted_message,
+                            cache_control: None,
+                        }));
+
+                        // Process attachments
+                        for attachment in &message.attachments {
+                            match process_discord_attachment(attachment).await {
+                                Ok(Some(image_content)) => {
+                                    content_parts.push(image_content);
+                                }
+                                Ok(None) => {
+                                    // Non-image attachment - mention it in text
+                                    let attachment_info = format!(
+                                        "\n[Attachment: {} ({} bytes)]",
+                                        attachment.filename, attachment.size
+                                    );
+                                    if let Some(Content::Text(text)) = content_parts.first_mut() {
+                                        text.text.push_str(&attachment_info);
+                                    }
+                                }
+                                Err(e) => {
+                                    // Log error but continue processing
+                                    tracing::warn!(
+                                        "Failed to process attachment {}: {}",
+                                        attachment.filename,
+                                        e
+                                    );
+                                    let attachment_error = format!(
+                                        "\n[Failed to load attachment: {}]",
+                                        attachment.filename
+                                    );
+                                    if let Some(Content::Text(text)) = content_parts.first_mut() {
+                                        text.text.push_str(&attachment_error);
+                                    }
+                                }
+                            }
+                        }
+
                         messages.push(Message {
                             role: "user".to_string(),
-                            content: vec![Content::Text(TextContent {
-                                text: formatted_message,
-                                cache_control: None,
-                            })],
+                            content: content_parts,
                         });
                     }
                 }
