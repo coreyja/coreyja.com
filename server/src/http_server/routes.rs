@@ -4,7 +4,7 @@ use posts::blog::BlogPosts;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    admin, api, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
+    admin, auth, get, pages, post, templates, webhooks, AppState, Arc, IntoResponse, Path,
     Redirect, Response, ResponseResult, Result, Router, ServerError, State, ToCanonicalPath, Uri,
     COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
@@ -67,29 +67,11 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
         .route("/admin/crons", get(admin::crons::list_crons))
         .route("/admin/crons/reset", post(admin::crons::reset_cron))
         .route("/admin/crons/run", post(admin::crons::run_cron))
-        .route("/admin/threads", get(admin::threads::threads_app))
+        .route("/admin/threads", get(admin::threads::threads_list))
+        .route("/admin/threads/{id}", get(admin::threads::thread_detail))
         .route(
-            "/admin/threads/{*path}",
-            get(admin::threads::serve_thread_assets),
-        )
-        .route("/admin/api/threads", get(api::threads::list_threads))
-        .route("/admin/api/threads", post(api::threads::create_thread))
-        .route(
-            "/admin/api/threads/recent",
-            get(api::threads::list_recent_threads),
-        )
-        .route(
-            "/admin/api/threads/{id}/parents",
-            get(api::threads::get_thread_parents),
-        )
-        .route(
-            "/admin/api/threads/{id}/children",
-            get(api::threads::get_thread_children),
-        )
-        .route("/admin/api/threads/{id}", get(api::threads::get_thread))
-        .route(
-            "/admin/api/threads/{id}/messages",
-            get(api::threads::get_thread_messages),
+            "/admin/threads/{id}/messages",
+            get(admin::threads::thread_messages),
         )
         .route(
             "/admin/tool-suggestions",
