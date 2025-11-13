@@ -10,7 +10,10 @@ use maud::{html, Markup, PreEscaped};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{al::standup::{Content, Message}, state::AppState};
+use crate::{
+    al::standup::{Content, Message},
+    state::AppState,
+};
 
 use super::super::{
     auth::session::AdminUser,
@@ -127,7 +130,14 @@ pub(crate) async fn thread_detail(
         .context("Failed to fetch parent chain")?;
 
     Ok(base_constrained(
-        thread_detail_page(&thread, &stitches, discord_metadata, &children_with_counts, &parents, days),
+        thread_detail_page(
+            &thread,
+            &stitches,
+            discord_metadata,
+            &children_with_counts,
+            &parents,
+            days,
+        ),
         OpenGraph {
             title: format!("Thread: {}", thread.goal),
             ..Default::default()
@@ -367,7 +377,10 @@ fn render_thread_result(result: Option<&serde_json::Value>) -> Markup {
     let Some(result_obj) = result.as_object() else {
         return html! {};
     };
-    let success = result_obj.get("success").and_then(serde_json::Value::as_bool).unwrap_or(false);
+    let success = result_obj
+        .get("success")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
 
     html! {
         div class="mb-6" {
@@ -517,12 +530,12 @@ fn task_status_icon_str(status: &str) -> &'static str {
 
 fn status_color(status: &ThreadStatus) -> &'static str {
     match status {
-        ThreadStatus::Pending => "#9CA3AF",      // gray
-        ThreadStatus::Running => "#F59E0B",      // yellow/orange
-        ThreadStatus::Waiting => "#3B82F6",      // blue
-        ThreadStatus::Completed => "#10B981",    // green
-        ThreadStatus::Failed => "#EF4444",       // red
-        ThreadStatus::Aborted => "#DC2626",      // dark red
+        ThreadStatus::Pending => "#9CA3AF",   // gray
+        ThreadStatus::Running => "#F59E0B",   // yellow/orange
+        ThreadStatus::Waiting => "#3B82F6",   // blue
+        ThreadStatus::Completed => "#10B981", // green
+        ThreadStatus::Failed => "#EF4444",    // red
+        ThreadStatus::Aborted => "#DC2626",   // dark red
     }
 }
 

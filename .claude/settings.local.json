@@ -46,7 +46,8 @@
       "Bash(./scripts/auto-fix-all.sh:*)",
       "Bash(cargo doc:*)",
       "mcp__Linear__list_my_issues",
-      "mcp__Linear__list_issues"
+      "mcp__Linear__list_issues",
+      "Bash(gh pr list:*)"
     ],
     "deny": []
   }

@@ -18,6 +18,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
     std::env::set_var("GITHUB_CLIENT_ID", "test-github-id");
     std::env::set_var("GITHUB_CLIENT_SECRET", "test-github-secret");
     std::env::set_var("OPENAI_API_KEY", "test-openai-key");
+    std::env::set_var("ANTHROPIC_API_KEY", "test-anthropic-key");
     std::env::set_var("COOKIE_KEY", "test-cookie-key-32-bytes-long!!!!");
     std::env::set_var("ENCRYPT_KEY", "test-encrypt-key-32-bytes-long!!");
     std::env::set_var("LINEAR_CLIENT_ID", "test-linear-id");
@@ -33,8 +34,8 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         open_ai: openai::OpenAiConfig::from_env().unwrap(),
         google: crate::google::GoogleConfig::from_env().unwrap(),
         linear: crate::linear::LinearConfig::from_env().unwrap(),
+        anthropic: crate::anthropic::AnthropicConfig::from_env().unwrap(),
         app: AppConfig::from_env().unwrap(),
-        standup: crate::state::StandupConfig::from_env().unwrap(),
         syntax_highlighting_context: SyntaxHighlightingContext::default(),
         blog_posts: Arc::new(posts::blog::BlogPosts::from_static_dir().unwrap()),
         til_posts: Arc::new(posts::til::TilPosts::from_static_dir().unwrap()),

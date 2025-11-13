@@ -17,6 +17,7 @@ impl PromptGenerator {
         pool: &PgPool,
         thread: &Thread,
         person_identifier: Option<String>,
+        persona: Option<String>,
     ) -> Result<String> {
         // Base instructions (always included)
         let mut system_content = Self::base_instructions().to_string();
@@ -24,11 +25,18 @@ impl PromptGenerator {
         // Add thread goal
         write!(system_content, "\nCurrent goal: {}\n", thread.goal)?;
 
-        // Add persona if available
-        let persona = MemoryBlock::get_persona(pool).await?;
-        if let Some(persona_block) = persona {
+        // Add persona if available - use provided identifier or default to "default"
+        let persona_lookup_id = persona.unwrap_or_else(|| "default".to_string());
+        let persona_block = MemoryBlock::find_by_type_and_identifier(
+            pool,
+            "persona".to_string(),
+            persona_lookup_id.clone(),
+        )
+        .await?;
+
+        if let Some(block) = persona_block {
             system_content.push_str("\n--- PERSONA MEMORY BLOCK ---\n");
-            system_content.push_str(&persona_block.content);
+            system_content.push_str(&block.content);
             system_content.push_str("\n--- END PERSONA MEMORY BLOCK ---\n");
         }
 
@@ -116,12 +124,13 @@ mod tests {
             "Test thread goal".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt without persona (pass None for person_identifier)
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None, None)
             .await
             .unwrap();
 
@@ -157,12 +166,13 @@ mod tests {
             "Test thread goal".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt with persona (pass None for person_identifier)
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None, None)
             .await
             .unwrap();
 
@@ -186,12 +196,13 @@ mod tests {
             "Discord thread goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt for Discord context (pass None for person_identifier)
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None, None)
             .await
             .unwrap();
 
@@ -226,12 +237,13 @@ mod tests {
             "Interactive Discord goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt for Discord context (pass None for person_identifier)
-        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None)
+        let prompt = PromptGenerator::generate_system_prompt(&pool, &thread, None, None)
             .await
             .unwrap();
 
@@ -276,15 +288,20 @@ mod tests {
             "Help Corey with code".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt with person identifier
-        let prompt =
-            PromptGenerator::generate_system_prompt(&pool, &thread, Some("corey#1234".to_string()))
-                .await
-                .unwrap();
+        let prompt = PromptGenerator::generate_system_prompt(
+            &pool,
+            &thread,
+            Some("corey#1234".to_string()),
+            None,
+        )
+        .await
+        .unwrap();
 
         // Should contain person memory block
         assert!(prompt.contains("--- PERSON MEMORY BLOCK ---"));
@@ -308,6 +325,7 @@ mod tests {
             "Test goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
@@ -317,6 +335,7 @@ mod tests {
             &pool,
             &thread,
             Some("nonexistent#0000".to_string()),
+            None,
         )
         .await
         .unwrap();
@@ -347,15 +366,20 @@ mod tests {
             "Discuss product strategy".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt with person identifier but no persona
-        let prompt =
-            PromptGenerator::generate_system_prompt(&pool, &thread, Some("jane#5678".to_string()))
-                .await
-                .unwrap();
+        let prompt = PromptGenerator::generate_system_prompt(
+            &pool,
+            &thread,
+            Some("jane#5678".to_string()),
+            None,
+        )
+        .await
+        .unwrap();
 
         // Should contain person memory
         assert!(prompt.contains("--- PERSON MEMORY BLOCK ---"));
@@ -391,15 +415,20 @@ mod tests {
             "Answer questions".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompt
-        let prompt =
-            PromptGenerator::generate_system_prompt(&pool, &thread, Some("user#0001".to_string()))
-                .await
-                .unwrap();
+        let prompt = PromptGenerator::generate_system_prompt(
+            &pool,
+            &thread,
+            Some("user#0001".to_string()),
+            None,
+        )
+        .await
+        .unwrap();
 
         // Verify order: base instructions, goal, persona, person, discord instructions
         let base_pos = prompt.find("AI assistant").unwrap();

@@ -49,8 +49,10 @@ impl MemoryManager {
         &self,
         thread: &Thread,
         person_identifier: Option<String>,
+        persona: Option<String>,
     ) -> Result<String> {
-        PromptGenerator::generate_system_prompt(&self.pool, thread, person_identifier).await
+        PromptGenerator::generate_system_prompt(&self.pool, thread, person_identifier, persona)
+            .await
     }
 
     /// Get reference to the database pool
@@ -126,6 +128,7 @@ mod tests {
             "Autonomous goal".to_string(),
             None,
             Some(ThreadType::Autonomous),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
@@ -134,13 +137,14 @@ mod tests {
             "Interactive goal".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Test without persona, non-Discord (pass None for person_identifier)
         let prompt = manager
-            .generate_system_prompt(&autonomous_thread, None)
+            .generate_system_prompt(&autonomous_thread, None, None)
             .await
             .unwrap();
         assert!(prompt.contains("AI assistant"));
@@ -149,7 +153,7 @@ mod tests {
 
         // Test with Discord context (pass None for person_identifier)
         let discord_prompt = manager
-            .generate_system_prompt(&interactive_thread, None)
+            .generate_system_prompt(&interactive_thread, None, None)
             .await
             .unwrap();
         assert!(discord_prompt.contains("AI assistant"));
@@ -164,7 +168,7 @@ mod tests {
             .unwrap();
 
         let prompt_with_persona = manager
-            .generate_system_prompt(&autonomous_thread, None)
+            .generate_system_prompt(&autonomous_thread, None, None)
             .await
             .unwrap();
         assert!(prompt_with_persona.contains(persona_content));
@@ -204,13 +208,14 @@ mod tests {
             "Help Alice debug her Rust async code".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // 4. Generate system prompt with person identifier
         let system_prompt = manager
-            .generate_system_prompt(&thread, Some(discord_username.to_string()))
+            .generate_system_prompt(&thread, Some(discord_username.to_string()), None)
             .await
             .unwrap();
 
@@ -251,12 +256,13 @@ mod tests {
             "Help Bob with his code".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         let system_prompt2 = manager
-            .generate_system_prompt(&thread2, Some("bob#9999".to_string()))
+            .generate_system_prompt(&thread2, Some("bob#9999".to_string()), None)
             .await
             .unwrap();
 
@@ -306,6 +312,7 @@ mod tests {
             "Goal 1".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
@@ -314,6 +321,7 @@ mod tests {
             "Goal 2".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
@@ -322,21 +330,22 @@ mod tests {
             "Goal 3".to_string(),
             None,
             Some(ThreadType::Interactive),
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
         )
         .await
         .unwrap();
 
         // Generate prompts for each user
         let prompt1 = manager
-            .generate_system_prompt(&thread1, Some("user1#1111".to_string()))
+            .generate_system_prompt(&thread1, Some("user1#1111".to_string()), None)
             .await
             .unwrap();
         let prompt2 = manager
-            .generate_system_prompt(&thread2, Some("user2#2222".to_string()))
+            .generate_system_prompt(&thread2, Some("user2#2222".to_string()), None)
             .await
             .unwrap();
         let prompt3 = manager
-            .generate_system_prompt(&thread3, Some("user3#3333".to_string()))
+            .generate_system_prompt(&thread3, Some("user3#3333".to_string()), None)
             .await
             .unwrap();
 

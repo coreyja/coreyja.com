@@ -61,6 +61,16 @@ impl ProcessDiscordMessage {
         msg.mentions.iter().any(|u| u.id == bot_user.id)
     }
 
+    /// Determine which agent should handle messages from the given channel
+    /// Falls back to the default agent if no channel-specific agent is found
+    fn get_agent_for_channel(
+        _app_state: &AppState,
+        channel_id: u64,
+    ) -> crate::agent_config::AgentId {
+        crate::agent_config::get_agent_by_channel(channel_id)
+            .unwrap_or(crate::agent_config::DEFAULT_AGENT_ID)
+    }
+
     async fn handle_thread_message(
         &self,
         app_state: &AppState,
@@ -76,7 +86,7 @@ impl ProcessDiscordMessage {
         let thread = if let Some(discord_meta) = existing_discord {
             self.get_existing_thread(db, discord_meta.thread_id).await?
         } else if Self::is_bot_mentioned(&self.message, &app_state.discord.cache.current_user()) {
-            self.create_new_thread_from_discord(db, &thread_id, guild_channel)
+            self.create_new_thread_from_discord(app_state, &thread_id, guild_channel)
                 .await?
         } else {
             return Ok(());
@@ -115,9 +125,15 @@ impl ProcessDiscordMessage {
             thread_name: thread_name.clone(),
         };
 
+        // Determine which agent should handle this based on the parent channel
+        let agent_id = Self::get_agent_for_channel(app_state, guild_channel.id.get());
+        let agent_config = agent_id.config();
+
         let ai_thread = ThreadBuilder::new(db.clone())
             .with_goal(format!("Interactive Discord thread: {thread_name}"))
             .interactive_discord(discord_metadata)
+            .with_agent(agent_id)
+            .with_persona(&agent_config.persona)
             .build()
             .await?;
 
@@ -139,10 +155,11 @@ impl ProcessDiscordMessage {
 
     async fn create_new_thread_from_discord(
         &self,
-        db: &PgPool,
+        app_state: &AppState,
         discord_thread_id: &str,
         guild_channel: &serenity::GuildChannel,
     ) -> cja::Result<Thread> {
+        let db = &app_state.db;
         let thread_name = guild_channel.name.clone();
         let msg = &self.message;
 
@@ -155,9 +172,19 @@ impl ProcessDiscordMessage {
             thread_name: thread_name.clone(),
         };
 
+        // Determine which agent should handle this based on the parent channel
+        // For threads, the parent channel is in guild_channel.parent_id
+        let parent_channel_id = guild_channel
+            .parent_id
+            .map_or(0, serenity::all::ChannelId::get);
+        let agent_id = Self::get_agent_for_channel(app_state, parent_channel_id);
+
+        let agent_config = agent_id.config();
         let thread = ThreadBuilder::new(db.clone())
             .with_goal(format!("Interactive Discord thread: {thread_name}"))
             .interactive_discord(discord_metadata)
+            .with_agent(agent_id)
+            .with_persona(&agent_config.persona)
             .build()
             .await?;
 

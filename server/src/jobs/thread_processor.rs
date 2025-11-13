@@ -1,7 +1,6 @@
 use cja::jobs::Job;
 use color_eyre::eyre::bail;
 use db::agentic_threads::{Stitch, Thread, ThreadStatus};
-use db::discord_threads::DiscordThreadMetadata;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{types::Uuid, PgPool};
@@ -12,22 +11,7 @@ use crate::{
             AnthropicRequest, AnthropicResponse, CacheControl, Content, Message, TextContent,
             ToolChoice, ToolResult,
         },
-        tools::{
-            cooking_simple::{
-                AddRecipeToMealPlan, CheckInventory, CreateMealPlan, GetRecipe, ListMealPlans,
-                UpdateInventory, UpsertRecipe,
-            },
-            discord::{
-                ListServerEmojis, ListenToThread, ReactToMessage, SendDiscordMessage,
-                SendDiscordThreadMessage,
-            },
-            linear_graphql::{
-                ExecuteLinearQuery, ExecuteSavedLinearQuery, GetLinearSchema, SaveLinearQuery,
-                SearchLinearQueries,
-            },
-            threads::CompleteThread,
-            ThreadContext, ToolBag,
-        },
+        tools::{ThreadContext, ToolBag},
     },
     AppState,
 };
@@ -107,51 +91,25 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     let messages = reconstruct_messages(&app_state.db, thread_id).await?;
     let system_prompt = extract_system_prompt(&app_state.db, thread_id).await?;
 
-    // Set up tools based on thread type first to know the context
+    // Get agent configuration - parse agent_name from database to AgentId
+    use std::str::FromStr;
+    let agent_id = crate::agent_config::AgentId::from_str(&thread.agent_name).map_err(|_| {
+        cja::color_eyre::eyre::eyre!(
+            "Invalid agent name '{}' for thread {}",
+            thread.agent_name,
+            thread_id
+        )
+    })?;
+
+    let agent_config = agent_id.config();
+
+    // Set up tools based on agent configuration and thread type
+    // The agent config contains the list of enabled tools, and we automatically
+    // add the ones appropriate for this thread type (Interactive vs Autonomous).
+    // Interactive threads get Discord thread-specific tools (SendDiscordThreadMessage, ListenToThread, etc.)
+    // Autonomous threads get regular tools (SendDiscordMessage, CompleteThread, etc.)
     let mut tools = ToolBag::default();
-
-    // Check if this is an interactive Discord thread
-    let discord_metadata = if thread.thread_type == db::agentic_threads::ThreadType::Interactive {
-        DiscordThreadMetadata::find_by_thread_id(&app_state.db, thread_id).await?
-    } else {
-        None
-    };
-    let is_discord_thread = discord_metadata.is_some();
-
-    if is_discord_thread {
-        // For interactive Discord threads, use the thread-specific message tool
-        tools.add_tool(SendDiscordThreadMessage::new())?;
-        // Add the listen tool for interactive threads
-        tools.add_tool(ListenToThread::new())?;
-        // Add the react tool for interactive threads
-        tools.add_tool(ReactToMessage::new())?;
-        // Add the emoji list tool for interactive threads
-        tools.add_tool(ListServerEmojis::new())?;
-
-        // Add Linear GraphQL tools for Discord threads
-        tools.add_tool(ExecuteLinearQuery)?;
-        tools.add_tool(SearchLinearQueries)?;
-        tools.add_tool(SaveLinearQuery)?;
-        tools.add_tool(ExecuteSavedLinearQuery)?;
-        tools.add_tool(GetLinearSchema)?;
-
-        // Add cooking tools for interactive threads
-        tools.add_tool(UpsertRecipe)?;
-        tools.add_tool(GetRecipe)?;
-        tools.add_tool(UpdateInventory)?;
-        tools.add_tool(CheckInventory)?;
-        tools.add_tool(CreateMealPlan)?;
-        tools.add_tool(AddRecipeToMealPlan)?;
-        tools.add_tool(ListMealPlans)?;
-    } else {
-        // For regular threads, use the standard Discord message tool
-        tools.add_tool(SendDiscordMessage)?;
-
-        // Add the complete thread tool for regular threads
-        tools.add_tool(CompleteThread::new())?;
-    }
-
-    tools.add_tool(crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new())?;
+    tools.add_tools_from_config(&agent_config, &thread.thread_type)?;
 
     // Make LLM request
     let request = AnthropicRequest {
@@ -168,7 +126,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     let client = reqwest::Client::new();
     let response = client
         .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", &app_state.standup.anthropic_api_key)
+        .header("x-api-key", &app_state.anthropic.api_key)
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&request)
@@ -476,9 +434,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_empty_stitches(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
@@ -488,9 +452,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_system_prompt(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create system prompt stitch
@@ -524,9 +494,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_extract_system_prompt(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Test with no system prompt
@@ -553,9 +529,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_extract_system_prompt_multiple_error(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create first system prompt stitch
@@ -588,9 +570,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_single_llm_call(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message
@@ -638,9 +626,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_tool_calls(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message
@@ -732,9 +726,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_with_tool_error(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message
@@ -801,9 +801,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_discord_after_tool_call(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message
@@ -948,9 +954,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_multiple_tool_results_grouped(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message
@@ -1045,9 +1057,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_cache_control(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message
@@ -1153,9 +1171,15 @@ mod tests {
     #[sqlx::test(migrations = "../db/migrations")]
     async fn test_reconstruct_messages_duplicate_tool_calls(pool: PgPool) {
         // Create a thread
-        let thread = Thread::create(&pool, "Test thread".to_string(), None, None)
-            .await
-            .unwrap();
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
         let thread_id = thread.thread_id;
 
         // Create initial user message

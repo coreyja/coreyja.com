@@ -118,6 +118,23 @@ impl ToolBag {
         self.add_generic_tool(tool.to_generic())
     }
 
+    /// Add tools from an agent configuration, filtered by thread type.
+    /// This will iterate through the enabled tools and add only those that are
+    /// appropriate for the given thread type (Interactive vs Autonomous).
+    pub fn add_tools_from_config(
+        &mut self,
+        config: &crate::agent_config::AgentConfig,
+        thread_type: &db::agentic_threads::ThreadType,
+    ) -> cja::Result<&mut Self> {
+        for tool in &config.enabled_tools {
+            // Only add tools that are appropriate for this thread type
+            if tool.is_available_for_thread_type(thread_type) {
+                self.add_generic_tool(tool.create_instance())?;
+            }
+        }
+        Ok(self)
+    }
+
     pub(crate) fn as_api(&self) -> Vec<AnthropicTool> {
         self.tools_by_name
             .values()

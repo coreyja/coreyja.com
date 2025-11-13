@@ -4,15 +4,13 @@ use clap::Subcommand;
 pub(crate) mod info;
 pub(crate) mod validate;
 
-#[derive(Subcommand)]
-#[derive(Default)]
+#[derive(Subcommand, Default)]
 pub(crate) enum Command {
     #[default]
     Serve,
     Print,
     Validate,
 }
-
 
 impl Command {
     pub(crate) async fn run(&self) -> Result<()> {
