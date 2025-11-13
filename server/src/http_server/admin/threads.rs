@@ -187,12 +187,12 @@ fn thread_list_page(threads: &[ThreadWithCounts], days: i32) -> Markup {
                     select
                         name="days"
                         id="days"
-                        class="border rounded px-2 py-1"
-                        onchange="this.form.submit()" {
+                        class="border rounded px-2 py-1" {
                         option value="1" selected[days == 1] { "1 day" }
                         option value="3" selected[days == 3] { "3 days" }
                         option value="7" selected[days == 7] { "7 days" }
                     }
+                    button type="submit" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" { "Go" }
                 }
             }
 
