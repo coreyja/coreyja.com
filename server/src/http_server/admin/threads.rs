@@ -262,124 +262,153 @@ fn thread_detail_page(
 ) -> Markup {
     html! {
         div class="py-4" {
-            // Back link
-            div class="mb-4" {
-                a href=(format!("/admin/threads?days={}", days)) class="text-blue-600 hover:underline" {
-                    "← Back to thread list"
+            (render_thread_nav(thread.thread_id, days, true))
+            (render_thread_header(thread))
+            (render_parent_threads(parents, days))
+            (render_thread_tasks(&thread.tasks))
+            (render_thread_result(thread.result.as_ref()))
+            (render_discord_metadata(discord_metadata))
+            (render_stitches_section(stitches))
+            (render_children_section(children, days))
+        }
+    }
+}
+
+fn render_thread_nav(thread_id: uuid::Uuid, days: i32, is_details: bool) -> Markup {
+    html! {
+        div class="mb-4" {
+            a href=(format!("/admin/threads?days={}", days)) class="text-blue-600 hover:underline" {
+                "← Back to thread list"
+            }
+        }
+        div class="border-b mb-4" {
+            div class="flex gap-4" {
+                a
+                    href=(format!("/admin/threads/{}?days={}", thread_id, days))
+                    class=(if is_details { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
+                    "Details"
+                }
+                a
+                    href=(format!("/admin/threads/{}/messages?days={}", thread_id, days))
+                    class=(if !is_details { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
+                    "Messages"
                 }
             }
+        }
+    }
+}
 
-            // Tabs
-            div class="border-b mb-4" {
-                div class="flex gap-4" {
-                    a
-                        href=(format!("/admin/threads/{}?days={}", thread.thread_id, days))
-                        class="px-4 py-2 border-b-2 border-blue-500 font-medium" {
-                        "Details"
-                    }
-                    a
-                        href=(format!("/admin/threads/{}/messages?days={}", thread.thread_id, days))
-                        class="px-4 py-2 text-gray-600 hover:text-gray-900" {
-                        "Messages"
-                    }
+fn render_thread_header(thread: &Thread) -> Markup {
+    html! {
+        div class="mb-6" {
+            h1 class="text-2xl font-bold mb-2" { (thread.goal) }
+            div class="flex items-center gap-2 mb-2" {
+                span
+                    class="px-2 py-1 rounded text-sm text-white"
+                    style=(format!("background-color: {}", status_color(&thread.status))) {
+                    (format!("{:?}", thread.status))
+                }
+                span class="text-gray-600 text-sm" {
+                    (format!("{:?}", thread.thread_type))
                 }
             }
-
-            // Thread header
-            div class="mb-6" {
-                h1 class="text-2xl font-bold mb-2" { (thread.goal) }
-
-                div class="flex items-center gap-2 mb-2" {
-                    span
-                        class="px-2 py-1 rounded text-sm text-white"
-                        style=(format!("background-color: {}", status_color(&thread.status))) {
-                        (format!("{:?}", thread.status))
-                    }
-                    span class="text-gray-600 text-sm" {
-                        (format!("{:?}", thread.thread_type))
-                    }
-                }
-
-                div class="text-sm text-gray-600 space-y-1" {
-                    p { "Thread ID: " code class="bg-gray-100 px-1 rounded" { (thread.thread_id) } }
-                    p { "Created: " (Timestamp(thread.created_at)) }
-                    p { "Updated: " (Timestamp(thread.updated_at)) }
-                }
+            div class="text-sm text-gray-600 space-y-1" {
+                p { "Thread ID: " code class="bg-gray-100 px-1 rounded" { (thread.thread_id) } }
+                p { "Created: " (Timestamp(thread.created_at)) }
+                p { "Updated: " (Timestamp(thread.updated_at)) }
             }
+        }
+    }
+}
 
-            // Parent chain
-            @if !parents.is_empty() {
-                details class="mb-6 border rounded p-4" {
-                    summary class="cursor-pointer font-medium" { "Parent Threads (" (parents.len()) ")" }
-                    div class="mt-2 space-y-2 pl-4" {
-                        @for parent in parents {
-                            div {
-                                a
-                                    href=(format!("/admin/threads/{}?days={}", parent.thread_id, days))
-                                    class="text-blue-600 hover:underline" {
-                                    (parent.goal)
-                                }
-                                span class="text-sm text-gray-600 ml-2" {
-                                    (format!("{:?}", parent.status))
-                                }
-                            }
+fn render_parent_threads(parents: &[Thread], days: i32) -> Markup {
+    if parents.is_empty() {
+        return html! {};
+    }
+    html! {
+        details class="mb-6 border rounded p-4" {
+            summary class="cursor-pointer font-medium" { "Parent Threads (" (parents.len()) ")" }
+            div class="mt-2 space-y-2 pl-4" {
+                @for parent in parents {
+                    div {
+                        a
+                            href=(format!("/admin/threads/{}?days={}", parent.thread_id, days))
+                            class="text-blue-600 hover:underline" {
+                            (parent.goal)
+                        }
+                        span class="text-sm text-gray-600 ml-2" {
+                            (format!("{:?}", parent.status))
                         }
                     }
                 }
             }
+        }
+    }
+}
 
-            // Tasks
-            @if let Some(tasks_array) = thread.tasks.as_array() {
-                @if !tasks_array.is_empty() {
-                    div class="mb-6" {
-                        h2 class="text-xl font-bold mb-2" { "Tasks" }
-                        (render_task_list_json(&thread.tasks))
+fn render_thread_tasks(tasks: &serde_json::Value) -> Markup {
+    if let Some(tasks_array) = tasks.as_array() {
+        if !tasks_array.is_empty() {
+            return html! {
+                div class="mb-6" {
+                    h2 class="text-xl font-bold mb-2" { "Tasks" }
+                    (render_task_list_json(tasks))
+                }
+            };
+        }
+    }
+    html! {}
+}
+
+fn render_thread_result(result: Option<&serde_json::Value>) -> Markup {
+    let Some(result) = result else {
+        return html! {};
+    };
+    let Some(result_obj) = result.as_object() else {
+        return html! {};
+    };
+    let success = result_obj.get("success").and_then(serde_json::Value::as_bool).unwrap_or(false);
+
+    html! {
+        div class="mb-6" {
+            h2 class="text-xl font-bold mb-2" { "Result" }
+            div class=(format!("border rounded p-3 {}", if success { "border-green-500" } else { "border-red-500" })) {
+                div class="font-medium mb-2" {
+                    @if success {
+                        span class="text-green-700" { "✓ Success" }
+                    } @else {
+                        span class="text-red-700" { "✗ Failed" }
                     }
                 }
-            }
-
-            // Result
-            @if let Some(result) = &thread.result {
-                @if let Some(result_obj) = result.as_object() {
-                    div class="mb-6" {
-                        h2 class="text-xl font-bold mb-2" { "Result" }
-                        @let success = result_obj.get("success").and_then(|s| s.as_bool()).unwrap_or(false);
-                        div class=(format!("border rounded p-3 {}", if success { "border-green-500" } else { "border-red-500" })) {
-                            div class="font-medium mb-2" {
-                                @if success {
-                                    span class="text-green-700" { "✓ Success" }
-                                } @else {
-                                    span class="text-red-700" { "✗ Failed" }
-                                }
-                            }
-                            @if let Some(error) = result_obj.get("error").and_then(|e| e.as_str()) {
-                                pre class="text-sm bg-gray-50 p-2 rounded overflow-x-auto" { (error) }
-                            }
-                        }
-                    }
+                @if let Some(error) = result_obj.get("error").and_then(|e| e.as_str()) {
+                    pre class="text-sm bg-gray-50 p-2 rounded overflow-x-auto" { (error) }
                 }
             }
+        }
+    }
+}
 
-            // Discord metadata
-            @if let Some(metadata) = discord_metadata {
-                details class="mb-6 border rounded p-4" {
-                    summary class="cursor-pointer font-medium" { "Discord Metadata" }
-                    div class="mt-2 space-y-1 text-sm" {
-                        p { "Thread Name: " strong { (metadata.thread_name) } }
-                        p { "Discord Thread ID: " code class="bg-gray-100 px-1 rounded" { (metadata.discord_thread_id) } }
-                        p { "Channel ID: " code class="bg-gray-100 px-1 rounded" { (metadata.channel_id) } }
-                        p { "Created By: " (metadata.created_by) }
-                        @if let Some(participants) = metadata.participants.as_array() {
-                            @if !participants.is_empty() {
-                                p {
-                                    "Participants: "
-                                    @for (i, participant) in participants.iter().enumerate() {
-                                        @if let Some(p_str) = participant.as_str() {
-                                            (p_str)
-                                            @if i < participants.len() - 1 {
-                                                ", "
-                                            }
-                                        }
+fn render_discord_metadata(metadata: Option<DiscordThreadMetadata>) -> Markup {
+    let Some(metadata) = metadata else {
+        return html! {};
+    };
+    html! {
+        details class="mb-6 border rounded p-4" {
+            summary class="cursor-pointer font-medium" { "Discord Metadata" }
+            div class="mt-2 space-y-1 text-sm" {
+                p { "Thread Name: " strong { (metadata.thread_name) } }
+                p { "Discord Thread ID: " code class="bg-gray-100 px-1 rounded" { (metadata.discord_thread_id) } }
+                p { "Channel ID: " code class="bg-gray-100 px-1 rounded" { (metadata.channel_id) } }
+                p { "Created By: " (metadata.created_by) }
+                @if let Some(participants) = metadata.participants.as_array() {
+                    @if !participants.is_empty() {
+                        p {
+                            "Participants: "
+                            @for (i, participant) in participants.iter().enumerate() {
+                                @if let Some(p_str) = participant.as_str() {
+                                    (p_str)
+                                    @if i < participants.len() - 1 {
+                                        ", "
                                     }
                                 }
                             }
@@ -387,35 +416,42 @@ fn thread_detail_page(
                     }
                 }
             }
+        }
+    }
+}
 
-            // Stitches
-            div class="mb-6" {
-                h2 class="text-xl font-bold mb-2" { "Stitches (" (stitches.len()) ")" }
-                div class="space-y-3" {
-                    @for stitch in stitches {
-                        (render_stitch(stitch))
-                    }
+fn render_stitches_section(stitches: &[Stitch]) -> Markup {
+    html! {
+        div class="mb-6" {
+            h2 class="text-xl font-bold mb-2" { "Stitches (" (stitches.len()) ")" }
+            div class="space-y-3" {
+                @for stitch in stitches {
+                    (render_stitch(stitch))
                 }
             }
+        }
+    }
+}
 
-            // Children
-            @if !children.is_empty() {
-                div class="mb-6" {
-                    h2 class="text-xl font-bold mb-2" { "Child Threads (" (children.len()) ")" }
-                    div class="space-y-2" {
-                        @for child in children {
-                            div class="border rounded p-3" {
-                                a
-                                    href=(format!("/admin/threads/{}?days={}", child.thread.thread_id, days))
-                                    class="text-blue-600 hover:underline font-medium" {
-                                    (child.thread.goal)
-                                }
-                                div class="text-sm text-gray-600 mt-1" {
-                                    span { (format!("{:?}", child.thread.status)) " · " }
-                                    span { (child.stitch_count) " stitches · " }
-                                    span { (child.children_count) " children" }
-                                }
-                            }
+fn render_children_section(children: &[ThreadWithCounts], days: i32) -> Markup {
+    if children.is_empty() {
+        return html! {};
+    }
+    html! {
+        div class="mb-6" {
+            h2 class="text-xl font-bold mb-2" { "Child Threads (" (children.len()) ")" }
+            div class="space-y-2" {
+                @for child in children {
+                    div class="border rounded p-3" {
+                        a
+                            href=(format!("/admin/threads/{}?days={}", child.thread.thread_id, days))
+                            class="text-blue-600 hover:underline font-medium" {
+                            (child.thread.goal)
+                        }
+                        div class="text-sm text-gray-600 mt-1" {
+                            span { (format!("{:?}", child.thread.status)) " · " }
+                            span { (child.stitch_count) " stitches · " }
+                            span { (child.children_count) " children" }
                         }
                     }
                 }
@@ -427,28 +463,7 @@ fn thread_detail_page(
 fn thread_messages_page(thread: &Thread, messages: &[Message], days: i32) -> Markup {
     html! {
         div class="py-4" {
-            // Back link
-            div class="mb-4" {
-                a href=(format!("/admin/threads?days={}", days)) class="text-blue-600 hover:underline" {
-                    "← Back to thread list"
-                }
-            }
-
-            // Tabs
-            div class="border-b mb-4" {
-                div class="flex gap-4" {
-                    a
-                        href=(format!("/admin/threads/{}?days={}", thread.thread_id, days))
-                        class="px-4 py-2 text-gray-600 hover:text-gray-900" {
-                        "Details"
-                    }
-                    a
-                        href=(format!("/admin/threads/{}/messages?days={}", thread.thread_id, days))
-                        class="px-4 py-2 border-b-2 border-blue-500 font-medium" {
-                        "Messages"
-                    }
-                }
-            }
+            (render_thread_nav(thread.thread_id, days, false))
 
             // Thread header
             div class="mb-6" {
@@ -471,9 +486,8 @@ fn thread_messages_page(thread: &Thread, messages: &[Message], days: i32) -> Mar
 // ============================================================================
 
 fn render_task_list_json(tasks_json: &serde_json::Value) -> Markup {
-    let tasks_array = match tasks_json.as_array() {
-        Some(arr) => arr,
-        None => return html! { p class="text-red-500" { "Invalid tasks data" } },
+    let Some(tasks_array) = tasks_json.as_array() else {
+        return html! { p class="text-red-500" { "Invalid tasks data" } };
     };
 
     html! {
@@ -515,11 +529,10 @@ fn status_color(status: &ThreadStatus) -> &'static str {
 fn render_stitch(stitch: &Stitch) -> Markup {
     let stitch_icon = match stitch.stitch_type {
         StitchType::SystemPrompt => "📋",
-        StitchType::InitialPrompt => "💬",
+        StitchType::InitialPrompt | StitchType::DiscordMessage => "💬",
         StitchType::LlmCall => "🤖",
         StitchType::ToolCall => "🔧",
         StitchType::ThreadResult => "📊",
-        StitchType::DiscordMessage => "💬",
         StitchType::AgentThought => "💭",
         StitchType::ClarificationRequest => "❓",
         StitchType::Error => "❌",
