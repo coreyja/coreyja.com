@@ -1,15 +1,3 @@
-# Frontend build stage
-FROM node:20-alpine AS frontend-builder
-WORKDIR /app
-
-# Copy frontend package files
-COPY thread-frontend/package*.json ./
-RUN npm ci
-
-# Copy frontend source and build
-COPY thread-frontend/ ./
-RUN npm run build
-
 # Rust build stages
 FROM lukemathwalker/cargo-chef:latest-rust-1.91 AS chef
 WORKDIR /app
@@ -35,9 +23,6 @@ RUN cargo chef cook --release --bin server --recipe-path recipe.json
 
 # Copy the source code
 COPY . .
-
-# Copy the built frontend from the frontend-builder stage
-COPY --from=frontend-builder /app/dist ./thread-frontend/dist
 
 COPY tailwind.config.js .
 RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css

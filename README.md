@@ -4,15 +4,15 @@ New and Hopefully Improved Personal Site
 
 ## Building
 
-This project requires both the frontend and Rust backend to be built. The frontend must be built first as it's embedded into the Rust binary.
+This project is built entirely with Rust using server-side rendering (no frontend build step needed).
 
 ### Quick Start
 
 ```bash
-# Build everything (frontend + Rust release build)
+# Build everything (Rust release build)
 ./scripts/build-all.sh
 
-# For development (frontend + Rust debug build)
+# For development (Rust debug build)
 ./scripts/dev-build.sh
 ```
 
@@ -20,17 +20,9 @@ This project requires both the frontend and Rust backend to be built. The fronte
 
 If you prefer to build manually:
 
-1. Build the frontend:
-   ```bash
-   cd thread-frontend
-   npm install
-   npm run build
-   ```
-
-2. Build the Rust backend:
-   ```bash
-   cargo build --release
-   ```
+```bash
+cargo build --release
+```
 
 ## Screenshots
 
