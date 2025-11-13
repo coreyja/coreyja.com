@@ -8,8 +8,9 @@ use sqlx::{types::Uuid, PgPool};
 use crate::{
     al::{
         standup::{
-            AnthropicRequest, AnthropicResponse, CacheControl, Content, ImageContent,
-            ImageSource, Message, TextContent, ToolChoice, ToolResult,
+            AnthropicRequest, AnthropicResponse, CacheControl, Content, DocumentContent,
+            DocumentSource, ImageContent, ImageSource, Message, TextContent, ToolChoice,
+            ToolResult,
         },
         tools::{ThreadContext, ToolBag},
     },
@@ -200,24 +201,33 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 async fn process_discord_attachment(
     attachment: &poise::serenity_prelude::Attachment,
 ) -> cja::Result<Option<Content>> {
-    // Only process image attachments
-    let is_image = attachment
-        .content_type
-        .as_ref()
+    // Check content type
+    let content_type = attachment.content_type.as_deref();
+
+    let is_image = content_type
         .map(|ct| ct.starts_with("image/"))
         .unwrap_or(false);
 
-    if !is_image {
-        // For non-image attachments, just mention them in text
+    let is_pdf = content_type
+        .map(|ct| ct == "application/pdf")
+        .unwrap_or(false);
+
+    // Only process images and PDFs
+    if !is_image && !is_pdf {
+        // For other attachments, just mention them in text
         return Ok(None);
     }
 
     // Get media type
-    let media_type = attachment
-        .content_type
-        .as_ref()
+    let media_type = content_type
         .map(|s| s.to_string())
-        .unwrap_or_else(|| "image/png".to_string());
+        .unwrap_or_else(|| {
+            if is_pdf {
+                "application/pdf".to_string()
+            } else {
+                "image/png".to_string()
+            }
+        });
 
     // Download the attachment
     let response = reqwest::get(&attachment.url).await?;
@@ -231,15 +241,28 @@ async fn process_discord_attachment(
     let bytes = response.bytes().await?;
     let base64_data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
 
-    Ok(Some(Content::Image(ImageContent {
-        source: ImageSource {
-            r#type: "base64".to_string(),
-            media_type: Some(media_type),
-            data: Some(base64_data),
-            url: None,
-        },
-        cache_control: None,
-    })))
+    // Return appropriate content type
+    if is_pdf {
+        Ok(Some(Content::Document(DocumentContent {
+            source: DocumentSource {
+                r#type: "base64".to_string(),
+                media_type: Some(media_type),
+                data: Some(base64_data),
+                url: None,
+            },
+            cache_control: None,
+        })))
+    } else {
+        Ok(Some(Content::Image(ImageContent {
+            source: ImageSource {
+                r#type: "base64".to_string(),
+                media_type: Some(media_type),
+                data: Some(base64_data),
+                url: None,
+            },
+            cache_control: None,
+        })))
+    }
 }
 
 pub async fn extract_system_prompt(db: &PgPool, thread_id: Uuid) -> cja::Result<Option<String>> {
@@ -406,11 +429,11 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                         // Process attachments
                         for attachment in &message.attachments {
                             match process_discord_attachment(attachment).await {
-                                Ok(Some(image_content)) => {
-                                    content_parts.push(image_content);
+                                Ok(Some(attachment_content)) => {
+                                    content_parts.push(attachment_content);
                                 }
                                 Ok(None) => {
-                                    // Non-image attachment - mention it in text
+                                    // Non-image/PDF attachment - mention it in text
                                     let attachment_info = format!(
                                         "\n[Attachment: {} ({} bytes)]",
                                         attachment.filename, attachment.size
