@@ -81,6 +81,89 @@ cargo sqlx prepare --all --workspace -- --all-targets # This is also part of the
 
 The site uses server-side rendered HTML using Maud templates for all pages, including the admin interface. This provides a simple, fast, and maintainable frontend with zero JavaScript dependencies.
 
+### AI Agent System
+
+The system uses an enum-based agent configuration system that supports multiple AI agents with different capabilities, tools, and behaviors. Each thread is assigned to an agent that controls its available tools, persona, and behavior.
+
+#### Architecture
+
+Agents are defined as variants in the `AgentId` enum in `server/src/agent_config.rs`. Each agent has:
+
+- **Unique ID**: Enum variant (e.g., `AgentId::Al`, `AgentId::Demo`)
+- **Description**: Human-readable description
+- **Discord Integration**: Optional channel and user IDs for Discord operations
+- **Persona**: Identifier from `memory_blocks` table defining personality and behavior
+- **Enabled Tools**: Whitelist of tools this agent can use
+
+#### Default Agent
+
+The default agent is **"Al"** (defined as `DEFAULT_AGENT_ID`). This agent is used when:
+- No specific agent is specified in thread creation
+- An unknown agent name is referenced
+- Creating threads via the API without specifying an agent
+
+#### Tool Filtering
+
+Each agent has a whitelist of enabled tools. When a thread is processed:
+
+1. The `thread.agent_name` is parsed into an `AgentId` enum variant
+2. The agent's configuration is retrieved via `agent_id.config()`
+3. Only tools in the agent's `enabled_tools` list are made available
+4. If the agent name cannot be parsed, **all tools are enabled** (backward compatibility)
+
+Available tool categories:
+- **Discord tools**: `SendDiscordThreadMessage`, `ListenToThread`, `ReactToMessage`, `ListServerEmojis`
+- **Linear tools**: `ExecuteLinearQuery`, `SearchLinearQueries`, `SaveLinearQuery`, etc.
+- **Cooking tools**: `UpsertRecipe`, `GetRecipeByName`, `UpdateInventory`, etc.
+- **Other tools**: `SuggestionsSubmit`, `CompleteThread`, etc.
+
+#### Discord Channel Mapping
+
+Discord messages are automatically routed to agents based on channel ID. When a Discord message is received:
+
+1. System checks if the channel has a mapped agent
+2. If mapped, that agent's configuration is used
+3. If not mapped, the default "Al" agent is used
+
+See `server/src/jobs/discord_message_processor.rs` for implementation.
+
+#### ThreadBuilder
+
+Use `ThreadBuilder` to create threads with specific agents:
+
+```rust
+// Uses default "Al" agent
+ThreadBuilder::new(pool)
+    .with_goal("Task")
+    .build()
+    .await?
+
+// Specify a different agent using AgentId
+ThreadBuilder::new(pool)
+    .with_agent(AgentId::Demo)
+    .with_goal("Task")
+    .build()
+    .await?
+
+// Can also override persona separately
+ThreadBuilder::new(pool)
+    .with_agent(AgentId::Al)
+    .with_persona("custom-persona")
+    .with_goal("Task")
+    .build()
+    .await?
+```
+
+#### Adding New Agents
+
+1. Add a new variant to the `AgentId` enum
+2. Implement its configuration in the `config()` method
+3. Define enabled tools, persona, and optional Discord IDs
+
+The enum-based approach ensures you cannot forget to configure a new agent - the compiler will enforce it.
+
+For complete documentation, see the module-level docs in `server/src/agent_config.rs`.
+
 ## Version Control with jj
 
 This project uses `jj` instead of `git`.

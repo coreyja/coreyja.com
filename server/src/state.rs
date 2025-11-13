@@ -11,43 +11,15 @@ use tracing::instrument;
 use url::Url;
 
 use crate::{
-    discord::DiscordClient, encrypt, github::GithubConfig, google::GoogleConfig,
-    http_server::pages::blog::md::SyntaxHighlightingContext, linear::LinearConfig,
-    twitch::TwitchConfig,
+    anthropic::AnthropicConfig, discord::DiscordClient, encrypt, github::GithubConfig,
+    google::GoogleConfig, http_server::pages::blog::md::SyntaxHighlightingContext,
+    linear::LinearConfig, twitch::TwitchConfig,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
     pub base_url: Url,
     pub imgproxy_url: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct StandupConfig {
-    pub discord_channel_id: Option<u64>,
-    pub discord_user_id: Option<u64>,
-    pub anthropic_api_key: String,
-}
-
-impl StandupConfig {
-    pub fn from_env() -> cja::Result<Self> {
-        let discord_channel_id = std::env::var("DAILY_MESSAGE_DISCORD_CHANNEL_ID")
-            .ok()
-            .and_then(|id| id.parse::<u64>().ok());
-
-        let discord_user_id = std::env::var("DAILY_MESSAGE_DISCORD_USER_ID")
-            .ok()
-            .and_then(|id| id.parse::<u64>().ok());
-
-        let anthropic_api_key = std::env::var("ANTHROPIC_API_KEY")
-            .wrap_err("Missing ANTHROPIC_API_KEY environment variable")?;
-
-        Ok(Self {
-            discord_channel_id,
-            discord_user_id,
-            anthropic_api_key,
-        })
-    }
 }
 
 impl AppConfig {
@@ -98,8 +70,8 @@ pub(crate) struct AppState {
     pub open_ai: OpenAiConfig,
     pub google: GoogleConfig,
     pub linear: LinearConfig,
+    pub anthropic: AnthropicConfig,
     pub app: AppConfig,
-    pub standup: StandupConfig,
     pub syntax_highlighting_context: SyntaxHighlightingContext,
     pub blog_posts: Arc<BlogPosts>,
     pub til_posts: Arc<TilPosts>,
@@ -134,10 +106,10 @@ impl AppState {
             twitch: TwitchConfig::from_env()?,
             github: GithubConfig::from_env()?,
             app: AppConfig::from_env()?,
-            standup: StandupConfig::from_env()?,
             open_ai: OpenAiConfig::from_env()?,
             google: GoogleConfig::from_env()?,
             linear: LinearConfig::from_env()?,
+            anthropic: AnthropicConfig::from_env()?,
             syntax_highlighting_context: SyntaxHighlightingContext::default(),
             versions: VersionInfo::from_env(),
             blog_posts,

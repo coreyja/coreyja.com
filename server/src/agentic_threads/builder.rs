@@ -32,6 +32,8 @@ pub struct ThreadBuilder {
     branching_stitch_id: Option<Uuid>,
     discord_metadata: Option<DiscordMetadata>,
     linear_metadata: Option<LinearMetadata>,
+    agent_id: crate::agent_config::AgentId,
+    persona: Option<String>,
 }
 
 impl ThreadBuilder {
@@ -43,6 +45,8 @@ impl ThreadBuilder {
             branching_stitch_id: None,
             discord_metadata: None,
             linear_metadata: None,
+            agent_id: crate::agent_config::DEFAULT_AGENT_ID,
+            persona: None,
         }
     }
 
@@ -73,6 +77,16 @@ impl ThreadBuilder {
         self
     }
 
+    pub fn with_agent(mut self, agent_id: crate::agent_config::AgentId) -> Self {
+        self.agent_id = agent_id;
+        self
+    }
+
+    pub fn with_persona(mut self, persona: impl Into<String>) -> Self {
+        self.persona = Some(persona.into());
+        self
+    }
+
     pub async fn build(self) -> Result<Thread> {
         // Validate
         if self.goal.is_empty() {
@@ -95,6 +109,7 @@ impl ThreadBuilder {
             self.goal,
             self.branching_stitch_id,
             Some(self.thread_type),
+            self.agent_id.to_string(),
         )
         .await?;
 
@@ -136,7 +151,7 @@ impl ThreadBuilder {
 
         let memory_manager = MemoryManager::new(self.pool.clone());
         let system_prompt = memory_manager
-            .generate_system_prompt(&thread, person_identifier)
+            .generate_system_prompt(&thread, person_identifier, self.persona)
             .await?;
 
         // Create system prompt stitch

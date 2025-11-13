@@ -31,6 +31,7 @@ pub mod jobs;
 pub mod state;
 pub(crate) use state::{AppConfig, AppState};
 
+pub(crate) mod anthropic;
 pub(crate) mod google;
 
 pub(crate) mod linear;
@@ -45,6 +46,8 @@ pub(crate) mod al;
 pub(crate) mod memory;
 
 pub(crate) mod agentic_threads;
+
+pub(crate) mod agent_config;
 
 #[derive(Parser)]
 #[command(author, version, about)]

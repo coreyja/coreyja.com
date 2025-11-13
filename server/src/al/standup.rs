@@ -2,13 +2,8 @@ use chrono::Utc;
 use chrono_tz::US::Eastern;
 use db::agentic_threads::{Stitch, Thread};
 use serde::{Deserialize, Serialize};
-use serenity::all::Channel;
 
-use crate::{
-    agentic_threads::{builder::DiscordMetadata, ThreadBuilder},
-    jobs::thread_processor::ProcessThreadStep,
-    AppState,
-};
+use crate::{jobs::thread_processor::ProcessThreadStep, AppState};
 use cja::jobs::Job;
 
 #[derive(Debug, Serialize)]
@@ -124,40 +119,28 @@ impl StandupAgent {
         let date_str = now_eastern.format("%A, %B %d, %Y at %I:%M %p").to_string();
         let thread_name = format!("Standup for {date_str}");
 
-        // Get configuration for the prompt
-        let channel_id = self.app_state.standup.discord_channel_id.ok_or_else(|| {
-            cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_CHANNEL_ID not configured")
-        })?;
-        let user_id = self.app_state.standup.discord_user_id.ok_or_else(|| {
-            cja::color_eyre::eyre::eyre!("DAILY_MESSAGE_DISCORD_USER_ID not configured")
-        })?;
+        // Get the agent configuration for standup (use Al agent)
+        let agent_id = crate::agent_config::AgentId::Al;
+        let agent_config = agent_id.config();
 
-        let channel_id = serenity::all::ChannelId::new(channel_id);
-        let channel = channel_id.to_channel(&self.app_state.discord).await?;
-        let Channel::Guild(guild_channel) = channel else {
-            color_eyre::eyre::bail!("Channel is not a guild channel");
-        };
-        let builder = serenity::all::CreateThread::new(thread_name.clone())
-            .auto_archive_duration(serenity::all::AutoArchiveDuration::OneDay);
-        let new_discord_thread = guild_channel
-            .create_thread(&self.app_state.discord, builder)
-            .await?;
-        let discord_metadata = DiscordMetadata {
-            discord_thread_id: new_discord_thread.id.to_string(),
-            channel_id: guild_channel.id.to_string(),
-            guild_id: guild_channel.guild_id.to_string(),
-            created_by: "Al".to_string(),
-            thread_name: thread_name.clone(),
-        };
-
-        let thread = ThreadBuilder::new(self.app_state.db.clone())
+        // Create thread using the agent - agent handles Discord thread creation and setup
+        let thread = agent_config
+            .create_thread(&self.app_state.discord, &self.app_state.db, thread_name)
+            .await?
             .with_goal("Generate daily standup message")
-            .interactive_discord(discord_metadata)
             .build()
             .await?;
 
         // Update thread status to running
         Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;
+
+        // Get the Discord user ID for the prompt
+        let user_id = agent_config.discord_user_id.ok_or_else(|| {
+            cja::color_eyre::eyre::eyre!(
+                "Agent '{:?}' does not have a discord_user_id configured",
+                agent_id
+            )
+        })?;
 
         // Get Linear API key from environment or thread metadata
         let api_key = crate::al::tools::linear_graphql::get_linear_api_key(&self.app_state).await?;

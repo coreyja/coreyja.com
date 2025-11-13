@@ -1,3 +1,152 @@
+//! Agentic Threads Database Schema
+//!
+//! This module implements a threading model where each thread has a singular goal and maintains
+//! a todo-list. Threads can spawn child threads that run in parallel, with success/failure
+//! reporting back to the parent thread. The system tracks all LLM and tool interactions as
+//! "Stitches" within each thread.
+//!
+//! ## Core Concepts
+//!
+//! ### Threads
+//!
+//! Stores the main thread entities with their goals, status, and relationships.
+//!
+//! - `thread_id`: UUID primary key
+//! - `branching_stitch_id`: References the exact stitch in the parent thread where this child was created
+//! - `goal`: The thread's objective (required)
+//! - `tasks`: JSONB array of tasks with flexible schema
+//! - `status`: One of `pending`, `running`, `waiting`, `completed`, `failed`, `aborted`
+//! - `result`: JSONB result upon completion
+//! - `pending_child_results`: Queue of child thread results while parent is running
+//! - `thread_type`: `autonomous` or `interactive`
+//! - `agent_name`: Which agent handles this thread (default: "Al")
+//! - Timestamps: `created_at`, `updated_at`
+//!
+//! ### Stitches
+//!
+//! Stores individual LLM/tool interactions (stitches) within a thread, maintaining order via linked list.
+//!
+//! - `stitch_id`: UUID primary key
+//! - `thread_id`: Reference to parent thread
+//! - `previous_stitch_id`: Links to previous stitch (NULL for first stitch)
+//! - `stitch_type`: One of `llm_call`, `tool_call`, `thread_result`, `discord_message`, etc.
+//! - LLM fields: `llm_request`, `llm_response`
+//! - Tool fields: `tool_name`, `tool_input`, `tool_output`
+//! - Thread result fields: `child_thread_id`, `thread_result_summary`
+//! - `created_at`: Timestamp
+//!
+//! ## Key Design Decisions
+//!
+//! ### Thread Relationships
+//!
+//! - `branching_stitch_id`: References the exact stitch in the parent thread where this child was created
+//! - The parent relationship can be derived from `branching_stitch_id` by looking up which thread owns that stitch
+//! - This allows navigation of the thread hierarchy without a separate `parent_thread_id` column
+//!
+//! ### Stitch Ordering
+//!
+//! - Linked list approach using `previous_stitch_id`
+//! - Unique index on `(thread_id, previous_stitch_id)` ensures only one stitch can follow another
+//! - First stitch in a thread has `previous_stitch_id = NULL`
+//!
+//! ### Task Storage
+//!
+//! Tasks are stored as JSONB in the `tasks` column with flexible schema:
+//!
+//! ```json
+//! [
+//!   {"id": "1", "description": "Parse input", "status": "done"},
+//!   {"id": "2", "description": "Generate response", "status": "pending"}
+//! ]
+//! ```
+//!
+//! ### Stitch Types
+//!
+//! - `initial_prompt`: The initial user message that starts a thread
+//! - `llm_call`: Stores LLM request/response
+//! - `tool_call`: Stores tool name, input, and output
+//! - `thread_result`: Special stitch type for child thread completion reports
+//!   - Contains `child_thread_id` reference and `thread_result_summary`
+//!   - Summary provides concise outcome without full execution history
+//!   - Keeps parent thread context focused and manageable
+//! - `discord_message`: User messages from Discord
+//! - `system_prompt`: System-level prompts
+//! - `agent_thought`: Internal agent reasoning
+//! - `clarification_request`: Requests for user clarification
+//! - `error`: Error information
+//!
+//! ### Concurrency Control
+//!
+//! - Job processor uses row-level locking on thread status
+//! - Example: `UPDATE threads SET status = 'running' WHERE id = ? AND status = 'pending' RETURNING *`
+//! - Linear stitch structure within threads prevents race conditions
+//!
+//! ### Result Reporting
+//!
+//! - Child thread stores result in its `result` column upon completion
+//! - Parent thread receives a `thread_result` type stitch with the child's outcome
+//! - If parent's last stitch is running, child results queue in `pending_child_results`
+//! - Job processor creates `thread_result` stitches from pending results after current stitch completes
+//! - Enables both direct querying of thread results and following the execution history
+//!
+//! ## Processing Flow
+//!
+//! 1. Job picks up a thread with status 'pending' or 'waiting'
+//! 2. Checks for any `pending_child_results` and creates `thread_result` stitches for each
+//! 3. Finds the last stitch in the thread (where no other stitch has it as `previous_stitch_id`)
+//! 4. Processes based on the last stitch type:
+//!    - If tool call requested: Execute tool and create new stitch with results
+//!    - If tool output exists: Send to LLM and create new stitch with response
+//! 5. If LLM requests new thread creation:
+//!    - Create new thread with current thread as parent
+//!    - Set `branching_stitch_id` to current stitch
+//!    - Continue processing current thread or wait for child completion
+//! 6. When child completes:
+//!    - Generate concise summary of child thread outcome
+//!    - Lock parent thread row
+//!    - If parent has running stitch: append to `pending_child_results` with summary
+//!    - If parent is waiting: create `thread_result` stitch immediately with summary
+//!
+//! ## Agent Configuration
+//!
+//! Each thread is associated with an agent that determines its behavior, available tools, and persona:
+//!
+//! - **`agent_name`**: Required field identifying which agent handles this thread (default: "Al")
+//! - **Agent Configuration**: Agents are defined as enum variants in `server::agent_config::AgentId`
+//! - **Tool Filtering**: Each agent has a whitelist of enabled tools
+//! - **Discord Channel Mapping**: Agents can be mapped to specific Discord channels for automatic assignment
+//!
+//! The agent configuration system uses an enum-based approach where each agent is a variant of the
+//! `AgentId` enum with associated configuration. This makes it impossible to forget to configure
+//! a new agent.
+//!
+//! See `server::agent_config` module for agent configuration details.
+//!
+//! ## Examples
+//!
+//! ### Find last stitch in a thread
+//!
+//! ```sql
+//! SELECT * FROM stitches
+//! WHERE thread_id = ?
+//! AND id NOT IN (
+//!     SELECT previous_stitch_id FROM stitches
+//!     WHERE thread_id = ? AND previous_stitch_id IS NOT NULL
+//! );
+//! ```
+//!
+//! ### Get thread execution history
+//!
+//! ```sql
+//! WITH RECURSIVE thread_history AS (
+//!     SELECT * FROM stitches WHERE thread_id = ? AND previous_stitch_id IS NULL
+//!     UNION ALL
+//!     SELECT s.* FROM stitches s
+//!     JOIN thread_history th ON s.previous_stitch_id = th.id
+//! )
+//! SELECT * FROM thread_history ORDER BY created_at;
+//! ```
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
@@ -169,6 +318,7 @@ pub struct Thread {
     pub result: Option<JsonValue>,
     pub pending_child_results: JsonValue,
     pub thread_type: ThreadType,
+    pub agent_name: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -195,6 +345,7 @@ impl Thread {
         goal: String,
         branching_stitch_id: Option<Uuid>,
         thread_type: Option<ThreadType>,
+        agent_name: String,
     ) -> color_eyre::Result<Self> {
         let thread_type_str =
             thread_type.map_or_else(|| "autonomous".to_string(), |t| t.to_string());
@@ -202,14 +353,15 @@ impl Thread {
         let thread = sqlx::query_as!(
             Thread,
             r#"
-            INSERT INTO threads (goal, branching_stitch_id, thread_type)
-            VALUES ($1, $2, $3)
+            INSERT INTO threads (goal, branching_stitch_id, thread_type, agent_name)
+            VALUES ($1, $2, $3, $4)
             RETURNING
                 *
             "#,
             goal,
             branching_stitch_id,
-            thread_type_str
+            thread_type_str,
+            agent_name
         )
         .fetch_one(pool)
         .await?;
