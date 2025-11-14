@@ -772,5 +772,19 @@ fn render_content_block(content: &Content) -> Markup {
         }
         Content::Image(image_content) => render_image_content(image_content),
         Content::Document(document_content) => render_document_content(document_content),
+        Content::Thinking(thinking_content) => {
+            html! {
+                details class="border rounded p-2 bg-blue-50" {
+                    summary class="cursor-pointer text-sm font-medium" {
+                        "🧠 Thinking"
+                    }
+                    div class="mt-2 prose prose-sm max-w-none" {
+                        pre class="bg-white p-2 rounded overflow-x-auto text-xs whitespace-pre-wrap" {
+                            (thinking_content.thinking)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
