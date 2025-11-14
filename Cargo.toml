@@ -75,6 +75,7 @@ gql_client = { version = "1.0.8", default-features = false, features = [
     "rustls-tls",
 ] }
 graphql_client = "0.13.0"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
 indoc = "2.0"
 itertools = "0.12.0"
 jsonwebtoken = "9.1.0"
