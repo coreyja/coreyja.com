@@ -205,7 +205,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 }
 
 // Size limits for attachments (based on Anthropic API limits)
-const MAX_IMAGE_SIZE: u64 = 3_750_000; // 3.75MB
+const MAX_IMAGE_SIZE: u64 = 5_000_000; // 5MB
 const MAX_PDF_SIZE: u64 = 32_000_000; // 32MB
 
 /// Detect content type from attachment, with fallback to file extension
@@ -253,7 +253,7 @@ async fn process_discord_attachment(
     // Check size limits before downloading
     if is_image && u64::from(attachment.size) > MAX_IMAGE_SIZE {
         return Err(cja::color_eyre::eyre::eyre!(
-            "Image '{}' exceeds size limit: {} bytes (max {} bytes / 3.75MB)",
+            "Image '{}' exceeds size limit: {} bytes (max {} bytes / 5MB)",
             attachment.filename,
             attachment.size,
             MAX_IMAGE_SIZE
