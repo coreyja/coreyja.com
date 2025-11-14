@@ -6,7 +6,7 @@ CREATE TABLE financial_periods (
     period_end DATE NOT NULL,
     company_id INT NOT NULL DEFAULT 1, -- For future multi-company support
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    thread_id INT REFERENCES agentic_threads(id) ON DELETE SET NULL,
+    thread_id UUID REFERENCES threads(thread_id) ON DELETE SET NULL,
     UNIQUE(period_end, company_id)
 );
 
@@ -58,7 +58,7 @@ CREATE TABLE mda_drafts (
     full_report TEXT, -- Combined markdown report
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     edited_by_user BOOLEAN DEFAULT FALSE,
-    thread_id INT REFERENCES agentic_threads(id) ON DELETE SET NULL
+    thread_id UUID REFERENCES threads(thread_id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_mda_drafts_period_id ON mda_drafts(period_id);
