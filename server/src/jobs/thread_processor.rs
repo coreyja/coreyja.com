@@ -209,12 +209,8 @@ const MAX_IMAGE_SIZE: u64 = 5_000_000; // 5MB
 const MAX_PDF_SIZE: u64 = 32_000_000; // 32MB
 
 /// Resize an image to fit within the size limit
-/// Returns (resized_bytes, media_type)
-fn resize_image_to_limit(
-    img_bytes: &[u8],
-    original_media_type: &str,
-    max_size_bytes: u64,
-) -> cja::Result<(Vec<u8>, String)> {
+/// Returns (`resized_bytes`, `media_type`)
+fn resize_image_to_limit(img_bytes: &[u8], max_size_bytes: u64) -> cja::Result<(Vec<u8>, String)> {
     use image::ImageFormat;
 
     // Load the image
@@ -226,7 +222,11 @@ fn resize_image_to_limit(
 
     // Try different scaling factors until we get under the limit
     for scale in [1.0, 0.8, 0.6, 0.4, 0.3, 0.2] {
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
         let new_width = (f64::from(width) * scale) as u32;
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
         let new_height = (f64::from(height) * scale) as u32;
 
         if new_width == 0 || new_height == 0 {
@@ -238,7 +238,10 @@ fn resize_image_to_limit(
         // Try encoding as JPEG with quality 85
         let mut jpeg_bytes = Vec::new();
         resized
-            .write_to(&mut std::io::Cursor::new(&mut jpeg_bytes), ImageFormat::Jpeg)
+            .write_to(
+                &mut std::io::Cursor::new(&mut jpeg_bytes),
+                ImageFormat::Jpeg,
+            )
             .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to encode image: {}", e))?;
 
         // Check if it's under the limit
@@ -347,7 +350,7 @@ async fn process_discord_attachment(
             MAX_IMAGE_SIZE / 1_000_000
         );
 
-        match resize_image_to_limit(&bytes, &media_type, MAX_IMAGE_SIZE) {
+        match resize_image_to_limit(&bytes, MAX_IMAGE_SIZE) {
             Ok((resized_bytes, new_media_type)) => {
                 bytes = resized_bytes;
                 media_type = new_media_type;
