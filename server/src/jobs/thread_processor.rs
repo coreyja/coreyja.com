@@ -214,20 +214,17 @@ fn detect_content_type(attachment: &poise::serenity_prelude::Attachment) -> Opti
         return Some(ct.clone());
     }
 
-    // Fallback to file extension
-    let filename = attachment.filename.to_lowercase();
-    if filename.ends_with(".jpg") || filename.ends_with(".jpeg") {
-        Some("image/jpeg".to_string())
-    } else if filename.ends_with(".png") {
-        Some("image/png".to_string())
-    } else if filename.ends_with(".gif") {
-        Some("image/gif".to_string())
-    } else if filename.ends_with(".webp") {
-        Some("image/webp".to_string())
-    } else if filename.ends_with(".pdf") {
-        Some("application/pdf".to_string())
-    } else {
-        None
+    // Fallback to file extension (case-insensitive)
+    let path = std::path::Path::new(&attachment.filename);
+    let extension = path.extension()?.to_str()?.to_lowercase();
+
+    match extension.as_str() {
+        "jpg" | "jpeg" => Some("image/jpeg".to_string()),
+        "png" => Some("image/png".to_string()),
+        "gif" => Some("image/gif".to_string()),
+        "webp" => Some("image/webp".to_string()),
+        "pdf" => Some("application/pdf".to_string()),
+        _ => None,
     }
 }
 
@@ -240,13 +237,11 @@ async fn process_discord_attachment(
 
     let is_image = content_type
         .as_ref()
-        .map(|ct| ct.starts_with("image/"))
-        .unwrap_or(false);
+        .is_some_and(|ct| ct.starts_with("image/"));
 
     let is_pdf = content_type
         .as_ref()
-        .map(|ct| ct == "application/pdf")
-        .unwrap_or(false);
+        .is_some_and(|ct| ct == "application/pdf");
 
     // Only process images and PDFs
     if !is_image && !is_pdf {
