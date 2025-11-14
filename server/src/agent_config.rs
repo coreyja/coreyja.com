@@ -181,6 +181,7 @@ use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 pub enum AgentId {
     Al,
     Demo,
+    Cooking,
 }
 
 impl AgentId {
@@ -206,6 +207,27 @@ impl AgentId {
                     Tool::ListenToThread,
                     Tool::ReactToMessage,
                     Tool::ListServerEmojis,
+                ],
+            },
+            AgentId::Cooking => AgentConfig {
+                id: AgentId::Cooking,
+                description: "Cooking assistant for meal planning and recipe management"
+                    .to_string(),
+                discord_channel_id: Some(1_403_206_424_518_987_888),
+                discord_user_id: Some(1_063_930_090_574_061_599),
+                persona: "cooking".to_string(),
+                enabled_tools: vec![
+                    Tool::SendDiscordThreadMessage,
+                    Tool::ListenToThread,
+                    Tool::ReactToMessage,
+                    Tool::ListServerEmojis,
+                    Tool::UpsertRecipe,
+                    Tool::GetRecipeByName,
+                    Tool::UpdateInventory,
+                    Tool::GetCookingInventory,
+                    Tool::CreateMealPlan,
+                    Tool::PlanMeal,
+                    Tool::GetAllPlannedMeals,
                 ],
             },
         }
