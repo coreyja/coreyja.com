@@ -114,7 +114,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
     // Make LLM request
     let request = AnthropicRequest {
-        model: "claude-sonnet-4-0".to_string(),
+        model: "claude-sonnet-4-5-20250929".to_string(),
         max_tokens: 1024,
         system: system_prompt,
         messages: messages.clone(),
@@ -129,6 +129,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", &app_state.anthropic.api_key)
         .header("anthropic-version", "2023-06-01")
+        .header("anthropic-beta", "pdfs-2024-09-25")
         .header("content-type", "application/json")
         .json(&request)
         .send()
