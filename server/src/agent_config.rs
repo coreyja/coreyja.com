@@ -181,6 +181,7 @@ use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 pub enum AgentId {
     Al,
     Demo,
+    SecReporting,
 }
 
 impl AgentId {
@@ -206,6 +207,24 @@ impl AgentId {
                     Tool::ListenToThread,
                     Tool::ReactToMessage,
                     Tool::ListServerEmojis,
+                ],
+            },
+            AgentId::SecReporting => AgentConfig {
+                id: AgentId::SecReporting,
+                description: "SEC Reporting Assistant - Automates MD&A narrative generation for quarterly 10-Q filings".to_string(),
+                discord_channel_id: None, // TODO: Set this to the actual channel ID when available
+                discord_user_id: Some(1_063_930_090_574_061_599),
+                persona: "sec-reporting".to_string(),
+                enabled_tools: vec![
+                    Tool::SendDiscordThreadMessage,
+                    Tool::ListenToThread,
+                    Tool::ReactToMessage,
+                    Tool::ListServerEmojis,
+                    Tool::ParseTrialBalance,
+                    Tool::CalculateVariances,
+                    Tool::GenerateMDAReport,
+                    Tool::SaveReport,
+                    Tool::CompleteThread,
                 ],
             },
         }
@@ -252,6 +271,12 @@ pub enum Tool {
 
     // Other tools
     SuggestionsSubmit,
+
+    // SEC Reporting tools
+    ParseTrialBalance,
+    CalculateVariances,
+    GenerateMDAReport,
+    SaveReport,
 }
 
 impl Tool {
@@ -308,6 +333,10 @@ impl Tool {
             Tool::PlanMeal => "plan_meal",
             Tool::GetAllPlannedMeals => "get_all_planned_meals",
             Tool::SuggestionsSubmit => "tool_suggestions_submit",
+            Tool::ParseTrialBalance => "parse_trial_balance",
+            Tool::CalculateVariances => "calculate_variances",
+            Tool::GenerateMDAReport => "generate_mda_report",
+            Tool::SaveReport => "save_report",
         }
     }
 
@@ -337,6 +366,9 @@ impl Tool {
                 ExecuteLinearQuery, ExecuteSavedLinearQuery, GetLinearSchema, SaveLinearQuery,
                 SearchLinearQueries,
             },
+            sec_reporting::{
+                CalculateVariances, GenerateMDAReport, ParseTrialBalance, SaveReport,
+            },
             threads::CompleteThread,
             Tool as ToolTrait,
         };
@@ -363,6 +395,10 @@ impl Tool {
             Tool::SuggestionsSubmit => {
                 crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new().to_generic()
             }
+            Tool::ParseTrialBalance => ParseTrialBalance.to_generic(),
+            Tool::CalculateVariances => CalculateVariances.to_generic(),
+            Tool::GenerateMDAReport => GenerateMDAReport.to_generic(),
+            Tool::SaveReport => SaveReport.to_generic(),
         }
     }
 }
