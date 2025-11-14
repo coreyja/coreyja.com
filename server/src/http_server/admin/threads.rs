@@ -11,7 +11,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    al::standup::{Content, Message},
+    al::standup::{Content, DocumentContent, ImageContent, Message},
     state::AppState,
 };
 
@@ -659,6 +659,75 @@ fn render_message(message: &Message) -> Markup {
     }
 }
 
+fn render_image_content(image_content: &ImageContent) -> Markup {
+    html! {
+        div class="border rounded p-2 bg-blue-50" {
+            div class="text-sm font-medium mb-2" {
+                "🖼️ Image"
+            }
+            @if let Some(data) = &image_content.source.data {
+                @if let Some(media_type) = &image_content.source.media_type {
+                    img class="max-w-full h-auto rounded" src=(format!("data:{};base64,{}", media_type, data));
+                } @else {
+                    p class="text-xs text-gray-600" { "Image (base64 encoded)" }
+                }
+            } @else if let Some(url) = &image_content.source.url {
+                img class="max-w-full h-auto rounded" src=(url);
+            }
+        }
+    }
+}
+
+fn render_document_content(document_content: &DocumentContent) -> Markup {
+    html! {
+        details class="border rounded p-2 bg-green-50" {
+            summary class="cursor-pointer text-sm font-medium" {
+                "📄 Document"
+                @if let Some(media_type) = &document_content.source.media_type {
+                    span class="text-xs font-normal ml-2 text-gray-600" { "(" (media_type) ")" }
+                }
+            }
+            div class="mt-2 space-y-2" {
+                @if let Some(data) = &document_content.source.data {
+                    div class="text-xs text-gray-600" {
+                        "Size: ~" (data.len() * 3 / 4) " bytes"
+                    }
+                    @if let Some(media_type) = &document_content.source.media_type {
+                        div class="space-y-2" {
+                            a
+                                href=(format!("data:{};base64,{}", media_type, data))
+                                download="document.pdf"
+                                class="inline-block px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                            {
+                                "⬇ Download"
+                            }
+                            @if media_type == "application/pdf" {
+                                div class="border rounded overflow-hidden" {
+                                    iframe
+                                        src=(format!("data:{};base64,{}", media_type, data))
+                                        class="w-full"
+                                        style="height: 600px;"
+                                        title="PDF Preview"
+                                    {}
+                                }
+                            }
+                        }
+                    }
+                }
+                @if let Some(url) = &document_content.source.url {
+                    a
+                        href=(url)
+                        target="_blank"
+                        class="inline-block px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                    {
+                        "🔗 View document"
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn render_content_block(content: &Content) -> Markup {
     match content {
         Content::Text(text_content) => {
@@ -701,5 +770,7 @@ fn render_content_block(content: &Content) -> Markup {
                 }
             }
         }
+        Content::Image(image_content) => render_image_content(image_content),
+        Content::Document(document_content) => render_document_content(document_content),
     }
 }

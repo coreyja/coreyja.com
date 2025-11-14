@@ -8,8 +8,9 @@ use sqlx::{types::Uuid, PgPool};
 use crate::{
     al::{
         standup::{
-            AnthropicRequest, AnthropicResponse, CacheControl, Content, Message, TextContent,
-            ToolChoice, ToolResult,
+            AnthropicRequest, AnthropicResponse, CacheControl, Content, DocumentContent,
+            DocumentSource, ImageContent, ImageSource, Message, TextContent, ToolChoice,
+            ToolResult,
         },
         tools::{ThreadContext, ToolBag},
     },
@@ -190,10 +191,132 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
             Content::ToolResult(_) => {
                 unreachable!("ToolResult should not appear in assistant response")
             }
+            Content::Image(_) => {
+                unreachable!("Image should not appear in assistant response")
+            }
+            Content::Document(_) => {
+                unreachable!("Document should not appear in assistant response")
+            }
         }
     }
 
     Ok(())
+}
+
+// Size limits for attachments (based on Anthropic API limits)
+const MAX_IMAGE_SIZE: u64 = 3_750_000; // 3.75MB
+const MAX_PDF_SIZE: u64 = 32_000_000; // 32MB
+
+/// Detect content type from attachment, with fallback to file extension
+fn detect_content_type(attachment: &poise::serenity_prelude::Attachment) -> Option<String> {
+    // First, try the provided content_type
+    if let Some(ct) = &attachment.content_type {
+        return Some(ct.clone());
+    }
+
+    // Fallback to file extension (case-insensitive)
+    let path = std::path::Path::new(&attachment.filename);
+    let extension = path.extension()?.to_str()?.to_lowercase();
+
+    match extension.as_str() {
+        "jpg" | "jpeg" => Some("image/jpeg".to_string()),
+        "png" => Some("image/png".to_string()),
+        "gif" => Some("image/gif".to_string()),
+        "webp" => Some("image/webp".to_string()),
+        "pdf" => Some("application/pdf".to_string()),
+        _ => None,
+    }
+}
+
+/// Helper function to download and encode Discord attachments as base64
+async fn process_discord_attachment(
+    attachment: &poise::serenity_prelude::Attachment,
+) -> cja::Result<Option<Content>> {
+    // Detect content type with fallback to file extension
+    let content_type = detect_content_type(attachment);
+
+    let is_image = content_type
+        .as_ref()
+        .is_some_and(|ct| ct.starts_with("image/"));
+
+    let is_pdf = content_type
+        .as_ref()
+        .is_some_and(|ct| ct == "application/pdf");
+
+    // Only process images and PDFs
+    if !is_image && !is_pdf {
+        // For other attachments, just mention them in text
+        return Ok(None);
+    }
+
+    // Check size limits before downloading
+    if is_image && u64::from(attachment.size) > MAX_IMAGE_SIZE {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Image '{}' exceeds size limit: {} bytes (max {} bytes / 3.75MB)",
+            attachment.filename,
+            attachment.size,
+            MAX_IMAGE_SIZE
+        ));
+    }
+
+    if is_pdf && u64::from(attachment.size) > MAX_PDF_SIZE {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "PDF '{}' exceeds size limit: {} bytes (max {} bytes / 32MB)",
+            attachment.filename,
+            attachment.size,
+            MAX_PDF_SIZE
+        ));
+    }
+
+    // Get media type
+    let media_type = content_type.unwrap_or_else(|| {
+        if is_pdf {
+            "application/pdf".to_string()
+        } else {
+            "image/png".to_string()
+        }
+    });
+
+    // Download the attachment with timeout
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&attachment.url)
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Failed to download attachment: {}",
+            response.status()
+        ));
+    }
+
+    let bytes = response.bytes().await?;
+    let base64_data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+
+    // Return appropriate content type
+    if is_pdf {
+        Ok(Some(Content::Document(DocumentContent {
+            source: DocumentSource {
+                r#type: "base64".to_string(),
+                media_type: Some(media_type),
+                data: Some(base64_data),
+                url: None,
+            },
+            cache_control: None,
+        })))
+    } else {
+        Ok(Some(Content::Image(ImageContent {
+            source: ImageSource {
+                r#type: "base64".to_string(),
+                media_type: Some(media_type),
+                data: Some(base64_data),
+                url: None,
+            },
+            cache_control: None,
+        })))
+    }
 }
 
 pub async fn extract_system_prompt(db: &PgPool, thread_id: Uuid) -> cja::Result<Option<String>> {
@@ -336,6 +459,8 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                         let message: serenity::all::Message =
                             serde_json::from_value(message_data.clone())?;
 
+                        let mut content_parts = Vec::new();
+
                         // Format message with user information and message ID
                         let formatted_message = format!(
                             "[{} (@{}, ID: {}, Message ID: {})]: {}",
@@ -350,12 +475,48 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                             message.content
                         );
 
+                        content_parts.push(Content::Text(TextContent {
+                            text: formatted_message,
+                            cache_control: None,
+                        }));
+
+                        // Process attachments
+                        for attachment in &message.attachments {
+                            match process_discord_attachment(attachment).await {
+                                Ok(Some(attachment_content)) => {
+                                    content_parts.push(attachment_content);
+                                }
+                                Ok(None) => {
+                                    // Non-image/PDF attachment - mention it in text
+                                    let attachment_info = format!(
+                                        "\n[Attachment: {} ({} bytes)]",
+                                        attachment.filename, attachment.size
+                                    );
+                                    if let Some(Content::Text(text)) = content_parts.first_mut() {
+                                        text.text.push_str(&attachment_info);
+                                    }
+                                }
+                                Err(e) => {
+                                    // Log error but continue processing
+                                    tracing::warn!(
+                                        "Failed to process attachment {}: {}",
+                                        attachment.filename,
+                                        e
+                                    );
+                                    let attachment_error = format!(
+                                        "\n[Failed to load attachment: {}]",
+                                        attachment.filename
+                                    );
+                                    if let Some(Content::Text(text)) = content_parts.first_mut() {
+                                        text.text.push_str(&attachment_error);
+                                    }
+                                }
+                            }
+                        }
+
                         messages.push(Message {
                             role: "user".to_string(),
-                            content: vec![Content::Text(TextContent {
-                                text: formatted_message,
-                                cache_control: None,
-                            })],
+                            content: content_parts,
                         });
                     }
                 }
