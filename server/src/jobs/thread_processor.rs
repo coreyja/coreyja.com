@@ -208,6 +208,60 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 const MAX_IMAGE_SIZE: u64 = 5_000_000; // 5MB
 const MAX_PDF_SIZE: u64 = 32_000_000; // 32MB
 
+/// Resize an image to fit within the size limit
+/// Returns (resized_bytes, media_type)
+fn resize_image_to_limit(
+    img_bytes: &[u8],
+    original_media_type: &str,
+    max_size_bytes: u64,
+) -> cja::Result<(Vec<u8>, String)> {
+    use image::ImageFormat;
+
+    // Load the image
+    let img = image::load_from_memory(img_bytes)
+        .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to decode image: {}", e))?;
+
+    // Start with original dimensions
+    let (width, height) = (img.width(), img.height());
+
+    // Try different scaling factors until we get under the limit
+    for scale in [1.0, 0.8, 0.6, 0.4, 0.3, 0.2] {
+        let new_width = (f64::from(width) * scale) as u32;
+        let new_height = (f64::from(height) * scale) as u32;
+
+        if new_width == 0 || new_height == 0 {
+            continue;
+        }
+
+        let resized = img.resize(new_width, new_height, image::imageops::FilterType::Lanczos3);
+
+        // Try encoding as JPEG with quality 85
+        let mut jpeg_bytes = Vec::new();
+        resized
+            .write_to(&mut std::io::Cursor::new(&mut jpeg_bytes), ImageFormat::Jpeg)
+            .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to encode image: {}", e))?;
+
+        // Check if it's under the limit
+        if jpeg_bytes.len() as u64 <= max_size_bytes {
+            tracing::info!(
+                "Resized image from {}x{} to {}x{}, {} bytes -> {} bytes",
+                width,
+                height,
+                new_width,
+                new_height,
+                img_bytes.len(),
+                jpeg_bytes.len()
+            );
+            return Ok((jpeg_bytes, "image/jpeg".to_string()));
+        }
+    }
+
+    Err(cja::color_eyre::eyre::eyre!(
+        "Could not resize image to fit within {} bytes limit",
+        max_size_bytes
+    ))
+}
+
 /// Detect content type from attachment, with fallback to file extension
 fn detect_content_type(attachment: &poise::serenity_prelude::Attachment) -> Option<String> {
     // First, try the provided content_type
@@ -250,16 +304,7 @@ async fn process_discord_attachment(
         return Ok(None);
     }
 
-    // Check size limits before downloading
-    if is_image && u64::from(attachment.size) > MAX_IMAGE_SIZE {
-        return Err(cja::color_eyre::eyre::eyre!(
-            "Image '{}' exceeds size limit: {} bytes (max {} bytes / 5MB)",
-            attachment.filename,
-            attachment.size,
-            MAX_IMAGE_SIZE
-        ));
-    }
-
+    // Check PDF size limit before downloading
     if is_pdf && u64::from(attachment.size) > MAX_PDF_SIZE {
         return Err(cja::color_eyre::eyre::eyre!(
             "PDF '{}' exceeds size limit: {} bytes (max {} bytes / 32MB)",
@@ -268,15 +313,6 @@ async fn process_discord_attachment(
             MAX_PDF_SIZE
         ));
     }
-
-    // Get media type
-    let media_type = content_type.unwrap_or_else(|| {
-        if is_pdf {
-            "application/pdf".to_string()
-        } else {
-            "image/png".to_string()
-        }
-    });
 
     // Download the attachment with timeout
     let client = reqwest::Client::new();
@@ -293,7 +329,39 @@ async fn process_discord_attachment(
         ));
     }
 
-    let bytes = response.bytes().await?;
+    let mut bytes = response.bytes().await?.to_vec();
+    let mut media_type = content_type.unwrap_or_else(|| {
+        if is_pdf {
+            "application/pdf".to_string()
+        } else {
+            "image/png".to_string()
+        }
+    });
+
+    // If image is too large, resize it
+    if is_image && bytes.len() as u64 > MAX_IMAGE_SIZE {
+        tracing::info!(
+            "Image '{}' is {} bytes, exceeds {}MB limit, resizing...",
+            attachment.filename,
+            bytes.len(),
+            MAX_IMAGE_SIZE / 1_000_000
+        );
+
+        match resize_image_to_limit(&bytes, &media_type, MAX_IMAGE_SIZE) {
+            Ok((resized_bytes, new_media_type)) => {
+                bytes = resized_bytes;
+                media_type = new_media_type;
+            }
+            Err(e) => {
+                return Err(cja::color_eyre::eyre::eyre!(
+                    "Failed to resize image '{}': {}",
+                    attachment.filename,
+                    e
+                ));
+            }
+        }
+    }
+
     let base64_data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
 
     // Return appropriate content type

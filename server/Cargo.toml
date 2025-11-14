@@ -82,6 +82,7 @@ graphql_client = { workspace = true, features = ["reqwest-rustls"] }
 google-youtube3 = { workspace = true }
 futures = { workspace = true }
 chrono-humanize = { workspace = true }
+image = { workspace = true }
 rsa = { workspace = true }
 rand = { workspace = true }
 color-eyre = { workspace = true }
