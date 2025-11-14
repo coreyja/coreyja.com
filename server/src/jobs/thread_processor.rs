@@ -133,10 +133,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", &app_state.anthropic.api_key)
         .header("anthropic-version", "2023-06-01")
-        .header(
-            "anthropic-beta",
-            "pdfs-2024-09-25,extended-thinking-2025-01-29",
-        )
+        .header("anthropic-beta", "pdfs-2024-09-25")
         .header("content-type", "application/json")
         .json(&request)
         .send()
