@@ -222,7 +222,7 @@ impl AgentId {
                     Tool::ListServerEmojis,
                     Tool::ParseTrialBalance,
                     Tool::CalculateVariances,
-                    Tool::GenerateMDAReport,
+                    Tool::GetVarianceData,
                     Tool::SaveReport,
                     Tool::CompleteThread,
                 ],
@@ -275,7 +275,7 @@ pub enum Tool {
     // SEC Reporting tools
     ParseTrialBalance,
     CalculateVariances,
-    GenerateMDAReport,
+    GetVarianceData,
     SaveReport,
 }
 
@@ -335,7 +335,7 @@ impl Tool {
             Tool::SuggestionsSubmit => "tool_suggestions_submit",
             Tool::ParseTrialBalance => "parse_trial_balance",
             Tool::CalculateVariances => "calculate_variances",
-            Tool::GenerateMDAReport => "generate_mda_report",
+            Tool::GetVarianceData => "get_variance_data",
             Tool::SaveReport => "save_report",
         }
     }
@@ -367,7 +367,7 @@ impl Tool {
                 SearchLinearQueries,
             },
             sec_reporting::{
-                CalculateVariances, GenerateMDAReport, ParseTrialBalance, SaveReport,
+                CalculateVariances, GetVarianceData, ParseTrialBalance, SaveReport,
             },
             threads::CompleteThread,
             Tool as ToolTrait,
@@ -397,7 +397,7 @@ impl Tool {
             }
             Tool::ParseTrialBalance => ParseTrialBalance.to_generic(),
             Tool::CalculateVariances => CalculateVariances.to_generic(),
-            Tool::GenerateMDAReport => GenerateMDAReport.to_generic(),
+            Tool::GetVarianceData => GetVarianceData.to_generic(),
             Tool::SaveReport => SaveReport.to_generic(),
         }
     }
