@@ -122,6 +122,10 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tool_choice: Some(ToolChoice {
             r#type: "any".to_string(),
         }),
+        thinking: Some(crate::al::standup::ThinkingConfig {
+            r#type: "enabled".to_string(),
+            budget_tokens: 10000,
+        }),
     };
 
     let client = reqwest::Client::new();
@@ -129,7 +133,10 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", &app_state.anthropic.api_key)
         .header("anthropic-version", "2023-06-01")
-        .header("anthropic-beta", "pdfs-2024-09-25")
+        .header(
+            "anthropic-beta",
+            "pdfs-2024-09-25,extended-thinking-2025-01-29",
+        )
         .header("content-type", "application/json")
         .json(&request)
         .send()
@@ -163,6 +170,9 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         match content {
             Content::Text(_text) => {
                 // Text content from assistant - no action needed
+            }
+            Content::Thinking(_thinking) => {
+                // Thinking content from assistant - already stored in llm_response
             }
             Content::ToolUse(tool_use_content) => {
                 let tool_name = tool_use_content.name.clone();
@@ -1378,6 +1388,7 @@ mod tests {
             messages,
             tools: vec![],
             tool_choice: None,
+            thinking: None,
         };
 
         let json = serde_json::to_value(&request).unwrap();

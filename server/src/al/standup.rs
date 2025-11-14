@@ -22,6 +22,14 @@ pub struct AnthropicRequest {
     pub messages: Vec<Message>,
     pub tools: Vec<AnthropicTool>,
     pub tool_choice: Option<ToolChoice>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking: Option<ThinkingConfig>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThinkingConfig {
+    pub r#type: String,
+    pub budget_tokens: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -58,6 +66,8 @@ pub enum Content {
     ToolUse(ToolUseContent),
     #[serde(rename = "tool_result")]
     ToolResult(ToolResult),
+    #[serde(rename = "thinking")]
+    Thinking(ThinkingContent),
 }
 
 impl Content {
@@ -78,6 +88,9 @@ impl Content {
             Content::ToolResult(tool_result) => {
                 tool_result.cache_control = Some(cache_control);
             }
+            Content::Thinking(thinking_content) => {
+                thinking_content.cache_control = Some(cache_control);
+            }
         }
     }
 
@@ -88,6 +101,7 @@ impl Content {
             Content::Document(document_content) => document_content.cache_control.as_ref(),
             Content::ToolUse(tool_use_content) => tool_use_content.cache_control.as_ref(),
             Content::ToolResult(tool_result) => tool_result.cache_control.as_ref(),
+            Content::Thinking(thinking_content) => thinking_content.cache_control.as_ref(),
         }
     }
 }
@@ -149,6 +163,13 @@ pub struct ToolResult {
     pub tool_use_id: String,
     pub content: String,
     pub is_error: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cache_control: Option<CacheControl>,
+}
+
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct ThinkingContent {
+    pub thinking: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_control: Option<CacheControl>,
 }
