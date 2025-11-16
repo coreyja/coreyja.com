@@ -112,10 +112,11 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
     let mut tools = ToolBag::default();
     tools.add_tools_from_config(&agent_config, &thread.thread_type)?;
 
+    let max_tokens = 20_000;
     // Make LLM request
     let request = AnthropicRequest {
         model: "claude-sonnet-4-5-20250929".to_string(),
-        max_tokens: 1024,
+        max_tokens,
         system: system_prompt,
         messages: messages.clone(),
         tools: tools.as_api(),
@@ -124,7 +125,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         }),
         thinking: Some(crate::al::standup::ThinkingConfig {
             r#type: "enabled".to_string(),
-            budget_tokens: 10000,
+            budget_tokens: max_tokens / 2,
         }),
     };
 
