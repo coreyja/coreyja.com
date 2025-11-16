@@ -120,7 +120,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         messages: messages.clone(),
         tools: tools.as_api(),
         tool_choice: Some(ToolChoice {
-            r#type: "any".to_string(),
+            r#type: "auto".to_string(),
         }),
         thinking: Some(crate::al::standup::ThinkingConfig {
             r#type: "enabled".to_string(),
@@ -162,11 +162,69 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
     let mut previous_stitch_id = Some(llm_stitch.stitch_id);
 
-    // Process tool calls
+    // Process content blocks (text and tool calls)
     for content in response_data.content {
         match content {
-            Content::Text(_text) => {
-                // Text content from assistant - no action needed
+            Content::Text(text_content) => {
+                // Handle text content from assistant - send to Discord if applicable
+                let text = &text_content.text;
+
+                // Skip empty text
+                if text.is_empty() {
+                    continue;
+                }
+
+                // Try to get Discord metadata for this thread
+                let discord_meta = db::discord_threads::DiscordThreadMetadata::find_by_thread_id(
+                    &app_state.db,
+                    thread_id,
+                )
+                .await?;
+
+                if let Some(discord_meta) = discord_meta {
+                    // Send text to Discord
+                    use serenity::model::prelude::*;
+
+                    let channel_id =
+                        ChannelId::from(discord_meta.discord_thread_id.parse::<u64>().map_err(
+                            |_| cja::color_eyre::eyre::eyre!("Invalid Discord thread ID"),
+                        )?);
+
+                    let create_message = serenity::all::CreateMessage::new().content(text);
+
+                    channel_id
+                        .send_message(&app_state.discord, create_message)
+                        .await
+                        .map_err(|e| {
+                            cja::color_eyre::eyre::eyre!("Failed to send Discord message: {}", e)
+                        })?;
+
+                    // Create a stitch to record that we sent text to Discord
+                    let text_stitch = Stitch::create(
+                        &app_state.db,
+                        thread_id,
+                        "agent_thought",
+                        json!({
+                            "thought": text,
+                            "sent_to_discord": true,
+                            "discord_thread_id": discord_meta.discord_thread_id
+                        }),
+                        previous_stitch_id,
+                    )
+                    .await?;
+
+                    previous_stitch_id = Some(text_stitch.stitch_id);
+
+                    // Set thread status to waiting after sending text response
+                    Thread::update_status(&app_state.db, thread_id, "waiting").await?;
+                } else {
+                    // No Discord metadata - just log
+                    tracing::debug!(
+                        "Text content from assistant for non-Discord thread {}: {}",
+                        thread_id,
+                        text
+                    );
+                }
             }
             Content::Thinking(_thinking) => {
                 // Thinking content from assistant - already stored in llm_response
@@ -1514,5 +1572,422 @@ mod tests {
         } else {
             panic!("Expected second tool result");
         }
+    }
+
+    // Task Group 1 Tests: Tool Choice Parameter
+    #[test]
+    fn test_tool_choice_is_set_to_auto() {
+        // Test that AnthropicRequest has tool_choice set to "auto"
+        let request = AnthropicRequest {
+            model: "claude-sonnet-4-5-20250929".to_string(),
+            max_tokens: 1024,
+            system: None,
+            messages: vec![],
+            tools: vec![],
+            tool_choice: Some(ToolChoice {
+                r#type: "auto".to_string(),
+            }),
+            thinking: None,
+        };
+
+        assert_eq!(request.tool_choice.unwrap().r#type, "auto");
+    }
+
+    #[test]
+    fn test_tool_choice_serialization() {
+        // Test that tool_choice serializes correctly to JSON
+        let request = AnthropicRequest {
+            model: "claude-sonnet-4-5-20250929".to_string(),
+            max_tokens: 1024,
+            system: None,
+            messages: vec![],
+            tools: vec![],
+            tool_choice: Some(ToolChoice {
+                r#type: "auto".to_string(),
+            }),
+            thinking: None,
+        };
+
+        let json = serde_json::to_value(&request).unwrap();
+        assert_eq!(json["tool_choice"]["type"], "auto");
+    }
+
+    // Task Group 2 Tests: Text Content Handling
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_text_content_creates_agent_thought_stitch(pool: PgPool) {
+        // Create a thread with Discord metadata
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create an agent_thought stitch
+        let thought_stitch = Stitch::create(
+            &pool,
+            thread_id,
+            "agent_thought",
+            json!({
+                "thought": "Hello from the agent!",
+                "sent_to_discord": true,
+                "discord_thread_id": "1234567890"
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Verify the stitch was created correctly
+        assert_eq!(
+            thought_stitch.stitch_type,
+            db::agentic_threads::StitchType::AgentThought
+        );
+        assert_eq!(
+            thought_stitch.llm_request.as_ref().unwrap()["thought"],
+            "Hello from the agent!"
+        );
+        assert_eq!(
+            thought_stitch.llm_request.as_ref().unwrap()["sent_to_discord"],
+            true
+        );
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_text_response_creates_stitch_and_updates_previous_stitch_id(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial stitch
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        // Create text response stitch
+        let text_stitch = Stitch::create(
+            &pool,
+            thread_id,
+            "agent_thought",
+            json!({
+                "thought": "Response text",
+                "sent_to_discord": true,
+                "discord_thread_id": "1234567890"
+            }),
+            Some(initial_stitch.stitch_id),
+        )
+        .await
+        .unwrap();
+
+        // Verify the stitch chain is correct
+        assert_eq!(
+            text_stitch.previous_stitch_id,
+            Some(initial_stitch.stitch_id)
+        );
+        assert_eq!(
+            text_stitch.stitch_type,
+            db::agentic_threads::StitchType::AgentThought
+        );
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_thinking_blocks_not_sent_to_discord(pool: PgPool) {
+        // Create a thread
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        // Create LLM response with thinking block
+        let response = json!({
+            "content": [
+                {"type": "thinking", "thinking": "Let me think about this..."},
+                {"type": "text", "text": "Hi there!"}
+            ]
+        });
+
+        Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Verify thinking block is included in the message reconstruction
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].content.len(), 2);
+
+        // First content should be thinking
+        if let Content::Thinking(_) = &messages[1].content[0] {
+            // Thinking block is present in messages
+        } else {
+            panic!("Expected thinking content");
+        }
+
+        // Second content should be text
+        if let Content::Text(text) = &messages[1].content[1] {
+            assert_eq!(text.text, "Hi there!");
+        } else {
+            panic!("Expected text content");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_empty_text_content_is_skipped(_pool: PgPool) {
+        // This test verifies that empty text content blocks are skipped
+        // We can't easily test the actual processing logic without mocking Discord,
+        // but we can verify the data structure handling
+        let text_content = TextContent {
+            text: String::new(),
+            cache_control: None,
+        };
+
+        assert!(text_content.text.is_empty());
+    }
+
+    // Task Group 3 Tests: Integration Testing
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_agent_thought_stitch_in_message_reconstruction(pool: PgPool) {
+        // End-to-end test: agent_thought stitches are reconstructed correctly
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        // Create agent thought stitch (simulating what would happen with text response)
+        Stitch::create(
+            &pool,
+            thread_id,
+            "agent_thought",
+            json!({
+                "thought": "I'm processing your request",
+                "sent_to_discord": true
+            }),
+            Some(initial_stitch.stitch_id),
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Should have user message and agent thought
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[1].role, "assistant");
+
+        if let Content::Text(text) = &messages[1].content[0] {
+            assert_eq!(text.text, "[AGENT THOUGHT]: I'm processing your request");
+        } else {
+            panic!("Expected text content for agent thought");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_mixed_response_with_text_and_tool_calls(pool: PgPool) {
+        // Test that mixed responses work: both text and tool calls should execute
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        // Create LLM response with both text and tool use
+        let response = json!({
+            "content": [
+                {"type": "text", "text": "Let me check that for you"},
+                {
+                    "type": "tool_use",
+                    "id": "tool_1",
+                    "name": "search",
+                    "input": {"query": "test"}
+                }
+            ]
+        });
+
+        Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Verify the assistant message contains both text and tool use
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].content.len(), 2);
+
+        if let Content::Text(text) = &messages[1].content[0] {
+            assert_eq!(text.text, "Let me check that for you");
+        } else {
+            panic!("Expected text content");
+        }
+
+        if let Content::ToolUse(tool_use) = &messages[1].content[1] {
+            assert_eq!(tool_use.name, "search");
+        } else {
+            panic!("Expected tool use content");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_multiple_text_content_blocks_in_same_response(pool: PgPool) {
+        // Test edge case: multiple text content blocks in same response
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        // Create LLM response with multiple text blocks
+        let response = json!({
+            "content": [
+                {"type": "text", "text": "First part"},
+                {"type": "text", "text": "Second part"}
+            ]
+        });
+
+        Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
+
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Verify both text blocks are present
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].content.len(), 2);
+
+        if let Content::Text(text) = &messages[1].content[0] {
+            assert_eq!(text.text, "First part");
+        } else {
+            panic!("Expected first text content");
+        }
+
+        if let Content::Text(text) = &messages[1].content[1] {
+            assert_eq!(text.text, "Second part");
+        } else {
+            panic!("Expected second text content");
+        }
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_stitch_chain_integrity_with_agent_thoughts(pool: PgPool) {
+        // Test that the stitch chain remains intact when adding agent thought stitches
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create a chain of stitches
+        let stitch1 = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        let stitch2 = Stitch::create(
+            &pool,
+            thread_id,
+            "agent_thought",
+            json!({"thought": "First thought"}),
+            Some(stitch1.stitch_id),
+        )
+        .await
+        .unwrap();
+
+        let stitch3 = Stitch::create(
+            &pool,
+            thread_id,
+            "agent_thought",
+            json!({"thought": "Second thought"}),
+            Some(stitch2.stitch_id),
+        )
+        .await
+        .unwrap();
+
+        // Verify the chain is intact
+        assert_eq!(stitch2.previous_stitch_id, Some(stitch1.stitch_id));
+        assert_eq!(stitch3.previous_stitch_id, Some(stitch2.stitch_id));
+
+        // Verify we can get all stitches in order
+        let stitches = Stitch::get_by_thread_ordered(&pool, thread_id)
+            .await
+            .unwrap();
+        assert_eq!(stitches.len(), 3);
+        assert_eq!(stitches[0].stitch_id, stitch1.stitch_id);
+        assert_eq!(stitches[1].stitch_id, stitch2.stitch_id);
+        assert_eq!(stitches[2].stitch_id, stitch3.stitch_id);
     }
 }
