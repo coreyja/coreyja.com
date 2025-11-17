@@ -172,6 +172,78 @@ pub(crate) async fn thread_messages(
     ))
 }
 
+/// Thread JSON preview page showing the full API request that would be sent to Anthropic
+pub(crate) async fn thread_json(
+    _admin: AdminUser,
+    State(app_state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<ThreadListQuery>,
+) -> Result<impl IntoResponse, ServerError> {
+    let days = query.days.unwrap_or(3).clamp(1, 7);
+
+    let thread = Thread::get_by_id(app_state.db(), id)
+        .await
+        .context("Failed to fetch thread")?
+        .ok_or_else(|| color_eyre::eyre::eyre!("Thread not found"))?;
+
+    // Reconstruct the full API request as it would be sent to Anthropic
+    let messages = crate::jobs::thread_processor::reconstruct_messages(app_state.db(), id)
+        .await
+        .context("Failed to reconstruct messages")?;
+
+    let system_prompt = crate::jobs::thread_processor::extract_system_prompt(app_state.db(), id)
+        .await
+        .context("Failed to extract system prompt")?;
+
+    // Get agent configuration
+    use std::str::FromStr;
+    let agent_id = crate::agent_config::AgentId::from_str(&thread.agent_name).map_err(|_| {
+        color_eyre::eyre::eyre!(
+            "Invalid agent name '{}' for thread {}",
+            thread.agent_name,
+            id
+        )
+    })?;
+
+    let agent_config = agent_id.config();
+
+    // Set up tools based on agent configuration and thread type
+    let mut tools = crate::al::tools::ToolBag::default();
+    tools
+        .add_tools_from_config(&agent_config, &thread.thread_type)
+        .context("Failed to add tools from config")?;
+
+    let max_tokens = 20_000;
+
+    // Construct the full request
+    let request = crate::al::standup::AnthropicRequest {
+        model: "claude-sonnet-4-5-20250929".to_string(),
+        max_tokens,
+        system: system_prompt,
+        messages: messages.clone(),
+        tools: tools.as_api(),
+        tool_choice: Some(crate::al::standup::ToolChoice {
+            r#type: "auto".to_string(),
+        }),
+        thinking: Some(crate::al::standup::ThinkingConfig {
+            r#type: "enabled".to_string(),
+            budget_tokens: max_tokens / 2,
+        }),
+    };
+
+    // Serialize to pretty JSON
+    let json_string =
+        serde_json::to_string_pretty(&request).context("Failed to serialize request to JSON")?;
+
+    Ok(base_constrained(
+        thread_json_page(&thread, &json_string, days),
+        OpenGraph {
+            title: format!("Thread JSON: {}", thread.goal),
+            ..Default::default()
+        },
+    ))
+}
+
 // ============================================================================
 // Helper structs
 // ============================================================================
@@ -272,7 +344,7 @@ fn thread_detail_page(
 ) -> Markup {
     html! {
         div class="py-4" {
-            (render_thread_nav(thread.thread_id, days, true))
+            (render_thread_nav(thread.thread_id, days, "details"))
             (render_thread_header(thread))
             (render_parent_threads(parents, days))
             (render_thread_tasks(&thread.tasks))
@@ -284,7 +356,7 @@ fn thread_detail_page(
     }
 }
 
-fn render_thread_nav(thread_id: uuid::Uuid, days: i32, is_details: bool) -> Markup {
+fn render_thread_nav(thread_id: uuid::Uuid, days: i32, active_tab: &str) -> Markup {
     html! {
         div class="mb-4" {
             a href=(format!("/admin/threads?days={}", days)) class="text-blue-600 hover:underline" {
@@ -295,13 +367,18 @@ fn render_thread_nav(thread_id: uuid::Uuid, days: i32, is_details: bool) -> Mark
             div class="flex gap-4" {
                 a
                     href=(format!("/admin/threads/{}?days={}", thread_id, days))
-                    class=(if is_details { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
+                    class=(if active_tab == "details" { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
                     "Details"
                 }
                 a
                     href=(format!("/admin/threads/{}/messages?days={}", thread_id, days))
-                    class=(if !is_details { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
+                    class=(if active_tab == "messages" { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
                     "Messages"
+                }
+                a
+                    href=(format!("/admin/threads/{}/json?days={}", thread_id, days))
+                    class=(if active_tab == "json" { "px-4 py-2 border-b-2 border-blue-500 font-medium" } else { "px-4 py-2 text-gray-600 hover:text-gray-900" }) {
+                    "JSON"
                 }
             }
         }
@@ -476,7 +553,7 @@ fn render_children_section(children: &[ThreadWithCounts], days: i32) -> Markup {
 fn thread_messages_page(thread: &Thread, messages: &[Message], days: i32) -> Markup {
     html! {
         div class="py-4" {
-            (render_thread_nav(thread.thread_id, days, false))
+            (render_thread_nav(thread.thread_id, days, "messages"))
 
             // Thread header
             div class="mb-6" {
@@ -489,6 +566,51 @@ fn thread_messages_page(thread: &Thread, messages: &[Message], days: i32) -> Mar
             // Messages
             div class="space-y-4" {
                 (render_messages(messages))
+            }
+        }
+    }
+}
+
+fn thread_json_page(thread: &Thread, json_string: &str, days: i32) -> Markup {
+    html! {
+        div class="py-4" {
+            (render_thread_nav(thread.thread_id, days, "json"))
+
+            // Thread header
+            div class="mb-6" {
+                h1 class="text-2xl font-bold mb-2" { (thread.goal) }
+                div class="text-sm text-gray-600" {
+                    "Thread ID: " code class="bg-gray-100 px-1 rounded" { (thread.thread_id) }
+                }
+            }
+
+            // JSON display
+            div class="mb-6" {
+                h2 class="text-xl font-bold mb-2" { "Full Anthropic API Request JSON" }
+                p class="text-sm text-gray-600 mb-4" {
+                    "This is the complete JSON payload that would be sent to the Anthropic API for this thread, "
+                    "including system prompt, messages, tools configuration, and thinking settings."
+                }
+
+                div class="relative" {
+                    // Copy button
+                    button
+                        onclick="navigator.clipboard.writeText(document.getElementById('json-content').textContent)"
+                        class="absolute top-2 right-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 z-10"
+                        title="Copy to clipboard"
+                    {
+                        "📋 Copy"
+                    }
+
+                    // JSON content
+                    pre
+                        id="json-content"
+                        class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-xs"
+                        style="max-height: 80vh;"
+                    {
+                        (json_string)
+                    }
+                }
             }
         }
     }

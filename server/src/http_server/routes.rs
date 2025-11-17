@@ -73,6 +73,7 @@ pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
             "/admin/threads/{id}/messages",
             get(admin::threads::thread_messages),
         )
+        .route("/admin/threads/{id}/json", get(admin::threads::thread_json))
         .route(
             "/admin/tool-suggestions",
             get(admin::tool_suggestions::tool_suggestions_list),
