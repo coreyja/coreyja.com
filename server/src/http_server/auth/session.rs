@@ -114,9 +114,8 @@ impl FromRequestParts<AppState> for AdminUser {
             .await
             .map_err(|e| e.into_response())?;
         let Some(user_id) = db_session.0.user_id else {
-            // User not authenticated - redirect to login with return_to parameter
-            let return_to = urlencoding::encode(parts.uri.path());
-            return Err(Redirect::temporary(&format!("/login?return_to={return_to}")).into_response());
+            // User not authenticated - redirect to login
+            return Err(Redirect::temporary("/login").into_response());
         };
 
         let github_link = sqlx::query_as!(
