@@ -169,6 +169,7 @@ pub struct ToolResult {
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ThinkingContent {
     pub thinking: String,
+    pub signature: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cache_control: Option<CacheControl>,
 }
