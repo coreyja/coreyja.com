@@ -228,6 +228,8 @@ impl AgentId {
                     Tool::CreateMealPlan,
                     Tool::PlanMeal,
                     Tool::GetAllPlannedMeals,
+                    Tool::ReadUserMemory,
+                    Tool::AppendUserMemory,
                 ],
             },
         }
@@ -271,6 +273,11 @@ pub enum Tool {
     CreateMealPlan,
     PlanMeal,
     GetAllPlannedMeals,
+
+    // Memory tools
+    SaveUserMemory,
+    ReadUserMemory,
+    AppendUserMemory,
 
     // Other tools
     SuggestionsSubmit,
@@ -329,6 +336,9 @@ impl Tool {
             Tool::CreateMealPlan => "create_meal_plan",
             Tool::PlanMeal => "plan_meal",
             Tool::GetAllPlannedMeals => "get_all_planned_meals",
+            Tool::SaveUserMemory => "save_user_memory",
+            Tool::ReadUserMemory => "read_user_memory",
+            Tool::AppendUserMemory => "append_user_memory",
             Tool::SuggestionsSubmit => "tool_suggestions_submit",
         }
     }
@@ -359,6 +369,7 @@ impl Tool {
                 ExecuteLinearQuery, ExecuteSavedLinearQuery, GetLinearSchema, SaveLinearQuery,
                 SearchLinearQueries,
             },
+            memory::{AppendUserMemory, ReadUserMemory, SaveUserMemory},
             threads::CompleteThread,
             Tool as ToolTrait,
         };
@@ -382,6 +393,9 @@ impl Tool {
             Tool::CreateMealPlan => CreateMealPlan.to_generic(),
             Tool::PlanMeal => AddRecipeToMealPlan.to_generic(),
             Tool::GetAllPlannedMeals => ListMealPlans.to_generic(),
+            Tool::SaveUserMemory => SaveUserMemory::new().to_generic(),
+            Tool::ReadUserMemory => ReadUserMemory::new().to_generic(),
+            Tool::AppendUserMemory => AppendUserMemory::new().to_generic(),
             Tool::SuggestionsSubmit => {
                 crate::al::tools::tool_suggestions::ToolSuggestionsSubmit::new().to_generic()
             }
