@@ -149,3 +149,84 @@ impl Tool for ReadUserMemory {
         }
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct AppendUserMemory;
+
+impl AppendUserMemory {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct AppendUserMemoryInput {
+    /// The identifier for the user (e.g., Discord username#discriminator, or any unique user identifier)
+    pub user_identifier: String,
+    /// The new content to append to this user's memory
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppendUserMemoryOutput {
+    pub success: bool,
+    pub message: String,
+}
+
+#[async_trait::async_trait]
+impl Tool for AppendUserMemory {
+    const NAME: &'static str = "append_user_memory";
+    const DESCRIPTION: &'static str = "Append new information to a user's existing memory. \
+        This safely adds content to what you already know about a user without overwriting existing information. \
+        If no memory exists for this user, a new memory will be created. \
+        Use this tool when you want to add new facts about a user while preserving what you already know.";
+
+    type ToolInput = AppendUserMemoryInput;
+    type ToolOutput = AppendUserMemoryOutput;
+
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        app_state: AppState,
+        _context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
+        let pool = &app_state.db;
+
+        // Check if a memory already exists for this user
+        let existing_memory = MemoryBlock::find_by_type_and_identifier(
+            pool,
+            "person".to_string(),
+            input.user_identifier.clone(),
+        )
+        .await?;
+
+        if let Some(memory) = existing_memory {
+            // Append to existing memory with a newline separator
+            let updated_content = format!("{}\n{}", memory.content, input.content);
+            MemoryBlock::update_content(pool, memory.memory_block_id, updated_content).await?;
+            Ok(AppendUserMemoryOutput {
+                success: true,
+                message: format!(
+                    "Successfully appended to memory for user '{}'",
+                    input.user_identifier
+                ),
+            })
+        } else {
+            // Create new memory if none exists
+            MemoryBlock::create(
+                pool,
+                "person".to_string(),
+                input.user_identifier.clone(),
+                input.content,
+            )
+            .await?;
+            Ok(AppendUserMemoryOutput {
+                success: true,
+                message: format!(
+                    "Successfully created new memory for user '{}'",
+                    input.user_identifier
+                ),
+            })
+        }
+    }
+}
