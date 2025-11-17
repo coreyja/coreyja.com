@@ -1725,7 +1725,7 @@ mod tests {
         // Create LLM response with thinking block
         let response = json!({
             "content": [
-                {"type": "thinking", "thinking": "Let me think about this..."},
+                {"type": "thinking", "thinking": "Let me think about this...", "signature": "FAKE SIG"},
                 {"type": "text", "text": "Hi there!"}
             ]
         });
