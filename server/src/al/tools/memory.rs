@@ -55,35 +55,32 @@ impl Tool for SaveUserMemory {
         )
         .await?;
 
-        match existing_memory {
-            Some(memory) => {
-                // Update existing memory
-                MemoryBlock::update_content(pool, memory.memory_block_id, input.content).await?;
-                Ok(SaveUserMemoryOutput {
-                    success: true,
-                    message: format!(
-                        "Successfully updated memory for user '{}'",
-                        input.user_identifier
-                    ),
-                })
-            }
-            None => {
-                // Create new memory
-                MemoryBlock::create(
-                    pool,
-                    "person".to_string(),
-                    input.user_identifier.clone(),
-                    input.content,
-                )
-                .await?;
-                Ok(SaveUserMemoryOutput {
-                    success: true,
-                    message: format!(
-                        "Successfully created memory for user '{}'",
-                        input.user_identifier
-                    ),
-                })
-            }
+        if let Some(memory) = existing_memory {
+            // Update existing memory
+            MemoryBlock::update_content(pool, memory.memory_block_id, input.content).await?;
+            Ok(SaveUserMemoryOutput {
+                success: true,
+                message: format!(
+                    "Successfully updated memory for user '{}'",
+                    input.user_identifier
+                ),
+            })
+        } else {
+            // Create new memory
+            MemoryBlock::create(
+                pool,
+                "person".to_string(),
+                input.user_identifier.clone(),
+                input.content,
+            )
+            .await?;
+            Ok(SaveUserMemoryOutput {
+                success: true,
+                message: format!(
+                    "Successfully created memory for user '{}'",
+                    input.user_identifier
+                ),
+            })
         }
     }
 }
