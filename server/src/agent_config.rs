@@ -253,6 +253,7 @@ pub enum Tool {
     ListenToThread,
     ReactToMessage,
     ListServerEmojis,
+    RenameDiscordThread,
 
     // Discord tools for regular threads
     SendDiscordMessage,
@@ -292,6 +293,7 @@ impl Tool {
                 | Tool::ListenToThread
                 | Tool::ReactToMessage
                 | Tool::ListServerEmojis
+                | Tool::RenameDiscordThread
         )
     }
 
@@ -322,6 +324,7 @@ impl Tool {
             Tool::ListenToThread => "listen_to_thread",
             Tool::ReactToMessage => "react_to_message",
             Tool::ListServerEmojis => "list_server_emojis",
+            Tool::RenameDiscordThread => "rename_discord_thread",
             Tool::SendDiscordMessage => "send_discord_message",
             Tool::CompleteThread => "complete_thread",
             Tool::ExecuteLinearQuery => "execute_linear_query",
@@ -362,8 +365,8 @@ impl Tool {
                 UpdateInventory, UpsertRecipe,
             },
             discord::{
-                ListServerEmojis, ListenToThread, ReactToMessage, SendDiscordMessage,
-                SendDiscordThreadMessage,
+                ListServerEmojis, ListenToThread, ReactToMessage, RenameDiscordThread,
+                SendDiscordMessage, SendDiscordThreadMessage,
             },
             linear_graphql::{
                 ExecuteLinearQuery, ExecuteSavedLinearQuery, GetLinearSchema, SaveLinearQuery,
@@ -379,6 +382,7 @@ impl Tool {
             Tool::ListenToThread => ListenToThread::new().to_generic(),
             Tool::ReactToMessage => ReactToMessage::new().to_generic(),
             Tool::ListServerEmojis => ListServerEmojis::new().to_generic(),
+            Tool::RenameDiscordThread => RenameDiscordThread::new().to_generic(),
             Tool::SendDiscordMessage => SendDiscordMessage.to_generic(),
             Tool::CompleteThread => CompleteThread::new().to_generic(),
             Tool::ExecuteLinearQuery => ExecuteLinearQuery.to_generic(),
