@@ -1,10 +1,9 @@
-use chrono::Utc;
-use chrono_tz::US::Eastern;
+use chrono::{Datelike, Utc};
 use db::agentic_threads::{Stitch, Thread};
 use serde::{Deserialize, Serialize};
 
 use crate::{jobs::thread_processor::ProcessThreadStep, AppState};
-use cja::jobs::Job;
+use cja::{chrono_tz::US::Eastern, jobs::Job};
 
 #[derive(Debug, Serialize)]
 pub struct AnthropicTool {
@@ -186,6 +185,7 @@ impl StandupAgent {
     pub async fn generate_standup_message(&self) -> cja::Result<()> {
         let now_eastern = Utc::now().with_timezone(&Eastern);
         let date_str = now_eastern.format("%A, %B %d, %Y at %I:%M %p").to_string();
+        let day_of_week = now_eastern.date_naive().weekday().to_string();
         let thread_name = format!("Standup for {date_str}");
 
         // Get the agent configuration for standup (use Al agent)
@@ -203,11 +203,9 @@ impl StandupAgent {
         // Update thread status to running
         Thread::update_status(&self.app_state.db, thread.thread_id, "running").await?;
 
-        // Get the Discord user ID for the prompt
-        let user_id = agent_config.discord_user_id.ok_or_else(|| {
+        let user_id = std::env::var("DAILY_MESSAGE_DISCORD_USER_ID").map_err(|_| {
             cja::color_eyre::eyre::eyre!(
-                "Agent '{:?}' does not have a discord_user_id configured",
-                agent_id
+                "Environment variable 'DAILY_MESSAGE_DISCORD_USER_ID' not set"
             )
         })?;
 
@@ -223,6 +221,14 @@ impl StandupAgent {
         let prompt = format!(
             r"
             You are my daily work planning assistant. Help me review my progress and plan a focused day.
+
+            <date>
+            {date_str}
+            </date>
+
+            <day_of_week>
+            {day_of_week}
+            </day_of_week>
 
             ## Linear Context
             <linear_data>
