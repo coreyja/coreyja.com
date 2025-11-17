@@ -10,6 +10,7 @@ use crate::{
 pub mod cooking_simple;
 pub mod discord;
 pub mod linear_graphql;
+pub mod memory;
 pub mod threads;
 pub mod tool_suggestions;
 
