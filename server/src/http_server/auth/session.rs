@@ -1,6 +1,7 @@
 use axum::{
     extract::FromRequestParts,
     http::{self, StatusCode},
+    response::{IntoResponse, Redirect, Response},
 };
 use cja::server::session::{AppSession, CJASession, Session};
 use color_eyre::eyre::{eyre, Context};
@@ -103,15 +104,19 @@ pub async fn is_admin_user(user_id: Uuid, state: &AppState) -> cja::Result<bool>
 }
 
 impl FromRequestParts<AppState> for AdminUser {
-    type Rejection = StatusCode;
+    type Rejection = Response;
 
     async fn from_request_parts(
         parts: &mut http::request::Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let db_session = Session::<DBSession>::from_request_parts(parts, state).await?;
+        let db_session = Session::<DBSession>::from_request_parts(parts, state)
+            .await
+            .map_err(|e| e.into_response())?;
         let Some(user_id) = db_session.0.user_id else {
-            return Err(StatusCode::UNAUTHORIZED);
+            // User not authenticated - redirect to login with return_to parameter
+            let return_to = urlencoding::encode(parts.uri.path());
+            return Err(Redirect::temporary(&format!("/login?return_to={return_to}")).into_response());
         };
 
         let github_link = sqlx::query_as!(
@@ -133,11 +138,11 @@ impl FromRequestParts<AppState> for AdminUser {
                 user_id,
                 github_link,
             }),
-            Ok(None) => Err(StatusCode::UNAUTHORIZED),
+            Ok(None) => Err(StatusCode::UNAUTHORIZED.into_response()),
             Err(e) => {
                 sentry::capture_error(&e);
 
-                Err(StatusCode::INTERNAL_SERVER_ERROR)
+                Err(StatusCode::INTERNAL_SERVER_ERROR.into_response())
             }
         }
     }
