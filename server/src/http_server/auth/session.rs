@@ -112,7 +112,7 @@ impl FromRequestParts<AppState> for AdminUser {
     ) -> Result<Self, Self::Rejection> {
         let db_session = Session::<DBSession>::from_request_parts(parts, state)
             .await
-            .map_err(|e| e.into_response())?;
+            .map_err(IntoResponse::into_response)?;
         let Some(user_id) = db_session.0.user_id else {
             // User not authenticated - redirect to login
             return Err(Redirect::temporary("/login").into_response());
