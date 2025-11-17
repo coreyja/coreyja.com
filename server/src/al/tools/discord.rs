@@ -493,3 +493,92 @@ impl Tool for ListServerEmojis {
         Ok(emoji_list)
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct RenameDiscordThread;
+
+impl RenameDiscordThread {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct RenameThreadInput {
+    pub new_name: String,
+}
+
+#[async_trait::async_trait]
+impl Tool for RenameDiscordThread {
+    const NAME: &'static str = "rename_discord_thread";
+    const DESCRIPTION: &'static str = r#"
+    Rename the current Discord thread to better reflect the conversation topic.
+
+    Use this tool when:
+    - You have enough context to understand what the conversation is about
+    - The thread name hasn't been set yet (still has a default name)
+    - The context of the thread has evolved enough to warrant updating the name
+    - You want to give the thread a more descriptive or meaningful title
+
+    The new name should be concise but descriptive, typically 1-5 words that capture the main topic.
+
+    Example:
+    ```json
+    {
+        "new_name": "Rust Error Debugging"
+    }
+    ```
+
+    Example when context has evolved:
+    ```json
+    {
+        "new_name": "API Design Discussion"
+    }
+    ```
+    "#;
+
+    type ToolInput = RenameThreadInput;
+    type ToolOutput = String;
+
+    async fn run(
+        &self,
+        input: Self::ToolInput,
+        app_state: AppState,
+        context: ThreadContext,
+    ) -> cja::Result<Self::ToolOutput> {
+        use serenity::all::EditThread;
+        use serenity::model::prelude::*;
+
+        // Get Discord metadata for this thread
+        let discord_meta =
+            DiscordThreadMetadata::find_by_thread_id(&app_state.db, context.thread.thread_id)
+                .await?
+                .ok_or_else(|| {
+                    cja::color_eyre::eyre::eyre!("Discord metadata not found for this thread")
+                })?;
+
+        let discord_thread_id = &discord_meta.discord_thread_id;
+
+        let channel_id = ChannelId::from(
+            discord_thread_id
+                .parse::<u64>()
+                .map_err(|_| cja::color_eyre::eyre::eyre!("Invalid Discord thread ID"))?,
+        );
+
+        // Edit the thread name
+        channel_id
+            .edit_thread(&app_state.discord, EditThread::new().name(&input.new_name))
+            .await
+            .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to rename Discord thread: {}", e))?;
+
+        // Update the thread name in our database
+        let updated_meta = discord_meta
+            .update_thread_name(&app_state.db, &input.new_name)
+            .await?;
+
+        Ok(format!(
+            "Renamed thread to '{}' (previously '{}')",
+            updated_meta.thread_name, discord_meta.thread_name
+        ))
+    }
+}

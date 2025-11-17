@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE discord_thread_metadata\n            SET participants = \n                CASE \n                    WHEN participants ? $1 THEN participants\n                    ELSE participants || to_jsonb($1::text)\n                END,\n                updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
+  "query": "\n            UPDATE discord_thread_metadata\n            SET participants =\n                CASE\n                    WHEN participants ? $1 THEN participants\n                    ELSE participants || to_jsonb($1::text)\n                END,\n                updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -73,5 +73,5 @@
       false
     ]
   },
-  "hash": "b6bfae78c6a4e04f19a078838582596504a05e3d94d64a7f14e39faaf5f1853f"
+  "hash": "e07f83951299bef819b3e520a9efef7c70e3e44ef3b6fe87453041fd865ad787"
 }

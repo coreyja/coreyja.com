@@ -116,8 +116,8 @@ impl DiscordThreadMetadata {
             DiscordThreadMetadata,
             r#"
             UPDATE discord_thread_metadata
-            SET participants = 
-                CASE 
+            SET participants =
+                CASE
                     WHEN participants ? $1 THEN participants
                     ELSE participants || to_jsonb($1::text)
                 END,
@@ -129,6 +129,28 @@ impl DiscordThreadMetadata {
             thread_id
         )
         .fetch_optional(pool)
+        .await?;
+
+        Ok(metadata)
+    }
+
+    pub async fn update_thread_name(
+        &self,
+        pool: &PgPool,
+        new_name: &str,
+    ) -> color_eyre::Result<Self> {
+        let metadata = sqlx::query_as!(
+            DiscordThreadMetadata,
+            r#"
+            UPDATE discord_thread_metadata
+            SET thread_name = $1, updated_at = NOW()
+            WHERE thread_id = $2
+            RETURNING *
+            "#,
+            new_name,
+            self.thread_id
+        )
+        .fetch_one(pool)
         .await?;
 
         Ok(metadata)
