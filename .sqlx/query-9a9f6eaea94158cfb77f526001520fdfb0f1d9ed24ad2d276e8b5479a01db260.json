@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE discord_thread_metadata\n            SET thread_name = $1, updated_at = NOW()\n            WHERE thread_id = $2\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "discord_thread_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "guild_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_message_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "thread_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "participants",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9a9f6eaea94158cfb77f526001520fdfb0f1d9ed24ad2d276e8b5479a01db260"
+}
