@@ -71,7 +71,7 @@
 //!   - Keeps parent thread context focused and manageable
 //! - `discord_message`: User messages from Discord
 //! - `system_prompt`: System-level prompts
-//! - `agent_thought`: Internal agent reasoning
+//! - `agent_response`: Agent's text responses sent to the user (e.g., Discord messages)
 //! - `clarification_request`: Requests for user clarification
 //! - `error`: Error information
 //!
@@ -169,8 +169,8 @@ pub enum StitchType {
     DiscordMessage,
     #[serde(rename = "system_prompt")]
     SystemPrompt,
-    #[serde(rename = "agent_thought")]
-    AgentThought,
+    #[serde(rename = "agent_response")]
+    AgentResponse,
     #[serde(rename = "clarification_request")]
     ClarificationRequest,
     #[serde(rename = "error")]
@@ -214,7 +214,7 @@ impl fmt::Display for StitchType {
             StitchType::ThreadResult => write!(f, "thread_result"),
             StitchType::DiscordMessage => write!(f, "discord_message"),
             StitchType::SystemPrompt => write!(f, "system_prompt"),
-            StitchType::AgentThought => write!(f, "agent_thought"),
+            StitchType::AgentResponse => write!(f, "agent_response"),
             StitchType::ClarificationRequest => write!(f, "clarification_request"),
             StitchType::Error => write!(f, "error"),
         }
@@ -232,7 +232,7 @@ impl std::str::FromStr for StitchType {
             "thread_result" => Ok(StitchType::ThreadResult),
             "discord_message" => Ok(StitchType::DiscordMessage),
             "system_prompt" => Ok(StitchType::SystemPrompt),
-            "agent_thought" => Ok(StitchType::AgentThought),
+            "agent_response" => Ok(StitchType::AgentResponse),
             "clarification_request" => Ok(StitchType::ClarificationRequest),
             "error" => Ok(StitchType::Error),
             _ => Err(format!("Unknown stitch type: {s}")),
