@@ -16,9 +16,9 @@ impl SaveUserMemory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SaveUserMemoryInput {
-    /// The identifier for the user (e.g., Discord username#discriminator, or any unique user identifier)
+    /// The Discord user ID for the user (e.g., "1234567890")
     pub user_identifier: String,
-    /// The memory content to save about this user
+    /// The memory content to save about this user. Should ideally include the user's preferred name or username.
     pub content: String,
 }
 
@@ -31,9 +31,10 @@ pub struct SaveUserMemoryOutput {
 #[async_trait::async_trait]
 impl Tool for SaveUserMemory {
     const NAME: &'static str = "save_user_memory";
-    const DESCRIPTION: &'static str = "Save or update a memory about a specific user. \
+    const DESCRIPTION: &'static str = "Save or update a memory about a specific user using their Discord user ID. \
         This allows you to remember important information about users across conversations. \
-        Memories are stored with a user identifier and can be retrieved later. \
+        Memories are stored with a Discord user ID and can be retrieved later. \
+        The memory content should ideally include the user's preferred name or username for easy reference. \
         If a memory already exists for this user, it will be updated with the new content.";
 
     type ToolInput = SaveUserMemoryInput;
@@ -96,7 +97,7 @@ impl ReadUserMemory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ReadUserMemoryInput {
-    /// The identifier for the user whose memory you want to read (e.g., Discord username#discriminator)
+    /// The Discord user ID for the user whose memory you want to read (e.g., "1234567890")
     pub user_identifier: String,
 }
 
@@ -110,9 +111,10 @@ pub struct ReadUserMemoryOutput {
 #[async_trait::async_trait]
 impl Tool for ReadUserMemory {
     const NAME: &'static str = "read_user_memory";
-    const DESCRIPTION: &'static str = "Read a memory about a specific user. \
+    const DESCRIPTION: &'static str =
+        "Read a memory about a specific user using their Discord user ID. \
         This allows you to retrieve previously saved information about users. \
-        Provide the user identifier to look up their memory.";
+        Provide the Discord user ID to look up their memory.";
 
     type ToolInput = ReadUserMemoryInput;
     type ToolOutput = ReadUserMemoryOutput;
@@ -161,9 +163,9 @@ impl AppendUserMemory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AppendUserMemoryInput {
-    /// The identifier for the user (e.g., Discord username#discriminator, or any unique user identifier)
+    /// The Discord user ID for the user (e.g., "1234567890")
     pub user_identifier: String,
-    /// The new content to append to this user's memory
+    /// The new content to append to this user's memory. Should ideally include the user's preferred name or username if not already present.
     pub content: String,
 }
 
@@ -176,9 +178,10 @@ pub struct AppendUserMemoryOutput {
 #[async_trait::async_trait]
 impl Tool for AppendUserMemory {
     const NAME: &'static str = "append_user_memory";
-    const DESCRIPTION: &'static str = "Append new information to a user's existing memory. \
+    const DESCRIPTION: &'static str = "Append new information to a user's existing memory using their Discord user ID. \
         This safely adds content to what you already know about a user without overwriting existing information. \
         If no memory exists for this user, a new memory will be created. \
+        The memory content should ideally include the user's preferred name or username for easy reference. \
         Use this tool when you want to add new facts about a user while preserving what you already know.";
 
     type ToolInput = AppendUserMemoryInput;
