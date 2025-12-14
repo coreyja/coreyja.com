@@ -668,7 +668,7 @@ fn render_stitch(stitch: &Stitch) -> Markup {
         StitchType::LlmCall => "🤖",
         StitchType::ToolCall => "🔧",
         StitchType::ThreadResult => "📊",
-        StitchType::AgentThought => "💭",
+        StitchType::AgentResponse => "📤",
         StitchType::ClarificationRequest => "❓",
         StitchType::Error => "❌",
     };

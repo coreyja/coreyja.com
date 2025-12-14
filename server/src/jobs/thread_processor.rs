@@ -81,7 +81,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
             | db::agentic_threads::StitchType::ToolCall
             | db::agentic_threads::StitchType::DiscordMessage
             | db::agentic_threads::StitchType::SystemPrompt
-            | db::agentic_threads::StitchType::AgentThought
+            | db::agentic_threads::StitchType::AgentResponse
             | db::agentic_threads::StitchType::ClarificationRequest
             | db::agentic_threads::StitchType::Error => {
                 // This is the expected types that we can process here right now
@@ -204,7 +204,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
                     let text_stitch = Stitch::create(
                         &app_state.db,
                         thread_id,
-                        "agent_thought",
+                        "agent_response",
                         json!({
                             "thought": text,
                             "sent_to_discord": true,
@@ -659,15 +659,14 @@ pub async fn reconstruct_messages(db: &PgPool, thread_id: Uuid) -> cja::Result<V
                     }
                 }
             }
-            db::agentic_threads::StitchType::AgentThought => {
-                // Agent thoughts are internal reasoning that should be included in the context
-                // but marked appropriately
+            db::agentic_threads::StitchType::AgentResponse => {
+                // Agent responses are text messages sent to the user that should be included in the context
                 if let Some(data) = stitch.llm_request {
                     if let Some(thought) = data.get("thought").and_then(|v| v.as_str()) {
                         messages.push(Message {
                             role: "assistant".to_string(),
                             content: vec![Content::Text(TextContent {
-                                text: format!("[AGENT THOUGHT]: {thought}"),
+                                text: thought.to_string(),
                                 cache_control: None,
                             })],
                         });
@@ -1615,7 +1614,7 @@ mod tests {
 
     // Task Group 2 Tests: Text Content Handling
     #[sqlx::test(migrations = "../db/migrations")]
-    async fn test_text_content_creates_agent_thought_stitch(pool: PgPool) {
+    async fn test_text_content_creates_agent_response_stitch(pool: PgPool) {
         // Create a thread with Discord metadata
         let thread = Thread::create(
             &pool,
@@ -1628,11 +1627,11 @@ mod tests {
         .unwrap();
         let thread_id = thread.thread_id;
 
-        // Create an agent_thought stitch
+        // Create an agent_response stitch
         let thought_stitch = Stitch::create(
             &pool,
             thread_id,
-            "agent_thought",
+            "agent_response",
             json!({
                 "thought": "Hello from the agent!",
                 "sent_to_discord": true,
@@ -1646,7 +1645,7 @@ mod tests {
         // Verify the stitch was created correctly
         assert_eq!(
             thought_stitch.stitch_type,
-            db::agentic_threads::StitchType::AgentThought
+            db::agentic_threads::StitchType::AgentResponse
         );
         assert_eq!(
             thought_stitch.llm_request.as_ref().unwrap()["thought"],
@@ -1681,7 +1680,7 @@ mod tests {
         let text_stitch = Stitch::create(
             &pool,
             thread_id,
-            "agent_thought",
+            "agent_response",
             json!({
                 "thought": "Response text",
                 "sent_to_discord": true,
@@ -1699,7 +1698,7 @@ mod tests {
         );
         assert_eq!(
             text_stitch.stitch_type,
-            db::agentic_threads::StitchType::AgentThought
+            db::agentic_threads::StitchType::AgentResponse
         );
     }
 
@@ -1776,8 +1775,8 @@ mod tests {
 
     // Task Group 3 Tests: Integration Testing
     #[sqlx::test(migrations = "../db/migrations")]
-    async fn test_agent_thought_stitch_in_message_reconstruction(pool: PgPool) {
-        // End-to-end test: agent_thought stitches are reconstructed correctly
+    async fn test_agent_response_stitch_in_message_reconstruction(pool: PgPool) {
+        // End-to-end test: agent_response stitches are reconstructed correctly
         let thread = Thread::create(
             &pool,
             "Test thread".to_string(),
@@ -1794,11 +1793,11 @@ mod tests {
             .await
             .unwrap();
 
-        // Create agent thought stitch (simulating what would happen with text response)
+        // Create agent response stitch (simulating what would happen with text response)
         Stitch::create(
             &pool,
             thread_id,
-            "agent_thought",
+            "agent_response",
             json!({
                 "thought": "I'm processing your request",
                 "sent_to_discord": true
@@ -1810,15 +1809,15 @@ mod tests {
 
         let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
 
-        // Should have user message and agent thought
+        // Should have user message and agent response
         assert_eq!(messages.len(), 2);
         assert_eq!(messages[0].role, "user");
         assert_eq!(messages[1].role, "assistant");
 
         if let Content::Text(text) = &messages[1].content[0] {
-            assert_eq!(text.text, "[AGENT THOUGHT]: I'm processing your request");
+            assert_eq!(text.text, "I'm processing your request");
         } else {
-            panic!("Expected text content for agent thought");
+            panic!("Expected text content for agent response");
         }
     }
 
@@ -1940,8 +1939,8 @@ mod tests {
     }
 
     #[sqlx::test(migrations = "../db/migrations")]
-    async fn test_stitch_chain_integrity_with_agent_thoughts(pool: PgPool) {
-        // Test that the stitch chain remains intact when adding agent thought stitches
+    async fn test_stitch_chain_integrity_with_agent_responses(pool: PgPool) {
+        // Test that the stitch chain remains intact when adding agent response stitches
         let thread = Thread::create(
             &pool,
             "Test thread".to_string(),
@@ -1961,7 +1960,7 @@ mod tests {
         let stitch2 = Stitch::create(
             &pool,
             thread_id,
-            "agent_thought",
+            "agent_response",
             json!({"thought": "First thought"}),
             Some(stitch1.stitch_id),
         )
@@ -1971,7 +1970,7 @@ mod tests {
         let stitch3 = Stitch::create(
             &pool,
             thread_id,
-            "agent_thought",
+            "agent_response",
             json!({"thought": "Second thought"}),
             Some(stitch2.stitch_id),
         )
@@ -1990,5 +1989,81 @@ mod tests {
         assert_eq!(stitches[0].stitch_id, stitch1.stitch_id);
         assert_eq!(stitches[1].stitch_id, stitch2.stitch_id);
         assert_eq!(stitches[2].stitch_id, stitch3.stitch_id);
+    }
+
+    #[sqlx::test(migrations = "../db/migrations")]
+    async fn test_thinking_block_signature_preservation(pool: PgPool) {
+        // Test that thinking block signatures are preserved through storage and reconstruction
+        let thread = Thread::create(
+            &pool,
+            "Test thread".to_string(),
+            None,
+            None,
+            crate::agent_config::DEFAULT_AGENT_ID.to_string(),
+        )
+        .await
+        .unwrap();
+        let thread_id = thread.thread_id;
+
+        // Create initial user message
+        let initial_stitch = Stitch::create_initial_user_message(&pool, thread_id, "Hello")
+            .await
+            .unwrap();
+
+        // Create LLM response with thinking block including signature
+        let test_signature = "test_signature_abc123";
+        let response = json!({
+            "content": [
+                {
+                    "type": "thinking",
+                    "thinking": "Let me analyze this request...",
+                    "signature": test_signature
+                },
+                {"type": "text", "text": "Here's my response"}
+            ]
+        });
+
+        Stitch::create_llm_call(
+            &pool,
+            thread_id,
+            Some(initial_stitch.stitch_id),
+            json!({}),
+            response,
+        )
+        .await
+        .unwrap();
+
+        // Reconstruct messages from storage
+        let messages = reconstruct_messages(&pool, thread_id).await.unwrap();
+
+        // Verify we have 2 messages (user + assistant)
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages[1].content.len(), 2);
+
+        // Verify the thinking block is present with the correct signature
+        if let Content::Thinking(thinking) = &messages[1].content[0] {
+            assert_eq!(thinking.thinking, "Let me analyze this request...");
+            assert_eq!(
+                thinking.signature, test_signature,
+                "Signature must be preserved"
+            );
+        } else {
+            panic!("Expected thinking content in first content block");
+        }
+
+        // Verify the text content is also present
+        if let Content::Text(text) = &messages[1].content[1] {
+            assert_eq!(text.text, "Here's my response");
+        } else {
+            panic!("Expected text content in second content block");
+        }
+
+        // Verify that serializing the message back preserves the signature
+        let serialized = serde_json::to_value(&messages[1]).unwrap();
+        assert_eq!(
+            serialized["content"][0]["signature"], test_signature,
+            "Signature must be preserved when re-serializing"
+        );
     }
 }

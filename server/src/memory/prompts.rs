@@ -76,7 +76,8 @@ impl PromptGenerator {
         - Be conversational and friendly\n\
         - You can react to messages using emojis when appropriate\n\
         - Each message shows the Message ID that you can use to react to specific messages\n\
-        - You can list available custom server emojis using the list_server_emojis tool"
+        - You can list available custom server emojis using the list_server_emojis tool\n\
+        - When you respond with a Text content type, it is automatically sent to Discord"
     }
 }
 
