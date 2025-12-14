@@ -29,7 +29,7 @@ pub(crate) fn validate() -> cja::Result<()> {
         base_url: Url::parse("http://localhost:3000").unwrap(),
         imgproxy_url: None,
     };
-    let render_context = SyntaxHighlightingContext::default();
+    let render_context = SyntaxHighlightingContext;
     let rss = MyChannel::from_posts(&config, &render_context, &posts.by_recency())?;
 
     rss.validate()?;

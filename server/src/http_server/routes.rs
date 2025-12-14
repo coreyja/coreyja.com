@@ -9,12 +9,14 @@ use super::{
     COMIC_CODE_STYLES, STATIC_ASSETS, TAILWIND_STYLES,
 };
 
+const ARBORIUM_CSS: &str = include_str!("../styles/arborium.css");
+
 #[allow(clippy::too_many_lines)]
-pub(crate) fn make_router(syntax_css: String) -> Router<AppState> {
+pub(crate) fn make_router() -> Router<AppState> {
     Router::new()
         .route("/_", get(pages::admin::versions))
         .route("/static/{*path}", get(static_assets))
-        .route("/styles/syntax.css", get(|| async move { syntax_css }))
+        .route("/styles/syntax.css", get(|| async { ARBORIUM_CSS }))
         .route("/styles/tailwind.css", get(|| async { TAILWIND_STYLES }))
         .route(
             "/styles/comic_code.css",

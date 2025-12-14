@@ -1,8 +1,6 @@
 use cja::Result;
 use posts::blog::BlogPosts;
 
-use crate::http_server::pages::blog::md::SyntaxHighlightingContext;
-
 pub(crate) fn print_info() -> Result<()> {
     println!("\n\n");
     println!("Blog Posts:");
@@ -16,13 +14,10 @@ pub(crate) fn print_info() -> Result<()> {
     }
 
     println!("\n\n");
-    println!("Recognized Syntax:");
-
-    let context = SyntaxHighlightingContext::default();
-    let ps = context.syntax_set;
-    for syntax in ps.syntaxes() {
-        println!("{}", syntax.name);
-    }
+    println!("Syntax Highlighting: arborium (Tree-sitter based)");
+    println!(
+        "Enabled languages: rust, bash, javascript, ruby, graphql, toml, json, css, html, vim"
+    );
 
     Ok(())
 }

@@ -6,7 +6,6 @@ use markdown::mdast::{
     ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
 };
 use maud::{html, Markup, PreEscaped};
-use syntect::html::{ClassStyle, ClassedHTMLGenerator};
 use url::Url;
 
 use color_eyre::Result;
@@ -23,25 +22,10 @@ fn generate_imgproxy_url(base_url: &str, image_url: &str, width: u32) -> String 
     )
 }
 
-#[derive(Debug, Clone)]
-pub struct SyntaxHighlightingContext {
-    pub(crate) theme: syntect::highlighting::Theme,
-    pub(crate) syntax_set: syntect::parsing::SyntaxSet,
-}
-
-impl Default for SyntaxHighlightingContext {
-    fn default() -> Self {
-        let ps = two_face::syntax::extra_newlines();
-        let ts = two_face::theme::extra();
-
-        SyntaxHighlightingContext {
-            syntax_set: ps,
-            theme: ts
-                .get(two_face::theme::EmbeddedThemeName::OneHalfDark)
-                .clone(),
-        }
-    }
-}
+/// Syntax highlighting context using arborium (Tree-sitter based highlighting).
+/// This is kept as an empty struct for backwards compatibility with existing code.
+#[derive(Debug, Clone, Default)]
+pub struct SyntaxHighlightingContext;
 
 #[derive(Debug, Clone)]
 pub struct MarkdownRenderContext {
@@ -350,27 +334,22 @@ impl IntoHtml for Strong {
 }
 
 impl IntoHtml for Code {
-    fn into_html(self, _config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
-        use syntect::util::LinesWithEndings;
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
+        let lang = self.lang.as_deref().unwrap_or("text");
 
-        let ps = &context.syntax_highlighting.syntax_set;
-        let syntax = self
-            .lang
-            .and_then(|lang| ps.find_syntax_by_token(&lang))
-            .unwrap_or_else(|| ps.find_syntax_plain_text());
+        // Map language tokens to arborium-supported languages
+        let mapped_lang = match lang {
+            "shell" => "bash",
+            "gitignore" | "crontab" | "fen" => "text",
+            other => other,
+        };
 
-        let mut html_generator = ClassedHTMLGenerator::new_with_class_style(
-            syntax,
-            &context.syntax_highlighting.syntax_set,
-            ClassStyle::Spaced,
-        );
-
-        for line in LinesWithEndings::from(&self.value) {
-            html_generator.parse_html_for_line_which_includes_newline(line)?;
-        }
+        let highlighted_html = arborium::Highlighter::new()
+            .highlight(mapped_lang, &self.value)
+            .unwrap_or_else(|_| html_escape::encode_text(&self.value).to_string());
 
         Ok(html! {
-          pre class="my-4 py-4 bg-coding_background px-8 overflow-x-auto max-w-vw text-codeText" { code { (PreEscaped(html_generator.finalize())) } }
+          pre class="my-4 py-4 bg-coding_background px-8 overflow-x-auto max-w-vw text-codeText" { code { (PreEscaped(highlighted_html)) } }
         })
     }
 }

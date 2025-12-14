@@ -116,14 +116,9 @@ pub(crate) async fn serve() -> Result<()> {
     *discord.app_state_holder.lock().unwrap() = Some(app_state.clone());
     let job_registry = Jobs;
 
-    let syntax_css = syntect::html::css_for_theme_with_class_style(
-        &app_state.syntax_highlighting_context.theme,
-        syntect::html::ClassStyle::Spaced,
-    )?;
-
     info!("Spawning Tasks");
     let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![tokio::spawn(run_server(
-        routes::make_router(syntax_css)
+        routes::make_router()
             .layer(axum::middleware::from_fn_with_state(
                 app_state.clone(),
                 pageview_middleware,
