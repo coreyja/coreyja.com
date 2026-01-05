@@ -36,7 +36,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         linear: crate::linear::LinearConfig::from_env().unwrap(),
         anthropic: crate::anthropic::AnthropicConfig::from_env().unwrap(),
         app: AppConfig::from_env().unwrap(),
-        syntax_highlighting_context: SyntaxHighlightingContext::default(),
+        syntax_highlighting_context: SyntaxHighlightingContext,
         blog_posts: Arc::new(posts::blog::BlogPosts::from_static_dir().unwrap()),
         til_posts: Arc::new(posts::til::TilPosts::from_static_dir().unwrap()),
         projects: Arc::new(posts::projects::Projects::from_static_dir().unwrap()),
@@ -51,8 +51,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         discord: discord_setup.client,
     };
 
-    let syntax_css = String::new(); // Empty for tests
-    crate::http_server::routes::make_router(syntax_css).with_state(state)
+    crate::http_server::routes::make_router().with_state(state)
 }
 
 pub fn admin_request_builder() -> axum::http::request::Builder {

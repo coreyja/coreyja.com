@@ -1,0 +1,68 @@
+/* Catppuccin Mocha theme for arborium custom elements */
+/* https://github.com/catppuccin/catppuccin */
+
+/* Keywords (if, else, fn, let, etc.) - Mauve */
+a-k { color: #cba6f7; }
+
+/* Functions - Blue */
+a-f { color: #89b4fa; }
+
+/* Strings - Green */
+a-s { color: #a6e3a1; }
+
+/* Comments - Overlay0 with italic */
+a-c { color: #6c7086; font-style: italic; }
+
+/* Types - Yellow */
+a-t { color: #f9e2af; }
+
+/* Variables - Text */
+a-v { color: #cdd6f4; }
+
+/* Constants - Peach */
+a-co { color: #fab387; }
+
+/* Numbers - Peach */
+a-n { color: #fab387; }
+
+/* Operators - Sky */
+a-o { color: #89dceb; }
+
+/* Punctuation - Overlay2 */
+a-p { color: #9399b2; }
+
+/* Attributes - Teal */
+a-a { color: #94e2d5; }
+
+/* Labels - Sapphire */
+a-l { color: #74c7ec; }
+
+/* Embedded - Pink */
+a-eb { color: #f5c2e7; }
+
+/* Diff additions - Green */
+a-da { color: #a6e3a1; }
+
+/* Diff deletions - Red */
+a-dd { color: #f38ba8; }
+
+/* Errors - Red with underline */
+a-er { color: #f38ba8; text-decoration: underline wavy; }
+
+/* Escape sequences - Pink */
+a-e { color: #f5c2e7; }
+
+/* Special - Lavender */
+a-sp { color: #b4befe; }
+
+/* Property - Rosewater */
+a-pr { color: #f5e0dc; }
+
+/* Tag - Maroon */
+a-ta { color: #eba0ac; }
+
+/* Namespace - Peach */
+a-ns { color: #fab387; }
+
+/* Builtin - Red */
+a-bi { color: #f38ba8; }

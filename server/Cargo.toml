@@ -49,7 +49,8 @@ sentry-tower = { workspace = true, features = ["http"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
-syntect = { workspace = true }
+arborium = { workspace = true }
+html-escape = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tower = { workspace = true, features = ["util"] }
@@ -86,7 +87,6 @@ image = { workspace = true }
 rsa = { workspace = true }
 rand = { workspace = true }
 color-eyre = { workspace = true }
-two-face = { workspace = true }
 poise = { workspace = true }
 serenity = { workspace = true }
 regex = { workspace = true }

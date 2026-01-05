@@ -94,12 +94,23 @@ sentry-tracing = "0.31.8"
 serde_urlencoded = "0.7.1"
 serde_yaml = "0.9"
 serenity = { version = "0.12.2", features = ["model"] }
-syntect = "5.0"
+arborium = { version = "2", features = [
+    "lang-rust",
+    "lang-bash",
+    "lang-javascript",
+    "lang-ruby",
+    "lang-graphql",
+    "lang-toml",
+    "lang-json",
+    "lang-css",
+    "lang-html",
+    "lang-vim",
+] }
+html-escape = "0.2"
 thiserror = "1.0.44"
 tower = "0.4.13"
 tower-cookies = "0.11.0"
 tower-http = "0.5.0"
-two-face = "0.4.0"
 typify = "0.0.14"
 url = "2.5.0"
 urlencoding = "2.1"

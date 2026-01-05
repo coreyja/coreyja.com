@@ -110,7 +110,7 @@ impl AppState {
             google: GoogleConfig::from_env()?,
             linear: LinearConfig::from_env()?,
             anthropic: AnthropicConfig::from_env()?,
-            syntax_highlighting_context: SyntaxHighlightingContext::default(),
+            syntax_highlighting_context: SyntaxHighlightingContext,
             versions: VersionInfo::from_env(),
             blog_posts,
             til_posts,
