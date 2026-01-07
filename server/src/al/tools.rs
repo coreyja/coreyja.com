@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 
 use crate::{
-    al::standup::{AnthropicTool, ToolUseContent},
+    al::anthropic::{AnthropicTool, ToolUseContent},
     AppState,
 };
 pub mod cooking_simple;
