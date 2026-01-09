@@ -28,7 +28,7 @@ pub(crate) async fn list_crons(
     .fetch_all(&app_state.db)
     .await?;
 
-    let job_configs = crate::cron::cron_registry()?;
+    let job_configs = crate::cron::cron_registry();
 
     let timezone = cja::chrono_tz::US::Eastern;
 
@@ -159,7 +159,7 @@ pub(crate) async fn run_cron(
     State(app_state): State<AppState>,
     Form(form): Form<RunCronForm>,
 ) -> Result<impl IntoResponse, ServerError> {
-    let registry = crate::cron::cron_registry()?;
+    let registry = crate::cron::cron_registry();
     let job_config = registry.get(&form.cron_name);
 
     if let Some(job_config) = job_config {
