@@ -7,7 +7,7 @@ use sqlx::{types::Uuid, PgPool};
 
 use crate::{
     al::{
-        standup::{
+        anthropic::{
             AnthropicRequest, AnthropicResponse, CacheControl, Content, DocumentContent,
             DocumentSource, ImageContent, ImageSource, Message, TextContent, ToolChoice,
             ToolResult,
@@ -123,7 +123,7 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
         tool_choice: Some(ToolChoice {
             r#type: "auto".to_string(),
         }),
-        thinking: Some(crate::al::standup::ThinkingConfig {
+        thinking: Some(crate::al::anthropic::ThinkingConfig {
             r#type: "enabled".to_string(),
             budget_tokens: max_tokens / 2,
         }),

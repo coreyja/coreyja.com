@@ -15,7 +15,6 @@ pub mod discord_thread_create_processor;
 pub mod linear_webhook_processor;
 pub mod refresh_discord;
 pub mod sponsors;
-pub mod standup_message;
 pub mod thread_processor;
 pub mod youtube_videos;
 
@@ -25,7 +24,6 @@ impl_job_registry!(
     RefreshVideos,
     bytes_discord_posts::PostByteSubmission,
     refresh_discord::RefreshDiscordChannels,
-    standup_message::StandupMessage,
     ProcessThreadStep,
     ProcessDiscordMessage,
     ProcessDiscordThreadCreate,
