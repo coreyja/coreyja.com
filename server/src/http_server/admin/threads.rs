@@ -11,7 +11,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    al::standup::{Content, DocumentContent, ImageContent, Message},
+    al::anthropic::{Content, DocumentContent, ImageContent, Message},
     state::AppState,
 };
 
@@ -216,16 +216,16 @@ pub(crate) async fn thread_json(
     let max_tokens = 20_000;
 
     // Construct the full request
-    let request = crate::al::standup::AnthropicRequest {
+    let request = crate::al::anthropic::AnthropicRequest {
         model: "claude-sonnet-4-5-20250929".to_string(),
         max_tokens,
         system: system_prompt,
         messages: messages.clone(),
         tools: tools.as_api(),
-        tool_choice: Some(crate::al::standup::ToolChoice {
+        tool_choice: Some(crate::al::anthropic::ToolChoice {
             r#type: "auto".to_string(),
         }),
-        thinking: Some(crate::al::standup::ThinkingConfig {
+        thinking: Some(crate::al::anthropic::ThinkingConfig {
             r#type: "enabled".to_string(),
             budget_tokens: max_tokens / 2,
         }),

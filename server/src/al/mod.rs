@@ -1,2 +1,2 @@
-pub mod standup;
+pub mod anthropic;
 pub mod tools;
