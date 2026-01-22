@@ -42,11 +42,24 @@ is_newsletter: true
 - Fixed model configuration bug (model field wasn't being passed through)
 - Context-aware daily image generator for Discord
 
+**Cron System Refactor**
+- Major refactor to use CJA CronRegistry directly (368 insertions, 277 deletions)
+- Simplified cron management, removed duplicate code
+- Fixed cron name mismatch bug (scheduled_prompts_checker not showing in UI)
+
+**Task Workflow Improvements**
+- Split `in_review` status into two distinct stages:
+  - `plan_review` - for plan critique stage
+  - `in_review` - for PR review stage (now requires pr_url field)
+- Better tracking of work progression through the pipeline
+
 **Other Mull Improvements**
 - View Transitions API for smooth navigation (then reverted - too jarring)
 - Git diff sidebar using merge-base for accurate diffs
 - Stale cleanup fix - no longer deletes active session worktrees
 - Environment isolation - DATABASE_URL no longer leaks into Claude sessions
+- Discord 1Password service account token fix (secrets now load properly)
+- PR Watcher fixes - gh CLI command format issues resolved
 
 ---
 
@@ -59,10 +72,11 @@ is_newsletter: true
 - Game backup cron job to GCS
 
 **Recent Work (Jan 21-22)**
-- PR #22: Code quality improvements - DeathInfo struct, removed duplicates
-- PR #23: Latency deserialization fix for older game archives
-- PR #20: Docker VERGEN fix + `/_/version` endpoint
-- PR #19: CI fix for eyes-subscriber crates.io
+- PR #22: Code quality improvements - DeathInfo struct, removed duplicates, better test coverage
+- PR #23: Latency deserialization fix for older game archives (serde_as with OneOf for dual-format)
+- PR #20: Docker VERGEN fix + `/_/version` endpoint for build metadata (git SHA, branch, timestamp)
+- PR #19: CI fix + deploy workflow improvements (GCP_CLOUD_RUN_SERVICE secret)
+- Backup.rs refactor - removed unnecessary `_inner` pattern, cleaner error handling
 
 **Game Data Architecture**
 - Individual game files to GCS implemented
@@ -94,15 +108,20 @@ is_newsletter: true
 
 ### Eyes - Observability/Tracing Project
 
+**Published to crates.io!**
+- `eyes-subscriber` v0.1.3 now available on crates.io
+- Can be used as a drop-in tracing subscriber for Rust apps
+
 **HTTP Batching (EYES-007)**
 - `BatchingHttpTransport` with configurable thresholds
 - Batch endpoint using PostgreSQL UNNEST for bulk inserts
-- E2E tests for all transport types
+- E2E tests for all transport types (10+ tests covering HTTP, WebSocket, batching)
 
 **Metrics Infrastructure Started**
 - GIN index on event_data for JSONB queries
 - Metric discovery endpoint (finds numeric fields in recent events)
-- Hot/cold storage architecture designed (7-day Postgres, S3 Parquet)
+- Computed `duration_ms` metric for completed spans
+- Hot/cold storage architecture designed (7-day Postgres, S3 Parquet via DuckDB)
 
 ---
 
@@ -130,7 +149,8 @@ is_newsletter: true
 
 - SQLx removal complete - migrated to tokio-postgres + deadpool-postgres
 - sql-check for compile-time validation
-- Cron registry API simplification (PR #15)
+- Cron registry API simplification (PR #15) - added optional description parameter instead of duplicate methods
+- Cron job metadata support for better observability
 
 ---
 
