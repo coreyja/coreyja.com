@@ -192,17 +192,42 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
 mod tests {
     use super::*;
 
+    // ==================== extract_post_dir tests ====================
+
     #[test]
-    fn test_extract_post_dir() {
+    fn test_extract_post_dir_weekly_newsletter() {
         let path = PathBuf::from("blog/weekly/20260123/index.md");
         assert_eq!(extract_post_dir(&path).unwrap(), "weekly/20260123");
+    }
 
+    #[test]
+    fn test_extract_post_dir_absolute_path() {
         let path = PathBuf::from("/home/user/code/coreyja.com/blog/weekly/20260123/index.md");
         assert_eq!(extract_post_dir(&path).unwrap(), "weekly/20260123");
     }
 
     #[test]
-    fn test_rewrite_image_urls() {
+    fn test_extract_post_dir_regular_blog_post() {
+        let path = PathBuf::from("blog/making-of-coreyja/index.md");
+        assert_eq!(extract_post_dir(&path).unwrap(), "making-of-coreyja");
+    }
+
+    #[test]
+    fn test_extract_post_dir_nested_structure() {
+        let path = PathBuf::from("blog/series/rust-tips/part-1/index.md");
+        assert_eq!(extract_post_dir(&path).unwrap(), "series/rust-tips/part-1");
+    }
+
+    #[test]
+    fn test_extract_post_dir_no_blog_prefix() {
+        let path = PathBuf::from("posts/weekly/20260123/index.md");
+        assert!(extract_post_dir(&path).is_err());
+    }
+
+    // ==================== rewrite_image_urls tests ====================
+
+    #[test]
+    fn test_rewrite_image_urls_multiple_images() {
         let content = "![alt text](./image.png)\nSome text\n![another](./path/to/image.jpg)";
         let rewritten = rewrite_image_urls(content, "weekly/20260123");
 
@@ -212,7 +237,44 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_frontmatter() {
+    fn test_rewrite_image_urls_no_images() {
+        let content = "Just some text without any images.";
+        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        assert_eq!(rewritten, content);
+    }
+
+    #[test]
+    fn test_rewrite_image_urls_absolute_urls_unchanged() {
+        let content = "![external](https://example.com/image.png)\n![local](./local.png)";
+        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+
+        assert!(rewritten.contains("](https://example.com/image.png)"));
+        assert!(rewritten.contains("](https://coreyja.com/blog/weekly/20260123/local.png)"));
+    }
+
+    #[test]
+    fn test_rewrite_image_urls_link_syntax_unchanged() {
+        // Regular links should not be affected (they also use ]( syntax)
+        let content = "[link text](https://example.com)\n![image](./img.png)";
+        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+
+        assert!(rewritten.contains("](https://example.com)"));
+        assert!(rewritten.contains("](https://coreyja.com/blog/weekly/20260123/img.png)"));
+    }
+
+    #[test]
+    fn test_rewrite_image_urls_preserves_alt_text() {
+        let content = "![My descriptive alt text](./screenshot.png)";
+        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+
+        assert!(rewritten.contains("![My descriptive alt text]"));
+        assert!(rewritten.contains("https://coreyja.com/blog/weekly/20260123/screenshot.png"));
+    }
+
+    // ==================== parse_frontmatter tests ====================
+
+    #[test]
+    fn test_parse_frontmatter_basic() {
         let content = r"---
 title: Test Newsletter
 date: 2026-01-25
@@ -228,7 +290,77 @@ This is the body.
     }
 
     #[test]
-    fn test_update_frontmatter_with_id() {
+    fn test_parse_frontmatter_with_optional_fields() {
+        let content = r"---
+title: Scheduled Newsletter
+date: 2026-01-25
+is_newsletter: true
+newsletter_send_at: 2026-01-26T12:00:00Z
+bsky_url: https://bsky.app/profile/coreyja.com/post/123
+---
+
+Body here.
+";
+        let (fm, _body) = parse_frontmatter(content).unwrap();
+        assert_eq!(fm.title, "Scheduled Newsletter");
+        assert!(fm.newsletter_send_at.is_some());
+        assert!(fm.bsky_url.is_some());
+    }
+
+    #[test]
+    fn test_parse_frontmatter_missing_opening_delimiter() {
+        let content = r"title: Test
+date: 2026-01-25
+---
+
+Body.
+";
+        assert!(parse_frontmatter(content).is_err());
+    }
+
+    #[test]
+    fn test_parse_frontmatter_missing_closing_delimiter() {
+        let content = r"---
+title: Test
+date: 2026-01-25
+
+Body without closing delimiter.
+";
+        assert!(parse_frontmatter(content).is_err());
+    }
+
+    #[test]
+    fn test_parse_frontmatter_is_newsletter_defaults_false() {
+        let content = r"---
+title: Regular Post
+date: 2026-01-25
+---
+
+Not a newsletter.
+";
+        let (fm, _) = parse_frontmatter(content).unwrap();
+        assert!(!fm.is_newsletter);
+    }
+
+    #[test]
+    fn test_parse_frontmatter_with_leading_whitespace() {
+        let content = r"
+---
+title: Test Newsletter
+date: 2026-01-25
+is_newsletter: true
+---
+
+Body.
+";
+        let (fm, _) = parse_frontmatter(content).unwrap();
+        assert_eq!(fm.title, "Test Newsletter");
+    }
+
+    // ==================== update_frontmatter_with_id tests ====================
+
+    #[test]
+    fn test_update_frontmatter_with_id_basic() {
         let content = r"---
 title: Test Newsletter
 date: 2026-01-25
@@ -240,5 +372,71 @@ Body content here.
         let updated = update_frontmatter_with_id(content, "abc123").unwrap();
         assert!(updated.contains("buttondown_id: abc123"));
         assert!(updated.contains("Body content here."));
+    }
+
+    #[test]
+    fn test_update_frontmatter_preserves_all_fields() {
+        let content = r"---
+title: Full Newsletter
+date: 2026-01-25
+is_newsletter: true
+bsky_url: https://bsky.app/test
+newsletter_send_at: 2026-01-26T12:00:00Z
+---
+
+Body.
+";
+        let updated = update_frontmatter_with_id(content, "xyz789").unwrap();
+
+        assert!(updated.contains("title: Full Newsletter"));
+        assert!(updated.contains("date: 2026-01-25"));
+        assert!(updated.contains("is_newsletter: true"));
+        assert!(updated.contains("bsky_url: https://bsky.app/test"));
+        assert!(updated.contains("newsletter_send_at:"));
+        assert!(updated.contains("buttondown_id: xyz789"));
+        assert!(updated.contains("Body."));
+    }
+
+    #[test]
+    fn test_update_frontmatter_preserves_body_formatting() {
+        let content = r"---
+title: Test
+date: 2026-01-25
+is_newsletter: true
+---
+
+# Heading
+
+Paragraph with **bold** and _italic_.
+
+- List item 1
+- List item 2
+
+```rust
+fn main() {}
+```
+";
+        let updated = update_frontmatter_with_id(content, "id123").unwrap();
+
+        assert!(updated.contains("# Heading"));
+        assert!(updated.contains("**bold**"));
+        assert!(updated.contains("- List item 1"));
+        assert!(updated.contains("```rust"));
+    }
+
+    #[test]
+    fn test_update_frontmatter_special_characters_in_id() {
+        let content = r"---
+title: Test
+date: 2026-01-25
+is_newsletter: true
+---
+
+Body.
+";
+        // Buttondown IDs are typically UUIDs
+        let updated =
+            update_frontmatter_with_id(content, "550e8400-e29b-41d4-a716-446655440000").unwrap();
+        assert!(updated.contains("buttondown_id: 550e8400-e29b-41d4-a716-446655440000"));
     }
 }
