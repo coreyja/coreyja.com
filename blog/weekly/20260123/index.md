@@ -1,181 +1,54 @@
 ---
-title: January 2026 - Mull and Battlesnake
+title: January 2026 - Mull
 author: Corey Alexander
-date: 2026-01-23
+date: 2026-01-24
 is_newsletter: true
 ---
 
-## OUTLINE - TOPICS TO COVER
+Hey Team! It's been a long time since I sent one of these, but its a new year and I want to start sending them more regularly.
 
-### Mull (formerly Mnemon) - AI Memory System
+And I've got a lot of things to show off, so it should be fun! I've been doing lots of LLM-driven development, and built some fun personal software. I've also taken over the Battlesnake infrastructure, [check out my recent post](https://coreyja.com/posts/battlesnake-in-2026/) to learn more about that.
 
-**The Big Rename**
-- Renamed the entire project from Mnemon to Mull mid-month
-- 162 files changed - crates, paths, env vars, database, docs, scripts
-- All systems updated: VM, memory repo, GitHub
+And today I think I want to talk about `mull`. Mull is what I've been spending most of my time on recenetly. It's what I'm going to call a PDE, for Personal Development Environment. A cousin on an IDE, but unique for each user. `mull` is mine, and maybe you'll make your own.
 
-**Web UI Overhaul**
-- Complete chat UI redesign with mobile-first approach
-- New dashboard homepage with widgets: Today's Activity, Recent PRs, Tasks by Status
-- PWA support for iOS home screen (manifest.json, custom M logo icon)
-- Session type filtering (interactive, byte_time, condenser, agent, scheduled_prompt)
+And that's actually exactly how mull was born. I watched this [really cool video](https://www.youtube.com/watch?v=yjO9UHIunSE) by [Alex Hillman](https://www.youtube.com/@AlexHillman) about their 'JFDI System' and knew I wanted something similiar. But really similiar in spririt only. Most of the details are pretty different.
 
-**PR Linking Feature (MNE-280)**
-- Can now attach GitHub PRs to chat sessions
-- `mull link-pr` CLI command
-- PR Watcher cron job with tiered polling (3min pending CI, hourly <7d, daily after)
-- Web UI shows PR cards in session sidebar with CI status badges
-- Chat cards in list now show project badge and PR status indicators
+But that's enough of dragging it out. Here is `mull` and `Byte`: `mull` is the System and the codebase and `Byte` is my agents identity
 
-**New CLI Command: `mull chat`**
-- Quick prompt-based chat sessions via HTTP API
-- Supports stdin piping (e.g., `cat file | mull chat`)
-- Options for model, project, auto-open browser
+![Mull Dashboard, showing ways to create new sessions. Stats on Tasks by Status and the like](./mull-dashboard.png)
 
-**Background Session Infrastructure**
-- Fixed UUID validation bug breaking Byte Time sessions
-- Separated worktree IDs from Claude session IDs
-- Better tracking of background session types in database
+This is Mull's web ui, and how I've been interacting with it most recently. It's also mobile friendly, and I do a large majority of my "coding" from my phone now through mull.
 
-**Scheduled Prompts**
-- Web UI monitoring page for scheduled prompts
-- Fixed model configuration bug (model field wasn't being passed through)
-- Context-aware daily image generator for Discord
+## Chat UI
 
-**Cron System Refactor**
-- Major refactor to use CJA CronRegistry directly (368 insertions, 277 deletions)
-- Simplified cron management, removed duplicate code
-- Fixed cron name mismatch bug (scheduled_prompts_checker not showing in UI)
+This feature of mull is basically a version of Claude Code Web, and gives me a chat interface into a full featured Claude Code instance. It uses the json-stream mode in the official claude code CLI, and turns that into a browser based chat interface. And this is how I've been doing most of personal code development in the last 2 months, and it's been one of the most productive two months of personal coding I've ever had.
 
-**Task Workflow Improvements**
-- Split `in_review` status into two distinct stages:
-  - `plan_review` - for plan critique stage
-  - `in_review` - for PR review stage (now requires pr_url field)
-- Better tracking of work progression through the pipeline
+![Mull chat view](./mull-chat.png)
 
-**Other Mull Improvements**
-- View Transitions API for smooth navigation (then reverted - too jarring)
-- Git diff sidebar using merge-base for accurate diffs
-- Stale cleanup fix - no longer deletes active session worktrees
-- Environment isolation - DATABASE_URL no longer leaks into Claude sessions
-- Discord 1Password service account token fix (secrets now load properly)
-- PR Watcher fixes - gh CLI command format issues resolved
+And mull doesn't have a diff view, or a code view or any kind. mull is running in a VM on my desktop, and claude has sudo access in te VM. It even has it's own Github account so it can push and pull the code I give it access to. If you see [`byte-the-bot`](https://github.com/byte-the-bot) around my Github, that's it.
 
----
+My usual workflow for implementation now involves getting a plan ready with claude through chat, and then letting it implement and open a PR when done. Then I can review it, often in the Github Mobile app. And we iterate from there, until I eventually approve the PR and Byte merges it in. We recently added a view so I can see the memory edits this session, and any PRs that got linked to the chat.
 
-### Battlesnake / Tournaments
+This workflow works really well for me. And I'm trying to fold more and more of the workflow into mull, so I can have it _just_ how I like it.Besides the core mull platform here are some other things we've built in the last month or two to chat about later:
 
-**Arena Infrastructure**
-- Cloud Run deployment setup with Terraform
-- Game engine implementation using `battlesnake-game-types` crate
-- WebSocket endpoint for board viewer
-- Game backup cron job to GCS
+- A CLI for browsing domains through the Porkbun API
+- A CLI for managing my email in Fastmail
+- A CLI for interacting with Nano Banana Pro, Gemini's Image Generation Model
+- A Mac Menubar Tool for hosting Github Actions Runners
+- A web form builder meets AI Interview app
 
-**Recent Work (Jan 21-22)**
-- PR #22: Code quality improvements - DeathInfo struct, removed duplicates, better test coverage
-- PR #23: Latency deserialization fix for older game archives (serde_as with OneOf for dual-format)
-- PR #20: Docker VERGEN fix + `/_/version` endpoint for build metadata (git SHA, branch, timestamp)
-- PR #19: CI fix + deploy workflow improvements (GCP_CLOUD_RUN_SERVICE secret)
-- Backup.rs refactor - removed unnecessary `_inner` pattern, cleaner error handling
+It's been a productive time!
 
-**Game Data Architecture**
-- Individual game files to GCS implemented
-- Daily bundles planned (compressed JSON over Parquet for nested game data)
+## Memory
 
----
+The other key part of `mull`, and where it gets its name, is the memory system. mull/claude/Byte (it gets confusing, I don't really know how to refer to these things yet to be honest) has a git repo full of Markdown that we call its memory repo. This is a repo that the agent has full push and pull access to, and is instructed in the system prompt to record to it often. There is also a system of background jobs that look at session transcripts and add info to memory as needed, which is inspiried by [Letta](https://www.letta.com/).
 
-### sql-check - New Project!
+This memory repo has info ranging from my cats names and my daughters birthdays, to a detailed task tracker for each of my projects. And so much more.
 
-**Built from scratch in January**
-- Compile-time SQL validation to replace SQLx
-- Schema parser, query validator, type inference, proc macros, runtime execution
+In the Web UI, we can see details about Projects, Tasks and Plans, which make up a large portion of the "project" specific memories. I will pop into a quick web chat session, and ask Claude to create a Task for a project, or maybe an Idea if I'm less certain about it. These get created as markdown files in the repo with yml headers for metadata. And after each session we automatically push and pull the repo to sync it. This is used to backup the memory, but also because when I am running Claude Code locally I want it to have a copy of the memory as well. So Claude has access to a local clone on each of my machines that are kept in sync.
 
-**Features Implemented**
-- SELECT, INSERT, UPDATE, DELETE with RETURNING
-- JOINs (all types including RIGHT/FULL/CROSS)
-- CTEs (WITH clause)
-- Aggregates (SUM/AVG with Decimal return types)
-- Window functions (ROW_NUMBER, RANK, LAG/LEAD, etc.)
-- String functions (16 functions: UPPER, LOWER, CONCAT, SUBSTRING, etc.)
-- Date/time functions (EXTRACT, DATE_TRUNC, NOW, AGE, etc.)
-- Set operations (UNION, INTERSECT, EXCEPT)
+This big ball of markdown helps to orient the agents and avoid repeating myself. It gives it a place to write things down to be able to read and 'remember' next session. And its been a blast to write!
 
-**Test Coverage**
-- 90+ tests passing
-- Unit tests, integration tests against real Postgres, compile-fail tests with trybuild
+Mull is still very much a work in progress, but it's already changed how I work. The whole point of a Personal Development Environment is that it's personal - shaped by how you work, not how someone else thinks you should. Mull is mine. What would yours look like?
 
----
-
-### Eyes - Observability/Tracing Project
-
-**Published to crates.io!**
-- `eyes-subscriber` v0.1.3 now available on crates.io
-- Can be used as a drop-in tracing subscriber for Rust apps
-
-**HTTP Batching (EYES-007)**
-- `BatchingHttpTransport` with configurable thresholds
-- Batch endpoint using PostgreSQL UNNEST for bulk inserts
-- E2E tests for all transport types (10+ tests covering HTTP, WebSocket, batching)
-
-**Metrics Infrastructure Started**
-- GIN index on event_data for JSONB queries
-- Metric discovery endpoint (finds numeric fields in recent events)
-- Computed `duration_ms` metric for completed spans
-- Hot/cold storage architecture designed (7-day Postgres, S3 Parquet via DuckDB)
-
----
-
-### Other New Tools Built
-
-**FormChat**
-- Complete UI redesign with "Warm Clarity" design system
-- Fixed bugs: blank chat screen, text overflow, input expansion
-- Dynamic font sizing based on text length
-- Removed streaming for better UX (buffered response with reveal animation)
-
-**GAR (GitHub Actions Runner)**
-- Marketing site with industrial-terminal aesthetic
-- macOS ARM64 .app bundle build workflow
-- Competitive analysis and market research
-- Beta launch tasks created (GAR-021 to GAR-030)
-
-**Stamp CLI** (JMAP email client) - mentioned in earlier work
-
-**Porkbun CLI** (domain management) - mentioned in earlier work
-
----
-
-### CJA Framework Updates
-
-- SQLx removal complete - migrated to tokio-postgres + deadpool-postgres
-- sql-check for compile-time validation
-- Cron registry API simplification (PR #15) - added optional description parameter instead of duplicate methods
-- Cron job metadata support for better observability
-
----
-
-### Byte Time Creative Output
-
-- Letters to Future Byte continuing (Letter XXIX on merge conflicts)
-- Learning paths, exploration sessions
-- Scheduled prompts generating context-aware Discord images
-
----
-
-## SUGGESTED STRUCTURE
-
-1. **Intro** - January was a massive month, lots of infrastructure work
-
-2. **Mull Evolution** - The rename, the web UI overhaul, PR linking feature
-   - This is the "big" section - lots of visible improvements
-
-3. **Battlesnake Arena** - Game engine, infrastructure, recent bugfixes
-   - Tie into the open source work with BattlesnakeOfficial
-
-4. **sql-check** - New project excitement, replacing SQLx
-   - Technical deep-dive opportunity
-
-5. **Quick Hits** - Eyes metrics, FormChat, GAR, CJA updates
-
-6. **Outro** - What's next, link to projects
-
+More on those sub-projects in future newsletters!
