@@ -212,8 +212,8 @@ pub(crate) async fn post_get(
 
           @if let Some((url, thread)) = bsky_thread {
             div class="mt-8" {
-              (bluesky_post_stats(&url, &thread))
-              (bsky_comments(&url, thread))
+              (bluesky_post_stats(url, &thread))
+              (bsky_comments(url, thread))
             }
           }
         },
