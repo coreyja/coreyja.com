@@ -1,5 +1,5 @@
 ---
-title: January 2026 - Mull
+title: January 2026 - I code from my phone now
 author: Corey Alexander
 date: 2026-01-24
 is_newsletter: true
@@ -9,9 +9,9 @@ Hey Team! It's been a long time since I sent one of these, but its a new year an
 
 And I've got a lot of things to show off, so it should be fun! I've been doing lots of LLM-driven development, and built some fun personal software. I've also taken over the Battlesnake infrastructure, [check out my recent post](https://coreyja.com/posts/battlesnake-in-2026/) to learn more about that.
 
-And today I think I want to talk about `mull`. Mull is what I've been spending most of my time on recenetly. It's what I'm going to call a PDE, for Personal Development Environment. A cousin on an IDE, but unique for each user. `mull` is mine, and maybe you'll make your own.
+And today I think I want to talk about `mull`. Mull is what I've been spending most of my time on recently. It's what I'm going to call a PDE, for Personal Development Environment. A cousin on an IDE, but unique for each user. `mull` is mine, and maybe you'll make your own.
 
-And that's actually exactly how mull was born. I watched this [really cool video](https://www.youtube.com/watch?v=yjO9UHIunSE) by [Alex Hillman](https://www.youtube.com/@AlexHillman) about their 'JFDI System' and knew I wanted something similiar. But really similiar in spririt only. Most of the details are pretty different.
+And that's actually exactly how mull was born. I watched this [really cool video](https://www.youtube.com/watch?v=yjO9UHIunSE) by [Alex Hillman](https://www.youtube.com/@AlexHillman) about their 'JFDI System' and knew I wanted something similar. But really similar in spirit only. Most of the details are pretty different.
 
 But that's enough of dragging it out. Here is `mull` and `Byte`: `mull` is the System and the codebase and `Byte` is my agents identity
 
@@ -25,11 +25,11 @@ This feature of mull is basically a version of Claude Code Web, and gives me a c
 
 ![Mull chat view](./mull-chat.png)
 
-And mull doesn't have a diff view, or a code view or any kind. mull is running in a VM on my desktop, and claude has sudo access in te VM. It even has it's own Github account so it can push and pull the code I give it access to. If you see [`byte-the-bot`](https://github.com/byte-the-bot) around my Github, that's it.
+And mull doesn't have a diff view, or a code view or any kind. mull is running in a VM on my desktop, and Claude has sudo access in the VM. It even has it's own Github account so it can push and pull the code I give it access to. If you see [`byte-the-bot`](https://github.com/byte-the-bot) around my Github, that's it.
 
 My usual workflow for implementation now involves getting a plan ready with claude through chat, and then letting it implement and open a PR when done. Then I can review it, often in the Github Mobile app. And we iterate from there, until I eventually approve the PR and Byte merges it in. We recently added a view so I can see the memory edits this session, and any PRs that got linked to the chat.
 
-This workflow works really well for me. And I'm trying to fold more and more of the workflow into mull, so I can have it _just_ how I like it.Besides the core mull platform here are some other things we've built in the last month or two to chat about later:
+This workflow works really well for me. And I'm trying to fold more and more of the workflow into mull, so I can have it _just_ how I like it. Besides the core mull platform here are some other things we've built in the last month or two to chat about later:
 
 - A CLI for browsing domains through the Porkbun API
 - A CLI for managing my email in Fastmail
@@ -41,7 +41,7 @@ It's been a productive time!
 
 ## Memory
 
-The other key part of `mull`, and where it gets its name, is the memory system. mull/claude/Byte (it gets confusing, I don't really know how to refer to these things yet to be honest) has a git repo full of Markdown that we call its memory repo. This is a repo that the agent has full push and pull access to, and is instructed in the system prompt to record to it often. There is also a system of background jobs that look at session transcripts and add info to memory as needed, which is inspiried by [Letta](https://www.letta.com/).
+The other key part of `mull`, and where it gets its name, is the memory system. mull/Claude/Byte (it gets confusing, I don't really know how to refer to these things yet to be honest) has a git repo full of Markdown that we call its memory repo. This is a repo that the agent has full push and pull access to, and is instructed in the system prompt to record to it often. There is also a system of background jobs that look at session transcripts and add info to memory as needed, which is inspiried by [Letta](https://www.letta.com/).
 
 This memory repo has info ranging from my cats names and my daughters birthdays, to a detailed task tracker for each of my projects. And so much more.
 
