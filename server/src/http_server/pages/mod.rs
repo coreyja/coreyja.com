@@ -9,3 +9,4 @@ pub mod login;
 pub mod projects;
 pub mod til;
 pub mod videos;
+pub mod thanks;
