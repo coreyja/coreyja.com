@@ -32,6 +32,7 @@ pub mod state;
 pub(crate) use state::{AppConfig, AppState};
 
 pub(crate) mod anthropic;
+pub(crate) mod buttondown;
 pub(crate) mod google;
 
 pub(crate) mod linear;

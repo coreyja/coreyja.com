@@ -1,6 +1,7 @@
 use cja::Result;
 use clap::Subcommand;
 
+pub(crate) mod buttondown;
 pub(crate) mod info;
 pub(crate) mod validate;
 
@@ -10,6 +11,8 @@ pub(crate) enum Command {
     Serve,
     Print,
     Validate,
+    /// Publish a newsletter to Buttondown
+    PublishButtondown(buttondown::PublishButtondownArgs),
 }
 
 impl Command {
@@ -18,6 +21,7 @@ impl Command {
             Command::Serve => crate::http_server::cmd::serve().await,
             Command::Print => info::print_info(),
             Command::Validate => validate::validate(),
+            Command::PublishButtondown(args) => buttondown::publish_buttondown(args).await,
         }
     }
 }
