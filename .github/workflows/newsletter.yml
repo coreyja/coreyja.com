@@ -1,0 +1,97 @@
+name: Publish Newsletter
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'blog/weekly/**'
+  workflow_dispatch:
+
+env:
+  SQLX_OFFLINE: true
+  APP_BASE_URL: https://coreyja.com
+
+jobs:
+  publish:
+    name: Publish Newsletter to Buttondown
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v4
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler libasound2-dev
+          version: v0
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Tailwind CSS
+        run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Find unpublished newsletters
+        id: find
+        run: |
+          # Find all newsletter markdown files
+          newsletters=""
+          for file in blog/weekly/*/index.md; do
+            if [ -f "$file" ]; then
+              # Check if it's a newsletter and doesn't have buttondown_id
+              if grep -q "is_newsletter: true" "$file" && ! grep -q "buttondown_id:" "$file"; then
+                # Check if date is >= 2026-01-25
+                date_line=$(grep "^date:" "$file" | head -1)
+                if [ -n "$date_line" ]; then
+                  post_date=$(echo "$date_line" | sed 's/date: //')
+                  if [[ "$post_date" > "2026-01-24" ]] || [[ "$post_date" == "2026-01-25" ]]; then
+                    newsletters="$newsletters $file"
+                  fi
+                fi
+              fi
+            fi
+          done
+
+          # Trim leading space and output
+          newsletters=$(echo "$newsletters" | xargs)
+          echo "paths=$newsletters" >> $GITHUB_OUTPUT
+
+          if [ -n "$newsletters" ]; then
+            echo "Found unpublished newsletters: $newsletters"
+          else
+            echo "No unpublished newsletters found"
+          fi
+
+      - name: Publish to Buttondown
+        if: steps.find.outputs.paths != ''
+        env:
+          BUTTONDOWN_API_KEY: ${{ secrets.BUTTONDOWN_API_KEY }}
+        run: |
+          for path in ${{ steps.find.outputs.paths }}; do
+            echo "Publishing: $path"
+            ./target/release/server publish-buttondown --path "$path"
+          done
+
+      - name: Commit buttondown_id updates
+        if: steps.find.outputs.paths != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add blog/weekly/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add buttondown_id to published newsletters"
+            git push
+          fi

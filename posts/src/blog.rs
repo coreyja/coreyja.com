@@ -1,7 +1,7 @@
 use path_absolutize::Absolutize;
 use std::path::{Path, PathBuf};
 
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use include_dir::{include_dir, Dir, File};
 use markdown::mdast::Node;
 use serde::{Deserialize, Serialize};
@@ -218,6 +218,10 @@ pub struct BlogFrontMatter {
     #[serde(default = "default_is_newsletter")]
     pub is_newsletter: bool,
     pub bsky_url: Option<String>,
+    /// When to send the newsletter. If `None` and `is_newsletter` is true, send immediately.
+    pub newsletter_send_at: Option<DateTime<Utc>>,
+    /// Buttondown email ID, populated after publishing to Buttondown.
+    pub buttondown_id: Option<String>,
 }
 
 impl PostedOn for BlogFrontMatter {
@@ -297,6 +301,8 @@ mod test {
             date: NaiveDate::default(),
             is_newsletter: false,
             bsky_url: None,
+            newsletter_send_at: None,
+            buttondown_id: None,
         };
         let post = BlogPost {
             path,
