@@ -1,5 +1,5 @@
-use cja::color_eyre::eyre::Context;
 use chrono::{DateTime, Utc};
+use cja::color_eyre::eyre::Context;
 use serde::{Deserialize, Serialize};
 
 const BUTTONDOWN_API_BASE: &str = "https://api.buttondown.com/v1";

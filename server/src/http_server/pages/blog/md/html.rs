@@ -2,8 +2,9 @@ use std::path::PathBuf;
 use std::unreachable;
 
 use markdown::mdast::{
-    Blockquote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link, List,
-    ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak, Yaml,
+    AlignKind, Blockquote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link,
+    List, ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak,
+    Yaml,
 };
 use maud::{html, Markup, PreEscaped};
 use url::Url;
@@ -126,6 +127,49 @@ impl IntoHtml for ListItem {
     }
 }
 
+fn align_class(align: Option<&AlignKind>) -> &'static str {
+    match align {
+        Some(AlignKind::Left) => "text-left",
+        Some(AlignKind::Right) => "text-right",
+        Some(AlignKind::Center) => "text-center",
+        Some(AlignKind::None) | None => "",
+    }
+}
+
+fn render_table_cell(
+    cell: TableCell,
+    tag: &str,
+    align: Option<&AlignKind>,
+    config: &AppConfig,
+    context: &MarkdownRenderContext,
+) -> Result<Markup> {
+    let align_cls = align_class(align);
+    let rendered = cell.children.into_html(config, context)?;
+    Ok(if tag == "th" {
+        html! { th class=(align_cls) { (rendered) } }
+    } else {
+        html! { td class=(align_cls) { (rendered) } }
+    })
+}
+
+fn render_table_row(
+    row: TableRow,
+    tag: &str,
+    align: &[AlignKind],
+    config: &AppConfig,
+    context: &MarkdownRenderContext,
+) -> Result<Markup> {
+    Ok(html! {
+        tr {
+            @for (i, child) in row.children.into_iter().enumerate() {
+                @if let Node::TableCell(cell) = child {
+                    (render_table_cell(cell, tag, align.get(i), config, context)?)
+                }
+            }
+        }
+    })
+}
+
 impl IntoHtml for TableCell {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
         Ok(html! {
@@ -148,10 +192,25 @@ impl IntoHtml for TableRow {
 
 impl IntoHtml for Table {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
+        let align = self.align;
+        let mut rows = self.children.into_iter();
+        let header_row = rows.next();
+
         Ok(html! {
-            table {
-                tbody {
-                    (self.children.into_html(config, context)?)
+            div class="my-4 overflow-x-auto max-w-prose" {
+                table class="blog-table" {
+                    @if let Some(Node::TableRow(row)) = header_row {
+                        thead {
+                            (render_table_row(row, "th", &align, config, context)?)
+                        }
+                    }
+                    tbody {
+                        @for child in rows {
+                            @if let Node::TableRow(row) = child {
+                                (render_table_row(row, "td", &align, config, context)?)
+                            }
+                        }
+                    }
                 }
             }
         })

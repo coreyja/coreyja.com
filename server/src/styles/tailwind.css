@@ -17,3 +17,29 @@
   display: unset;
 }
 
+/* Blog table styles */
+.blog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.blog-table thead th {
+  padding: 0.625rem 1rem;
+  font-weight: 700;
+  border-bottom: 2px solid #121131;
+}
+
+.blog-table tbody td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(18, 17, 49, 0.1);
+}
+
+.blog-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.blog-table tbody tr:nth-child(even) {
+  background-color: rgba(161, 168, 255, 0.08);
+}
+

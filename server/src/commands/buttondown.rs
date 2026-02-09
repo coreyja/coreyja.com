@@ -58,7 +58,9 @@ fn parse_frontmatter(content: &str) -> cja::Result<(BlogFrontMatter, String)> {
     // Find the frontmatter delimiters
     let content = content.trim_start();
     if !content.starts_with("---") {
-        return Err(cja::color_eyre::eyre::eyre!("Missing frontmatter delimiter"));
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Missing frontmatter delimiter"
+        ));
     }
 
     // Find the closing delimiter
@@ -72,8 +74,8 @@ fn parse_frontmatter(content: &str) -> cja::Result<(BlogFrontMatter, String)> {
     let yaml = &rest[..end_idx].trim();
     let body = &rest[end_idx + 4..]; // Skip "\n---"
 
-    let frontmatter: BlogFrontMatter =
-        serde_yaml::from_str(yaml).map_err(|e| cja::color_eyre::eyre::eyre!("Invalid YAML: {}", e))?;
+    let frontmatter: BlogFrontMatter = serde_yaml::from_str(yaml)
+        .map_err(|e| cja::color_eyre::eyre::eyre!("Invalid YAML: {}", e))?;
 
     Ok((frontmatter, body.to_string()))
 }
@@ -83,7 +85,9 @@ fn update_frontmatter_with_id(content: &str, buttondown_id: &str) -> cja::Result
     // Find the frontmatter delimiters
     let content = content.trim_start();
     if !content.starts_with("---") {
-        return Err(cja::color_eyre::eyre::eyre!("Missing frontmatter delimiter"));
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Missing frontmatter delimiter"
+        ));
     }
 
     // Find the closing delimiter
@@ -107,8 +111,9 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
     let path = &args.path;
 
     // Read the file
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to read file {}: {}", path.display(), e))?;
+    let content = std::fs::read_to_string(path).map_err(|e| {
+        cja::color_eyre::eyre::eyre!("Failed to read file {}: {}", path.display(), e)
+    })?;
 
     // Parse frontmatter
     let (frontmatter, body) = parse_frontmatter(&content)?;
@@ -127,8 +132,8 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
     }
 
     // Check cutoff date
-    let cutoff = NaiveDate::parse_from_str(CUTOFF_DATE, "%Y-%m-%d")
-        .expect("CUTOFF_DATE should be valid");
+    let cutoff =
+        NaiveDate::parse_from_str(CUTOFF_DATE, "%Y-%m-%d").expect("CUTOFF_DATE should be valid");
     if frontmatter.date < cutoff {
         println!(
             "Newsletter date {} is before cutoff date {}, skipping",
@@ -148,7 +153,9 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
         Some(send_at) => {
             // Check if the scheduled time is in the future
             if send_at <= Utc::now() {
-                println!("Warning: newsletter_send_at ({send_at}) is in the past, sending immediately");
+                println!(
+                    "Warning: newsletter_send_at ({send_at}) is in the past, sending immediately"
+                );
                 (EmailStatus::AboutToSend, None)
             } else {
                 (EmailStatus::Scheduled, Some(send_at))
@@ -180,8 +187,9 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
 
     // Update the file with the buttondown_id
     let updated_content = update_frontmatter_with_id(&content, &response.id)?;
-    std::fs::write(path, updated_content)
-        .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to write file {}: {}", path.display(), e))?;
+    std::fs::write(path, updated_content).map_err(|e| {
+        cja::color_eyre::eyre::eyre!("Failed to write file {}: {}", path.display(), e)
+    })?;
 
     println!("Updated {} with buttondown_id", path.display());
 
