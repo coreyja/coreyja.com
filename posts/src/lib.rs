@@ -38,6 +38,7 @@ impl FromStr for MarkdownAst {
     fn from_str(contents: &str) -> Result<Self> {
         let mut options: ParseOptions = ParseOptions::default();
         options.constructs.gfm_footnote_definition = true;
+        options.constructs.gfm_table = true;
         options.constructs.frontmatter = true;
 
         match to_mdast(contents, &options) {
