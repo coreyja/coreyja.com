@@ -17,7 +17,7 @@ I got curious about what this actually looks like in the commit history, so I bu
 
 I analyzed 12 repositories spanning January 2025 through February 2026 — roughly 900 commits across projects ranging from fully autonomous AI development to human-only coding. The tool is [git-mine](https://github.com/coreyja-studio/git-mine), a Rust CLI that extracts patterns from git history.
 
-<!-- TODO: Link to Battlesnake 2026 post for context on AI agent coding philosophy once published -->
+If you want more context on the AI agent coding philosophy, I wrote about it in my [Battlesnake in 2026](/battlesnake-in-2026) post.
 
 ## Add-Fix Rate: An Iteration Speed Signal
 
@@ -119,7 +119,7 @@ This isn't good or bad. It's information. The autonomous pipeline finds and fixe
 If you want to see your own commit fingerprint:
 
 ```bash
-cargo install git-mine
+cargo install --git https://github.com/coreyja-studio/git-mine
 git-mine /path/to/your/repo analyze --since "2025-01-01"
 ```
 
