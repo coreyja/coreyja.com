@@ -54,7 +54,7 @@ fn test_hello_world_episode_parses_correctly() {
         ep.frontmatter.audio_url,
         "https://coreyja-podcast.s3.amazonaws.com/episodes/hello-world.mp3"
     );
-    assert_eq!(ep.frontmatter.audio_length_bytes, 12345678);
+    assert_eq!(ep.frontmatter.audio_length_bytes, 12_345_678);
     assert_eq!(ep.frontmatter.audio_duration, "00:45:30");
 }
 

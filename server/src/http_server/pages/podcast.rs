@@ -144,11 +144,14 @@ pub(crate) async fn podcast_rss_feed(
         .build();
 
     let body = channel.to_string();
-    Ok(Response::builder()
+    let response = Response::builder()
         .header("Content-Type", "application/rss+xml")
-        .body(body)
-        .unwrap()
-        .into_response())
+        .body(body);
+
+    match response {
+        Ok(r) => Ok(r.into_response()),
+        Err(_) => Err(cja::color_eyre::eyre::eyre!("Failed to build RSS Feed response").into()),
+    }
 }
 
 fn podcast_rss_item(
@@ -175,9 +178,15 @@ fn podcast_rss_item(
         current_article_path: format!("/podcast/{}", ep.frontmatter.slug),
     };
 
+    let guid = rss::GuidBuilder::default()
+        .value(link.clone())
+        .permalink(true)
+        .build();
+
     Ok(rss::ItemBuilder::default()
         .title(Some(ep.frontmatter.title.clone()))
         .link(Some(link))
+        .guid(Some(guid))
         .description(ep.short_description())
         .pub_date(Some(posted_on.to_rfc2822()))
         .enclosure(Some(enclosure))
