@@ -13,6 +13,7 @@ use color_eyre::Result;
 use self::{blog::PostMarkdown, date::PostedOn, title::Title};
 
 pub mod blog;
+pub mod podcast;
 pub mod til;
 
 pub mod date;

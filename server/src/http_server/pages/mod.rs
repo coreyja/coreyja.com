@@ -6,6 +6,7 @@ pub mod contact;
 pub mod home;
 pub mod legal;
 pub mod login;
+pub mod podcast;
 pub mod projects;
 pub mod til;
 pub mod videos;

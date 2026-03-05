@@ -110,6 +110,7 @@ pub fn header() -> Markup {
             (HeaderLink { href: "/posts", text: "Posts" })
             (HeaderLink { href: "/til", text: "TILs" })
             (HeaderLink { href: "/videos", text: "Videos" })
+            (HeaderLink { href: "/podcast", text: "Podcast" })
             (HeaderLink { href: "/projects", text: "Projects" })
             (HeaderLink { href: "/newsletter", text: "Newsletter" })
           }

@@ -39,6 +39,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         syntax_highlighting_context: SyntaxHighlightingContext,
         blog_posts: Arc::new(posts::blog::BlogPosts::from_static_dir().unwrap()),
         til_posts: Arc::new(posts::til::TilPosts::from_static_dir().unwrap()),
+        podcast_episodes: Arc::new(posts::podcast::PodcastEpisodes::from_static_dir().unwrap()),
         projects: Arc::new(posts::projects::Projects::from_static_dir().unwrap()),
         versions: crate::state::VersionInfo {
             git_commit: "test-commit",

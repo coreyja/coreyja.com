@@ -11,6 +11,7 @@ use include_dir::{include_dir, Dir};
 use posts::{
     blog::{BlogPost, ToCanonicalPath},
     date::PostedOn,
+    podcast::PodcastEpisode,
     til::TilPost,
     title::Title,
     Post,
@@ -69,6 +70,12 @@ impl LinkTo for BlogPost {
 impl LinkTo for TilPost {
     fn relative_link(&self) -> String {
         format!("/til/{}", self.frontmatter.slug)
+    }
+}
+
+impl LinkTo for PodcastEpisode {
+    fn relative_link(&self) -> String {
+        format!("/podcast/{}", self.frontmatter.slug)
     }
 }
 
