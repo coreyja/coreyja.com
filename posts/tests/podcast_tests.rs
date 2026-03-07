@@ -22,16 +22,8 @@ fn test_episode_frontmatter_fields() {
         "Episode slug should not be empty"
     );
     assert!(
-        !ep.frontmatter.youtube_id.is_empty(),
-        "Episode youtube_id should not be empty"
-    );
-    assert!(
         !ep.frontmatter.audio_url.is_empty(),
         "Episode audio_url should not be empty"
-    );
-    assert!(
-        ep.frontmatter.audio_length_bytes > 0,
-        "Episode audio_length_bytes should be positive"
     );
     assert!(
         !ep.frontmatter.audio_duration.is_empty(),
@@ -47,15 +39,16 @@ fn test_hello_world_episode_parses_correctly() {
         .iter()
         .find(|e| e.frontmatter.slug == "hello-world")
         .expect("Should find the hello-world episode");
-    assert_eq!(ep.frontmatter.title, "Hello World - coreyja.fm Episode 1");
+    assert_eq!(
+        ep.frontmatter.title,
+        "Why I'm Starting a Podcast (and What I've Been Building)"
+    );
     assert_eq!(ep.frontmatter.slug, "hello-world");
-    assert_eq!(ep.frontmatter.youtube_id, "dQw4w9WgXcQ");
     assert_eq!(
         ep.frontmatter.audio_url,
-        "https://coreyja-podcast.s3.amazonaws.com/episodes/hello-world.mp3"
+        "https://coreyja-podcast.s3.amazonaws.com/episodes/001-hello-world.mp3"
     );
-    assert_eq!(ep.frontmatter.audio_length_bytes, 12_345_678);
-    assert_eq!(ep.frontmatter.audio_duration, "00:45:30");
+    assert_eq!(ep.frontmatter.audio_duration, "00:24:30");
 }
 
 #[test]
@@ -81,7 +74,7 @@ fn test_episode_implements_posted_on() {
     let episodes = posts::podcast::PodcastEpisodes::from_static_dir().unwrap();
     let ep = &episodes.episodes[0];
     let date = ep.posted_on();
-    assert_eq!(date, chrono::NaiveDate::from_ymd_opt(2026, 3, 1).unwrap());
+    assert_eq!(date, chrono::NaiveDate::from_ymd_opt(2026, 3, 6).unwrap());
 }
 
 #[test]
@@ -89,7 +82,10 @@ fn test_episode_implements_title() {
     use posts::title::Title;
     let episodes = posts::podcast::PodcastEpisodes::from_static_dir().unwrap();
     let ep = &episodes.episodes[0];
-    assert_eq!(ep.title(), "Hello World - coreyja.fm Episode 1");
+    assert_eq!(
+        ep.title(),
+        "Why I'm Starting a Podcast (and What I've Been Building)"
+    );
 }
 
 #[test]
