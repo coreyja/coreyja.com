@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use chrono::NaiveDate;
+use chrono::{NaiveDate, Utc};
 use clap::Args;
 use posts::blog::BlogFrontMatter;
 
@@ -17,6 +17,10 @@ pub struct PublishButtondownArgs {
     /// Path to the newsletter markdown file
     #[arg(long)]
     pub path: PathBuf,
+
+    /// Actually send the newsletter (default: create as draft)
+    #[arg(long)]
+    pub publish: bool,
 }
 
 /// Rewrite relative image URLs to absolute URLs
@@ -148,8 +152,20 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
     // Rewrite image URLs
     let body_with_absolute_urls = rewrite_image_urls(&body, &post_dir);
 
-    // Create as draft so it can be reviewed in the Buttondown UI before sending
-    let (status, publish_date) = (EmailStatus::Draft, None);
+    // Determine email status: draft by default, or publish/schedule with --publish
+    let (status, publish_date) = if args.publish {
+        match frontmatter.newsletter_send_at {
+            Some(send_at) if send_at > Utc::now() => (EmailStatus::Scheduled, Some(send_at)),
+            Some(send_at) => {
+                println!("Warning: newsletter_send_at ({send_at}) is in the past, sending immediately");
+                (EmailStatus::AboutToSend, None)
+            }
+            None => (EmailStatus::AboutToSend, None),
+        }
+    } else {
+        println!("Creating as draft (use --publish to send)");
+        (EmailStatus::Draft, None)
+    };
 
     // Create the request
     let request = CreateEmailRequest {
