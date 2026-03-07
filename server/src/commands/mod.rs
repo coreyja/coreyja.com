@@ -1,6 +1,7 @@
 use cja::Result;
 use clap::Subcommand;
 
+pub(crate) mod bluesky;
 pub(crate) mod buttondown;
 pub(crate) mod info;
 pub(crate) mod validate;
@@ -13,6 +14,8 @@ pub(crate) enum Command {
     Validate,
     /// Publish a newsletter to Buttondown
     PublishButtondown(buttondown::PublishButtondownArgs),
+    /// Publish a note to Bluesky
+    PublishBluesky(bluesky::PublishBlueskyArgs),
 }
 
 impl Command {
@@ -22,6 +25,7 @@ impl Command {
             Command::Print => info::print_info(),
             Command::Validate => validate::validate(),
             Command::PublishButtondown(args) => buttondown::publish_buttondown(args).await,
+            Command::PublishBluesky(args) => bluesky::publish_bluesky(args).await,
         }
     }
 }

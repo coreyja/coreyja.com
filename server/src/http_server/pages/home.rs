@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use maud::{html, Markup};
-use posts::{blog::BlogPosts, til::TilPosts};
+use posts::{blog::BlogPosts, notes::NotePosts};
 
 use crate::{
     http_server::{
@@ -12,7 +12,7 @@ use crate::{
             buttons::LinkButton,
             constrained_width,
             header::OpenGraph,
-            post_templates::{BlogPostList, TilPostList},
+            post_templates::{BlogPostList, NotePostList},
         },
         ServerError,
     },
@@ -21,11 +21,11 @@ use crate::{
 
 pub(crate) async fn home_page(
     State(app_state): State<AppState>,
-    State(til_posts): State<Arc<TilPosts>>,
+    State(note_posts): State<Arc<NotePosts>>,
     State(blog_posts): State<Arc<BlogPosts>>,
 ) -> Result<Markup, ServerError> {
-    let mut recent_tils = til_posts.by_recency();
-    recent_tils.truncate(3);
+    let mut recent_notes = note_posts.by_recency();
+    recent_notes.truncate(3);
 
     let mut recent_posts = blog_posts.by_recency();
     recent_posts.truncate(3);
@@ -82,8 +82,8 @@ pub(crate) async fn home_page(
                 div class="flex flex-col md:flex-row md:space-x-8" {
                     div class="flex-grow" {
                         div ."mb-16" {
-                            h2 ."text-3xl" { a href="/til" { "Recent TILs" } }
-                            (TilPostList(recent_tils))
+                            h2 ."text-3xl" { a href="/notes" { "Recent Notes" } }
+                            (NotePostList(recent_notes))
                         }
 
                         div ."mb-16" {
