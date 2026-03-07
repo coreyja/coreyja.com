@@ -22,8 +22,16 @@ fn test_episode_frontmatter_fields() {
         "Episode slug should not be empty"
     );
     assert!(
+        !ep.frontmatter.youtube_id.is_empty(),
+        "Episode youtube_id should not be empty"
+    );
+    assert!(
         !ep.frontmatter.audio_url.is_empty(),
         "Episode audio_url should not be empty"
+    );
+    assert!(
+        ep.frontmatter.audio_length_bytes > 0,
+        "Episode audio_length_bytes should be positive"
     );
     assert!(
         !ep.frontmatter.audio_duration.is_empty(),
