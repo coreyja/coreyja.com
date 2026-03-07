@@ -9,8 +9,8 @@ use crate::buttondown::{ButtondownClient, ButtondownConfig, CreateEmailRequest, 
 /// Cutoff date - only publish newsletters dated on or after this date
 const CUTOFF_DATE: &str = "2026-01-25";
 
-/// Base URL for the blog
-const BLOG_BASE_URL: &str = "https://coreyja.com/blog";
+/// Base URL for serving blog post assets (images, etc.)
+const POSTS_BASE_URL: &str = "https://coreyja.com/posts";
 
 #[derive(Args, Debug)]
 pub struct PublishButtondownArgs {
@@ -21,10 +21,10 @@ pub struct PublishButtondownArgs {
 
 /// Rewrite relative image URLs to absolute URLs
 ///
-/// Transforms `./image.png` to `https://coreyja.com/blog/weekly/20260123/image.png`
+/// Transforms `./image.png` to `https://coreyja.com/posts/weekly/20260123/image.png`
 fn rewrite_image_urls(content: &str, post_dir: &str) -> String {
     // Build the base URL for this post's images
-    let base_url = format!("{BLOG_BASE_URL}/{post_dir}");
+    let base_url = format!("{POSTS_BASE_URL}/{post_dir}");
 
     // Replace ./path with absolute URL
     // This handles the common case of `![alt](./image.png)`
@@ -239,8 +239,8 @@ mod tests {
         let content = "![alt text](./image.png)\nSome text\n![another](./path/to/image.jpg)";
         let rewritten = rewrite_image_urls(content, "weekly/20260123");
 
-        assert!(rewritten.contains("](https://coreyja.com/blog/weekly/20260123/image.png)"));
-        assert!(rewritten.contains("](https://coreyja.com/blog/weekly/20260123/path/to/image.jpg)"));
+        assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/image.png)"));
+        assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/path/to/image.jpg)"));
         assert!(!rewritten.contains("](./"));
     }
 
@@ -257,7 +257,7 @@ mod tests {
         let rewritten = rewrite_image_urls(content, "weekly/20260123");
 
         assert!(rewritten.contains("](https://example.com/image.png)"));
-        assert!(rewritten.contains("](https://coreyja.com/blog/weekly/20260123/local.png)"));
+        assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/local.png)"));
     }
 
     #[test]
@@ -267,7 +267,7 @@ mod tests {
         let rewritten = rewrite_image_urls(content, "weekly/20260123");
 
         assert!(rewritten.contains("](https://example.com)"));
-        assert!(rewritten.contains("](https://coreyja.com/blog/weekly/20260123/img.png)"));
+        assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/img.png)"));
     }
 
     #[test]
@@ -276,7 +276,24 @@ mod tests {
         let rewritten = rewrite_image_urls(content, "weekly/20260123");
 
         assert!(rewritten.contains("![My descriptive alt text]"));
-        assert!(rewritten.contains("https://coreyja.com/blog/weekly/20260123/screenshot.png"));
+        assert!(rewritten.contains("https://coreyja.com/posts/weekly/20260123/screenshot.png"));
+    }
+
+    #[test]
+    fn test_rewrite_image_urls_uses_posts_path_not_blog() {
+        // Images are served at /posts/{*key}, not /blog/{path}.
+        // The /blog route only handles legacy redirects.
+        let content = "![img](./photo.png)";
+        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+
+        assert!(
+            rewritten.contains("/posts/"),
+            "URL should use /posts/ path where images are served, got: {rewritten}"
+        );
+        assert!(
+            !rewritten.contains("coreyja.com/blog/"),
+            "URL must not use /blog/ path (legacy redirect only), got: {rewritten}"
+        );
     }
 
     // ==================== parse_frontmatter tests ====================
