@@ -1,11 +1,11 @@
 use maud::{html, Markup, Render};
-use posts::{blog::BlogPost, til::TilPost};
+use posts::{blog::BlogPost, notes::NotePost};
 
 use crate::http_server::LinkTo;
 
-pub(crate) struct TilPostList<'a>(pub(crate) Vec<&'a TilPost>);
+pub(crate) struct NotePostList<'a>(pub(crate) Vec<&'a NotePost>);
 
-impl Render for TilPostList<'_> {
+impl Render for NotePostList<'_> {
     fn render(&self) -> Markup {
         html! {
           ul {

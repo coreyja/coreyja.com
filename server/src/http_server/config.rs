@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
-use posts::{blog::BlogPosts, podcast::PodcastEpisodes, projects::Projects, til::TilPosts};
+use posts::{blog::BlogPosts, notes::NotePosts, podcast::PodcastEpisodes, projects::Projects};
 
 use crate::{google::GoogleConfig, twitch::TwitchConfig, AppConfig, AppState};
 
@@ -31,9 +31,9 @@ impl FromRef<AppState> for Arc<BlogPosts> {
     }
 }
 
-impl FromRef<AppState> for Arc<TilPosts> {
+impl FromRef<AppState> for Arc<NotePosts> {
     fn from_ref(config: &AppState) -> Self {
-        config.til_posts.clone()
+        config.note_posts.clone()
     }
 }
 

@@ -1,30 +1,247 @@
-// Test scaffold for Bluesky API client module - BLOG-6a79edf75fad4d29
-// The implementation agent should add BlueskyConfig, BlueskyClient, AT Protocol types,
-// and the at_uri_to_web_url helper above this test block, then un-ignore tests.
+use serde::{Deserialize, Serialize};
+
+pub struct BlueskyConfig {
+    pub identifier: String,
+    pub app_password: String,
+}
+
+impl BlueskyConfig {
+    pub fn from_env() -> cja::Result<Self> {
+        let identifier = std::env::var("BLUESKY_IDENTIFIER").map_err(|_| {
+            cja::color_eyre::eyre::eyre!("Missing BLUESKY_IDENTIFIER environment variable")
+        })?;
+        let app_password = std::env::var("BLUESKY_APP_PASSWORD").map_err(|_| {
+            cja::color_eyre::eyre::eyre!("Missing BLUESKY_APP_PASSWORD environment variable")
+        })?;
+        Ok(Self {
+            identifier,
+            app_password,
+        })
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct SessionResponse {
+    did: String,
+    access_jwt: String,
+}
+
+pub struct BlueskyClient {
+    client: reqwest::Client,
+    session: SessionResponse,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct CreateSessionRequest {
+    identifier: String,
+    password: String,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct CreateRecordRequest {
+    repo: String,
+    collection: String,
+    record: PostRecord,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct PostRecord {
+    #[serde(rename = "$type")]
+    record_type: String,
+    text: String,
+    created_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    facets: Option<Vec<Facet>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    embed: Option<EmbedExternal>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct Facet {
+    index: ByteSlice,
+    features: Vec<FacetFeature>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ByteSlice {
+    byte_start: usize,
+    byte_end: usize,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct FacetFeature {
+    #[serde(rename = "$type")]
+    feature_type: String,
+    uri: String,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct EmbedExternal {
+    #[serde(rename = "$type")]
+    embed_type: String,
+    external: ExternalEmbed,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ExternalEmbed {
+    uri: String,
+    title: String,
+    description: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateRecordResponse {
+    pub uri: String,
+}
+
+impl BlueskyClient {
+    pub async fn login(config: &BlueskyConfig) -> cja::Result<Self> {
+        let client = reqwest::Client::new();
+        let req = CreateSessionRequest {
+            identifier: config.identifier.clone(),
+            password: config.app_password.clone(),
+        };
+
+        let resp = client
+            .post("https://bsky.social/xrpc/com.atproto.server.createSession")
+            .json(&req)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Bluesky login failed ({}): {}",
+                status,
+                body
+            ));
+        }
+
+        let session: SessionResponse = resp.json().await?;
+
+        Ok(Self { client, session })
+    }
+
+    pub async fn create_post(
+        &self,
+        text: &str,
+        url: &str,
+        title: &str,
+    ) -> cja::Result<CreateRecordResponse> {
+        let facets = build_link_facets(text);
+
+        let record = CreateRecordRequest {
+            repo: self.session.did.clone(),
+            collection: "app.bsky.feed.post".to_string(),
+            record: PostRecord {
+                record_type: "app.bsky.feed.post".to_string(),
+                text: text.to_string(),
+                created_at: chrono::Utc::now().to_rfc3339(),
+                facets: if facets.is_empty() {
+                    None
+                } else {
+                    Some(facets)
+                },
+                embed: Some(EmbedExternal {
+                    embed_type: "app.bsky.embed.external".to_string(),
+                    external: ExternalEmbed {
+                        uri: url.to_string(),
+                        title: title.to_string(),
+                        description: String::new(),
+                    },
+                }),
+            },
+        };
+
+        let resp = self
+            .client
+            .post("https://bsky.social/xrpc/com.atproto.repo.createRecord")
+            .bearer_auth(&self.session.access_jwt)
+            .json(&record)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Failed to create Bluesky post ({}): {}",
+                status,
+                body
+            ));
+        }
+
+        let response: CreateRecordResponse = resp.json().await?;
+        Ok(response)
+    }
+}
+
+fn build_link_facets(text: &str) -> Vec<Facet> {
+    let mut facets = Vec::new();
+
+    for word in text.split_whitespace() {
+        if word.starts_with("https://") || word.starts_with("http://") {
+            if let Some(start) = text.find(word) {
+                let end = start + word.len();
+                facets.push(Facet {
+                    index: ByteSlice {
+                        byte_start: start,
+                        byte_end: end,
+                    },
+                    features: vec![FacetFeature {
+                        feature_type: "app.bsky.richtext.facet#link".to_string(),
+                        uri: word.to_string(),
+                    }],
+                });
+            }
+        }
+    }
+
+    facets
+}
+
+pub fn at_uri_to_web_url(at_uri: &str) -> cja::Result<String> {
+    let stripped = at_uri
+        .strip_prefix("at://")
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("Invalid AT URI: missing at:// prefix"))?;
+    let (did, rest) = stripped
+        .split_once('/')
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("Invalid AT URI: missing collection"))?;
+    let (_collection, rkey) = rest
+        .split_once('/')
+        .ok_or_else(|| cja::color_eyre::eyre::eyre!("Invalid AT URI: missing record key"))?;
+    Ok(format!("https://bsky.app/profile/{did}/post/{rkey}"))
+}
 
 #[cfg(test)]
 mod tests {
-    // Tests will use: super::*
-    // Required types: BlueskyConfig, BlueskyClient, CreateRecordRequest, PostRecord, Facet, etc.
-
-    // ==================== at_uri_to_web_url tests ====================
+    use super::*;
 
     #[test]
-    #[ignore = "Requires at_uri_to_web_url function"]
     fn at_uri_to_web_url_basic() {
         let at_uri = "at://did:plc:abc123/app.bsky.feed.post/xyz789";
-        let web_url = super::at_uri_to_web_url(at_uri).unwrap();
+        let web_url = at_uri_to_web_url(at_uri).unwrap();
         assert_eq!(
-            web_url, "https://bsky.app/profile/did:plc:abc123/post/xyz789",
-            "Should convert AT URI to bsky.app web URL"
+            web_url,
+            "https://bsky.app/profile/did:plc:abc123/post/xyz789",
         );
     }
 
     #[test]
-    #[ignore = "Requires at_uri_to_web_url function"]
     fn at_uri_to_web_url_different_did() {
         let at_uri = "at://did:plc:ffffffffffffffff/app.bsky.feed.post/3abc123def";
-        let web_url = super::at_uri_to_web_url(at_uri).unwrap();
+        let web_url = at_uri_to_web_url(at_uri).unwrap();
         assert_eq!(
             web_url,
             "https://bsky.app/profile/did:plc:ffffffffffffffff/post/3abc123def"
@@ -32,124 +249,110 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires at_uri_to_web_url function"]
     fn at_uri_to_web_url_invalid_uri() {
-        // Invalid AT URIs should return an error
-        let result = super::at_uri_to_web_url("not-an-at-uri");
-        assert!(result.is_err(), "Invalid AT URI should return an error");
+        let result = at_uri_to_web_url("not-an-at-uri");
+        assert!(result.is_err());
     }
 
     #[test]
-    #[ignore = "Requires at_uri_to_web_url function"]
     fn at_uri_to_web_url_wrong_collection() {
-        // Only app.bsky.feed.post should be supported
         let at_uri = "at://did:plc:abc123/app.bsky.feed.like/xyz789";
-        let result = super::at_uri_to_web_url(at_uri);
-        // This could either error or still convert — depends on implementation.
-        // At minimum it should not panic.
-        let _ = result;
+        let result = at_uri_to_web_url(at_uri);
+        // Still converts — we don't validate collection
+        assert!(result.is_ok());
     }
 
-    // ==================== Facet byte offset tests ====================
-
     #[test]
-    #[ignore = "Requires facet construction helpers"]
     fn facet_byte_offsets_ascii_url() {
-        // For ASCII text, byte offsets and char offsets are the same
         let text = "Check out https://coreyja.com for more";
-        let url = "https://coreyja.com";
-        let start = text.find(url).unwrap();
-        let end = start + url.len();
-
-        // Byte offsets should match string positions for ASCII
-        assert_eq!(start, 10, "URL should start at byte 10");
-        assert_eq!(end, 29, "URL should end at byte 29");
+        let facets = build_link_facets(text);
+        assert_eq!(facets.len(), 1);
+        assert_eq!(facets[0].index.byte_start, 10);
+        assert_eq!(facets[0].index.byte_end, 29);
+        assert_eq!(&text[10..29], "https://coreyja.com");
     }
 
     #[test]
-    #[ignore = "Requires facet construction helpers"]
     fn facet_byte_offsets_unicode_before_url() {
-        // When there's multi-byte unicode before the URL, byte offsets differ from char offsets
         let text = "🦀 Check https://coreyja.com";
-        let url = "https://coreyja.com";
-
-        let byte_start = text.find(url).unwrap();
-        let byte_end = byte_start + url.len();
-
-        // "🦀 Check " is 4 + 1 + 5 + 1 = 11 bytes (🦀 is 4 bytes in UTF-8)
-        // But only 8 characters
-        let char_start = text.chars().take_while(|_| {
-            // This is just to show the difference
-            true
-        });
-        let _ = char_start;
-
-        // The byte offset should account for the 4-byte emoji
-        assert_eq!(
-            byte_start, 12,
-            "URL byte offset should account for multi-byte emoji"
-        );
-        assert_eq!(byte_end, 31);
+        let facets = build_link_facets(text);
+        assert_eq!(facets.len(), 1);
+        let start = facets[0].index.byte_start;
+        let end = facets[0].index.byte_end;
+        assert_eq!(&text[start..end], "https://coreyja.com");
+        // 🦀 = 4 bytes, space = 1, "Check" = 5, space = 1 = 11 bytes before URL
+        assert_eq!(start, 11);
     }
 
     #[test]
-    #[ignore = "Requires facet construction helpers"]
     fn facet_byte_offsets_url_at_end() {
         let text = "Read more at https://coreyja.com";
-        let url = "https://coreyja.com";
-        let start = text.find(url).unwrap();
-        let end = start + url.len();
+        let facets = build_link_facets(text);
+        assert_eq!(facets.len(), 1);
+        assert_eq!(facets[0].index.byte_end, text.len());
+    }
 
-        assert_eq!(
-            end,
-            text.len(),
-            "URL at end should have end offset equal to text length"
+    #[test]
+    fn post_record_serializes_with_correct_type_field() {
+        let record = PostRecord {
+            record_type: "app.bsky.feed.post".to_string(),
+            text: "Hello".to_string(),
+            created_at: "2026-03-07T00:00:00Z".to_string(),
+            facets: None,
+            embed: None,
+        };
+
+        let json = serde_json::to_value(&record).unwrap();
+        assert_eq!(json["$type"], "app.bsky.feed.post");
+        assert!(
+            json.get("record_type").is_none(),
+            "Should not have record_type key"
         );
     }
 
-    // ==================== Request serialization tests ====================
-
     #[test]
-    #[ignore = "Requires PostRecord and CreateRecordRequest types"]
-    fn post_record_serializes_with_correct_type_field() {
-        // The $type field must serialize as "$type" not "type"
-        // PostRecord should have #[serde(rename = "$type")] pub record_type: String
-        // with value "app.bsky.feed.post"
-
-        // This test verifies the serde rename attribute works correctly
-        // Implementation should create a PostRecord and serialize it to JSON,
-        // then check that the JSON contains "$type": "app.bsky.feed.post"
-    }
-
-    #[test]
-    #[ignore = "Requires CreateRecordRequest type"]
     fn create_record_request_uses_camel_case() {
-        // AT Protocol uses camelCase for JSON fields
-        // CreateRecordRequest should have #[serde(rename_all = "camelCase")]
-        // Fields like access_jwt should serialize as "accessJwt"
+        let req = CreateRecordRequest {
+            repo: "did:plc:test".to_string(),
+            collection: "app.bsky.feed.post".to_string(),
+            record: PostRecord {
+                record_type: "app.bsky.feed.post".to_string(),
+                text: "test".to_string(),
+                created_at: "2026-03-07T00:00:00Z".to_string(),
+                facets: None,
+                embed: None,
+            },
+        };
+
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["record"]["createdAt"], "2026-03-07T00:00:00Z");
     }
 
     #[test]
-    #[ignore = "Requires SessionResponse type"]
     fn session_response_deserializes_camel_case() {
-        // The session response from bsky.social uses camelCase
         let json = r#"{
             "did": "did:plc:abc123",
-            "accessJwt": "eyJ...",
-            "handle": "coreyja.com"
+            "accessJwt": "eyJ..."
         }"#;
 
-        // Should deserialize into SessionResponse with snake_case fields
-        // let session: super::SessionResponse = serde_json::from_str(json).unwrap();
-        // assert_eq!(session.did, "did:plc:abc123");
-        // assert_eq!(session.access_jwt, "eyJ...");
-        // assert_eq!(session.handle, "coreyja.com");
+        let session: SessionResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(session.did, "did:plc:abc123");
+        assert_eq!(session.access_jwt, "eyJ...");
     }
 
     #[test]
-    #[ignore = "Requires embed types for website cards"]
     fn external_embed_serializes_with_correct_type() {
-        // Embed type should be "app.bsky.embed.external"
-        // The embed should contain a uri and title for the website card
+        let embed = EmbedExternal {
+            embed_type: "app.bsky.embed.external".to_string(),
+            external: ExternalEmbed {
+                uri: "https://coreyja.com/notes/test".to_string(),
+                title: "Test Note".to_string(),
+                description: String::new(),
+            },
+        };
+
+        let json = serde_json::to_value(&embed).unwrap();
+        assert_eq!(json["$type"], "app.bsky.embed.external");
+        assert_eq!(json["external"]["uri"], "https://coreyja.com/notes/test");
     }
 }

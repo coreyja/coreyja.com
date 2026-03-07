@@ -10,7 +10,7 @@ use maud::{html, Markup};
 use posts::{
     blog::{BlogPostPath, BlogPosts, MatchesPath, ToCanonicalPath},
     date::PostedOn,
-    til::TilPosts,
+    notes::NotePosts,
     Post,
 };
 use rsky_lexicon::app::bsky::feed::{PostView, ThreadViewPost, ThreadViewPostEnum};
@@ -92,7 +92,7 @@ pub(crate) async fn rss_feed(
 pub(crate) async fn full_rss_feed(
     State(state): State<AppState>,
     State(blog_posts): State<Arc<BlogPosts>>,
-    State(til_posts): State<Arc<TilPosts>>,
+    State(note_posts): State<Arc<NotePosts>>,
 ) -> Result<impl IntoResponse, ServerError> {
     let mut items_with_date: Vec<(chrono::NaiveDate, rss::Item)> = vec![];
     for p in blog_posts.by_recency() {
@@ -101,7 +101,7 @@ pub(crate) async fn full_rss_feed(
             p.to_rss_item(&state.app, &state.syntax_highlighting_context)?,
         ));
     }
-    for p in til_posts.by_recency() {
+    for p in note_posts.by_recency() {
         items_with_date.push((
             p.posted_on(),
             p.to_rss_item(&state.app, &state.syntax_highlighting_context)?,
@@ -227,7 +227,7 @@ pub(crate) async fn post_get(
     .into_response())
 }
 
-fn bluesky_post_stats(url: &str, thread: &ThreadViewPost) -> Markup {
+pub(crate) fn bluesky_post_stats(url: &str, thread: &ThreadViewPost) -> Markup {
     html! {
         a href=(url) target="_blank" {
             p class="flex items-center hover:underline gap-2 text-lg" {
@@ -260,7 +260,7 @@ fn bluesky_post_stats(url: &str, thread: &ThreadViewPost) -> Markup {
     }
 }
 
-fn bsky_comments(post_url: &str, thread: ThreadViewPost) -> Markup {
+pub(crate) fn bsky_comments(post_url: &str, thread: ThreadViewPost) -> Markup {
     html! {
         h2 class="mt-6 text-xl font-bold" {
             "Comments"
@@ -285,7 +285,7 @@ fn bsky_comments(post_url: &str, thread: ThreadViewPost) -> Markup {
     }
 }
 
-fn bsky_comment(comment: ThreadViewPost) -> Markup {
+pub(crate) fn bsky_comment(comment: ThreadViewPost) -> Markup {
     let avatar_class_name = "h-6 w-6 shrink-0 rounded-full bg-gray-300";
     let author = &comment.post.author;
 

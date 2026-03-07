@@ -36,9 +36,20 @@ pub(crate) fn make_router() -> Router<AppState> {
             get(|| async { Redirect::permanent("/newsletter") }),
         )
         .route("/posts/{*key}", get(pages::blog::post_get))
-        .route("/til", get(pages::til::til_index))
-        .route("/til/rss.xml", get(pages::til::rss_feed))
-        .route("/til/{slug}", get(pages::til::til_get))
+        .route("/notes", get(pages::notes::notes_index))
+        .route("/notes/rss.xml", get(pages::notes::rss_feed))
+        .route("/notes/{slug}", get(pages::notes::notes_get))
+        .route("/til", get(|| async { Redirect::permanent("/notes") }))
+        .route(
+            "/til/rss.xml",
+            get(|| async { Redirect::permanent("/notes/rss.xml") }),
+        )
+        .route(
+            "/til/{slug}",
+            get(|Path(slug): Path<String>| async move {
+                Redirect::permanent(&format!("/notes/{slug}"))
+            }),
+        )
         .route("/podcast", get(pages::podcast::podcast_index))
         .route("/podcast/feed.xml", get(pages::podcast::podcast_rss_feed))
         .route("/podcast/{slug}", get(pages::podcast::podcast_get))
