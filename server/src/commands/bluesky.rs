@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use chrono::NaiveDate;
 use clap::Args;
 use posts::notes::FrontMatter;
-use regex::Regex;
-
 use crate::bluesky::{at_uri_to_web_url, BlueskyClient, BlueskyConfig};
 
 /// Cutoff date - only publish notes dated on or after this date
@@ -62,36 +60,6 @@ fn update_frontmatter_with_bsky_url(content: &str, url: &str) -> String {
     format!("---\n{updated_yaml}\n---{body}")
 }
 
-/// Strip markdown formatting for plain text
-fn strip_markdown(text: &str) -> String {
-    let mut result = text.to_string();
-
-    // Convert [text](url) -> text
-    let link_re = Regex::new(r"\[([^\]]+)\]\([^)]+\)").unwrap();
-    result = link_re.replace_all(&result, "$1").to_string();
-
-    // Remove **bold**
-    result = result.replace("**", "");
-
-    // Remove _italic_
-    // Be careful not to remove underscores in words
-    let italic_re = Regex::new(r"(?:^|\s)_([^_]+)_(?:\s|$|[,.!?])").unwrap();
-    // Simple approach: just remove standalone underscores used for emphasis
-    result = result.replace('_', "");
-
-    // Remove backticks
-    result = result.replace('`', "");
-
-    // Remove heading prefixes
-    let heading_re = Regex::new(r"(?m)^#{1,6}\s+").unwrap();
-    result = heading_re.replace_all(&result, "").to_string();
-
-    // Clean up the italic regex since we used simple replace
-    let _ = italic_re;
-
-    result
-}
-
 /// Format the post text for Bluesky, truncating body if needed to stay within 300 chars
 fn format_post_text(title: &str, body: &str, url: &str) -> String {
     // Format: "{title}\n\n{body}\n\n{url}"
@@ -145,9 +113,8 @@ pub async fn publish_bluesky(args: &PublishBlueskyArgs) -> cja::Result<()> {
     }
 
     // Format the post text
-    let stripped_body = strip_markdown(&body);
     let note_url = format!("https://coreyja.com/notes/{}", frontmatter.slug);
-    let post_text = format_post_text(&frontmatter.title, &stripped_body, &note_url);
+    let post_text = format_post_text(&frontmatter.title, &body, &note_url);
 
     // Login and create post
     let config = BlueskyConfig::from_env()?;
@@ -322,50 +289,6 @@ fn main() {}
         assert!(updated.contains("**bold**"));
         assert!(updated.contains("- List item 1"));
         assert!(updated.contains("```rust"));
-    }
-
-    // ==================== strip_markdown tests ====================
-
-    #[test]
-    fn strip_markdown_removes_bold() {
-        let result = strip_markdown("This is **bold** text");
-        assert_eq!(result, "This is bold text");
-    }
-
-    #[test]
-    fn strip_markdown_removes_italic() {
-        let result = strip_markdown("This is _italic_ text");
-        assert_eq!(result, "This is italic text");
-    }
-
-    #[test]
-    fn strip_markdown_removes_backticks() {
-        let result = strip_markdown("Use `cargo build` to compile");
-        assert_eq!(result, "Use cargo build to compile");
-    }
-
-    #[test]
-    fn strip_markdown_removes_heading_prefixes() {
-        let result = strip_markdown("# Heading\n## Subheading");
-        assert!(
-            !result.contains('#'),
-            "Should remove # heading prefixes, got: {result}"
-        );
-    }
-
-    #[test]
-    fn strip_markdown_converts_links_to_text() {
-        let result = strip_markdown("Check out [this site](https://example.com)");
-        assert!(result.contains("this site"));
-        assert!(!result.contains('['));
-        assert!(!result.contains("https://example.com"));
-    }
-
-    #[test]
-    fn strip_markdown_plain_text_unchanged() {
-        let text = "Just plain text with no formatting";
-        let result = strip_markdown(text);
-        assert_eq!(result, text);
     }
 
     // ==================== format_post_text tests ====================
