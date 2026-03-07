@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use clap::Args;
 use posts::blog::BlogFrontMatter;
 
@@ -148,21 +148,8 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
     // Rewrite image URLs
     let body_with_absolute_urls = rewrite_image_urls(&body, &post_dir);
 
-    // Determine status based on newsletter_send_at
-    let (status, publish_date) = match frontmatter.newsletter_send_at {
-        Some(send_at) => {
-            // Check if the scheduled time is in the future
-            if send_at <= Utc::now() {
-                println!(
-                    "Warning: newsletter_send_at ({send_at}) is in the past, sending immediately"
-                );
-                (EmailStatus::AboutToSend, None)
-            } else {
-                (EmailStatus::Scheduled, Some(send_at))
-            }
-        }
-        None => (EmailStatus::AboutToSend, None),
-    };
+    // Create as draft so it can be reviewed in the Buttondown UI before sending
+    let (status, publish_date) = (EmailStatus::Draft, None);
 
     // Create the request
     let request = CreateEmailRequest {
