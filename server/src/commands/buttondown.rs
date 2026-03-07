@@ -17,10 +17,6 @@ pub struct PublishButtondownArgs {
     /// Path to the newsletter markdown file
     #[arg(long)]
     pub path: PathBuf,
-
-    /// Actually send the newsletter (default: create as draft)
-    #[arg(long)]
-    pub publish: bool,
 }
 
 /// Rewrite relative image URLs to absolute URLs
@@ -152,19 +148,20 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
     // Rewrite image URLs
     let body_with_absolute_urls = rewrite_image_urls(&body, &post_dir);
 
-    // Determine email status: draft by default, or publish/schedule with --publish
-    let (status, publish_date) = if args.publish {
-        match frontmatter.newsletter_send_at {
-            Some(send_at) if send_at > Utc::now() => (EmailStatus::Scheduled, Some(send_at)),
-            Some(send_at) => {
-                println!("Warning: newsletter_send_at ({send_at}) is in the past, sending immediately");
+    // Determine status based on newsletter_send_at
+    let (status, publish_date) = match frontmatter.newsletter_send_at {
+        Some(send_at) => {
+            // Check if the scheduled time is in the future
+            if send_at <= Utc::now() {
+                println!(
+                    "Warning: newsletter_send_at ({send_at}) is in the past, sending immediately"
+                );
                 (EmailStatus::AboutToSend, None)
+            } else {
+                (EmailStatus::Scheduled, Some(send_at))
             }
-            None => (EmailStatus::AboutToSend, None),
         }
-    } else {
-        println!("Creating as draft (use --publish to send)");
-        (EmailStatus::Draft, None)
+        None => (EmailStatus::AboutToSend, None),
     };
 
     // Create the request
@@ -243,7 +240,9 @@ mod tests {
         let rewritten = rewrite_image_urls(content, "weekly/20260123");
 
         assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/image.png)"));
-        assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/path/to/image.jpg)"));
+        assert!(
+            rewritten.contains("](https://coreyja.com/posts/weekly/20260123/path/to/image.jpg)")
+        );
         assert!(!rewritten.contains("](./"));
     }
 
