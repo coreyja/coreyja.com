@@ -9,8 +9,8 @@ use crate::buttondown::{ButtondownClient, ButtondownConfig, CreateEmailRequest, 
 /// Cutoff date - only publish newsletters dated on or after this date
 const CUTOFF_DATE: &str = "2026-01-25";
 
-/// Base URL for serving blog post assets (images, etc.)
-const POSTS_BASE_URL: &str = "https://coreyja.com/posts";
+/// Base URL for the site
+const SITE_BASE_URL: &str = "https://coreyja.com";
 
 #[derive(Args, Debug)]
 pub struct PublishButtondownArgs {
@@ -19,18 +19,13 @@ pub struct PublishButtondownArgs {
     pub path: PathBuf,
 }
 
-/// Base URL for the site (used for rewriting root-relative links)
-const SITE_BASE_URL: &str = "https://coreyja.com";
-
 /// Rewrite relative URLs to absolute URLs
 ///
 /// Transforms `./image.png` to `https://coreyja.com/posts/weekly/20260123/image.png`
 /// Transforms `](/podcast/...)` to `](https://coreyja.com/podcast/...)`
 fn rewrite_relative_urls(content: &str, post_dir: &str) -> String {
-    // Build the base URL for this post's assets (images, etc.)
-    let base_url = format!("{POSTS_BASE_URL}/{post_dir}");
-
-    // Replace ./path with absolute URL for local assets
+    // Replace ./path with absolute URL for local assets (served at /posts/)
+    let base_url = format!("{SITE_BASE_URL}/posts/{post_dir}");
     let content = content.replace("](./", &format!("]({base_url}/"));
 
     // Replace root-relative links ](/path with absolute URLs
