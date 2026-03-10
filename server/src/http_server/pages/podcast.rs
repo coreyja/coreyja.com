@@ -86,6 +86,7 @@ pub(crate) async fn podcast_index(
                     "RSS"
                 }
             }
+            hr class="my-6 border-berryBlue/30" {}
             (PodcastEpisodeList(episodes.by_recency()))
         },
         OpenGraph {
