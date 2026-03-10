@@ -101,6 +101,9 @@ sha2 = "0.10.9"
 hex = "0.4.3"
 strum = { version = "0.26", features = ["derive"] }
 
+[dev-dependencies]
+roxmltree = "0.20"
+
 [build-dependencies]
 vergen = { workspace = true, features = ["git", "gitoxide", "rustc"] }
 
