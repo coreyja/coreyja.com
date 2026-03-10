@@ -54,9 +54,19 @@ fn test_hello_world_episode_parses_correctly() {
     assert_eq!(ep.frontmatter.slug, "hello-world");
     assert_eq!(
         ep.frontmatter.audio_url,
-        "https://coreyja-podcast.s3.amazonaws.com/episodes/001-hello-world.mp3"
+        "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/audio.mp3"
     );
+    assert_eq!(ep.frontmatter.audio_length_bytes, 10777931);
     assert_eq!(ep.frontmatter.audio_duration, "00:24:30");
+    assert_eq!(ep.frontmatter.youtube_id, "B12ZggV47rg");
+    assert_eq!(
+        ep.frontmatter.youtube_url.as_deref(),
+        Some("https://youtu.be/B12ZggV47rg")
+    );
+    assert_eq!(
+        ep.frontmatter.transcript_url.as_deref(),
+        Some("https://coreyja-fm.s3.us-east-2.amazonaws.com/001/transcript.srt")
+    );
 }
 
 #[test]

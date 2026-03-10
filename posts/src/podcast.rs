@@ -26,11 +26,14 @@ pub struct PodcastFrontMatter {
     pub date: NaiveDate,
     pub slug: String,
     pub youtube_id: String,
+    pub youtube_url: Option<String>,
     pub audio_url: String,
     /// File size in bytes for the RSS enclosure
     pub audio_length_bytes: u64,
     /// Duration as HH:MM:SS string for iTunes metadata
     pub audio_duration: String,
+    /// SRT transcript URL for podcast apps (Podcasting 2.0 transcript tag)
+    pub transcript_url: Option<String>,
 }
 
 impl PostedOn for PodcastFrontMatter {

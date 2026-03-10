@@ -2,10 +2,12 @@
 title: "Why I'm Starting a Podcast (and What I've Been Building)"
 date: 2026-03-06
 slug: hello-world
-youtube_id: ""
-audio_url: "https://coreyja-podcast.s3.amazonaws.com/episodes/001-hello-world.mp3"
-audio_length_bytes: 0
+youtube_id: "B12ZggV47rg"
+youtube_url: "https://youtu.be/B12ZggV47rg"
+audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/audio.mp3"
+audio_length_bytes: 10777931
 audio_duration: "00:24:30"
+transcript_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/transcript.srt"
 ---
 
 Welcome to the first episode of the coreyja.fm podcast! I'm Corey, I go by coreyja online, and I've been doing web dev for about 20 years. These days I'm focused on Rust and I recently took over leading the Battlesnake project.

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -8,7 +8,10 @@ use axum::{
 use chrono::NaiveTime;
 use maud::{html, Markup, Render};
 use posts::podcast::{PodcastEpisode, PodcastEpisodes};
-use rss::extension::itunes::{ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder};
+use rss::extension::{
+    itunes::{ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder},
+    Extension, ExtensionMap,
+};
 use tracing::instrument;
 
 use crate::{
@@ -92,14 +95,22 @@ pub(crate) async fn podcast_get(
             h1 class="text-2xl" { (markdown.title) }
             subtitle class="block text-lg text-subtitle mb-8" { (markdown.date) }
 
-            div class="my-4 aspect-video max-w-2xl" {
-                iframe
-                    class="w-full h-full"
-                    src=(format!("https://www.youtube.com/embed/{}", ep.frontmatter.youtube_id))
-                    frameborder="0"
-                    allowfullscreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    {}
+            @if !ep.frontmatter.youtube_id.is_empty() {
+                div class="my-4 aspect-video max-w-2xl" {
+                    iframe
+                        class="w-full h-full"
+                        src=(format!("https://www.youtube.com/embed/{}", ep.frontmatter.youtube_id))
+                        frameborder="0"
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        {}
+                }
+            }
+
+            @if let Some(youtube_url) = &ep.frontmatter.youtube_url {
+                p class="my-2" {
+                    a href=(youtube_url) class="underline" { "Watch on YouTube" }
+                }
             }
 
             div {
@@ -133,6 +144,12 @@ pub(crate) async fn podcast_rss_feed(
         .explicit(Some("no".to_string()))
         .build();
 
+    let mut namespaces = BTreeMap::new();
+    namespaces.insert(
+        "podcast".to_string(),
+        "https://podcastindex.org/namespace/1.0".to_string(),
+    );
+
     let channel = rss::ChannelBuilder::default()
         .title("coreyja.fm".to_string())
         .link(state.app.app_url("/podcast"))
@@ -140,6 +157,7 @@ pub(crate) async fn podcast_rss_feed(
         .copyright(Some("Copyright Corey Alexander".to_string()))
         .language(Some("en-us".to_string()))
         .itunes_ext(Some(itunes_ext))
+        .namespaces(namespaces)
         .items(items)
         .build();
 
@@ -183,6 +201,17 @@ fn podcast_rss_item(
         .permalink(true)
         .build();
 
+    let mut extensions: ExtensionMap = BTreeMap::new();
+    if let Some(transcript_url) = &ep.frontmatter.transcript_url {
+        let mut transcript_ext = Extension::default();
+        transcript_ext.attrs.insert("url".to_string(), transcript_url.clone());
+        transcript_ext.attrs.insert("type".to_string(), "application/srt".to_string());
+
+        let mut podcast_exts: BTreeMap<String, Vec<Extension>> = BTreeMap::new();
+        podcast_exts.insert("transcript".to_string(), vec![transcript_ext]);
+        extensions.insert("podcast".to_string(), podcast_exts);
+    }
+
     Ok(rss::ItemBuilder::default()
         .title(Some(ep.frontmatter.title.clone()))
         .link(Some(link))
@@ -191,6 +220,7 @@ fn podcast_rss_item(
         .pub_date(Some(posted_on.to_rfc2822()))
         .enclosure(Some(enclosure))
         .itunes_ext(Some(itunes_ext))
+        .extensions(extensions)
         .content(Some(
             ep.markdown()
                 .ast
