@@ -131,10 +131,28 @@ pub(crate) async fn podcast_rss_feed(
     State(state): State<AppState>,
     State(episodes): State<Arc<PodcastEpisodes>>,
 ) -> Result<impl IntoResponse, ServerError> {
+    let channel = build_podcast_channel(&episodes, &state.app, &state.syntax_highlighting_context)?;
+
+    let body = channel.to_string();
+    let response = Response::builder()
+        .header("Content-Type", "application/rss+xml")
+        .body(body);
+
+    match response {
+        Ok(r) => Ok(r.into_response()),
+        Err(_) => Err(cja::color_eyre::eyre::eyre!("Failed to build RSS Feed response").into()),
+    }
+}
+
+fn build_podcast_channel(
+    episodes: &PodcastEpisodes,
+    config: &AppConfig,
+    context: &crate::http_server::pages::blog::md::SyntaxHighlightingContext,
+) -> cja::Result<rss::Channel> {
     let items: cja::Result<Vec<rss::Item>> = episodes
         .by_recency()
         .iter()
-        .map(|ep| podcast_rss_item(ep, &state.app, &state.syntax_highlighting_context))
+        .map(|ep| podcast_rss_item(ep, config, context))
         .collect();
     let items = items?;
 
@@ -150,26 +168,16 @@ pub(crate) async fn podcast_rss_feed(
         "https://podcastindex.org/namespace/1.0".to_string(),
     );
 
-    let channel = rss::ChannelBuilder::default()
+    Ok(rss::ChannelBuilder::default()
         .title("coreyja.fm".to_string())
-        .link(state.app.app_url("/podcast"))
+        .link(config.app_url("/podcast"))
         .description("The coreyja.fm podcast".to_string())
         .copyright(Some("Copyright Corey Alexander".to_string()))
         .language(Some("en-us".to_string()))
         .itunes_ext(Some(itunes_ext))
         .namespaces(namespaces)
         .items(items)
-        .build();
-
-    let body = channel.to_string();
-    let response = Response::builder()
-        .header("Content-Type", "application/rss+xml")
-        .body(body);
-
-    match response {
-        Ok(r) => Ok(r.into_response()),
-        Err(_) => Err(cja::color_eyre::eyre::eyre!("Failed to build RSS Feed response").into()),
-    }
+        .build())
 }
 
 fn podcast_rss_item(
@@ -233,4 +241,118 @@ fn podcast_rss_item(
                 .into_string(),
         ))
         .build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use posts::podcast::PodcastEpisodes;
+    use url::Url;
+
+    fn test_config() -> AppConfig {
+        AppConfig {
+            base_url: Url::parse("https://coreyja.com").unwrap(),
+            imgproxy_url: None,
+        }
+    }
+
+    fn test_context() -> crate::http_server::pages::blog::md::SyntaxHighlightingContext {
+        crate::http_server::pages::blog::md::SyntaxHighlightingContext
+    }
+
+    #[test]
+    fn test_rss_feed_is_valid_xml() {
+        let episodes = PodcastEpisodes::from_static_dir().unwrap();
+        let channel = build_podcast_channel(&episodes, &test_config(), &test_context()).unwrap();
+        let xml = channel.to_string();
+
+        let parsed: rss::Channel = xml.parse().expect("RSS feed should be valid XML");
+        assert_eq!(parsed.title(), "coreyja.fm");
+        assert!(!parsed.items().is_empty(), "Feed should have items");
+    }
+
+    #[test]
+    fn test_rss_items_have_required_podcast_fields() {
+        let episodes = PodcastEpisodes::from_static_dir().unwrap();
+        let channel = build_podcast_channel(&episodes, &test_config(), &test_context()).unwrap();
+
+        for item in channel.items() {
+            assert!(item.title().is_some(), "Item must have a title");
+            assert!(item.link().is_some(), "Item must have a link");
+            assert!(item.guid().is_some(), "Item must have a GUID");
+            assert!(item.pub_date().is_some(), "Item must have a pub_date");
+            assert!(item.enclosure().is_some(), "Item must have an enclosure");
+
+            let enclosure = item.enclosure().unwrap();
+            assert!(!enclosure.url().is_empty(), "Enclosure must have a URL");
+            assert_eq!(enclosure.mime_type(), "audio/mpeg");
+            let length: u64 = enclosure
+                .length()
+                .parse()
+                .expect("Enclosure length must be a number");
+            assert!(length > 0, "Enclosure length must be positive");
+
+            let itunes = item.itunes_ext().expect("Item must have iTunes extension");
+            assert!(
+                itunes.duration().is_some(),
+                "iTunes extension must have duration"
+            );
+        }
+    }
+
+    #[test]
+    fn test_rss_feed_has_podcast_namespace() {
+        let episodes = PodcastEpisodes::from_static_dir().unwrap();
+        let channel = build_podcast_channel(&episodes, &test_config(), &test_context()).unwrap();
+        let xml = channel.to_string();
+
+        assert!(
+            xml.contains("xmlns:podcast=\"https://podcastindex.org/namespace/1.0\""),
+            "Feed must declare the podcast namespace"
+        );
+    }
+
+    #[test]
+    fn test_rss_items_with_transcript_have_podcast_transcript_tag() {
+        let episodes = PodcastEpisodes::from_static_dir().unwrap();
+        let channel = build_podcast_channel(&episodes, &test_config(), &test_context()).unwrap();
+        let xml = channel.to_string();
+
+        let eps_with_transcripts: Vec<_> = episodes
+            .episodes
+            .iter()
+            .filter(|ep| ep.frontmatter.transcript_url.is_some())
+            .collect();
+
+        assert!(
+            !eps_with_transcripts.is_empty(),
+            "At least one episode should have a transcript"
+        );
+
+        for ep in &eps_with_transcripts {
+            let transcript_url = ep.frontmatter.transcript_url.as_ref().unwrap();
+            assert!(
+                xml.contains(&format!("url=\"{transcript_url}\"")),
+                "Feed XML must contain podcast:transcript with URL for {}",
+                ep.frontmatter.slug,
+            );
+        }
+
+        assert!(
+            xml.contains("type=\"application/srt\""),
+            "Transcript tag must specify SRT MIME type"
+        );
+    }
+
+    #[test]
+    fn test_rss_channel_has_itunes_metadata() {
+        let episodes = PodcastEpisodes::from_static_dir().unwrap();
+        let channel = build_podcast_channel(&episodes, &test_config(), &test_context()).unwrap();
+
+        let itunes = channel
+            .itunes_ext()
+            .expect("Channel must have iTunes extension");
+        assert_eq!(itunes.author(), Some("Corey Alexander"));
+        assert_eq!(itunes.explicit(), Some("no"));
+    }
 }
