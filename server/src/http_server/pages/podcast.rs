@@ -68,7 +68,7 @@ pub(crate) async fn podcast_index(
                     i class="fa-solid fa-podcast" {}
                     "Overcast"
                 }
-                a href="https://pocketcasts.com/submit" class=(btn) {
+                a href="https://pca.st/qx7rier3" class=(btn) {
                     i class="fa-solid fa-podcast" {}
                     "Pocket Casts"
                 }
