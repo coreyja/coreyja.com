@@ -6,7 +6,7 @@ youtube_id: "B12ZggV47rg"
 youtube_url: "https://youtu.be/B12ZggV47rg"
 audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/audio.mp3"
 audio_length_bytes: 10777931
-audio_duration: "00:24:30"
+audio_duration: "00:22:27"
 transcript_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/transcript.srt"
 ---
 
