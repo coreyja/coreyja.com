@@ -62,23 +62,23 @@ pub(crate) async fn podcast_index(
                 @let btn = "inline-flex items-center gap-2 px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline";
                 @let btn_outline = "inline-flex items-center gap-2 px-4 py-2 rounded border border-[#A1A8FF] text-[#A1A8FF] font-semibold hover:opacity-90 no-underline";
                 a href="https://podcasts.apple.com/podcast/id1884025911" class=(btn) {
-                    (maud::PreEscaped(r#"<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-.5 15.5c-.83 0-1.5-.67-1.5-1.5v-3c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v3c0 .83-.67 1.5-1.5 1.5zm.5-6.5a3 3 0 100-6 3 3 0 000 6z"/></svg>"#))
+                    i class="fa-brands fa-apple" {}
                     "Apple Podcasts"
                 }
                 a href=(format!("overcast://x-callback-url/add?url={feed}")) class=(btn) {
-                    (maud::PreEscaped(r#"<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3a7 7 0 017 7c0 2.05-.88 3.9-2.28 5.18l-1.42-1.42A5 5 0 0017 12a5 5 0 00-5-5 5 5 0 00-5 5c0 1.46.63 2.78 1.63 3.69L7.28 17.18A7 7 0 015 12a7 7 0 017-7zm0 4a3 3 0 013 3c0 .87-.37 1.65-.97 2.2l-1.42-1.42c.24-.22.39-.54.39-.78a1 1 0 00-1-1 1 1 0 00-1 1c0 .24.15.56.39.78L9.97 14.2A3 3 0 019 12a3 3 0 013-3z"/></svg>"#))
+                    i class="fa-solid fa-podcast" {}
                     "Overcast"
                 }
                 a href=(format!("pktc://subscribe/{feed}")) class=(btn) {
-                    (maud::PreEscaped(r#"<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l7 4.5-7 4.5z"/></svg>"#))
+                    i class="fa-solid fa-podcast" {}
                     "Pocket Casts"
                 }
                 a href=(format!("castro://subscribe/{feed}")) class=(btn) {
-                    (maud::PreEscaped(r#"<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3v6l4 4-1.41 1.41L11 12.83V5h2z"/></svg>"#))
+                    i class="fa-solid fa-podcast" {}
                     "Castro"
                 }
                 a href="/podcast/feed.xml" class=(btn_outline) {
-                    (maud::PreEscaped(r#"<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6.18 15.64a2.18 2.18 0 010 4.36 2.18 2.18 0 010-4.36zM4 4.44A15.56 15.56 0 0119.56 20h-2.83A12.73 12.73 0 004 7.27V4.44zm0 5.66a9.9 9.9 0 019.9 9.9h-2.83A7.07 7.07 0 004 12.93V10.1z"/></svg>"#))
+                    i class="fa-solid fa-rss" {}
                     "RSS"
                 }
             }
