@@ -57,7 +57,7 @@ fn test_hello_world_episode_parses_correctly() {
         "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/audio.mp3"
     );
     assert_eq!(ep.frontmatter.audio_length_bytes, 10_777_931);
-    assert_eq!(ep.frontmatter.audio_duration, "00:24:30");
+    assert_eq!(ep.frontmatter.audio_duration, "00:22:27");
     assert_eq!(ep.frontmatter.youtube_id, "B12ZggV47rg");
     assert_eq!(
         ep.frontmatter.youtube_url.as_deref(),
