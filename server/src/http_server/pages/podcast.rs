@@ -56,10 +56,36 @@ pub(crate) async fn podcast_index(
     Ok(base_constrained(
         html! {
             h1 class="text-3xl" { "coreyja.fm Podcast" }
-            p class="my-4 max-w-prose" {
-                "Subscribe via "
-                a href="/podcast/feed.xml" class="underline" { "RSS" }
+            p class="my-2 text-subtitle" { "Subscribe in your favorite app:" }
+            div class="my-2 flex flex-wrap gap-3" {
+                @let btn = "inline-flex items-center gap-2 px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline";
+                @let btn_outline = "inline-flex items-center gap-2 px-4 py-2 rounded border border-[#A1A8FF] text-[#A1A8FF] font-semibold hover:opacity-90 no-underline";
+                a href="https://podcasts.apple.com/podcast/id1884025911" class=(btn) {
+                    i class="fa-brands fa-apple" {}
+                    "Apple Podcasts"
+                }
+                a href="https://overcast.fm/itunes1884025911" class=(btn) {
+                    i class="fa-solid fa-podcast" {}
+                    "Overcast"
+                }
+                a href="https://pca.st/qx7rier3" class=(btn) {
+                    i class="fa-solid fa-podcast" {}
+                    "Pocket Casts"
+                }
+                a href="https://castro.fm/itunes/1884025911" class=(btn) {
+                    i class="fa-solid fa-podcast" {}
+                    "Castro"
+                }
+                a href="https://www.youtube.com/playlist?list=PL0FtqJaYsqZ1ah_BU8gEO5T_6VLPVMEPT" class=(btn) {
+                    i class="fa-brands fa-youtube" {}
+                    "YouTube"
+                }
+                a href="/podcast/feed.xml" class=(btn_outline) {
+                    i class="fa-solid fa-rss" {}
+                    "RSS"
+                }
             }
+            hr class="my-6 border-berryBlue/30" {}
             (PodcastEpisodeList(episodes.by_recency()))
         },
         OpenGraph {
