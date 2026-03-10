@@ -211,7 +211,10 @@ fn podcast_rss_item(
 
     let mut extensions: ExtensionMap = BTreeMap::new();
     if let Some(transcript_url) = &ep.frontmatter.transcript_url {
-        let mut transcript_ext = Extension::default();
+        let mut transcript_ext = Extension {
+            name: "podcast:transcript".to_string(),
+            ..Default::default()
+        };
         transcript_ext
             .attrs
             .insert("url".to_string(), transcript_url.clone());
@@ -247,6 +250,7 @@ fn podcast_rss_item(
 mod tests {
     use super::*;
     use posts::podcast::PodcastEpisodes;
+    use rss::validation::Validate;
     use url::Url;
 
     fn test_config() -> AppConfig {
@@ -266,7 +270,13 @@ mod tests {
         let channel = build_podcast_channel(&episodes, &test_config(), &test_context()).unwrap();
         let xml = channel.to_string();
 
-        let parsed: rss::Channel = xml.parse().expect("RSS feed should be valid XML");
+        // Strict XML validation — catches malformed tags, missing end tags, etc.
+        roxmltree::Document::parse(&xml).expect("RSS feed must be well-formed XML");
+
+        // RSS semantic validation — checks URLs, dates, MIME types, etc.
+        let parsed: rss::Channel = xml.parse().expect("RSS feed should parse as RSS");
+        parsed.validate().expect("RSS feed should pass RSS validation");
+
         assert_eq!(parsed.title(), "coreyja.fm");
         assert!(!parsed.items().is_empty(), "Feed should have items");
     }

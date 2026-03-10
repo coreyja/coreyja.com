@@ -1,16 +1,16 @@
 use std::path::{Path, PathBuf};
 
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use clap::Args;
 use posts::blog::BlogFrontMatter;
 
-use crate::buttondown::{ButtondownClient, ButtondownConfig, CreateEmailRequest, EmailStatus};
+use crate::{
+    buttondown::{ButtondownClient, ButtondownConfig, CreateEmailRequest, EmailStatus},
+    AppConfig,
+};
 
 /// Cutoff date - only publish newsletters dated on or after this date
 const CUTOFF_DATE: &str = "2026-01-25";
-
-/// Base URL for serving blog post assets (images, etc.)
-const POSTS_BASE_URL: &str = "https://coreyja.com/posts";
 
 #[derive(Args, Debug)]
 pub struct PublishButtondownArgs {
@@ -19,16 +19,15 @@ pub struct PublishButtondownArgs {
     pub path: PathBuf,
 }
 
-/// Rewrite relative image URLs to absolute URLs
-///
-/// Transforms `./image.png` to `https://coreyja.com/posts/weekly/20260123/image.png`
-fn rewrite_image_urls(content: &str, post_dir: &str) -> String {
-    // Build the base URL for this post's images
-    let base_url = format!("{POSTS_BASE_URL}/{post_dir}");
+/// Rewrite relative URLs to absolute URLs using the app's base URL
+fn rewrite_relative_urls(content: &str, post_dir: &str, app_config: &AppConfig) -> String {
+    // Replace ./path with absolute URL for local assets (served at /posts/)
+    let assets_url = app_config.app_url(&format!("/posts/{post_dir}"));
+    let content = content.replace("](./", &format!("]({assets_url}/"));
 
-    // Replace ./path with absolute URL
-    // This handles the common case of `![alt](./image.png)`
-    content.replace("](./", &format!("]({base_url}/"))
+    // Replace root-relative links ](/path with absolute URLs
+    let site_url = app_config.home_page().trim_end_matches('/').to_string();
+    content.replace("](/", &format!("]({site_url}/"))
 }
 
 /// Extract the directory path from a file path for URL construction
@@ -145,24 +144,16 @@ pub async fn publish_buttondown(args: &PublishButtondownArgs) -> cja::Result<()>
     // Extract post directory for URL rewriting
     let post_dir = extract_post_dir(path)?;
 
-    // Rewrite image URLs
-    let body_with_absolute_urls = rewrite_image_urls(&body, &post_dir);
+    // Rewrite relative URLs to absolute
+    let app_config = AppConfig::from_env()?;
+    let body_with_absolute_urls = rewrite_relative_urls(&body, &post_dir, &app_config);
 
-    // Determine status based on newsletter_send_at
-    let (status, publish_date) = match frontmatter.newsletter_send_at {
-        Some(send_at) => {
-            // Check if the scheduled time is in the future
-            if send_at <= Utc::now() {
-                println!(
-                    "Warning: newsletter_send_at ({send_at}) is in the past, sending immediately"
-                );
-                (EmailStatus::AboutToSend, None)
-            } else {
-                (EmailStatus::Scheduled, Some(send_at))
-            }
-        }
-        None => (EmailStatus::AboutToSend, None),
-    };
+    // Prepend editor mode hint so Buttondown renders markdown
+    let body_with_absolute_urls =
+        format!("<!-- buttondown-editor-mode: fancy -->\n{body_with_absolute_urls}");
+
+    // Always create as draft so it can be reviewed in Buttondown before sending
+    let (status, publish_date) = (EmailStatus::Draft, None);
 
     // Create the request
     let request = CreateEmailRequest {
@@ -232,12 +223,20 @@ mod tests {
         assert!(extract_post_dir(&path).is_err());
     }
 
-    // ==================== rewrite_image_urls tests ====================
+    // ==================== rewrite_relative_urls tests ====================
+
+    fn test_config() -> AppConfig {
+        AppConfig {
+            base_url: url::Url::parse("https://coreyja.com").unwrap(),
+            imgproxy_url: None,
+        }
+    }
 
     #[test]
-    fn test_rewrite_image_urls_multiple_images() {
+    fn test_rewrite_relative_urls_multiple_images() {
+        let config = test_config();
         let content = "![alt text](./image.png)\nSome text\n![another](./path/to/image.jpg)";
-        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        let rewritten = rewrite_relative_urls(content, "weekly/20260123", &config);
 
         assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/image.png)"));
         assert!(
@@ -247,46 +246,48 @@ mod tests {
     }
 
     #[test]
-    fn test_rewrite_image_urls_no_images() {
+    fn test_rewrite_relative_urls_no_images() {
+        let config = test_config();
         let content = "Just some text without any images.";
-        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        let rewritten = rewrite_relative_urls(content, "weekly/20260123", &config);
         assert_eq!(rewritten, content);
     }
 
     #[test]
-    fn test_rewrite_image_urls_absolute_urls_unchanged() {
+    fn test_rewrite_relative_urls_absolute_urls_unchanged() {
+        let config = test_config();
         let content = "![external](https://example.com/image.png)\n![local](./local.png)";
-        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        let rewritten = rewrite_relative_urls(content, "weekly/20260123", &config);
 
         assert!(rewritten.contains("](https://example.com/image.png)"));
         assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/local.png)"));
     }
 
     #[test]
-    fn test_rewrite_image_urls_link_syntax_unchanged() {
-        // Regular links should not be affected (they also use ]( syntax)
+    fn test_rewrite_relative_urls_link_syntax_unchanged() {
+        let config = test_config();
         let content = "[link text](https://example.com)\n![image](./img.png)";
-        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        let rewritten = rewrite_relative_urls(content, "weekly/20260123", &config);
 
         assert!(rewritten.contains("](https://example.com)"));
         assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260123/img.png)"));
     }
 
     #[test]
-    fn test_rewrite_image_urls_preserves_alt_text() {
+    fn test_rewrite_relative_urls_preserves_alt_text() {
+        let config = test_config();
         let content = "![My descriptive alt text](./screenshot.png)";
-        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        let rewritten = rewrite_relative_urls(content, "weekly/20260123", &config);
 
         assert!(rewritten.contains("![My descriptive alt text]"));
         assert!(rewritten.contains("https://coreyja.com/posts/weekly/20260123/screenshot.png"));
     }
 
     #[test]
-    fn test_rewrite_image_urls_uses_posts_path_not_blog() {
-        // Images are served at /posts/{*key}, not /blog/{path}.
-        // The /blog route only handles legacy redirects.
+    fn test_rewrite_relative_urls_uses_posts_path_not_blog() {
+        let config = test_config();
         let content = "![img](./photo.png)";
-        let rewritten = rewrite_image_urls(content, "weekly/20260123");
+        let rewritten = rewrite_relative_urls(content, "weekly/20260123", &config);
 
         assert!(
             rewritten.contains("/posts/"),
@@ -296,6 +297,29 @@ mod tests {
             !rewritten.contains("coreyja.com/blog/"),
             "URL must not use /blog/ path (legacy redirect only), got: {rewritten}"
         );
+    }
+
+    #[test]
+    fn test_rewrite_relative_urls_root_relative_links() {
+        let config = test_config();
+        let content = "[Episode 1 here](/podcast/why-im-starting-a-podcast)";
+        let rewritten = rewrite_relative_urls(content, "weekly/20260306", &config);
+
+        assert!(
+            rewritten.contains("](https://coreyja.com/podcast/why-im-starting-a-podcast)")
+        );
+        assert!(!rewritten.contains("](/"));
+    }
+
+    #[test]
+    fn test_rewrite_relative_urls_mixed_links() {
+        let config = test_config();
+        let content = "[podcast](/podcast/ep1)\n![img](./photo.png)\n[ext](https://example.com)";
+        let rewritten = rewrite_relative_urls(content, "weekly/20260306", &config);
+
+        assert!(rewritten.contains("](https://coreyja.com/podcast/ep1)"));
+        assert!(rewritten.contains("](https://coreyja.com/posts/weekly/20260306/photo.png)"));
+        assert!(rewritten.contains("](https://example.com)"));
     }
 
     // ==================== parse_frontmatter tests ====================
