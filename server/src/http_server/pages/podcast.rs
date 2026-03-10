@@ -56,9 +56,29 @@ pub(crate) async fn podcast_index(
     Ok(base_constrained(
         html! {
             h1 class="text-3xl" { "coreyja.fm Podcast" }
-            p class="my-4 max-w-prose" {
-                "Subscribe via "
-                a href="/podcast/feed.xml" class="underline" { "RSS" }
+            p class="my-2 text-subtitle" { "Subscribe in your favorite app:" }
+            div class="my-2 flex flex-wrap gap-2" {
+                @let feed = "https://coreyja.com/podcast/feed.xml";
+                a href="https://podcasts.apple.com/podcast/id1884025911"
+                    class="inline-block px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline" {
+                    "Apple Podcasts"
+                }
+                a href=(format!("overcast://x-callback-url/add?url={feed}"))
+                    class="inline-block px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline" {
+                    "Overcast"
+                }
+                a href=(format!("pktc://subscribe/{feed}"))
+                    class="inline-block px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline" {
+                    "Pocket Casts"
+                }
+                a href=(format!("castro://subscribe/{feed}"))
+                    class="inline-block px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline" {
+                    "Castro"
+                }
+                a href="/podcast/feed.xml"
+                    class="inline-block px-4 py-2 rounded border border-[#A1A8FF] text-[#A1A8FF] font-semibold hover:opacity-90 no-underline" {
+                    "RSS"
+                }
             }
             (PodcastEpisodeList(episodes.by_recency()))
         },
