@@ -77,6 +77,10 @@ pub(crate) async fn podcast_index(
                     i class="fa-solid fa-podcast" {}
                     "Castro"
                 }
+                a href="https://www.youtube.com/playlist?list=PL0FtqJaYsqZ1ah_BU8gEO5T_6VLPVMEPT" class=(btn) {
+                    i class="fa-brands fa-youtube" {}
+                    "YouTube"
+                }
                 a href="/podcast/feed.xml" class=(btn_outline) {
                     i class="fa-solid fa-rss" {}
                     "RSS"
