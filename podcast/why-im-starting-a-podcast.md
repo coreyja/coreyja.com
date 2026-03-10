@@ -1,7 +1,7 @@
 ---
 title: "Why I'm Starting a Podcast (and What I've Been Building)"
 date: 2026-03-06
-slug: hello-world
+slug: why-im-starting-a-podcast
 youtube_id: "B12ZggV47rg"
 youtube_url: "https://youtu.be/B12ZggV47rg"
 audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/audio.mp3"

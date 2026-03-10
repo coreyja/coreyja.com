@@ -45,13 +45,13 @@ fn test_hello_world_episode_parses_correctly() {
     let ep = episodes
         .episodes
         .iter()
-        .find(|e| e.frontmatter.slug == "hello-world")
+        .find(|e| e.frontmatter.slug == "why-im-starting-a-podcast")
         .expect("Should find the hello-world episode");
     assert_eq!(
         ep.frontmatter.title,
         "Why I'm Starting a Podcast (and What I've Been Building)"
     );
-    assert_eq!(ep.frontmatter.slug, "hello-world");
+    assert_eq!(ep.frontmatter.slug, "why-im-starting-a-podcast");
     assert_eq!(
         ep.frontmatter.audio_url,
         "https://coreyja-fm.s3.us-east-2.amazonaws.com/001/audio.mp3"
@@ -112,7 +112,7 @@ fn test_episode_has_markdown_body() {
     let ep = episodes
         .episodes
         .iter()
-        .find(|e| e.frontmatter.slug == "hello-world")
+        .find(|e| e.frontmatter.slug == "why-im-starting-a-podcast")
         .unwrap();
     assert!(
         !ep.ast.0.children.is_empty(),
