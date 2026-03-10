@@ -9,7 +9,7 @@ Hey Team! Big news — I recorded a podcast!
 
 I've been meaning to do something like this for a while, and I finally hit record. The show is called coreyja.fm, it's a solo podcast about what I'm building, what's breaking, and what I'm learning. I'm planning to release episodes every two weeks, and each one will come with a newsletter like this covering the same ground in written form.
 
-You can listen to [Episode 1 here](/podcast/hello-world).
+You can listen to [Episode 1 here](/podcast/why-im-starting-a-podcast).
 
 ## What I'm Working On
 
