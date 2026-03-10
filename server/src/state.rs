@@ -4,7 +4,7 @@ use base64::Engine as _;
 use cja::{color_eyre::eyre::Context, server::cookies::CookieKey};
 use db::setup_db_pool;
 use openai::OpenAiConfig;
-use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
+use posts::{blog::BlogPosts, podcast::PodcastEpisodes, projects::Projects, til::TilPosts};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::instrument;
@@ -75,6 +75,7 @@ pub(crate) struct AppState {
     pub syntax_highlighting_context: SyntaxHighlightingContext,
     pub blog_posts: Arc<BlogPosts>,
     pub til_posts: Arc<TilPosts>,
+    pub podcast_episodes: Arc<PodcastEpisodes>,
     pub projects: Arc<Projects>,
     pub versions: VersionInfo,
     pub db: PgPool,
@@ -92,6 +93,9 @@ impl AppState {
 
         let til_posts = TilPosts::from_static_dir()?;
         let til_posts = Arc::new(til_posts);
+
+        let podcast_episodes = PodcastEpisodes::from_static_dir()?;
+        let podcast_episodes = Arc::new(podcast_episodes);
 
         let projects = Projects::from_static_dir()?;
         let projects = Arc::new(projects);
@@ -114,6 +118,7 @@ impl AppState {
             versions: VersionInfo::from_env(),
             blog_posts,
             til_posts,
+            podcast_episodes,
             projects,
             db: setup_db_pool().await?,
             cookie_key,
