@@ -9,7 +9,10 @@ use chrono::NaiveTime;
 use maud::{html, Markup, Render};
 use posts::podcast::{PodcastEpisode, PodcastEpisodes};
 use rss::extension::{
-    itunes::{ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder},
+    atom::{AtomExtension, Link},
+    itunes::{
+        ITunesCategoryBuilder, ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder,
+    },
     Extension, ExtensionMap,
 };
 use tracing::instrument;
@@ -156,10 +159,20 @@ fn build_podcast_channel(
         .collect();
     let items = items?;
 
+    let description = "A solo podcast by Corey Alexander about building software, AI agent workflows, and the projects behind coreyja.com. New episodes every two weeks.";
+
+    let category = ITunesCategoryBuilder::default()
+        .text("Technology")
+        .build();
+
+    let artwork_url = config.app_url("/static/podcast-cover.jpg");
+
     let itunes_ext = ITunesChannelExtensionBuilder::default()
         .author(Some("Corey Alexander".to_string()))
-        .summary(Some("The coreyja.fm podcast".to_string()))
+        .summary(Some(description.to_string()))
         .explicit(Some("no".to_string()))
+        .image(Some(artwork_url.clone()))
+        .categories(vec![category])
         .build();
 
     let mut namespaces = BTreeMap::new();
@@ -167,14 +180,63 @@ fn build_podcast_channel(
         "podcast".to_string(),
         "https://podcastindex.org/namespace/1.0".to_string(),
     );
+    namespaces.insert(
+        "itunes".to_string(),
+        "http://www.itunes.com/dtds/podcast-1.0.dtd".to_string(),
+    );
+    namespaces.insert(
+        "atom".to_string(),
+        "http://www.w3.org/2005/Atom".to_string(),
+    );
+
+    let image = rss::ImageBuilder::default()
+        .url(artwork_url)
+        .title("coreyja.fm".to_string())
+        .link(config.app_url("/podcast"))
+        .build();
+
+    let feed_url = config.app_url("/podcast/feed.xml");
+    let atom_ext = AtomExtension {
+        links: vec![Link {
+            href: feed_url,
+            rel: "self".to_string(),
+            mime_type: Some("application/rss+xml".to_string()),
+            ..Default::default()
+        }],
+    };
+
+    // podcast:locked and podcast:guid channel extensions
+    let mut locked_ext = Extension {
+        name: "podcast:locked".to_string(),
+        value: Some("no".to_string()),
+        ..Default::default()
+    };
+    locked_ext
+        .attrs
+        .insert("owner".to_string(), "corey@coreyja.com".to_string());
+
+    let podcast_guid_ext = Extension {
+        name: "podcast:guid".to_string(),
+        value: Some("coreyja-fm-podcast".to_string()),
+        ..Default::default()
+    };
+
+    let mut channel_extensions: ExtensionMap = BTreeMap::new();
+    let mut podcast_channel_exts: BTreeMap<String, Vec<Extension>> = BTreeMap::new();
+    podcast_channel_exts.insert("locked".to_string(), vec![locked_ext]);
+    podcast_channel_exts.insert("guid".to_string(), vec![podcast_guid_ext]);
+    channel_extensions.insert("podcast".to_string(), podcast_channel_exts);
 
     Ok(rss::ChannelBuilder::default()
         .title("coreyja.fm".to_string())
         .link(config.app_url("/podcast"))
-        .description("The coreyja.fm podcast".to_string())
+        .description(description.to_string())
         .copyright(Some("Copyright Corey Alexander".to_string()))
         .language(Some("en-us".to_string()))
+        .image(Some(image))
         .itunes_ext(Some(itunes_ext))
+        .atom_ext(Some(atom_ext))
+        .extensions(channel_extensions)
         .namespaces(namespaces)
         .items(items)
         .build())
@@ -320,6 +382,10 @@ mod tests {
             xml.contains("xmlns:podcast=\"https://podcastindex.org/namespace/1.0\""),
             "Feed must declare the podcast namespace"
         );
+        assert!(
+            xml.contains("xmlns:atom=\"http://www.w3.org/2005/Atom\""),
+            "Feed must declare the atom namespace"
+        );
     }
 
     #[test]
@@ -364,5 +430,46 @@ mod tests {
             .expect("Channel must have iTunes extension");
         assert_eq!(itunes.author(), Some("Corey Alexander"));
         assert_eq!(itunes.explicit(), Some("no"));
+        assert!(
+            itunes.image().is_some(),
+            "iTunes extension must have artwork image"
+        );
+        assert!(
+            !itunes.categories().is_empty(),
+            "iTunes extension must have at least one category"
+        );
+        assert_eq!(itunes.categories()[0].text(), "Technology");
+
+        let summary = itunes.summary().expect("Must have summary");
+        assert!(
+            summary.len() >= 50,
+            "Summary must be at least 50 characters, got {}",
+            summary.len()
+        );
+
+        let description = channel.description();
+        assert!(
+            description.len() >= 50,
+            "Description must be at least 50 characters, got {}",
+            description.len()
+        );
+
+        assert!(
+            channel.image().is_some(),
+            "Channel must have RSS image element"
+        );
+
+        let atom = channel
+            .atom_ext()
+            .expect("Channel must have Atom extension");
+        let self_link = atom
+            .links
+            .iter()
+            .find(|l| l.rel == "self")
+            .expect("Must have atom:link rel=self");
+        assert!(
+            self_link.href.contains("/podcast/feed.xml"),
+            "Self link must point to feed URL"
+        );
     }
 }
