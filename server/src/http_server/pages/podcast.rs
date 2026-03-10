@@ -204,8 +204,12 @@ fn podcast_rss_item(
     let mut extensions: ExtensionMap = BTreeMap::new();
     if let Some(transcript_url) = &ep.frontmatter.transcript_url {
         let mut transcript_ext = Extension::default();
-        transcript_ext.attrs.insert("url".to_string(), transcript_url.clone());
-        transcript_ext.attrs.insert("type".to_string(), "application/srt".to_string());
+        transcript_ext
+            .attrs
+            .insert("url".to_string(), transcript_url.clone());
+        transcript_ext
+            .attrs
+            .insert("type".to_string(), "application/srt".to_string());
 
         let mut podcast_exts: BTreeMap<String, Vec<Extension>> = BTreeMap::new();
         podcast_exts.insert("transcript".to_string(), vec![transcript_ext]);
