@@ -60,39 +60,11 @@ fn update_frontmatter_with_bsky_url(content: &str, url: &str) -> String {
     format!("---\n{updated_yaml}\n---{body}")
 }
 
-/// Strip markdown formatting from text for plain-text Bluesky posts
+/// Strip markdown links from text, converting `[text](url)` to just `text`.
+/// All other markdown formatting is left as-is.
 fn strip_markdown(text: &str) -> String {
-    let mut result = String::with_capacity(text.len());
-
-    for line in text.lines() {
-        let line = line.trim();
-
-        // Remove heading prefixes
-        let line = if let Some(stripped) = line.strip_prefix("######") {
-            stripped.trim_start()
-        } else if let Some(stripped) = line.strip_prefix("#####") {
-            stripped.trim_start()
-        } else if let Some(stripped) = line.strip_prefix("####") {
-            stripped.trim_start()
-        } else if let Some(stripped) = line.strip_prefix("###") {
-            stripped.trim_start()
-        } else if let Some(stripped) = line.strip_prefix("##") {
-            stripped.trim_start()
-        } else if let Some(stripped) = line.strip_prefix('#') {
-            stripped.trim_start()
-        } else {
-            line
-        };
-
-        if !result.is_empty() {
-            result.push('\n');
-        }
-        result.push_str(line);
-    }
-
-    // Convert [text](url) -> text
-    let mut out = String::with_capacity(result.len());
-    let mut chars = result.chars().peekable();
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
     while let Some(ch) = chars.next() {
         if ch == '[' {
             let mut link_text = String::new();
@@ -130,13 +102,7 @@ fn strip_markdown(text: &str) -> String {
         }
     }
 
-    // Remove inline formatting: **, *, __, _, ```, `
-    out.replace("***", "")
-        .replace("**", "")
-        .replace("__", "")
-        .replace('*', "")
-        .replace("```", "")
-        .replace('`', "")
+    out
 }
 
 /// Format the post text for Bluesky, truncating body if needed to stay within 300 chars
@@ -436,40 +402,6 @@ fn main() {}
     // ==================== strip_markdown tests ====================
 
     #[test]
-    fn strip_markdown_removes_bold() {
-        assert_eq!(strip_markdown("Hello **world**"), "Hello world");
-    }
-
-    #[test]
-    fn strip_markdown_removes_italic_star() {
-        assert_eq!(strip_markdown("Hello *world*"), "Hello world");
-    }
-
-    #[test]
-    fn strip_markdown_removes_underscores() {
-        assert_eq!(strip_markdown("Hello __world__"), "Hello world");
-    }
-
-    #[test]
-    fn strip_markdown_removes_backticks() {
-        assert_eq!(strip_markdown("Use `code` here"), "Use code here");
-    }
-
-    #[test]
-    fn strip_markdown_removes_code_blocks() {
-        let result = strip_markdown("```rust\nfn main() {}\n```");
-        assert!(result.contains("fn main() {}"));
-        assert!(!result.contains("```"));
-    }
-
-    #[test]
-    fn strip_markdown_removes_heading_prefixes() {
-        assert_eq!(strip_markdown("# Heading"), "Heading");
-        assert_eq!(strip_markdown("## Subheading"), "Subheading");
-        assert_eq!(strip_markdown("### Third"), "Third");
-    }
-
-    #[test]
     fn strip_markdown_converts_links_to_text() {
         assert_eq!(
             strip_markdown("Check [MDN docs](https://developer.mozilla.org/) for details"),
@@ -483,6 +415,13 @@ fn main() {}
             strip_markdown("[wiki](https://en.wikipedia.org/wiki/Rust_(programming_language))"),
             "wiki"
         );
+    }
+
+    #[test]
+    fn strip_markdown_preserves_other_formatting() {
+        assert_eq!(strip_markdown("Hello **world**"), "Hello **world**");
+        assert_eq!(strip_markdown("Use `code` here"), "Use `code` here");
+        assert_eq!(strip_markdown("# Heading"), "# Heading");
     }
 
     #[test]
