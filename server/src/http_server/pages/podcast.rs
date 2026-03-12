@@ -10,9 +10,7 @@ use maud::{html, Markup, Render};
 use posts::podcast::{PodcastEpisode, PodcastEpisodes};
 use rss::extension::{
     atom::{AtomExtension, Link},
-    itunes::{
-        ITunesCategoryBuilder, ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder,
-    },
+    itunes::{ITunesCategoryBuilder, ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder},
     Extension, ExtensionMap,
 };
 use tracing::instrument;
@@ -187,9 +185,7 @@ fn build_podcast_channel(
 
     let description = "A solo podcast by Corey Alexander about building software, AI agent workflows, and the projects behind coreyja.com. New episodes every two weeks.";
 
-    let category = ITunesCategoryBuilder::default()
-        .text("Technology")
-        .build();
+    let category = ITunesCategoryBuilder::default().text("Technology").build();
 
     let artwork_url = config.app_url("/static/podcast-cover.jpg");
 
@@ -363,7 +359,9 @@ mod tests {
 
         // RSS semantic validation — checks URLs, dates, MIME types, etc.
         let parsed: rss::Channel = xml.parse().expect("RSS feed should parse as RSS");
-        parsed.validate().expect("RSS feed should pass RSS validation");
+        parsed
+            .validate()
+            .expect("RSS feed should pass RSS validation");
 
         assert_eq!(parsed.title(), "coreyja.fm");
         assert!(!parsed.items().is_empty(), "Feed should have items");

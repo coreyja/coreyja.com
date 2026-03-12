@@ -189,10 +189,12 @@ impl BlueskyClient {
 
 fn build_link_facets(text: &str) -> Vec<Facet> {
     let mut facets = Vec::new();
+    let mut search_start = 0;
 
     for word in text.split_whitespace() {
         if word.starts_with("https://") || word.starts_with("http://") {
-            if let Some(start) = text.find(word) {
+            if let Some(pos) = text[search_start..].find(word) {
+                let start = search_start + pos;
                 let end = start + word.len();
                 facets.push(Facet {
                     index: ByteSlice {
@@ -204,6 +206,7 @@ fn build_link_facets(text: &str) -> Vec<Facet> {
                         uri: word.to_string(),
                     }],
                 });
+                search_start = end;
             }
         }
     }
@@ -290,6 +293,23 @@ mod tests {
         let facets = build_link_facets(text);
         assert_eq!(facets.len(), 1);
         assert_eq!(facets[0].index.byte_end, text.len());
+    }
+
+    #[test]
+    fn facet_byte_offsets_duplicate_urls() {
+        let text = "Visit https://coreyja.com and then https://coreyja.com again";
+        let facets = build_link_facets(text);
+        assert_eq!(facets.len(), 2);
+        let start1 = facets[0].index.byte_start;
+        let end1 = facets[0].index.byte_end;
+        let start2 = facets[1].index.byte_start;
+        let end2 = facets[1].index.byte_end;
+        assert_eq!(&text[start1..end1], "https://coreyja.com");
+        assert_eq!(&text[start2..end2], "https://coreyja.com");
+        assert_ne!(
+            start1, start2,
+            "Duplicate URLs should have different offsets"
+        );
     }
 
     #[test]

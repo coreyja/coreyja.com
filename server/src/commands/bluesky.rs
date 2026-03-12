@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
+use crate::bluesky::{at_uri_to_web_url, BlueskyClient, BlueskyConfig};
 use chrono::NaiveDate;
 use clap::Args;
 use posts::notes::FrontMatter;
-use crate::bluesky::{at_uri_to_web_url, BlueskyClient, BlueskyConfig};
 
 /// Cutoff date - only publish notes dated on or after this date
 const CUTOFF_DATE: &str = "2026-03-01";
@@ -60,6 +60,85 @@ fn update_frontmatter_with_bsky_url(content: &str, url: &str) -> String {
     format!("---\n{updated_yaml}\n---{body}")
 }
 
+/// Strip markdown formatting from text for plain-text Bluesky posts
+fn strip_markdown(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+
+    for line in text.lines() {
+        let line = line.trim();
+
+        // Remove heading prefixes
+        let line = if let Some(stripped) = line.strip_prefix("######") {
+            stripped.trim_start()
+        } else if let Some(stripped) = line.strip_prefix("#####") {
+            stripped.trim_start()
+        } else if let Some(stripped) = line.strip_prefix("####") {
+            stripped.trim_start()
+        } else if let Some(stripped) = line.strip_prefix("###") {
+            stripped.trim_start()
+        } else if let Some(stripped) = line.strip_prefix("##") {
+            stripped.trim_start()
+        } else if let Some(stripped) = line.strip_prefix('#') {
+            stripped.trim_start()
+        } else {
+            line
+        };
+
+        if !result.is_empty() {
+            result.push('\n');
+        }
+        result.push_str(line);
+    }
+
+    // Convert [text](url) -> text
+    let mut out = String::with_capacity(result.len());
+    let mut chars = result.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '[' {
+            let mut link_text = String::new();
+            let mut found_close = false;
+            for c in chars.by_ref() {
+                if c == ']' {
+                    found_close = true;
+                    break;
+                }
+                link_text.push(c);
+            }
+            if found_close && chars.peek() == Some(&'(') {
+                chars.next(); // skip '('
+                let mut depth = 1;
+                for c in chars.by_ref() {
+                    if c == '(' {
+                        depth += 1;
+                    } else if c == ')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            break;
+                        }
+                    }
+                }
+                out.push_str(&link_text);
+            } else {
+                out.push('[');
+                out.push_str(&link_text);
+                if found_close {
+                    out.push(']');
+                }
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+
+    // Remove inline formatting: **, *, __, _, ```, `
+    out.replace("***", "")
+        .replace("**", "")
+        .replace("__", "")
+        .replace('*', "")
+        .replace("```", "")
+        .replace('`', "")
+}
+
 /// Format the post text for Bluesky, truncating body if needed to stay within 300 chars
 fn format_post_text(title: &str, body: &str, url: &str) -> String {
     // Format: "{title}\n\n{body}\n\n{url}"
@@ -93,13 +172,13 @@ pub async fn publish_bluesky(args: &PublishBlueskyArgs) -> cja::Result<()> {
         cja::color_eyre::eyre::eyre!("Failed to read file {}: {}", path.display(), e)
     })?;
 
-    // Check if already has bsky_url (idempotency check before parsing)
-    if content.contains("bsky_url:") {
+    let (frontmatter, body) = parse_frontmatter(&content)?;
+
+    // Check if already has bsky_url (idempotency)
+    if frontmatter.bsky_url.is_some() {
         println!("Note already has bsky_url, skipping: {}", path.display());
         return Ok(());
     }
-
-    let (frontmatter, body) = parse_frontmatter(&content)?;
 
     // Check cutoff date
     let cutoff =
@@ -114,7 +193,8 @@ pub async fn publish_bluesky(args: &PublishBlueskyArgs) -> cja::Result<()> {
 
     // Format the post text
     let note_url = format!("https://coreyja.com/notes/{}", frontmatter.slug);
-    let post_text = format_post_text(&frontmatter.title, &body, &note_url);
+    let plain_body = strip_markdown(&body);
+    let post_text = format_post_text(&frontmatter.title, &plain_body, &note_url);
 
     // Login and create post
     let config = BlueskyConfig::from_env()?;
@@ -352,6 +432,65 @@ fn main() {}
         assert!(result.ends_with(url));
         assert!(result.chars().count() <= 300);
     }
+
+    // ==================== strip_markdown tests ====================
+
+    #[test]
+    fn strip_markdown_removes_bold() {
+        assert_eq!(strip_markdown("Hello **world**"), "Hello world");
+    }
+
+    #[test]
+    fn strip_markdown_removes_italic_star() {
+        assert_eq!(strip_markdown("Hello *world*"), "Hello world");
+    }
+
+    #[test]
+    fn strip_markdown_removes_underscores() {
+        assert_eq!(strip_markdown("Hello __world__"), "Hello world");
+    }
+
+    #[test]
+    fn strip_markdown_removes_backticks() {
+        assert_eq!(strip_markdown("Use `code` here"), "Use code here");
+    }
+
+    #[test]
+    fn strip_markdown_removes_code_blocks() {
+        let result = strip_markdown("```rust\nfn main() {}\n```");
+        assert!(result.contains("fn main() {}"));
+        assert!(!result.contains("```"));
+    }
+
+    #[test]
+    fn strip_markdown_removes_heading_prefixes() {
+        assert_eq!(strip_markdown("# Heading"), "Heading");
+        assert_eq!(strip_markdown("## Subheading"), "Subheading");
+        assert_eq!(strip_markdown("### Third"), "Third");
+    }
+
+    #[test]
+    fn strip_markdown_converts_links_to_text() {
+        assert_eq!(
+            strip_markdown("Check [MDN docs](https://developer.mozilla.org/) for details"),
+            "Check MDN docs for details"
+        );
+    }
+
+    #[test]
+    fn strip_markdown_handles_nested_parens_in_urls() {
+        assert_eq!(
+            strip_markdown("[wiki](https://en.wikipedia.org/wiki/Rust_(programming_language))"),
+            "wiki"
+        );
+    }
+
+    #[test]
+    fn strip_markdown_passes_through_plain_text() {
+        assert_eq!(strip_markdown("Just plain text"), "Just plain text");
+    }
+
+    // ==================== format_post_text tests (continued) ====================
 
     #[test]
     fn format_post_text_uses_char_count_not_byte_count() {
