@@ -67,7 +67,7 @@ pub(crate) async fn notes_get(
         .ok_or_else(|| {
             ServerError(
                 cja::color_eyre::eyre::eyre!("No such note found"),
-                StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::NOT_FOUND,
             )
         })?;
 

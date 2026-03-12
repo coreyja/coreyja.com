@@ -40,7 +40,7 @@ jobs:
           ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
 
       - name: Build release binary
-        run: cargo build --release
+        run: cargo build --locked --release
 
       - name: Find unpublished notes
         id: find
