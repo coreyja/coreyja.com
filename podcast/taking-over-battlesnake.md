@@ -14,7 +14,7 @@ Welcome back to coreyja.fm! This week I've got quick updates on Mull and a brand
 
 **Mull** — The AI-powered personal development environment I talked about last episode is getting close to launch. Head to [mull.sh](https://mull.sh) to sign up for the wait list. Beta testers are already using it and I'm hoping to start pulling people off the list in the next couple of weeks. Check out [Episode 001](/podcast/why-im-starting-a-podcast) for the deep dive.
 
-**Grove** — A new CLI for managing Git worktrees. As AI coding takes off, more people are running multiple copies of their repo at once — agents doing different tasks, or an agent running while you're reading code in another worktree. Grove handles creating worktrees, spinning up isolated databases per worktree, running project setup commands, and opening your editor. Check it out on GitHub at [coreyjastudio/grove](https://github.com/coreyjastudio/grove).
+**Grove** — A new CLI for managing Git worktrees. As AI coding takes off, more people are running multiple copies of their repo at once — agents doing different tasks, or an agent running while you're reading code in another worktree. Grove handles creating worktrees, spinning up isolated databases per worktree, running project setup commands, and opening your editor. Check it out at [grove.coreyja.com](https://grove.coreyja.com).
 
 ## What is Battlesnake?
 

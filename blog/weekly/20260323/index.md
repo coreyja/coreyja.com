@@ -15,7 +15,7 @@ Before diving into Battlesnake, I covered a couple things:
 
 **Mull** is getting close to launch. If you want to try it, head to [mull.sh](https://mull.sh) and sign up for the wait list — I'm hoping to start pulling people off in the next couple weeks.
 
-**Grove** is a new CLI I built for managing Git worktrees. With AI agents writing code in parallel, you end up needing multiple copies of your repo running at once. Grove handles creating worktrees, spinning up isolated databases, running setup commands, and opening your editor. It's on GitHub at [coreyjastudio/grove](https://github.com/coreyjastudio/grove).
+**Grove** is a new CLI I built for managing Git worktrees. With AI agents writing code in parallel, you end up needing multiple copies of your repo running at once. Grove handles creating worktrees, spinning up isolated databases, running setup commands, and opening your editor. Check it out at [grove.coreyja.com](https://grove.coreyja.com).
 
 ## The Battlesnake Story
 
