@@ -2,10 +2,10 @@
 title: "Taking Over Battlesnake (and Rewriting It in Rust)"
 date: 2026-03-23
 slug: taking-over-battlesnake
-youtube_id: "TODO"
+youtube_id: "yb0O-o-tZqM"
 audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/002/audio.mp3"
-audio_length_bytes: 1
-audio_duration: "00:20:27"
+audio_length_bytes: 8971302
+audio_duration: "00:18:41"
 ---
 
 Welcome back to coreyja.fm! This week I've got quick updates on Mull and a brand new project called Grove, then we're diving deep into Battlesnake — what it is, how I ended up running it, and the full Rust rewrite.
