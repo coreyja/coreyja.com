@@ -3,6 +3,7 @@ title: "coreyja.fm Episode 2: Taking Over Battlesnake"
 author: Corey Alexander
 date: 2026-03-23
 is_newsletter: true
+buttondown_id: em_6eaes4r18e9w5a3eg5ycg78tsk
 ---
 
 Hey Team! Episode 2 is out — this one's all about Battlesnake.
