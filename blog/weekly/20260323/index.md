@@ -37,6 +37,6 @@ Two big things are happening:
 
 **Solo challenges** were the best on-ramp when I started playing. Things like "grow the longest snake" or "survive 500 turns." Bringing those back to make it easier for new players.
 
-Next episode might have Brad on as a guest to talk about the history of Battlesnake. See you in two weeks!
+I'm also hoping to get Brad on as a guest for a future episode to talk about the history of Battlesnake. See you in two weeks!
 
 As always — [coreyja.com](https://coreyja.com), [@coreyja.com on Bluesky](https://bsky.app/profile/coreyja.com), [coreyja on GitHub](https://github.com/coreyja). Or just reply to this email.

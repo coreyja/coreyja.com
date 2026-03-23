@@ -65,4 +65,4 @@ This matters because Arena is the first personal project where other people depe
 - Battlesnake Discord: check the footer at [play.battlesnake.com](https://play.battlesnake.com)
 - Email: [podcast@coreyja.com](mailto:podcast@coreyja.com)
 
-**Next episode:** More Battlesnake deep dives coming — maybe even with Brad as a guest to talk about the history. See you in two weeks!
+**Next episode:** More Battlesnake deep dives coming — and I'm hoping to get Brad on as a guest for a future episode to talk about the history. See you in two weeks!
