@@ -1,6 +1,6 @@
 use std::println;
 
-use posts::{blog::BlogPosts, projects::Projects, til::TilPosts};
+use posts::{blog::BlogPosts, notes::NotePosts, projects::Projects};
 use url::Url;
 
 use crate::{
@@ -20,9 +20,9 @@ pub(crate) fn validate() -> cja::Result<()> {
     }
     println!("Posts Valid! ✅");
 
-    let tils = TilPosts::from_static_dir()?;
+    let notes = NotePosts::from_static_dir()?;
 
-    tils.validate()?;
+    notes.validate()?;
 
     println!("Validating Blog RSS feed...");
     let config = AppConfig {
@@ -36,13 +36,13 @@ pub(crate) fn validate() -> cja::Result<()> {
 
     println!("Blog RSS Valid! ✅");
 
-    println!("Validating TIL RSS feed...");
+    println!("Validating Notes RSS feed...");
 
-    let rss = MyChannel::from_posts(&config, &render_context, &tils.by_recency())?;
+    let rss = MyChannel::from_posts(&config, &render_context, &notes.by_recency())?;
 
     rss.validate()?;
 
-    println!("TIL RSS Valid! ✅");
+    println!("Notes RSS Valid! ✅");
 
     Ok(())
 }
