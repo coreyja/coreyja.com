@@ -91,7 +91,7 @@ fn projects() -> Markup {
     }
 }
 
-const PRINT_STYLES: &str = r#"
+const PRINT_STYLES: &str = r"
     @media print {
         @page { margin: 0.5in; size: letter; }
         body { font-size: 11pt !important; background: white !important; color: black !important; }
@@ -100,7 +100,7 @@ const PRINT_STYLES: &str = r#"
         .no-print { display: none !important; }
         a { color: inherit !important; text-decoration: none !important; }
     }
-"#;
+";
 
 pub(crate) async fn resume() -> Markup {
     base_constrained(
