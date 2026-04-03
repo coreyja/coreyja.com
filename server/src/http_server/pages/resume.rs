@@ -77,7 +77,7 @@ fn projects() -> Markup {
             "battlesnake.io",
             "January 2026 – Present",
             &html! {
-                p { "Took ownership of the Battlesnake competitive programming platform and community" }
+                p { "Took ownership of the Battlesnake competitive programming platform — run all infrastructure, manage the community, and maintain the open-source game engine in Rust" }
             },
         ))
         (experience(
