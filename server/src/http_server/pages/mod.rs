@@ -8,5 +8,6 @@ pub mod legal;
 pub mod login;
 pub mod podcast;
 pub mod projects;
+pub mod resume;
 pub mod til;
 pub mod videos;
