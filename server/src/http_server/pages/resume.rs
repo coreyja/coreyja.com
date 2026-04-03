@@ -81,11 +81,27 @@ fn projects() -> Markup {
             },
         ))
         (experience(
+            "Mull",
+            "mull.sh",
+            "Ongoing",
+            &html! {
+                p { "Building a persistent development environment that pairs AI coding agents with long-term memory" }
+            },
+        ))
+        (experience(
+            "coreyja.fm",
+            "",
+            "Ongoing",
+            &html! {
+                p { "Solo podcast exploring software engineering, AI tooling, and building in public" }
+            },
+        ))
+        (experience(
             "coreyja.com",
             "",
             "Ongoing",
             &html! {
-                p { "Personal site and blog built from scratch in Rust with Axum, featuring a podcast, project showcases, and a newsletter" }
+                p { "Personal site and blog built from scratch in Rust with Axum, featuring project showcases and a newsletter" }
             },
         ))
     }
