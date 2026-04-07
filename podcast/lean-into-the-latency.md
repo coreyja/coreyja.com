@@ -2,7 +2,7 @@
 title: "Lean Into the Latency (Why Async AI Workflows Win)"
 date: 2026-04-07
 slug: lean-into-the-latency
-youtube_id: "PLACEHOLDER"
+youtube_id: "PM1189Wy9OM"
 audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/003/audio.mp3"
 audio_length_bytes: 9592599
 audio_duration: "00:19:59"
