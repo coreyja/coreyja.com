@@ -1,0 +1,95 @@
+name: Publish Notes to Bluesky
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'notes/**'
+  workflow_dispatch:
+
+env:
+  SQLX_OFFLINE: true
+  APP_BASE_URL: https://coreyja.com
+
+jobs:
+  publish:
+    name: Publish Notes to Bluesky
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v4
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler libasound2-dev
+          version: v0
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Tailwind CSS
+        run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
+
+      - name: Build release binary
+        run: cargo build --locked --release
+
+      - name: Find unpublished notes
+        id: find
+        run: |
+          unpublished=""
+          for file in notes/*.md; do
+            if [ -f "$file" ]; then
+              if ! grep -q "bsky_url:" "$file"; then
+                # Check if date is >= 2026-03-01
+                date_line=$(grep "^date:" "$file" | head -1)
+                if [ -n "$date_line" ]; then
+                  post_date=$(echo "$date_line" | sed 's/date: //')
+                  if [[ "$post_date" > "2026-02-28" ]] || [[ "$post_date" == "2026-03-01" ]]; then
+                    unpublished="$unpublished $file"
+                  fi
+                fi
+              fi
+            fi
+          done
+
+          unpublished=$(echo "$unpublished" | xargs)
+          echo "paths=$unpublished" >> $GITHUB_OUTPUT
+
+          if [ -n "$unpublished" ]; then
+            echo "Found unpublished notes: $unpublished"
+          else
+            echo "No unpublished notes found"
+          fi
+
+      - name: Publish to Bluesky
+        if: steps.find.outputs.paths != ''
+        env:
+          BLUESKY_IDENTIFIER: ${{ secrets.BLUESKY_IDENTIFIER }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: |
+          for path in ${{ steps.find.outputs.paths }}; do
+            echo "Publishing: $path"
+            ./target/release/server publish-bluesky --path "$path"
+          done
+
+      - name: Commit bsky_url updates
+        if: steps.find.outputs.paths != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add notes/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add bsky_url to published notes"
+            git push
+          fi
