@@ -24,15 +24,15 @@ Have one pillar and you're competitive. Have both and you can do things nobody o
 
 I think this is going to play out the same shape the cloud did. We'll get the AWS-style players; the ones that own the underlying infrastructure and let you plug in whatever you need to build an agent. AWS already has most of the pieces: EC2, ECS, containerization, isolation, GPUs. They're in a really good spot to be one of the long-term winners here, as are the other hyperscalars.
 
-We'll also see Heroku-style players — the high-end-of-the-stack folks where you just plug in and get an agent. Both ends of that spectrum will work.
+We'll also see Heroku-style players, the high-end-of-the-stack folks, where you just plug in and get an agent. Both ends of that spectrum will work.
 
-The squeezed middle? Generic agent frameworks with no infrastructure underneath and no real UX edge on top. That's the empty space.
+The squeezed middle? Generic agent frameworks with no infrastructure underneath and no real UX edge on top. I imagine this space being much more barren.
 
 ## Inference Is the New Compute Bill
 
-The vertical integration argument starts with cost. SaaS scaled gracefully because each incremental use was essentially free — you'd already paid for the database and the web servers, and another query was just slotting into existing capacity. LLM inference breaks that pattern. Every time you summarize something for a user, there's a real per-use cost — and when you're paying frontier-model API prices, you feel it fast.
+The vertical integration argument starts with cost. SaaS scaled gracefully because each incremental use was essentially free. You'd already paid for the database and the web servers, and another query was just slotting into existing capacity. LLM inference breaks that pattern. Every time you summarize something for a user, there's a real per-use cost. And when you're paying frontier-model API prices, you feel it fast.
 
-The companies that get back to "scaling like software did" will be the ones that own enough of the stack to run their own weights for the work that doesn't need a frontier model. With open-weight models getting genuinely good, you don't need to ditch closed-frontier models entirely — you mix and match. Foundation models for the user-facing reasoning where intelligence really matters; locally-run open-weight models for the background work like memory retrieval, summarization, and pre-fetching.
+The companies that get back to "scaling like software did" will be the ones that own enough of the stack to run their own weights for the work that doesn't need a frontier model. With open-weight models getting genuinely good, you don't need to ditch closed-frontier models entirely, you mix and match. Foundation models for the user-facing reasoning where intelligence really matters; locally-run open-weight models for the background work like memory retrieval, summarization, and pre-fetching.
 
 Owning that layer means you stop paying someone else's margin on every single agent call.
 
@@ -40,7 +40,7 @@ Owning that layer means you stop paying someone else's margin on every single ag
 
 The cost story is the easy half. The harder, more interesting half is what vertical integration does for *quality*.
 
-When you own the data layer, citation gets better. Evaluation gets better — you can grade outputs against domain truth, not benchmark scores. Hallucination detection gets easier. Permissions and audit can flow end-to-end because identity is mapped through the whole stack.
+When you own the data layer, citation gets better. Evaluation gets better too. You can grade outputs against domain truth, not benchmark scores. Hallucination detection gets easier. Permissions and audit can flow end-to-end because identity is mapped through the whole stack.
 
 And the UX compounds the same way Apple's hardware-software integration compounds. Bluetooth just works between my Mac and my AirPods because Apple owns every piece of that handshake. Copy-paste between my devices just works because the same company built the OS, the hardware, and the sync layer. Vertical integration looks slow until you start stacking the wins, and then it's a structural advantage nobody can match by gluing third-party products together.
 
