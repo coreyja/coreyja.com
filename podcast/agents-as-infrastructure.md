@@ -15,14 +15,14 @@ Welcome back to coreyja.fm! This episode is all about one idea: agents are the n
 
 There are two moats forming in the agent space, and they map to two different kinds of advantage:
 
-- **The data pillar.** Proprietary corpora, domain trust, ground truth that you can't buy — only accumulate. This is what every incumbent with a real data set has been sitting on for the last two decades, and agents are the first technology that can really *use* it across structured and unstructured data at scale.
+- **The data pillar.** This is what every incumbent with a real data set has been sitting on for the last two decades. Agents are the first technology that can really *use* it across structured and unstructured data at scale.
 - **The agent infrastructure pillar.** The layers above the model: retrieval, memory, tool runtimes, evals, identity, audit. The plumbing that turns a model into a product.
 
 Have one pillar and you're competitive. Have both and you can do things nobody outside your company can replicate.
 
 ## Why It'll Mirror the Cloud
 
-I think this is going to play out the same shape the cloud did. We'll get the AWS-style players — the ones that own the underlying infrastructure and let you plug in whatever you need to build an agent. AWS already has most of the pieces: EC2, ECS, containerization, isolation, GPUs. They're in a really good spot to be one of the long-term winners here.
+I think this is going to play out the same shape the cloud did. We'll get the AWS-style players; the ones that own the underlying infrastructure and let you plug in whatever you need to build an agent. AWS already has most of the pieces: EC2, ECS, containerization, isolation, GPUs. They're in a really good spot to be one of the long-term winners here, as are the other hyperscalars.
 
 We'll also see Heroku-style players — the high-end-of-the-stack folks where you just plug in and get an agent. Both ends of that spectrum will work.
 
