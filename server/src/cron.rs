@@ -11,7 +11,7 @@ use crate::{
 };
 
 fn one_hour() -> Duration {
-    Duration::from_secs(60 * 60)
+    Duration::from_hours(1)
 }
 
 pub(crate) fn cron_registry() -> CronRegistry<AppState> {
