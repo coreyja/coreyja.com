@@ -2,7 +2,7 @@
 title: "Agents as Infrastructure (The Two-Pillar Play)"
 date: 2026-05-06
 slug: agents-as-infrastructure
-youtube_id: ""
+youtube_id: "6MAvzL7uIfk"
 audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/004/audio.mp3"
 audio_length_bytes: 8285222
 audio_duration: "00:17:15"
