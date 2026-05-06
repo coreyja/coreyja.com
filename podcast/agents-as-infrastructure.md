@@ -4,8 +4,8 @@ date: 2026-05-06
 slug: agents-as-infrastructure
 youtube_id: ""
 audio_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/004/audio.mp3"
-audio_length_bytes: 0
-audio_duration: "00:17:30"
+audio_length_bytes: 8285222
+audio_duration: "00:17:15"
 transcript_url: "https://coreyja-fm.s3.us-east-2.amazonaws.com/004/transcript.srt"
 ---
 
