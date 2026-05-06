@@ -22,7 +22,7 @@ Have one pillar and you're competitive. Have both and you can do things nobody o
 
 ## Why It'll Mirror the Cloud
 
-I think this is going to play out the same shape the cloud did. We'll get the AWS-style players; the ones that own the underlying infrastructure and let you plug in whatever you need to build an agent. AWS already has most of the pieces: EC2, ECS, containerization, isolation, GPUs. They're in a really good spot to be one of the long-term winners here, as are the other hyperscalars.
+I think this is going to play out the same shape the cloud did. We'll get the AWS-style players; the ones that own the underlying infrastructure and let you plug in whatever you need to build an agent. AWS already has most of the pieces: EC2, ECS, containerization, isolation, GPUs. They're in a really good spot to be one of the long-term winners here, as are the other hyperscalers.
 
 We'll also see Heroku-style players, the high-end-of-the-stack folks, where you just plug in and get an agent. Both ends of that spectrum will work.
 
