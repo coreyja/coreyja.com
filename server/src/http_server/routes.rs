@@ -42,6 +42,7 @@ pub(crate) fn make_router() -> Router<AppState> {
         .route("/podcast", get(pages::podcast::podcast_index))
         .route("/podcast/feed.xml", get(pages::podcast::podcast_rss_feed))
         .route("/podcast/{slug}", get(pages::podcast::podcast_get))
+        .route("/resume", get(pages::resume::resume))
         .route("/projects", get(pages::projects::projects_index))
         .route("/projects/{slug}", get(pages::projects::projects_get))
         .route("/videos", get(pages::videos::video_index))
