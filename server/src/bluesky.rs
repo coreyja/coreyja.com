@@ -30,6 +30,45 @@ struct SessionResponse {
 pub struct BlueskyClient {
     client: reqwest::Client,
     session: SessionResponse,
+    /// PDS base URL discovered from the user's DID document. All XRPC calls
+    /// after login go here, not to a hardcoded host — supports accounts on
+    /// any PDS (Blacksky, Tranquil, self-hosted, bsky.social, etc.).
+    pds_url: String,
+}
+
+/// Slingshot is an `ATProto` identity resolver run by Microcosm
+/// (<https://slingshot.microcosm.blue>). One call returns DID, handle, and
+/// PDS for any identifier — handle or DID, did:plc or did:web. Replaces
+/// the multi-step PLC directory / .well-known resolution dance.
+///
+/// The endpoint is in the experimental `com.bad-example.*` namespace. If
+/// the NSID is ever renamed, that's a one-line change here.
+const SLINGSHOT_RESOLVE_URL: &str =
+    "https://slingshot.microcosm.blue/xrpc/com.bad-example.identity.resolveMiniDoc";
+
+#[derive(Deserialize, Debug)]
+struct MiniDoc {
+    #[allow(dead_code)] // returned by API; kept for future use
+    did: String,
+    #[allow(dead_code)] // returned by API; kept for future use
+    handle: Option<String>,
+    pds: String,
+}
+
+/// Resolve any identifier (handle or DID) to its PDS endpoint via Slingshot.
+async fn resolve_pds(client: &reqwest::Client, identifier: &str) -> cja::Result<String> {
+    let url = format!("{SLINGSHOT_RESOLVE_URL}?identifier={identifier}");
+    let resp = client.get(&url).send().await?;
+    if !resp.status().is_success() {
+        return Err(cja::color_eyre::eyre::eyre!(
+            "Slingshot resolveMiniDoc failed for '{}' ({}): {}",
+            identifier,
+            resp.status(),
+            resp.text().await.unwrap_or_default()
+        ));
+    }
+    let doc: MiniDoc = resp.json().await?;
+    Ok(doc.pds.trim_end_matches('/').to_string())
 }
 
 #[derive(Serialize, Debug)]
@@ -107,13 +146,19 @@ pub struct CreateRecordResponse {
 impl BlueskyClient {
     pub async fn login(config: &BlueskyConfig) -> cja::Result<Self> {
         let client = reqwest::Client::new();
+
+        // Resolve identifier -> PDS so we authenticate against the account's
+        // actual host, not a hardcoded one. Works for any account on any PDS
+        // in the ATProto network.
+        let pds_url = resolve_pds(&client, &config.identifier).await?;
+
         let req = CreateSessionRequest {
             identifier: config.identifier.clone(),
             password: config.app_password.clone(),
         };
 
         let resp = client
-            .post("https://bsky.social/xrpc/com.atproto.server.createSession")
+            .post(format!("{pds_url}/xrpc/com.atproto.server.createSession"))
             .json(&req)
             .send()
             .await?;
@@ -122,7 +167,8 @@ impl BlueskyClient {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             return Err(cja::color_eyre::eyre::eyre!(
-                "Bluesky login failed ({}): {}",
+                "Bluesky login failed at {} ({}): {}",
+                pds_url,
                 status,
                 body
             ));
@@ -130,7 +176,11 @@ impl BlueskyClient {
 
         let session: SessionResponse = resp.json().await?;
 
-        Ok(Self { client, session })
+        Ok(Self {
+            client,
+            session,
+            pds_url,
+        })
     }
 
     pub async fn create_post(
@@ -166,7 +216,10 @@ impl BlueskyClient {
 
         let resp = self
             .client
-            .post("https://bsky.social/xrpc/com.atproto.repo.createRecord")
+            .post(format!(
+                "{}/xrpc/com.atproto.repo.createRecord",
+                self.pds_url
+            ))
             .bearer_auth(&self.session.access_jwt)
             .json(&record)
             .send()
@@ -338,6 +391,42 @@ mod tests {
         let session: SessionResponse = serde_json::from_str(json).unwrap();
         assert_eq!(session.did, "did:plc:abc123");
         assert_eq!(session.access_jwt, "eyJ...");
+    }
+
+    // ==================== Slingshot MiniDoc parsing tests ====================
+
+    #[test]
+    fn minidoc_parses_full_response() {
+        let json = r#"{
+            "did": "did:plc:bg2gnrjiv6htfynausierbm2",
+            "handle": "coreyja.com",
+            "pds": "https://blacksky.app",
+            "signing_key": "zQ3sheFdgAVcE4XxexT4F3CCiyyuKPtLCL2pFSXF4H7s6WgnV"
+        }"#;
+        let doc: MiniDoc = serde_json::from_str(json).unwrap();
+        assert_eq!(doc.did, "did:plc:bg2gnrjiv6htfynausierbm2");
+        assert_eq!(doc.handle.as_deref(), Some("coreyja.com"));
+        assert_eq!(doc.pds, "https://blacksky.app");
+    }
+
+    #[test]
+    fn minidoc_parses_response_without_handle() {
+        // Some accounts can be DID-only (handle invalid / unset).
+        let json = r#"{
+            "did": "did:plc:xxx",
+            "pds": "https://example.pds"
+        }"#;
+        let doc: MiniDoc = serde_json::from_str(json).unwrap();
+        assert_eq!(doc.handle, None);
+        assert_eq!(doc.pds, "https://example.pds");
+    }
+
+    #[test]
+    fn minidoc_rejects_missing_required_fields() {
+        // Missing pds — required for our purpose.
+        let json = r#"{ "did": "did:plc:xxx" }"#;
+        let result: Result<MiniDoc, _> = serde_json::from_str(json);
+        assert!(result.is_err());
     }
 
     #[test]
