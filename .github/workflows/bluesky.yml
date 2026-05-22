@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 env:
   SQLX_OFFLINE: true
@@ -89,6 +90,7 @@ jobs:
           done
 
       - name: Commit bsky_url updates
+        id: commit
         if: steps.find.outputs.paths != ''
         run: |
           git config user.name "github-actions[bot]"
@@ -96,7 +98,19 @@ jobs:
           git add notes/
           if git diff --staged --quiet; then
             echo "No changes to commit"
+            echo "pushed=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Add bsky_url to published notes"
             git push
+            echo "pushed=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Trigger Rust Tests (chains to deploy)
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GITHUB_TOKEN pushes don't trigger workflows (anti-recursion),
+          # but workflow_dispatch events DO. Explicitly run Rust Tests
+          # against main so it chains into Fly Deploy via workflow_run.
+          gh workflow run rust_tests.yml --ref main
