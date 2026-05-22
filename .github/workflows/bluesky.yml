@@ -29,6 +29,12 @@ jobs:
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v4
+        with:
+          # Always check out the tip of main, not the SHA that triggered the
+          # workflow. Without this, a queued run for an older commit could see
+          # stale notes (missing bsky_url updates pushed by an earlier run)
+          # and re-publish them.
+          ref: main
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -50,48 +56,19 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Find unpublished notes
-        id: find
-        run: |
-          unpublished=""
-          for file in notes/*.md; do
-            if [ -f "$file" ]; then
-              if ! grep -q "bsky_url:" "$file"; then
-                # Check if date is >= 2026-03-01
-                date_line=$(grep "^date:" "$file" | head -1)
-                if [ -n "$date_line" ]; then
-                  post_date=$(echo "$date_line" | sed 's/date: //')
-                  if [[ "$post_date" > "2026-02-28" ]] || [[ "$post_date" == "2026-03-01" ]]; then
-                    unpublished="$unpublished $file"
-                  fi
-                fi
-              fi
-            fi
-          done
-
-          unpublished=$(echo "$unpublished" | xargs)
-          echo "paths=$unpublished" >> $GITHUB_OUTPUT
-
-          if [ -n "$unpublished" ]; then
-            echo "Found unpublished notes: $unpublished"
-          else
-            echo "No unpublished notes found"
-          fi
-
       - name: Publish to Bluesky
-        if: steps.find.outputs.paths != ''
+        id: publish
+        # Don't abort on partial failures — surface them but let the commit
+        # step push whatever bsky_urls did get written. The next run retries
+        # the failures via the idempotency check.
+        continue-on-error: true
         env:
           BLUESKY_IDENTIFIER: ${{ secrets.BLUESKY_IDENTIFIER }}
           BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
-        run: |
-          for path in ${{ steps.find.outputs.paths }}; do
-            echo "Publishing: $path"
-            ./target/release/server publish-bluesky --path "$path"
-          done
+        run: ./target/release/server publish-bluesky --dir notes
 
       - name: Commit bsky_url updates
         id: commit
-        if: steps.find.outputs.paths != ''
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -101,6 +78,9 @@ jobs:
             echo "pushed=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Add bsky_url to published notes"
+            # Rebase onto whatever main looks like *now* — covers the case
+            # where main moved during this workflow run.
+            git pull --rebase origin main
             git push
             echo "pushed=true" >> $GITHUB_OUTPUT
           fi
@@ -114,3 +94,12 @@ jobs:
           # but workflow_dispatch events DO. Explicitly run Rust Tests
           # against main so it chains into Fly Deploy via workflow_run.
           gh workflow run rust_tests.yml --ref main
+
+      - name: Surface publish failures
+        # Runs last so partial successes still deploy via the dispatch step
+        # above. A failure here marks the run red but doesn't block the
+        # successful notes from going live.
+        if: steps.publish.outcome == 'failure'
+        run: |
+          echo "::error::One or more notes failed to publish. See the 'Publish to Bluesky' step. Next run will retry."
+          exit 1
