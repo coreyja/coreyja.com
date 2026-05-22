@@ -5,16 +5,31 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: write
-  id-token: write
+concurrency:
+  group: take-screenshots
+  cancel-in-progress: false
 
 jobs:
   shot-scraper:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
+      - name: Generate App token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
+        with:
+          # Latest main so a queued/long-running shot run doesn't push on top
+          # of a stale tree. App token authenticates the push as a bypass
+          # actor on the main ruleset, and the push triggers downstream
+          # workflows (rust_tests → fly_deploy) naturally.
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v2
         with:
@@ -47,39 +62,22 @@ jobs:
       - name: Optimize PNGs
         run: |-
           oxipng -o 4 -i 0 --strip safe screenshots/**/*.png
+
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-      - run: git checkout -b update-screenshot-${{ steps.date.outputs.date }}
-      - name: Check for changes
-        id: git-check
-        run: |
-          git add screenshots
-          git status --porcelain
-          echo "changes=$(git status --porcelain | wc -l)" >> $GITHUB_OUTPUT
+
       - name: Commit and push if there are changes
-        if: steps.git-check.outputs.changes > 0
         run: |
-          git config --global user.email "workflow-automation@coreyja.com"
-          git config --global user.name "Coreyja Workflow Automation"
-          git commit -m "Update daily screenshots for ${{ steps.date.outputs.date }}"
-          git push --set-upstream origin update-screenshot-${{ steps.date.outputs.date }}
-      - name: Install OIDC Client from Core Package
-        if: steps.git-check.outputs.changes > 0
-        run: npm install @actions/core@1.6.0 @actions/http-client
-      - name: Get Id Token
-        if: steps.git-check.outputs.changes > 0
-        uses: actions/github-script@v6
-        id: idtoken
-        with:
-          script: |
-            const coredemo = require('@actions/core')
-            let id_token = await coredemo.getIDToken()
-            coredemo.setOutput('id_token', id_token)
-            console.log(id_token)
-      - name: Make PR
-        if: steps.git-check.outputs.changes > 0
-        run: |
-          curl -X POST https://workflow-automation.fly.dev/create-pr \
-            -H "Content-Type: application/json" \
-            -d '{"github_oidc_jwt": "${{ steps.idtoken.outputs.id_token }}", "owner": "coreyja", "repo": "coreyja.com", "base_branch": "main", "head_branch": "update-screenshot-${{ steps.date.outputs.date }}", "title": "Update Daily Screenshot -- ${{ steps.date.outputs.date }}", "body": "Automated daily screenshot update for ${{ steps.date.outputs.date }}"}'
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git add screenshots
+          if git diff --staged --quiet; then
+            echo "No screenshot changes — nothing to commit"
+          else
+            git commit -m "Update Daily Screenshot -- ${{ steps.date.outputs.date }}"
+            # Rebase onto whatever main looks like *now* in case it moved
+            # while screenshots were being taken/optimized.
+            git pull --rebase origin main
+            git push
+          fi

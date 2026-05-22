@@ -12,10 +12,6 @@ concurrency:
   group: bluesky-publish
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  actions: write
-
 env:
   SQLX_OFFLINE: true
   APP_BASE_URL: https://coreyja.com
@@ -27,6 +23,13 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
     steps:
+      - name: Generate App token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Setup | Checkout
         uses: actions/checkout@v4
         with:
@@ -35,6 +38,11 @@ jobs:
           # stale notes (missing bsky_url updates pushed by an earlier run)
           # and re-publish them.
           ref: main
+          # Authenticate git operations as the App so the push bypasses the
+          # main-branch ruleset (App is a bypass actor) and so the push
+          # triggers downstream workflows (App tokens trigger runs, unlike
+          # the default GITHUB_TOKEN).
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -68,37 +76,23 @@ jobs:
         run: ./target/release/server publish-bluesky --dir notes
 
       - name: Commit bsky_url updates
-        id: commit
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git add notes/
           if git diff --staged --quiet; then
             echo "No changes to commit"
-            echo "pushed=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Add bsky_url to published notes"
             # Rebase onto whatever main looks like *now* — covers the case
             # where main moved during this workflow run.
             git pull --rebase origin main
             git push
-            echo "pushed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Trigger Rust Tests (chains to deploy)
-        if: steps.commit.outputs.pushed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # GITHUB_TOKEN pushes don't trigger workflows (anti-recursion),
-          # but workflow_dispatch events DO. Explicitly run Rust Tests
-          # against main so it chains into Fly Deploy via workflow_run.
-          gh workflow run rust_tests.yml --ref main
-
       - name: Surface publish failures
-        # Runs last so partial successes still deploy via the dispatch step
-        # above. A failure here marks the run red but doesn't block the
-        # successful notes from going live.
+        # Marks the run red so failures are visible. Runs last so partial
+        # successes still got committed/pushed/deployed via the steps above.
         if: steps.publish.outcome == 'failure'
         run: |
           echo "::error::One or more notes failed to publish. See the 'Publish to Bluesky' step. Next run will retry."
