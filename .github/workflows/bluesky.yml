@@ -1,0 +1,99 @@
+name: Publish Notes to Bluesky
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'notes/**'
+  workflow_dispatch:
+
+concurrency:
+  group: bluesky-publish
+  cancel-in-progress: false
+
+env:
+  SQLX_OFFLINE: true
+  APP_BASE_URL: https://coreyja.com
+
+jobs:
+  publish:
+    name: Publish Notes to Bluesky
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Generate App token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Setup | Checkout
+        uses: actions/checkout@v4
+        with:
+          # Always check out the tip of main, not the SHA that triggered the
+          # workflow. Without this, a queued run for an older commit could see
+          # stale notes (missing bsky_url updates pushed by an earlier run)
+          # and re-publish them.
+          ref: main
+          # Authenticate git operations as the App so the push bypasses the
+          # main-branch ruleset (App is a bypass actor) and so the push
+          # triggers downstream workflows (App tokens trigger runs, unlike
+          # the default GITHUB_TOKEN).
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler libasound2-dev
+          version: v0
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Tailwind CSS
+        run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Publish to Bluesky
+        id: publish
+        # Don't abort on partial failures — surface them but let the commit
+        # step push whatever bsky_urls did get written. The next run retries
+        # the failures via the idempotency check.
+        continue-on-error: true
+        env:
+          BLUESKY_IDENTIFIER: ${{ secrets.BLUESKY_IDENTIFIER }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: ./target/release/server publish-bluesky --dir notes
+
+      - name: Commit bsky_url updates
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git add notes/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add bsky_url to published notes"
+            # Rebase onto whatever main looks like *now* — covers the case
+            # where main moved during this workflow run.
+            git pull --rebase origin main
+            git push
+          fi
+
+      - name: Surface publish failures
+        # Marks the run red so failures are visible. Runs last so partial
+        # successes still got committed/pushed/deployed via the steps above.
+        if: steps.publish.outcome == 'failure'
+        run: |
+          echo "::error::One or more notes failed to publish. See the 'Publish to Bluesky' step. Next run will retry."
+          exit 1

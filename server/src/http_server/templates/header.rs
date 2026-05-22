@@ -108,7 +108,7 @@ pub fn header() -> Markup {
           ul class="text-lg flex flex-wrap flex-row justify-center sm:items-center flex-grow" {
             (HeaderLink { href: "/", text: "Home" })
             (HeaderLink { href: "/posts", text: "Posts" })
-            (HeaderLink { href: "/til", text: "TILs" })
+            (HeaderLink { href: "/notes", text: "Notes" })
             (HeaderLink { href: "/videos", text: "Videos" })
             (HeaderLink { href: "/podcast", text: "Podcast" })
             (HeaderLink { href: "/projects", text: "Projects" })

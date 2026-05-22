@@ -103,6 +103,7 @@ strum = { version = "0.26", features = ["derive"] }
 
 [dev-dependencies]
 roxmltree = "0.20"
+tempfile = "3"
 
 [build-dependencies]
 vergen = { workspace = true, features = ["git", "gitoxide", "rustc"] }
