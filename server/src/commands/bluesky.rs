@@ -93,32 +93,6 @@ fn update_frontmatter_with_bsky_url(content: &str, url: &str) -> String {
     format!("---\n{updated_yaml}\n---{body}")
 }
 
-/// Format the post text for Bluesky, truncating body if needed to stay within 300 chars
-fn format_post_text(title: &str, body: &str, url: &str) -> String {
-    // Format: "{title}\n\n{body}\n\n{url}"
-    // The separator takes 4 chars (\n\n before body, \n\n before url)
-    let overhead = title.chars().count() + url.chars().count() + 4; // \n\n + \n\n
-
-    if overhead >= 300 {
-        // Title + URL alone exceed limit, no room for body
-        return format!("{title}\n\n{url}");
-    }
-
-    let max_body_chars = 300 - overhead;
-    let body_trimmed = body.trim();
-
-    if body_trimmed.chars().count() <= max_body_chars {
-        format!("{title}\n\n{body_trimmed}\n\n{url}")
-    } else {
-        // Truncate body with ellipsis
-        let truncated: String = body_trimmed
-            .chars()
-            .take(max_body_chars.saturating_sub(1))
-            .collect();
-        format!("{title}\n\n{truncated}…\n\n{url}")
-    }
-}
-
 /// Publish a single note, given an authenticated client. Idempotent: skips
 /// notes that already have a `bsky_url` or are dated before the cutoff.
 async fn publish_one(path: &Path, client: &BlueskyClient) -> cja::Result<bool> {
@@ -142,11 +116,10 @@ async fn publish_one(path: &Path, client: &BlueskyClient) -> cja::Result<bool> {
     }
 
     let note_url = format!("https://coreyja.com/notes/{}", frontmatter.slug);
-    let post_text = format_post_text(&frontmatter.title, &body, &note_url);
 
     println!("Publishing note to Bluesky: {}", frontmatter.title);
     let response = client
-        .create_post(&post_text, &note_url, &frontmatter.title)
+        .create_note_post(&frontmatter.title, &body, &note_url)
         .await?;
 
     let web_url = at_uri_to_web_url(&response.uri)?;
@@ -382,68 +355,6 @@ fn main() {}
         assert!(updated.contains("```rust"));
     }
 
-    // ==================== format_post_text tests ====================
-
-    #[test]
-    fn format_post_text_basic() {
-        let result = format_post_text(
-            "My Title",
-            "This is the body of the note.",
-            "https://coreyja.com/notes/my-note",
-        );
-        assert!(result.contains("My Title"));
-        assert!(result.contains("This is the body"));
-        assert!(result.contains("https://coreyja.com/notes/my-note"));
-    }
-
-    #[test]
-    fn format_post_text_structure() {
-        let result = format_post_text("Title", "Body text", "https://coreyja.com/notes/slug");
-        let lines: Vec<&str> = result.split('\n').collect();
-        assert_eq!(lines[0], "Title");
-        assert_eq!(lines[1], "");
-        assert!(result.ends_with("https://coreyja.com/notes/slug"));
-    }
-
-    #[test]
-    fn format_post_text_under_300_chars_no_truncation() {
-        let title = "Short Title";
-        let body = "Short body.";
-        let url = "https://coreyja.com/notes/short";
-        let result = format_post_text(title, body, url);
-
-        assert!(result.chars().count() <= 300);
-        assert!(result.contains("Short body."));
-    }
-
-    #[test]
-    fn format_post_text_truncates_body_when_over_300_chars() {
-        let title = "Title";
-        let body = "A".repeat(400);
-        let url = "https://coreyja.com/notes/long-note";
-        let result = format_post_text(title, &body, url);
-
-        assert!(
-            result.chars().count() <= 300,
-            "got {} chars",
-            result.chars().count()
-        );
-        assert!(result.contains("Title"));
-        assert!(result.contains(url));
-    }
-
-    #[test]
-    fn format_post_text_preserves_title_and_url_when_truncating() {
-        let title = "My Important Title";
-        let body = "x".repeat(500);
-        let url = "https://coreyja.com/notes/important";
-        let result = format_post_text(title, &body, url);
-
-        assert!(result.starts_with("My Important Title"));
-        assert!(result.ends_with(url));
-        assert!(result.chars().count() <= 300);
-    }
-
     // ==================== classify_note / scan tests ====================
 
     fn write_note(dir: &std::path::Path, name: &str, body: &str) -> PathBuf {
@@ -537,17 +448,48 @@ fn main() {}
         assert_eq!(found, vec![eligible]);
     }
 
+    /// Every note that *could* publish to Bluesky (date >= cutoff) must fit
+    /// in Bluesky's 300-character post limit so the publish step doesn't
+    /// have to silently truncate the body. Catches "wrote too much" at PR
+    /// review time rather than at publish time.
     #[test]
-    fn format_post_text_uses_char_count_not_byte_count() {
-        let title = "🦀 Rust";
-        let body = "é".repeat(300);
-        let url = "https://coreyja.com/notes/emoji";
-        let result = format_post_text(title, &body, url);
+    fn all_publishable_notes_fit_within_bsky_post_limit() {
+        let notes_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("server crate has a parent dir")
+            .join("notes");
+
+        let cutoff = cutoff_date();
+        let mut failures = Vec::new();
+
+        for entry in std::fs::read_dir(&notes_dir).expect("read notes/ dir") {
+            let path = entry.expect("read dir entry").path();
+            if path.extension().and_then(|s| s.to_str()) != Some("md") {
+                continue;
+            }
+            let content = std::fs::read_to_string(&path).expect("read note file");
+            let Ok((fm, body)) = parse_frontmatter(&content) else {
+                continue;
+            };
+            if fm.date < cutoff {
+                continue;
+            }
+            let url = format!("https://coreyja.com/notes/{}", fm.slug);
+            let count = crate::bluesky::bsky_post_char_count(&fm.title, &body, &url);
+            if count > 300 {
+                failures.push(format!(
+                    "{}: {count} chars (over by {})",
+                    path.file_name().unwrap().to_string_lossy(),
+                    count - 300
+                ));
+            }
+        }
 
         assert!(
-            result.chars().count() <= 300,
-            "got {} chars",
-            result.chars().count()
+            failures.is_empty(),
+            "These notes would exceed Bluesky's 300-character post limit and \
+             get truncated when syndicated. Shorten the title, body, or slug:\n  {}",
+            failures.join("\n  ")
         );
     }
 }
