@@ -23,12 +23,29 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
     steps:
+      - name: Decode App private key
+        # The secret stores the PEM base64-encoded so pasting into the
+        # GitHub UI doesn't mangle newlines. Decode it into env and mask
+        # the decoded form so it never appears in subsequent log output.
+        env:
+          APP_PRIVATE_KEY_B64: ${{ secrets.APP_PRIVATE_KEY_B64 }}
+        run: |
+          DECODED=$(echo "$APP_PRIVATE_KEY_B64" | base64 -d)
+          while IFS= read -r line; do
+            [ -n "$line" ] && echo "::add-mask::$line"
+          done <<< "$DECODED"
+          {
+            echo 'APP_PRIVATE_KEY<<__APP_PRIVATE_KEY_EOF__'
+            echo "$DECODED"
+            echo '__APP_PRIVATE_KEY_EOF__'
+          } >> "$GITHUB_ENV"
+
       - name: Generate App token
         uses: actions/create-github-app-token@v1
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          private-key: ${{ env.APP_PRIVATE_KEY }}
 
       - name: Setup | Checkout
         uses: actions/checkout@v4
