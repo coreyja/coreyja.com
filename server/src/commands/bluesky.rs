@@ -261,7 +261,6 @@ mod tests {
 title: Test Note
 date: 2026-03-05
 slug: test-note
-kind: til
 ---
 
 This is the body of the note.
@@ -278,7 +277,6 @@ This is the body of the note.
 title: Already Published
 date: 2026-03-05
 slug: already-published
-kind: til
 bsky_url: https://bsky.app/profile/coreyja.com/post/abc123
 ---
 
@@ -289,20 +287,6 @@ Body text.
             fm.bsky_url,
             Some("https://bsky.app/profile/coreyja.com/post/abc123".to_string())
         );
-    }
-
-    #[test]
-    fn parse_frontmatter_without_kind() {
-        let content = r"---
-title: Plain Note
-date: 2026-03-06
-slug: plain-note
----
-
-Just a note without a kind.
-";
-        let (fm, _body) = parse_frontmatter(content).unwrap();
-        assert_eq!(fm.kind, None);
     }
 
     #[test]
@@ -337,7 +321,6 @@ Body without closing delimiter.
 title: Test Note
 date: 2026-03-05
 slug: test-note
-kind: til
 ---
 
 Body content here.
@@ -356,7 +339,6 @@ Body content here.
 title: Full Note
 date: 2026-03-05
 slug: full-note
-kind: link
 ---
 
 Body.
@@ -369,7 +351,6 @@ Body.
         assert!(updated.contains("title: Full Note"));
         assert!(updated.contains("date: 2026-03-05"));
         assert!(updated.contains("slug: full-note"));
-        assert!(updated.contains("kind: link"));
         assert!(updated.contains("bsky_url: https://bsky.app/profile/coreyja.com/post/xyz"));
     }
 

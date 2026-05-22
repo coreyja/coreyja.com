@@ -17,13 +17,6 @@ use color_eyre::{eyre::Context, Result};
 
 pub(crate) static NOTES_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../notes");
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum NoteKind {
-    Til,
-    Link,
-}
-
 #[derive(Debug, Clone)]
 pub struct NotePosts {
     pub posts: Vec<NotePost>,
@@ -36,7 +29,6 @@ pub struct FrontMatter {
     pub title: String,
     pub date: NaiveDate,
     pub slug: String,
-    pub kind: Option<NoteKind>,
     pub bsky_url: Option<String>,
 }
 
@@ -145,42 +137,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn frontmatter_deserializes_with_til_kind() {
+    fn frontmatter_deserializes_basic_note() {
         let yaml = r"
 title: Test Note
 date: 2026-03-01
 slug: test-note
-kind: til
 ";
         let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(fm.title, "Test Note");
         assert_eq!(fm.slug, "test-note");
-        assert_eq!(fm.kind, Some(NoteKind::Til));
         assert_eq!(fm.bsky_url, None);
-    }
-
-    #[test]
-    fn frontmatter_deserializes_with_link_kind() {
-        let yaml = r"
-title: Cool Link
-date: 2026-03-02
-slug: cool-link
-kind: link
-";
-        let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(fm.kind, Some(NoteKind::Link));
-    }
-
-    #[test]
-    fn frontmatter_deserializes_without_kind() {
-        let yaml = r"
-title: Just a Note
-date: 2026-03-03
-slug: just-a-note
-";
-        let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(fm.title, "Just a Note");
-        assert_eq!(fm.kind, None);
     }
 
     #[test]
@@ -189,7 +155,6 @@ slug: just-a-note
 title: Syndicated Note
 date: 2026-03-04
 slug: syndicated-note
-kind: til
 bsky_url: https://bsky.app/profile/coreyja.com/post/abc123
 ";
         let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
@@ -200,36 +165,11 @@ bsky_url: https://bsky.app/profile/coreyja.com/post/abc123
     }
 
     #[test]
-    fn frontmatter_deserializes_without_bsky_url() {
-        let yaml = r"
-title: Unsyndicated Note
-date: 2026-03-05
-slug: unsyndicated
-kind: til
-";
-        let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(fm.bsky_url, None);
-    }
-
-    #[test]
-    fn frontmatter_rejects_invalid_kind() {
-        let yaml = r"
-title: Bad Kind
-date: 2026-03-06
-slug: bad-kind
-kind: invalid_kind
-";
-        let result: Result<FrontMatter, _> = serde_yaml::from_str(yaml);
-        assert!(result.is_err(), "Invalid kind should fail deserialization");
-    }
-
-    #[test]
     fn frontmatter_roundtrips_through_serde() {
         let yaml = r"
 title: Roundtrip Test
 date: 2026-03-07
 slug: roundtrip
-kind: til
 bsky_url: https://bsky.app/profile/coreyja.com/post/xyz
 ";
         let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
@@ -267,17 +207,4 @@ bsky_url: https://bsky.app/profile/coreyja.com/post/xyz
         }
     }
 
-    #[test]
-    fn migrated_tils_have_kind_til() {
-        let notes = NotePosts::from_static_dir().unwrap();
-        let til_notes: Vec<_> = notes
-            .posts
-            .iter()
-            .filter(|n| n.frontmatter.kind == Some(NoteKind::Til))
-            .collect();
-        assert!(
-            !til_notes.is_empty(),
-            "Should have at least one note with kind: til (migrated from TILs)"
-        );
-    }
 }
