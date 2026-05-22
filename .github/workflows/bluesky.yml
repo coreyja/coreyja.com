@@ -8,6 +8,13 @@ on:
       - 'notes/**'
   workflow_dispatch:
 
+concurrency:
+  group: bluesky-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
 env:
   SQLX_OFFLINE: true
   APP_BASE_URL: https://coreyja.com
