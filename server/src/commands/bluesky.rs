@@ -448,4 +448,48 @@ fn main() {}
         assert_eq!(found, vec![eligible]);
     }
 
+    /// Every note that *could* publish to Bluesky (date >= cutoff) must fit
+    /// in Bluesky's 300-character post limit so the publish step doesn't
+    /// have to silently truncate the body. Catches "wrote too much" at PR
+    /// review time rather than at publish time.
+    #[test]
+    fn all_publishable_notes_fit_within_bsky_post_limit() {
+        let notes_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("server crate has a parent dir")
+            .join("notes");
+
+        let cutoff = cutoff_date();
+        let mut failures = Vec::new();
+
+        for entry in std::fs::read_dir(&notes_dir).expect("read notes/ dir") {
+            let path = entry.expect("read dir entry").path();
+            if path.extension().and_then(|s| s.to_str()) != Some("md") {
+                continue;
+            }
+            let content = std::fs::read_to_string(&path).expect("read note file");
+            let Ok((fm, body)) = parse_frontmatter(&content) else {
+                continue;
+            };
+            if fm.date < cutoff {
+                continue;
+            }
+            let url = format!("https://coreyja.com/notes/{}", fm.slug);
+            let count = crate::bluesky::bsky_post_char_count(&fm.title, &body, &url);
+            if count > 300 {
+                failures.push(format!(
+                    "{}: {count} chars (over by {})",
+                    path.file_name().unwrap().to_string_lossy(),
+                    count - 300
+                ));
+            }
+        }
+
+        assert!(
+            failures.is_empty(),
+            "These notes would exceed Bluesky's 300-character post limit and \
+             get truncated when syndicated. Shorten the title, body, or slug:\n  {}",
+            failures.join("\n  ")
+        );
+    }
 }

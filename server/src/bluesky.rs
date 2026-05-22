@@ -475,6 +475,19 @@ fn compose_note_post(title: &str, body_markdown: &str, note_url: &str) -> (Strin
     (text, facets)
 }
 
+/// How many characters the un-truncated post would consume. Bluesky's limit
+/// is 300; values above 300 mean `compose_note_post` would truncate the
+/// body. CI tests use this to fail fast on notes that won't fit.
+pub fn bsky_post_char_count(title: &str, body_markdown: &str, note_url: &str) -> usize {
+    let (body_text, _) = markdown_to_bsky_text(body_markdown);
+    // Mirrors the layout in compose_note_post: title\n\nbody\n\nurl
+    title.chars().count()
+        + 2
+        + body_text.trim().chars().count()
+        + 2
+        + note_url.chars().count()
+}
+
 fn make_url_facet(text: &str, url: &str) -> Option<Facet> {
     text.rfind(url).map(|start| {
         let end = start + url.len();
