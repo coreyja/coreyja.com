@@ -1,11 +1,15 @@
 name: Publish Notes to Bluesky
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'notes/**'
+  # Chain off a successful Fly Deploy so the blog page for a new note
+  # is live BEFORE the bsky post (which links to that page) gets
+  # created. The previous trigger fired in parallel with rust_tests/
+  # fly_deploy, which meant tapping the link from bsky right after
+  # syndication could 404.
+  workflow_run:
+    workflows: ["Fly Deploy"]
+    branches: [main]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +24,12 @@ jobs:
   publish:
     name: Publish Notes to Bluesky
     runs-on: ubuntu-latest
+    # workflow_dispatch always runs. workflow_run only runs when the
+    # upstream Fly Deploy succeeded; a failed deploy means the page
+    # isn't live, so we shouldn't publish a link to it.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     env:
       CARGO_INCREMENTAL: 0
     steps:
