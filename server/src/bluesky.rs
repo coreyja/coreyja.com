@@ -404,9 +404,7 @@ fn detect_bare_urls(text: &str, facets: &mut Vec<Facet>) {
     {
         let start = cursor + found;
         let rest = &text[start..];
-        let len = rest
-            .find(|c: char| c.is_whitespace())
-            .unwrap_or(rest.len());
+        let len = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
         let raw = &rest[..len];
         let trimmed = raw.trim_end_matches(trailing);
         let end = start + trimmed.len();
@@ -450,7 +448,10 @@ fn compose_note_post(title: &str, body_markdown: &str, note_url: &str) -> (Strin
     } else {
         // Truncate; drop the body facets since their byte ranges no longer
         // match the visible characters.
-        let truncated: String = body_trimmed.chars().take(max_body.saturating_sub(1)).collect();
+        let truncated: String = body_trimmed
+            .chars()
+            .take(max_body.saturating_sub(1))
+            .collect();
         (format!("{truncated}…"), Vec::new())
     };
 
@@ -481,11 +482,7 @@ fn compose_note_post(title: &str, body_markdown: &str, note_url: &str) -> (Strin
 pub fn bsky_post_char_count(title: &str, body_markdown: &str, note_url: &str) -> usize {
     let (body_text, _) = markdown_to_bsky_text(body_markdown);
     // Mirrors the layout in compose_note_post: title\n\nbody\n\nurl
-    title.chars().count()
-        + 2
-        + body_text.trim().chars().count()
-        + 2
-        + note_url.chars().count()
+    title.chars().count() + 2 + body_text.trim().chars().count() + 2 + note_url.chars().count()
 }
 
 fn make_url_facet(text: &str, url: &str) -> Option<Facet> {
@@ -687,12 +684,17 @@ mod tests {
 
     #[test]
     fn markdown_link_becomes_text_plus_facet() {
-        let (text, facets) = markdown_to_bsky_text("Built in [PR #366](https://github.com/coreyja/coreyja.com/pull/366).");
+        let (text, facets) = markdown_to_bsky_text(
+            "Built in [PR #366](https://github.com/coreyja/coreyja.com/pull/366).",
+        );
         assert_eq!(text, "Built in PR #366.");
         assert_eq!(facets.len(), 1);
         let f = &facets[0];
         assert_eq!(&text[f.index.byte_start..f.index.byte_end], "PR #366");
-        assert_eq!(link_uri(f), "https://github.com/coreyja/coreyja.com/pull/366");
+        assert_eq!(
+            link_uri(f),
+            "https://github.com/coreyja/coreyja.com/pull/366"
+        );
     }
 
     #[test]
@@ -729,16 +731,18 @@ mod tests {
         // The link facet should not include the trailing comma.
         assert_eq!(facets.len(), 1);
         let f = &facets[0];
-        assert_eq!(&text[f.index.byte_start..f.index.byte_end], "https://coreyja.com");
+        assert_eq!(
+            &text[f.index.byte_start..f.index.byte_end],
+            "https://coreyja.com"
+        );
     }
 
     #[test]
     fn bare_url_not_duplicated_when_inside_a_markdown_link() {
         // If the markdown link's *visible text* happens to be the URL itself,
         // we should still only emit one facet covering the visible span.
-        let (text, facets) = markdown_to_bsky_text(
-            "[https://coreyja.com](https://coreyja.com) is the site",
-        );
+        let (text, facets) =
+            markdown_to_bsky_text("[https://coreyja.com](https://coreyja.com) is the site");
         assert_eq!(text, "https://coreyja.com is the site");
         assert_eq!(facets.len(), 1);
         assert_eq!(link_uri(&facets[0]), "https://coreyja.com");
@@ -746,9 +750,8 @@ mod tests {
 
     #[test]
     fn bold_italic_code_markers_are_stripped() {
-        let (text, facets) = markdown_to_bsky_text(
-            "**bold** and *italic* and `code` survive without markers.",
-        );
+        let (text, facets) =
+            markdown_to_bsky_text("**bold** and *italic* and `code` survive without markers.");
         assert_eq!(text, "bold and italic and code survive without markers.");
         assert!(facets.is_empty());
     }
@@ -767,9 +770,8 @@ mod tests {
 
     #[test]
     fn images_are_dropped() {
-        let (text, facets) = markdown_to_bsky_text(
-            "Look ![alt](https://example.com/img.png) at this.",
-        );
+        let (text, facets) =
+            markdown_to_bsky_text("Look ![alt](https://example.com/img.png) at this.");
         // Image syntax has no Bluesky analog; just leave the surrounding text.
         assert!(text.contains("Look"));
         assert!(text.contains("at this."));
@@ -789,12 +791,12 @@ mod tests {
 
     #[test]
     fn compose_uses_title_body_url_with_blank_lines() {
-        let (text, _facets) = compose_note_post(
-            "Title",
-            "Body sentence.",
-            "https://coreyja.com/notes/x",
+        let (text, _facets) =
+            compose_note_post("Title", "Body sentence.", "https://coreyja.com/notes/x");
+        assert_eq!(
+            text,
+            "Title\n\nBody sentence.\n\nhttps://coreyja.com/notes/x"
         );
-        assert_eq!(text, "Title\n\nBody sentence.\n\nhttps://coreyja.com/notes/x");
     }
 
     #[test]
@@ -814,11 +816,7 @@ mod tests {
 
     #[test]
     fn compose_adds_facet_for_trailing_url() {
-        let (text, facets) = compose_note_post(
-            "Title",
-            "Body.",
-            "https://coreyja.com/notes/x",
-        );
+        let (text, facets) = compose_note_post("Title", "Body.", "https://coreyja.com/notes/x");
         let trailing = facets
             .iter()
             .find(|f| link_uri(f) == "https://coreyja.com/notes/x")
@@ -833,11 +831,8 @@ mod tests {
     fn compose_truncates_body_and_drops_body_facets() {
         let long_body = "x".repeat(400);
         let body_with_link = format!("[link](https://a.example) {long_body}");
-        let (text, facets) = compose_note_post(
-            "Title",
-            &body_with_link,
-            "https://coreyja.com/notes/x",
-        );
+        let (text, facets) =
+            compose_note_post("Title", &body_with_link, "https://coreyja.com/notes/x");
         assert!(text.chars().count() <= 300);
         // Only the trailing URL facet survives; the inner link facet is dropped
         // because the body got truncated.
