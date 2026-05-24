@@ -49,7 +49,6 @@ impl LinkedInConfig {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) struct LinkedInUserRow {
     pub linkedin_user_id: Uuid,
     pub encrypted_access_token: Vec<u8>,
@@ -469,41 +468,51 @@ mod tests {
 
     // ==================== from_env_optional ====================
     //
-    // Note: these tests touch process-global env vars. They reset what they
-    // touch and don't rely on observing one another's state, but parallel
-    // runs of `cargo test` could see brief crosstalk. Acceptable for the
-    // assertions we make.
+    // Consolidated into a single test that toggles env vars sequentially.
+    // `cargo test` runs tests in parallel by default, so two separate
+    // env-mutating tests could race and observe each other's writes. Keeping
+    // all three assertions in one function gives a stable execution order.
+    // Adding `serial_test` as a dev-dep would be the alternative; one test
+    // function is cheaper.
 
     #[test]
-    fn from_env_optional_both_unset_returns_none() {
+    fn from_env_optional_handles_all_combinations() {
         let prev_id = std::env::var("LINKEDIN_CLIENT_ID").ok();
         let prev_secret = std::env::var("LINKEDIN_CLIENT_SECRET").ok();
+
+        // 1. Both unset → Ok(None)
         std::env::remove_var("LINKEDIN_CLIENT_ID");
         std::env::remove_var("LINKEDIN_CLIENT_SECRET");
-
         let result = LinkedInConfig::from_env_optional();
+        let none_result = result.expect("both unset should be Ok");
+        assert!(none_result.is_none(), "both unset should be Ok(None)");
 
-        // Restore env first, regardless of assertion outcome.
-        if let Some(v) = prev_id {
-            std::env::set_var("LINKEDIN_CLIENT_ID", v);
-        }
-        if let Some(v) = prev_secret {
-            std::env::set_var("LINKEDIN_CLIENT_SECRET", v);
-        }
-
-        let v = result.expect("ok");
-        assert!(v.is_none());
-    }
-
-    #[test]
-    fn from_env_optional_both_set_returns_some() {
-        let prev_id = std::env::var("LINKEDIN_CLIENT_ID").ok();
-        let prev_secret = std::env::var("LINKEDIN_CLIENT_SECRET").ok();
+        // 2. Both set → Ok(Some(_))
         std::env::set_var("LINKEDIN_CLIENT_ID", "id-test");
         std::env::set_var("LINKEDIN_CLIENT_SECRET", "secret-test");
+        let some_result = LinkedInConfig::from_env_optional()
+            .expect("both set should be Ok")
+            .expect("both set should be Some");
+        assert_eq!(some_result.client_id, "id-test");
+        assert_eq!(some_result.client_secret, "secret-test");
 
-        let result = LinkedInConfig::from_env_optional();
+        // 3. Only ID set → Err (partial-config trap)
+        std::env::set_var("LINKEDIN_CLIENT_ID", "only-id");
+        std::env::remove_var("LINKEDIN_CLIENT_SECRET");
+        assert!(
+            LinkedInConfig::from_env_optional().is_err(),
+            "only ID set should be Err"
+        );
 
+        // 4. Only secret set → Err (partial-config trap, other direction)
+        std::env::remove_var("LINKEDIN_CLIENT_ID");
+        std::env::set_var("LINKEDIN_CLIENT_SECRET", "only-secret");
+        assert!(
+            LinkedInConfig::from_env_optional().is_err(),
+            "only secret set should be Err"
+        );
+
+        // Restore prior values.
         match prev_id {
             Some(v) => std::env::set_var("LINKEDIN_CLIENT_ID", v),
             None => std::env::remove_var("LINKEDIN_CLIENT_ID"),
@@ -512,29 +521,5 @@ mod tests {
             Some(v) => std::env::set_var("LINKEDIN_CLIENT_SECRET", v),
             None => std::env::remove_var("LINKEDIN_CLIENT_SECRET"),
         }
-
-        let v = result.expect("ok").expect("some");
-        assert_eq!(v.client_id, "id-test");
-        assert_eq!(v.client_secret, "secret-test");
-    }
-
-    #[test]
-    fn from_env_optional_partial_returns_err() {
-        let prev_id = std::env::var("LINKEDIN_CLIENT_ID").ok();
-        let prev_secret = std::env::var("LINKEDIN_CLIENT_SECRET").ok();
-        std::env::set_var("LINKEDIN_CLIENT_ID", "only-id");
-        std::env::remove_var("LINKEDIN_CLIENT_SECRET");
-
-        let result = LinkedInConfig::from_env_optional();
-
-        match prev_id {
-            Some(v) => std::env::set_var("LINKEDIN_CLIENT_ID", v),
-            None => std::env::remove_var("LINKEDIN_CLIENT_ID"),
-        }
-        if let Some(v) = prev_secret {
-            std::env::set_var("LINKEDIN_CLIENT_SECRET", v);
-        }
-
-        assert!(result.is_err());
     }
 }

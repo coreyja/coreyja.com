@@ -15,12 +15,17 @@ CREATE UNIQUE INDEX idx_linkedin_users_external_linkedin_id ON LinkedInUsers (ex
 CREATE UNIQUE INDEX idx_linkedin_users_user_id ON LinkedInUsers (user_id);
 
 -- OAuth CSRF state tracking. Each `/admin/auth/linkedin` redirect inserts a
--- row; the callback validates the `state` query param against this table.
--- DB-backed state instead of signed cookies matches the existing LinearOauthStates
--- pattern in this codebase and avoids adding new dependencies.
+-- row; the callback validates the `state` query param against this table and
+-- rejects states older than 10 minutes. DB-backed state instead of signed
+-- cookies matches the existing LinearOauthStates pattern in this codebase and
+-- avoids adding new dependencies.
 CREATE TABLE LinkedInOauthStates (
   linkedin_oauth_state_id UUID PRIMARY KEY NOT NULL,
   state TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+-- Index for the callback's freshness check and any future cleanup job that
+-- needs to sweep stale rows (mirrors idx_linear_oauth_states_created_at).
+CREATE INDEX idx_linkedin_oauth_states_created_at ON LinkedInOauthStates (created_at);

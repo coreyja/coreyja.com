@@ -174,11 +174,13 @@ fn find_podcast_episodes(dir: &Path) -> cja::Result<Vec<PathBuf>> {
 // ==================== Classifiers ====================
 
 /// `Ok(Some(()))` = eligible; `Ok(None)` = skip; `Err` = parse/read failure.
+///
+/// The authoritative idempotency check is `fm.linkedin_url.is_some()` —
+/// a raw `content.contains("linkedin_url:")` would false-positive against
+/// any body text that mentions the literal string (e.g., a future post
+/// about POSSE syndication).
 fn classify_blog(path: &Path) -> cja::Result<Option<()>> {
     let content = read_to_string(path)?;
-    if content.contains("linkedin_url:") {
-        return Ok(None);
-    }
     let (fm, _) = parse_blog_frontmatter(&content)?;
     if fm.is_newsletter {
         return Ok(None);
@@ -194,9 +196,6 @@ fn classify_blog(path: &Path) -> cja::Result<Option<()>> {
 
 fn classify_newsletter(path: &Path) -> cja::Result<Option<()>> {
     let content = read_to_string(path)?;
-    if content.contains("linkedin_url:") {
-        return Ok(None);
-    }
     let (fm, _) = parse_blog_frontmatter(&content)?;
     if !fm.is_newsletter {
         return Ok(None);
@@ -212,9 +211,6 @@ fn classify_newsletter(path: &Path) -> cja::Result<Option<()>> {
 
 fn classify_podcast(path: &Path) -> cja::Result<Option<()>> {
     let content = read_to_string(path)?;
-    if content.contains("linkedin_url:") {
-        return Ok(None);
-    }
     let (fm, _) = parse_podcast_frontmatter(&content)?;
     if fm.linkedin_url.is_some() {
         return Ok(None);
@@ -226,6 +222,15 @@ fn classify_podcast(path: &Path) -> cja::Result<Option<()>> {
 }
 
 // ==================== Publishers ====================
+
+/// What kind of frontmatter a path uses — used by the race-guard re-read
+/// in `publish_and_write` to re-parse the file and authoritatively check
+/// `fm.linkedin_url.is_some()`.
+#[derive(Copy, Clone)]
+enum FrontmatterShape {
+    Blog,
+    Podcast,
+}
 
 async fn publish_one_blog(
     path: &Path,
@@ -244,7 +249,15 @@ async fn publish_one_blog(
         None => extract_first_paragraph(&body),
     };
     let url = canonical_url_for_blog(path, app_config)?;
-    publish_and_write(path, client, &fm.title, &first_para, &url).await
+    publish_and_write(
+        path,
+        client,
+        &fm.title,
+        &first_para,
+        &url,
+        FrontmatterShape::Blog,
+    )
+    .await
 }
 
 async fn publish_one_newsletter(
@@ -264,7 +277,15 @@ async fn publish_one_newsletter(
         None => extract_first_paragraph(&body),
     };
     let url = canonical_url_for_newsletter(path, app_config)?;
-    publish_and_write(path, client, &fm.title, &first_para, &url).await
+    publish_and_write(
+        path,
+        client,
+        &fm.title,
+        &first_para,
+        &url,
+        FrontmatterShape::Blog,
+    )
+    .await
 }
 
 async fn publish_one_podcast(
@@ -284,7 +305,31 @@ async fn publish_one_podcast(
         None => extract_first_paragraph(&body),
     };
     let url = canonical_url_for_podcast(&fm, app_config);
-    publish_and_write(path, client, &fm.title, &first_para, &url).await
+    publish_and_write(
+        path,
+        client,
+        &fm.title,
+        &first_para,
+        &url,
+        FrontmatterShape::Podcast,
+    )
+    .await
+}
+
+/// Re-parse the file's frontmatter to see if `linkedin_url` has been set since
+/// our scan. Parses authoritatively — not a substring scan — so body text
+/// mentioning the literal `linkedin_url:` doesn't trigger a false race.
+fn frontmatter_has_linkedin_url(content: &str, shape: FrontmatterShape) -> cja::Result<bool> {
+    match shape {
+        FrontmatterShape::Blog => {
+            let (fm, _) = parse_blog_frontmatter(content)?;
+            Ok(fm.linkedin_url.is_some())
+        }
+        FrontmatterShape::Podcast => {
+            let (fm, _) = parse_podcast_frontmatter(content)?;
+            Ok(fm.linkedin_url.is_some())
+        }
+    }
 }
 
 async fn publish_and_write(
@@ -293,6 +338,7 @@ async fn publish_and_write(
     title: &str,
     body: &str,
     canonical_url: &str,
+    shape: FrontmatterShape,
 ) -> cja::Result<bool> {
     let commentary = compose_linkedin_body(body, title, canonical_url);
     println!("Publishing to LinkedIn: {title}");
@@ -300,12 +346,24 @@ async fn publish_and_write(
     let web_url = linkedin_urn_to_web_url(&resp.urn)?;
     println!("Published to LinkedIn: {web_url}");
 
-    // Re-read the file from disk and confirm linkedin_url is still absent.
+    // Re-read the file from disk and confirm linkedin_url is still absent in
+    // the frontmatter. The workflow's `concurrency: linkedin-publish` group
+    // means this should be unreachable in practice; if we ever hit it, the
+    // LinkedIn post we just created is orphaned (no linkedin_url on disk
+    // pointing at it). Log at error! with the URN/URL so it's recoverable
+    // from workflow logs.
     let latest = read_to_string(path)?;
-    if latest.contains("linkedin_url:") {
-        tracing::warn!(
-            "Race detected: {} acquired linkedin_url between scan and write — skipping write",
-            path.display()
+    if frontmatter_has_linkedin_url(&latest, shape)? {
+        tracing::error!(
+            urn = %resp.urn,
+            web_url = %web_url,
+            path = %path.display(),
+            "Race detected: {} already had linkedin_url written by another process \
+             after we POSTed. The LinkedIn post we just created is ORPHANED — \
+             manually delete it on LinkedIn (urn={}, url={}) or update the frontmatter.",
+            path.display(),
+            resp.urn,
+            web_url,
         );
         return Ok(false);
     }
