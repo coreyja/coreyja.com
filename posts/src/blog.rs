@@ -61,6 +61,18 @@ impl BlogPost {
         Ok(())
     }
 
+    /// Slug used for the OG card route. Strips `weekly/` for newsletter posts and trims
+    /// the trailing slash from the canonical path.
+    pub fn og_slug(&self) -> String {
+        let canonical = self.path.canonical_path();
+        let trimmed = canonical.trim_end_matches('/');
+        if self.frontmatter.is_newsletter {
+            trimmed.trim_start_matches("weekly/").to_string()
+        } else {
+            trimmed.to_string()
+        }
+    }
+
     fn validate_images(&self) -> Result<()> {
         let p = self.path.canonical_path();
         let p = PathBuf::from(p);
@@ -222,6 +234,11 @@ pub struct BlogFrontMatter {
     pub newsletter_send_at: Option<DateTime<Utc>>,
     /// Buttondown email ID, populated after publishing to Buttondown.
     pub buttondown_id: Option<String>,
+    /// Absolute URL of an OG image to use instead of the auto-generated branded card.
+    pub og_image: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    pub author: Option<String>,
 }
 
 impl PostedOn for BlogFrontMatter {
@@ -303,6 +320,9 @@ mod test {
             bsky_url: None,
             newsletter_send_at: None,
             buttondown_id: None,
+            og_image: None,
+            tags: vec![],
+            author: None,
         };
         let post = BlogPost {
             path,
@@ -320,5 +340,44 @@ mod test {
         );
         assert_eq!(post.matches_path("2020-01-01-test/anythingelse"), None);
         assert_eq!(post.matches_path("anythingelse"), None);
+    }
+
+    fn test_post(path: &str, is_newsletter: bool) -> BlogPost {
+        BlogPost {
+            path: PathBuf::from(path),
+            ast: MarkdownAst(Root {
+                children: vec![],
+                position: None,
+            }),
+            frontmatter: BlogFrontMatter {
+                title: "T".to_string(),
+                date: NaiveDate::default(),
+                is_newsletter,
+                bsky_url: None,
+                newsletter_send_at: None,
+                buttondown_id: None,
+                og_image: None,
+                tags: vec![],
+                author: None,
+            },
+        }
+    }
+
+    #[test]
+    fn og_slug_regular_post() {
+        let post = test_post("battlesnake-in-2026/index.md", false);
+        assert_eq!(post.og_slug(), "battlesnake-in-2026");
+    }
+
+    #[test]
+    fn og_slug_newsletter() {
+        let post = test_post("weekly/20230713/index.md", true);
+        assert_eq!(post.og_slug(), "20230713");
+    }
+
+    #[test]
+    fn og_slug_weekly_path_but_not_newsletter() {
+        let post = test_post("weekly/20230713/index.md", false);
+        assert_eq!(post.og_slug(), "weekly/20230713");
     }
 }

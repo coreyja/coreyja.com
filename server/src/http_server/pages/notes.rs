@@ -26,6 +26,7 @@ use super::blog::MyChannel;
 
 #[instrument(skip_all)]
 pub(crate) async fn notes_index(
+    State(state): State<AppState>,
     State(note_posts): State<Arc<NotePosts>>,
 ) -> Result<Markup, StatusCode> {
     let posts = note_posts.by_recency();
@@ -35,7 +36,7 @@ pub(crate) async fn notes_index(
           h1 class="text-3xl" { "Notes" }
           (NotePostList(posts))
         },
-        OpenGraph::default(),
+        OpenGraph::default_for_path(&state.app, "/notes"),
     ))
 }
 
@@ -103,6 +104,9 @@ pub(crate) async fn notes_get(
         },
         OpenGraph {
             title: markdown.title.clone(),
+            url: state
+                .app
+                .app_url(&format!("/notes/{}", note.frontmatter.slug)),
             ..Default::default()
         },
     ))

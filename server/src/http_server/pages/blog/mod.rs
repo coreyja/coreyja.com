@@ -23,9 +23,7 @@ use crate::{
     bsky::fetch_thread,
     http_server::{
         errors::ServerError,
-        pages::blog::md::{
-            html::MarkdownRenderContext, FindCoverPhoto, IntoHtml, SyntaxHighlightingContext,
-        },
+        pages::blog::md::{html::MarkdownRenderContext, IntoHtml, SyntaxHighlightingContext},
         templates::{base_constrained, header::OpenGraph, post_templates::BlogPostList, ShortDesc},
         LinkTo, ToRssItem,
     },
@@ -134,13 +132,16 @@ impl IntoResponse for MyChannel {
 }
 
 #[instrument(skip_all)]
-pub(crate) async fn posts_index(State(posts): State<Arc<BlogPosts>>) -> Result<Markup, StatusCode> {
+pub(crate) async fn posts_index(
+    State(state): State<AppState>,
+    State(posts): State<Arc<BlogPosts>>,
+) -> Result<Markup, StatusCode> {
     Ok(base_constrained(
         html! {
           h1 class="text-3xl" { "Blog Posts" }
           (BlogPostList(posts.by_recency()))
         },
-        OpenGraph::default(),
+        OpenGraph::default_for_path(&state.app, "/posts"),
     ))
 }
 
@@ -170,7 +171,6 @@ pub(crate) async fn post_get(
     }
 
     let markdown = post.markdown();
-    let cover_photo = markdown.ast.0.cover_photo();
 
     let context = MarkdownRenderContext {
         syntax_highlighting: state.syntax_highlighting_context.clone(),
@@ -187,19 +187,40 @@ pub(crate) async fn post_get(
         }
     };
 
-    let image_defaulted_open_graph = match cover_photo {
-        Some(cover_photo) => OpenGraph {
-            image: Some(cover_photo),
-            ..OpenGraph::default()
-        },
-        None => OpenGraph::default(),
+    let card_route_path = if post.frontmatter.is_newsletter {
+        format!("/og/weekly/{}.svg", post.og_slug())
+    } else {
+        format!("/og/posts/{}.svg", post.og_slug())
     };
+
+    let og_image = post
+        .frontmatter
+        .og_image
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map_or_else(
+            || crate::http_server::templates::og::og_image_url(&state.app, &card_route_path),
+            str::to_owned,
+        );
+
+    let canonical_url = state
+        .app
+        .app_url(&format!("/posts/{}", post.path.canonical_path()));
 
     let bsky_thread = if let Some(bsky_post_url) = &post.frontmatter.bsky_url {
         Some((bsky_post_url, fetch_thread(bsky_post_url).await.unwrap()))
     } else {
         None
     };
+
+    let title = post.markdown().title;
+    let published_time = post
+        .frontmatter
+        .date
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
+        .and_utc()
+        .to_rfc3339();
 
     Ok(base_constrained(
         html! {
@@ -218,10 +239,22 @@ pub(crate) async fn post_get(
           }
         },
         OpenGraph {
-            title: post.markdown().title,
+            title: title.clone(),
             r#type: "article".to_string(),
             description: post.short_description(),
-            ..image_defaulted_open_graph
+            image: Some(og_image),
+            image_width: Some(1200),
+            image_height: Some(630),
+            image_alt: Some(title),
+            url: canonical_url,
+            site_name: Some("coreyja".to_string()),
+            locale: Some("en_US".to_string()),
+            twitter_site: Some("@coreyja.com".to_string()),
+            twitter_card: None,
+            published_time: Some(published_time),
+            author: post.frontmatter.author.clone(),
+            tags: post.frontmatter.tags.clone(),
+            ..OpenGraph::default()
         },
     )
     .into_response())

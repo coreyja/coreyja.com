@@ -22,6 +22,42 @@ pub struct AppConfig {
     pub imgproxy_url: Option<String>,
 }
 
+/// Strip a trailing `/` from an imgproxy base URL so callers can concatenate paths
+/// (`/unsafe/...`) without producing double-slashes.
+#[must_use]
+pub fn normalize_imgproxy_url(raw: &str) -> String {
+    raw.trim_end_matches('/').to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_imgproxy_url;
+
+    #[test]
+    fn normalize_strips_single_trailing_slash() {
+        assert_eq!(
+            normalize_imgproxy_url("https://img.coreyja.com/"),
+            "https://img.coreyja.com"
+        );
+    }
+
+    #[test]
+    fn normalize_leaves_no_trailing_slash_untouched() {
+        assert_eq!(
+            normalize_imgproxy_url("https://img.coreyja.com"),
+            "https://img.coreyja.com"
+        );
+    }
+
+    #[test]
+    fn normalize_strips_multiple_trailing_slashes() {
+        assert_eq!(
+            normalize_imgproxy_url("https://img.coreyja.com///"),
+            "https://img.coreyja.com"
+        );
+    }
+}
+
 impl AppConfig {
     #[instrument(name = "AppConfig::from_env")]
     pub fn from_env() -> cja::Result<Self> {
@@ -30,7 +66,10 @@ impl AppConfig {
         let base_url = Url::parse(&base_url).wrap_err("Invalid APP_BASE_URL not parsable")?;
         Ok(Self {
             base_url,
-            imgproxy_url: std::env::var("IMGPROXY_URL").ok(),
+            imgproxy_url: std::env::var("IMGPROXY_URL")
+                .ok()
+                .filter(|s| !s.is_empty())
+                .map(|s| normalize_imgproxy_url(&s)),
         })
     }
 

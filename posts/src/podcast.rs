@@ -34,6 +34,8 @@ pub struct PodcastFrontMatter {
     pub audio_duration: String,
     /// SRT transcript URL for podcast apps (Podcasting 2.0 transcript tag)
     pub transcript_url: Option<String>,
+    /// Absolute URL of an OG image to use instead of the auto-generated branded card.
+    pub og_image: Option<String>,
 }
 
 impl PostedOn for PodcastFrontMatter {
