@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT linkedin_oauth_state_id FROM LinkedInOauthStates WHERE state = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "linkedin_oauth_state_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f3b8a59379fd5d09a626e03267349822aa0fbc8f97e1fd1c1e44dbdab46a4818"
+}
