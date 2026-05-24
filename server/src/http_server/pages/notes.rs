@@ -132,8 +132,8 @@ pub(crate) async fn notes_get(
             twitter_site: Some("@coreyja.com".to_string()),
             twitter_card: None,
             published_time: Some(published_time),
-            author: None,
-            tags: Vec::new(),
+            author: Some("Corey Alexander".to_string()),
+            tags: note.frontmatter.tags.clone(),
             ..Default::default()
         },
     ))
