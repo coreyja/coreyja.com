@@ -4,6 +4,7 @@ use clap::Subcommand;
 pub(crate) mod bluesky;
 pub(crate) mod buttondown;
 pub(crate) mod info;
+pub(crate) mod linkedin;
 pub(crate) mod validate;
 
 #[derive(Subcommand, Default)]
@@ -16,6 +17,9 @@ pub(crate) enum Command {
     PublishButtondown(buttondown::PublishButtondownArgs),
     /// Publish a note to Bluesky
     PublishBluesky(bluesky::PublishBlueskyArgs),
+    /// Publish to `LinkedIn`
+    #[command(name = "publish-linkedin", about = "Publish to LinkedIn")]
+    PublishLinkedin(linkedin::PublishLinkedInArgs),
 }
 
 impl Command {
@@ -26,6 +30,7 @@ impl Command {
             Command::Validate => validate::validate(),
             Command::PublishButtondown(args) => buttondown::publish_buttondown(args).await,
             Command::PublishBluesky(args) => bluesky::publish_bluesky(args).await,
+            Command::PublishLinkedin(args) => linkedin::publish_linkedin(args).await,
         }
     }
 }

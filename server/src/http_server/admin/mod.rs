@@ -14,11 +14,13 @@ use super::{
 pub(crate) mod auth;
 pub(crate) mod crons;
 pub(crate) mod job_routes;
+pub(crate) mod linkedin_auth;
 pub(crate) mod memories;
 pub(crate) mod persona;
 pub(crate) mod threads;
 pub(crate) mod tool_suggestions;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) async fn dashboard(
     admin: AdminUser,
     State(app_state): State<AppState>,
@@ -38,6 +40,17 @@ pub(crate) async fn dashboard(
     SELECT *
     FROM linear_installations
     LIMIT 1"
+    )
+    .fetch_optional(&app_state.db)
+    .await?;
+
+    let linkedin_user = sqlx::query!(
+        "
+        SELECT linkedin_user_id, external_linkedin_id, access_token_expires_at,
+               refresh_token_expires_at, created_at, updated_at
+        FROM LinkedInUsers
+        WHERE user_id = $1",
+        admin.user_id
     )
     .fetch_optional(&app_state.db)
     .await?;
@@ -101,6 +114,27 @@ pub(crate) async fn dashboard(
             } @else {
                 p { "No Google User Found" }
                 a href="/admin/auth/google" { "Login now" }
+            }
+
+            h3 class="py-2 text-lg" { "LinkedIn Auth Status" }
+            @if let Some(li) = linkedin_user {
+                p { "Local LinkedIn User ID: " (li.linkedin_user_id) }
+                p { "External LinkedIn ID: " (li.external_linkedin_id) }
+                p { "Access Token Expires: " (Timestamp(li.access_token_expires_at)) }
+                p { "Refresh Token Expires: " (Timestamp(li.refresh_token_expires_at)) }
+                @if li.refresh_token_expires_at < chrono::Utc::now() + chrono::Duration::days(30) {
+                    p class="text-red-600" {
+                        "⚠ Re-authorize required soon — refresh token expires within 30 days."
+                    }
+                    a href="/admin/auth/linkedin" class="text-blue-500 hover:underline" { "Re-authenticate LinkedIn" }
+                } @else {
+                    a href="/admin/auth/linkedin" class="text-blue-500 hover:underline" { "Re-authenticate LinkedIn" }
+                }
+            } @else {
+                p { "No LinkedIn user connected" }
+                a href="/admin/auth/linkedin" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block" {
+                    "Connect LinkedIn"
+                }
             }
 
             h3 class="py-2 text-lg" { "Linear Integration" }

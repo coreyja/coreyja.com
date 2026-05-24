@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use crate::bluesky::{at_uri_to_web_url, BlueskyClient, BlueskyConfig};
 use chrono::NaiveDate;
 use clap::Args;
 use posts::notes::FrontMatter;
-use crate::bluesky::{at_uri_to_web_url, BlueskyClient, BlueskyConfig};
 
 /// Cutoff date - only publish notes dated on or after this date
 const CUTOFF_DATE: &str = "2026-03-01";
@@ -142,9 +142,8 @@ fn find_unpublished_notes(dir: &Path) -> cja::Result<Vec<PathBuf>> {
     })?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| {
-            cja::color_eyre::eyre::eyre!("Failed to read directory entry: {}", e)
-        })?;
+        let entry = entry
+            .map_err(|e| cja::color_eyre::eyre::eyre!("Failed to read directory entry: {}", e))?;
         let path = entry.path();
 
         if !path.is_file() {

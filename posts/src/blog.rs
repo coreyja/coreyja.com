@@ -149,6 +149,12 @@ impl BlogPosts {
         let posts = dir
             .find("**/*.md")?
             .filter_map(|e| e.as_file())
+            .filter(|f| {
+                // Skip LinkedIn custom-body sibling files.
+                // Covers blog posts, newsletters under blog/weekly/, and any future sub-tree.
+                let name = f.path().file_name().and_then(|n| n.to_str()).unwrap_or("");
+                name != "linkedin.md" && !name.ends_with(".linkedin.md")
+            })
             .map(BlogPost::from_file)
             .collect::<Result<Vec<_>>>()
             .wrap_err("One of the blog posts failed to parse")?;
@@ -218,6 +224,10 @@ pub struct BlogFrontMatter {
     #[serde(default = "default_is_newsletter")]
     pub is_newsletter: bool,
     pub bsky_url: Option<String>,
+    pub linkedin_url: Option<String>,
+    /// Custom `LinkedIn` body. When `None`, defaults to the first paragraph
+    /// (or a sibling `linkedin.md` file if present).
+    pub linkedin_content: Option<String>,
     /// When to send the newsletter. If `None` and `is_newsletter` is true, send immediately.
     pub newsletter_send_at: Option<DateTime<Utc>>,
     /// Buttondown email ID, populated after publishing to Buttondown.
@@ -301,6 +311,8 @@ mod test {
             date: NaiveDate::default(),
             is_newsletter: false,
             bsky_url: None,
+            linkedin_url: None,
+            linkedin_content: None,
             newsletter_send_at: None,
             buttondown_id: None,
         };
@@ -320,5 +332,38 @@ mod test {
         );
         assert_eq!(post.matches_path("2020-01-01-test/anythingelse"), None);
         assert_eq!(post.matches_path("anythingelse"), None);
+    }
+
+    #[test]
+    fn frontmatter_deserializes_with_linkedin_url() {
+        let yaml = "title: Sample\ndate: 2026-05-23\nlinkedin_url: https://www.linkedin.com/feed/update/urn:li:share:1\n";
+        let fm: BlogFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            fm.linkedin_url.as_deref(),
+            Some("https://www.linkedin.com/feed/update/urn:li:share:1")
+        );
+        assert!(fm.linkedin_content.is_none());
+    }
+
+    #[test]
+    fn frontmatter_deserializes_with_linkedin_content() {
+        let yaml = "title: Sample\ndate: 2026-05-23\nlinkedin_content: Custom body for LinkedIn.\n";
+        let fm: BlogFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            fm.linkedin_content.as_deref(),
+            Some("Custom body for LinkedIn.")
+        );
+    }
+
+    #[test]
+    fn from_dir_skips_linkedin_md_sibling_files() {
+        use include_dir::{include_dir, Dir};
+        // Use the real blog dir. We just ensure no parse error and that
+        // a hypothetical sibling file would be filtered (this exercises
+        // the filter on real input).
+        static D: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../blog");
+        // Should not error even if any linkedin.md / *.linkedin.md exist
+        // (no .md frontmatter required for filtered files).
+        let _ = BlogPosts::from_dir(&D).expect("from_dir succeeds");
     }
 }

@@ -13,7 +13,7 @@ use url::Url;
 use crate::{
     anthropic::AnthropicConfig, discord::DiscordClient, encrypt, github::GithubConfig,
     google::GoogleConfig, http_server::pages::blog::md::SyntaxHighlightingContext,
-    linear::LinearConfig, twitch::TwitchConfig,
+    linear::LinearConfig, linkedin::LinkedInConfig, twitch::TwitchConfig,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -83,6 +83,7 @@ pub(crate) struct AppState {
     pub encrypt_config: encrypt::Config,
     pub posthog_key: Option<String>,
     pub discord: DiscordClient,
+    pub linkedin: Option<LinkedInConfig>,
 }
 
 impl AppState {
@@ -125,6 +126,7 @@ impl AppState {
             encrypt_config: encrypt::Config::from_env()?,
             posthog_key: std::env::var("POSTHOG_KEY").ok(),
             discord,
+            linkedin: LinkedInConfig::from_env_optional()?,
         };
 
         Ok(app_state)
