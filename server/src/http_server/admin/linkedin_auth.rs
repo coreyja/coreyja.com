@@ -18,21 +18,26 @@ const LINKEDIN_USERINFO_URL: &str = "https://api.linkedin.com/v2/userinfo";
 /// - `w_member_social` is the narrowest write scope to post as the user
 const LINKEDIN_SCOPE: &str = "openid profile w_member_social";
 
+/// CSRF state lifetime. After this many minutes the callback rejects the row
+/// rather than honoring it. Keeps the security guarantee comparable to a
+/// short-lived signed cookie.
+const OAUTH_STATE_TTL_MINUTES: i64 = 10;
+
 pub(crate) async fn linkedin_auth(
     State(app_state): State<AppState>,
     _: AdminUser,
 ) -> Result<impl IntoResponse, String> {
-    if app_state.linkedin.is_none() {
+    let Some(linkedin) = app_state.linkedin.as_ref() else {
         return Err(
             "LinkedIn not configured. Set LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET env vars and restart."
                 .to_string(),
         );
-    }
-    let linkedin = app_state.linkedin.as_ref().unwrap();
+    };
 
     // DB-backed CSRF state — same pattern as LinearOauthStates. Each redirect
     // inserts a fresh row; the callback validates the `state` query param
-    // against it.
+    // against it and enforces a 10-minute freshness window so a stolen/leaked
+    // state value can't be replayed indefinitely.
     let state_id = Uuid::new_v4();
     let state_value = Uuid::new_v4().to_string();
 
@@ -96,11 +101,16 @@ pub(crate) async fn linkedin_auth_callback(
         .get("state")
         .ok_or_else(|| "No state in callback query".to_string())?;
 
-    // Validate state against the DB. ON success we delete the row so it
-    // can't be replayed.
+    // Validate state against the DB, requiring the row to be no older than
+    // OAUTH_STATE_TTL_MINUTES. On success we delete the row so it can't be
+    // replayed. Also opportunistically sweep any other stale rows so the
+    // table doesn't grow unboundedly from abandoned "Connect LinkedIn" clicks.
+    let ttl_cutoff = chrono::Utc::now() - chrono::Duration::minutes(OAUTH_STATE_TTL_MINUTES);
     let matched = sqlx::query!(
-        "SELECT linkedin_oauth_state_id FROM LinkedInOauthStates WHERE state = $1",
+        "SELECT linkedin_oauth_state_id FROM LinkedInOauthStates \
+         WHERE state = $1 AND created_at >= $2",
         state,
+        ttl_cutoff,
     )
     .fetch_optional(&app_state.db)
     .await
@@ -111,8 +121,10 @@ pub(crate) async fn linkedin_auth_callback(
     };
 
     sqlx::query!(
-        "DELETE FROM LinkedInOauthStates WHERE linkedin_oauth_state_id = $1",
+        "DELETE FROM LinkedInOauthStates \
+         WHERE linkedin_oauth_state_id = $1 OR created_at < $2",
         matched.linkedin_oauth_state_id,
+        ttl_cutoff,
     )
     .execute(&app_state.db)
     .await
