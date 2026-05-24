@@ -16,7 +16,7 @@ use crate::{
     http_server::{
         errors::ServerError,
         pages::blog::md::html::{IntoHtml, MarkdownRenderContext},
-        templates::{base_constrained, header::OpenGraph, post_templates::NotePostList},
+        templates::{base_constrained, header::OpenGraph, post_templates::NotePostList, ShortDesc},
         LinkTo, ResponseResult,
     },
     AppState,
@@ -86,6 +86,22 @@ pub(crate) async fn notes_get(
         None
     };
 
+    let card_route_path = format!("/og/notes/{}.svg", note.frontmatter.slug);
+    let og_image = crate::http_server::templates::og::og_image_url(&state.app, &card_route_path);
+
+    let canonical_url = state
+        .app
+        .app_url(&format!("/notes/{}", note.frontmatter.slug));
+
+    let title = markdown.title.clone();
+    let published_time = note
+        .frontmatter
+        .date
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
+        .and_utc()
+        .to_rfc3339();
+
     Ok(base_constrained(
         html! {
           h1 class="text-2xl" { (markdown.title) }
@@ -103,10 +119,21 @@ pub(crate) async fn notes_get(
           }
         },
         OpenGraph {
-            title: markdown.title.clone(),
-            url: state
-                .app
-                .app_url(&format!("/notes/{}", note.frontmatter.slug)),
+            title: title.clone(),
+            r#type: "article".to_string(),
+            description: note.short_description(),
+            image: Some(og_image),
+            image_width: Some(1200),
+            image_height: Some(630),
+            image_alt: Some(title),
+            url: canonical_url,
+            site_name: Some("coreyja".to_string()),
+            locale: Some("en_US".to_string()),
+            twitter_site: Some("@coreyja.com".to_string()),
+            twitter_card: None,
+            published_time: Some(published_time),
+            author: Some("Corey Alexander".to_string()),
+            tags: note.frontmatter.tags.clone(),
             ..Default::default()
         },
     ))

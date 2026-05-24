@@ -305,9 +305,7 @@ mod tests {
         let content = "[Episode 1 here](/podcast/why-im-starting-a-podcast)";
         let rewritten = rewrite_relative_urls(content, "weekly/20260306", &config);
 
-        assert!(
-            rewritten.contains("](https://coreyja.com/podcast/why-im-starting-a-podcast)")
-        );
+        assert!(rewritten.contains("](https://coreyja.com/podcast/why-im-starting-a-podcast)"));
         assert!(!rewritten.contains("](/"));
     }
 

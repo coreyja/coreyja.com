@@ -30,6 +30,8 @@ pub struct FrontMatter {
     pub date: NaiveDate,
     pub slug: String,
     pub bsky_url: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 impl PostedOn for FrontMatter {
@@ -147,6 +149,21 @@ slug: test-note
         assert_eq!(fm.title, "Test Note");
         assert_eq!(fm.slug, "test-note");
         assert_eq!(fm.bsky_url, None);
+        assert!(fm.tags.is_empty(), "tags should default to empty");
+    }
+
+    #[test]
+    fn frontmatter_deserializes_with_tags() {
+        let yaml = r"
+title: Tagged Note
+date: 2026-04-01
+slug: tagged-note
+tags:
+  - rust
+  - axum
+";
+        let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.tags, vec!["rust".to_string(), "axum".to_string()]);
     }
 
     #[test]
@@ -206,5 +223,4 @@ bsky_url: https://bsky.app/profile/coreyja.com/post/xyz
             }
         }
     }
-
 }

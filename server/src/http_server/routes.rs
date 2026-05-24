@@ -63,6 +63,7 @@ pub(crate) fn make_router() -> Router<AppState> {
         .route("/og/posts/{slug}", get(pages::og::og_post_svg))
         .route("/og/podcast/{slug}", get(pages::og::og_podcast_svg))
         .route("/og/weekly/{slug}", get(pages::og::og_weekly_svg))
+        .route("/og/notes/{slug}", get(pages::og::og_note_svg))
         .route("/projects", get(pages::projects::projects_index))
         .route("/projects/{slug}", get(pages::projects::projects_get))
         .route("/videos", get(pages::videos::video_index))

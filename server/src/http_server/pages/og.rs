@@ -8,7 +8,7 @@ use axum::{
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
-use posts::{blog::BlogPosts, podcast::PodcastEpisodes};
+use posts::{blog::BlogPosts, notes::NotePosts, podcast::PodcastEpisodes};
 
 use crate::http_server::templates::og::{
     fetch_youtube_thumbnail_b64, render_card_svg, CardData, CardTag,
@@ -61,6 +61,25 @@ pub async fn og_weekly_svg(
     Ok(svg_response(render_card_svg(&data)))
 }
 
+pub async fn og_note_svg(
+    State(notes): State<Arc<NotePosts>>,
+    Path(slug): Path<String>,
+) -> Result<Response, StatusCode> {
+    let slug = slug.strip_suffix(".svg").unwrap_or(&slug);
+    let note = notes
+        .posts
+        .iter()
+        .find(|p| p.frontmatter.slug == slug)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let data = CardData {
+        title: &note.frontmatter.title,
+        date: note.frontmatter.date,
+        tag: CardTag::Notes,
+        youtube_thumbnail_b64: None,
+    };
+    Ok(svg_response(render_card_svg(&data)))
+}
+
 pub async fn og_podcast_svg(
     State(episodes): State<Arc<PodcastEpisodes>>,
     Path(slug): Path<String>,
@@ -91,7 +110,7 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
-    use posts::{blog::BlogPosts, podcast::PodcastEpisodes};
+    use posts::{blog::BlogPosts, notes::NotePosts, podcast::PodcastEpisodes};
     use tower::ServiceExt;
 
     fn fixtures() -> (BlogPosts, PodcastEpisodes) {
@@ -99,6 +118,10 @@ mod tests {
             BlogPosts::from_static_dir().unwrap(),
             PodcastEpisodes::from_static_dir().unwrap(),
         )
+    }
+
+    fn note_fixtures() -> NotePosts {
+        NotePosts::from_static_dir().unwrap()
     }
 
     async fn body_string(resp: axum::response::Response) -> String {
@@ -209,6 +232,52 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .uri(format!("/og/weekly/{slug}.svg"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn og_note_svg_returns_svg_for_known_slug() {
+        let app = create_test_app().await;
+        let notes = note_fixtures();
+        let note = notes.posts.first().expect("at least one note in fixtures");
+        let slug = &note.frontmatter.slug;
+
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/og/notes/{slug}.svg"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let ct = resp
+            .headers()
+            .get("content-type")
+            .map(|v| v.to_str().unwrap().to_string())
+            .unwrap_or_default();
+        assert!(
+            ct.starts_with("image/svg+xml"),
+            "unexpected content-type: {ct}"
+        );
+        let body = body_string(resp).await;
+        assert!(body.contains("<svg"));
+        assert!(body.contains("NOTES"), "tag label NOTES should be present");
+    }
+
+    #[tokio::test]
+    async fn og_note_svg_404s_for_unknown_slug() {
+        let app = create_test_app().await;
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/og/notes/this-note-slug-does-not-exist-anywhere.svg")
                     .body(Body::empty())
                     .unwrap(),
             )
