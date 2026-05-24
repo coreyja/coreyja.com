@@ -10,9 +10,7 @@ use maud::{html, Markup, Render};
 use posts::podcast::{PodcastEpisode, PodcastEpisodes};
 use rss::extension::{
     atom::{AtomExtension, Link},
-    itunes::{
-        ITunesCategoryBuilder, ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder,
-    },
+    itunes::{ITunesCategoryBuilder, ITunesChannelExtensionBuilder, ITunesItemExtensionBuilder},
     Extension, ExtensionMap,
 };
 use tracing::instrument;
@@ -51,6 +49,7 @@ impl Render for PodcastEpisodeList<'_> {
 
 #[instrument(skip_all)]
 pub(crate) async fn podcast_index(
+    State(state): State<AppState>,
     State(episodes): State<Arc<PodcastEpisodes>>,
 ) -> Result<Markup, StatusCode> {
     Ok(base_constrained(
@@ -91,7 +90,7 @@ pub(crate) async fn podcast_index(
         OpenGraph {
             title: "coreyja.fm Podcast".to_string(),
             description: Some("The coreyja.fm podcast".to_string()),
-            ..Default::default()
+            ..OpenGraph::default_for(&state.app)
         },
     ))
 }
@@ -118,6 +117,27 @@ pub(crate) async fn podcast_get(
         syntax_highlighting: state.syntax_highlighting_context.clone(),
         current_article_path: ep.relative_link(),
     };
+
+    let card_route_path = format!("/og/podcast/{}.svg", ep.frontmatter.slug);
+    let og_image = ep
+        .frontmatter
+        .og_image
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map_or_else(
+            || crate::http_server::templates::og::og_image_url(&state.app, &card_route_path),
+            str::to_owned,
+        );
+    let canonical_url = state
+        .app
+        .app_url(&format!("/podcast/{}", ep.frontmatter.slug));
+    let published_time = ep
+        .frontmatter
+        .date
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
+        .and_utc()
+        .to_rfc3339();
 
     Ok(base_constrained(
         html! {
@@ -150,7 +170,19 @@ pub(crate) async fn podcast_get(
             title: markdown.title.clone(),
             r#type: "article".to_string(),
             description: ep.short_description(),
-            ..Default::default()
+            image: Some(og_image),
+            image_width: Some(1200),
+            image_height: Some(630),
+            image_alt: Some(markdown.title.clone()),
+            url: canonical_url,
+            site_name: Some("coreyja".to_string()),
+            locale: Some("en_US".to_string()),
+            twitter_site: Some("@coreyja.com".to_string()),
+            twitter_card: None,
+            published_time: Some(published_time),
+            author: Some("Corey Alexander".to_string()),
+            tags: vec![],
+            ..OpenGraph::default()
         },
     ))
 }
@@ -187,9 +219,7 @@ fn build_podcast_channel(
 
     let description = "A solo podcast by Corey Alexander about building software, AI agent workflows, and the projects behind coreyja.com. New episodes every two weeks.";
 
-    let category = ITunesCategoryBuilder::default()
-        .text("Technology")
-        .build();
+    let category = ITunesCategoryBuilder::default().text("Technology").build();
 
     let artwork_url = config.app_url("/static/podcast-cover.jpg");
 
@@ -363,7 +393,9 @@ mod tests {
 
         // RSS semantic validation — checks URLs, dates, MIME types, etc.
         let parsed: rss::Channel = xml.parse().expect("RSS feed should parse as RSS");
-        parsed.validate().expect("RSS feed should pass RSS validation");
+        parsed
+            .validate()
+            .expect("RSS feed should pass RSS validation");
 
         assert_eq!(parsed.title(), "coreyja.fm");
         assert!(!parsed.items().is_empty(), "Feed should have items");

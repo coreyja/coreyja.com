@@ -66,6 +66,7 @@ pub(crate) mod buttons;
 pub(crate) mod post_templates;
 
 pub(crate) mod newsletter;
+pub(crate) mod og;
 
 impl IntoHtml for MarkdownAst {
     fn into_html(

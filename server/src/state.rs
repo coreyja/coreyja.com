@@ -30,7 +30,9 @@ impl AppConfig {
         let base_url = Url::parse(&base_url).wrap_err("Invalid APP_BASE_URL not parsable")?;
         Ok(Self {
             base_url,
-            imgproxy_url: std::env::var("IMGPROXY_URL").ok(),
+            imgproxy_url: std::env::var("IMGPROXY_URL")
+                .ok()
+                .map(|s| s.trim_end_matches('/').to_string()),
         })
     }
 

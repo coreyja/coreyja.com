@@ -3,6 +3,7 @@ use std::borrow::Borrow;
 use maud::{html, Markup, PreEscaped, Render};
 
 use crate::http_server::templates::LOGO_DARK_FLAT_SVG;
+use crate::AppConfig;
 
 pub struct OpenGraph {
     pub title: String,
@@ -11,6 +12,18 @@ pub struct OpenGraph {
     pub video: Option<String>,
     pub url: String,
     pub description: Option<String>,
+    pub image_width: Option<u32>,
+    pub image_height: Option<u32>,
+    pub image_alt: Option<String>,
+    pub site_name: Option<String>,
+    pub locale: Option<String>,
+    pub twitter_site: Option<String>,
+    pub twitter_card: Option<String>,
+    /// RFC3339 timestamp, only meaningful for `type=article`.
+    pub published_time: Option<String>,
+    pub author: Option<String>,
+    /// Emits `article:tag` once per entry.
+    pub tags: Vec<String>,
 }
 
 impl Default for OpenGraph {
@@ -20,25 +33,94 @@ impl Default for OpenGraph {
             r#type: "website".to_owned(),
             image: Some("https://coreyja.com/static/opengraph.png".to_owned()),
             video: None,
-            url: "coreyja.com".to_owned(),
+            url: String::new(),
             description: Some(
                 "Corey's personal site that contains all his projects and streams".to_owned(),
             ),
+            image_width: None,
+            image_height: None,
+            image_alt: None,
+            site_name: None,
+            locale: None,
+            twitter_site: None,
+            twitter_card: None,
+            published_time: None,
+            author: None,
+            tags: Vec::new(),
+        }
+    }
+}
+
+impl OpenGraph {
+    /// Default `OpenGraph` with `url` populated to the site root from `config`.
+    pub fn default_for(config: &AppConfig) -> Self {
+        Self {
+            url: config.app_url("/"),
+            ..Self::default()
         }
     }
 }
 
 impl Render for OpenGraph {
     fn render(&self) -> Markup {
+        let effective_twitter_card = self.twitter_card.clone().or_else(|| {
+            if self.image.is_some() {
+                Some("summary_large_image".to_string())
+            } else {
+                None
+            }
+        });
+
         html! {
           meta property="og:title" content=(self.title) {}
           meta property="og:type" content=(self.r#type) {}
-          meta property="og:url" content=(self.url) {}
+          @if !self.url.is_empty() {
+            meta property="og:url" content=(self.url) {}
+          }
           @if let Some(description) = &self.description {
             meta property="og:description" content=(description) {}
           }
           @if let Some(image) = &self.image {
             meta property="og:image" content=(image) {}
+          }
+          @if let Some(w) = self.image_width {
+            meta property="og:image:width" content=(w) {}
+          }
+          @if let Some(h) = self.image_height {
+            meta property="og:image:height" content=(h) {}
+          }
+          @if let Some(alt) = &self.image_alt {
+            meta property="og:image:alt" content=(alt) {}
+          }
+          @if let Some(site_name) = &self.site_name {
+            meta property="og:site_name" content=(site_name) {}
+          }
+          @if let Some(locale) = &self.locale {
+            meta property="og:locale" content=(locale) {}
+          }
+          @if let Some(published_time) = &self.published_time {
+            meta property="article:published_time" content=(published_time) {}
+          }
+          @if let Some(author) = &self.author {
+            meta property="article:author" content=(author) {}
+          }
+          @for tag in &self.tags {
+            meta property="article:tag" content=(tag) {}
+          }
+          @if let Some(card) = &effective_twitter_card {
+            meta name="twitter:card" content=(card) {}
+          }
+          @if let Some(twitter_site) = &self.twitter_site {
+            meta name="twitter:site" content=(twitter_site) {}
+          }
+          @if self.image.is_some() {
+            meta name="twitter:title" content=(self.title) {}
+            @if let Some(description) = &self.description {
+              meta name="twitter:description" content=(description) {}
+            }
+            @if let Some(image) = &self.image {
+              meta name="twitter:image" content=(image) {}
+            }
           }
         }
     }
