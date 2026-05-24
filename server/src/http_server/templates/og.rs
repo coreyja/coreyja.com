@@ -80,14 +80,21 @@ fn truncate_title(title: &str, max_chars: usize) -> String {
 }
 
 /// Split a title into up to two lines, breaking on the word boundary nearest the midpoint.
+///
+/// Operates on `char` indices, not byte indices, so multi-byte UTF-8 codepoints (accents,
+/// em-dashes, smart quotes, emoji) cannot cause a `char boundary` panic when sliced.
 fn split_title_lines(title: &str) -> (String, Option<String>) {
-    if title.chars().count() <= TITLE_SINGLE_LINE_THRESHOLD {
+    let chars: Vec<char> = title.chars().collect();
+    if chars.len() <= TITLE_SINGLE_LINE_THRESHOLD {
         return (title.to_string(), None);
     }
 
-    let mid = title.len() / 2;
-    let before = title[..mid].rfind(char::is_whitespace);
-    let after = title[mid..].find(char::is_whitespace).map(|i| i + mid);
+    let mid = chars.len() / 2;
+
+    // Walk left from mid (exclusive) looking for whitespace.
+    let before = (0..mid).rev().find(|&i| chars[i].is_whitespace());
+    // Walk right from mid (inclusive) looking for whitespace.
+    let after = (mid..chars.len()).find(|&i| chars[i].is_whitespace());
 
     let split_at = match (before, after) {
         (Some(b), Some(a)) => {
@@ -102,8 +109,16 @@ fn split_title_lines(title: &str) -> (String, Option<String>) {
         (None, None) => return (title.to_string(), None),
     };
 
-    let line1 = title[..split_at].trim_end().to_string();
-    let line2 = title[split_at..].trim_start().to_string();
+    let line1: String = chars[..split_at]
+        .iter()
+        .collect::<String>()
+        .trim_end()
+        .to_string();
+    let line2: String = chars[split_at..]
+        .iter()
+        .collect::<String>()
+        .trim_start()
+        .to_string();
     (line1, Some(line2))
 }
 
@@ -242,33 +257,8 @@ pub async fn fetch_youtube_thumbnail_b64(youtube_id: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::normalize_imgproxy_url;
     use url::Url;
-
-    // Guards mutation of process-global env vars across parallel tests.
-    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-    fn config_with_imgproxy(imgproxy_url: Option<&str>) -> AppConfig {
-        let _guard = ENV_LOCK
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let prior_base = std::env::var("APP_BASE_URL").ok();
-        let prior_imgproxy = std::env::var("IMGPROXY_URL").ok();
-        std::env::set_var("APP_BASE_URL", "https://coreyja.com");
-        match imgproxy_url {
-            Some(u) => std::env::set_var("IMGPROXY_URL", u),
-            None => std::env::remove_var("IMGPROXY_URL"),
-        }
-        let config = AppConfig::from_env().unwrap();
-        // Restore so we don't perturb other tests.
-        if let Some(v) = prior_base {
-            std::env::set_var("APP_BASE_URL", v);
-        }
-        match prior_imgproxy {
-            Some(v) => std::env::set_var("IMGPROXY_URL", v),
-            None => std::env::remove_var("IMGPROXY_URL"),
-        }
-        config
-    }
 
     fn raw_config(imgproxy_url: Option<String>) -> AppConfig {
         AppConfig {
@@ -429,13 +419,39 @@ mod tests {
 
     #[test]
     fn og_image_url_handles_imgproxy_with_or_without_trailing_slash() {
-        let a = config_with_imgproxy(Some("https://img.coreyja.com"));
-        let b = config_with_imgproxy(Some("https://img.coreyja.com/"));
+        // Normalize externally — this mirrors the work that AppConfig::from_env does
+        // and avoids mutating process-global env vars from the test.
+        let a = raw_config(Some(normalize_imgproxy_url("https://img.coreyja.com")));
+        let b = raw_config(Some(normalize_imgproxy_url("https://img.coreyja.com/")));
         let url_a = og_image_url(&a, "/og/posts/abc.svg");
         let url_b = og_image_url(&b, "/og/posts/abc.svg");
         assert_eq!(url_a, url_b);
         // Exactly one slash between the host and `/unsafe/`.
         assert!(url_a.contains("https://img.coreyja.com/unsafe/"));
         assert!(!url_a.contains("https://img.coreyja.com//unsafe/"));
+    }
+
+    #[test]
+    fn split_title_lines_handles_non_ascii_at_byte_midpoint() {
+        // 42 chars of "é" with a space at index 21. Each "é" is 2 bytes; the byte-len midpoint
+        // would land mid-codepoint and panic with the old byte-index implementation.
+        let title = format!("{} {}", "é".repeat(21), "é".repeat(20));
+        let (line1, line2) = split_title_lines(&title);
+        assert_eq!(line1.chars().count(), 21);
+        let line2 = line2.expect("title over threshold should produce two lines");
+        assert_eq!(line2.chars().count(), 20);
+    }
+
+    #[test]
+    fn split_title_lines_handles_emoji_at_byte_midpoint() {
+        // 4-byte codepoints with whitespace far from the byte midpoint — would also panic
+        // under byte indexing.
+        let title =
+            "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀";
+        let (line1, line2) = split_title_lines(title);
+        assert!(line2.is_some(), "should split into two lines");
+        // Each line should contain only the rocket emoji, no whitespace at the seam.
+        assert!(!line1.is_empty());
+        assert!(!line2.unwrap().is_empty());
     }
 }

@@ -52,10 +52,18 @@ impl Default for OpenGraph {
 }
 
 impl OpenGraph {
-    /// Default `OpenGraph` with `url` populated to the site root from `config`.
+    /// Default `OpenGraph` with `url` populated to the site root from `config`. Use this
+    /// for the home page or where the canonical URL truly is the site root.
     pub fn default_for(config: &AppConfig) -> Self {
+        Self::default_for_path(config, "/")
+    }
+
+    /// Default `OpenGraph` with `url` populated to an absolute URL built from `config` and
+    /// `path`. Use this for index/listing pages whose canonical URL is not the site root
+    /// (e.g. `/posts`, `/podcast`, `/notes`).
+    pub fn default_for_path(config: &AppConfig, path: &str) -> Self {
         Self {
-            url: config.app_url("/"),
+            url: config.app_url(path),
             ..Self::default()
         }
     }
@@ -198,5 +206,156 @@ pub fn header() -> Markup {
           }
         }
       }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::OpenGraph;
+    use maud::Render;
+
+    fn rendered(og: &OpenGraph) -> String {
+        og.render().into_string()
+    }
+
+    #[test]
+    fn default_does_not_emit_og_url() {
+        // Regression: the old default shipped the bare string "coreyja.com" as og:url.
+        // The new default leaves `url` empty, and Render must skip the tag entirely.
+        let out = rendered(&OpenGraph::default());
+        assert!(
+            !out.contains(r#"property="og:url""#),
+            "default OpenGraph should not emit og:url; got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn populated_url_is_emitted() {
+        let og = OpenGraph {
+            url: "https://coreyja.com/posts/foo".to_string(),
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        assert!(out.contains(r#"property="og:url""#));
+        assert!(out.contains(r#"content="https://coreyja.com/posts/foo""#));
+    }
+
+    #[test]
+    fn image_present_emits_default_twitter_card_and_mirrored_tags() {
+        // With an image but no explicit twitter_card, Render should default to
+        // summary_large_image and mirror twitter:title / twitter:description / twitter:image
+        // from the og:* values.
+        let og = OpenGraph {
+            title: "Test Title".to_string(),
+            description: Some("A description".to_string()),
+            image: Some("https://example.com/img.png".to_string()),
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        assert!(out.contains(r#"name="twitter:card" content="summary_large_image""#));
+        assert!(out.contains(r#"name="twitter:title" content="Test Title""#));
+        assert!(out.contains(r#"name="twitter:description" content="A description""#));
+        assert!(out.contains(r#"name="twitter:image" content="https://example.com/img.png""#));
+    }
+
+    #[test]
+    fn explicit_twitter_card_overrides_default() {
+        let og = OpenGraph {
+            image: Some("https://example.com/img.png".to_string()),
+            twitter_card: Some("summary".to_string()),
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        assert!(out.contains(r#"name="twitter:card" content="summary""#));
+        assert!(!out.contains(r#"name="twitter:card" content="summary_large_image""#));
+    }
+
+    #[test]
+    fn no_image_emits_no_twitter_tags() {
+        let og = OpenGraph {
+            image: None,
+            description: Some("A description".to_string()),
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        assert!(
+            !out.contains(r#"name="twitter:card""#),
+            "no image should suppress twitter:card; got:\n{out}"
+        );
+        assert!(!out.contains(r#"name="twitter:title""#));
+        assert!(!out.contains(r#"name="twitter:description""#));
+        assert!(!out.contains(r#"name="twitter:image""#));
+    }
+
+    #[test]
+    fn twitter_description_omitted_when_description_missing() {
+        let og = OpenGraph {
+            image: Some("https://example.com/img.png".to_string()),
+            description: None,
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        // Image present → twitter:title and twitter:image still emit
+        assert!(out.contains(r#"name="twitter:title""#));
+        assert!(out.contains(r#"name="twitter:image""#));
+        // but no twitter:description without an underlying og:description
+        assert!(!out.contains(r#"name="twitter:description""#));
+    }
+
+    #[test]
+    fn published_time_emitted_only_when_populated() {
+        let with = OpenGraph {
+            published_time: Some("2026-05-23T00:00:00+00:00".to_string()),
+            ..OpenGraph::default()
+        };
+        let without = OpenGraph {
+            published_time: None,
+            ..OpenGraph::default()
+        };
+        assert!(rendered(&with).contains(r#"property="article:published_time""#));
+        assert!(!rendered(&without).contains(r#"property="article:published_time""#));
+    }
+
+    #[test]
+    fn multiple_tags_emit_one_article_tag_each() {
+        let og = OpenGraph {
+            tags: vec!["rust".to_string(), "axum".to_string()],
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        let count = out.matches(r#"property="article:tag""#).count();
+        assert_eq!(count, 2, "two tags should emit two article:tag elements");
+        assert!(out.contains(r#"property="article:tag" content="rust""#));
+        assert!(out.contains(r#"property="article:tag" content="axum""#));
+    }
+
+    #[test]
+    fn empty_tags_emit_no_article_tag() {
+        let og = OpenGraph::default();
+        let out = rendered(&og);
+        assert!(!out.contains(r#"property="article:tag""#));
+    }
+
+    #[test]
+    fn new_optional_fields_emit_when_populated() {
+        let og = OpenGraph {
+            image: Some("https://example.com/img.png".to_string()),
+            image_width: Some(1200),
+            image_height: Some(630),
+            image_alt: Some("alt text".to_string()),
+            site_name: Some("coreyja".to_string()),
+            locale: Some("en_US".to_string()),
+            twitter_site: Some("@coreyja.com".to_string()),
+            author: Some("Corey".to_string()),
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        assert!(out.contains(r#"property="og:image:width" content="1200""#));
+        assert!(out.contains(r#"property="og:image:height" content="630""#));
+        assert!(out.contains(r#"property="og:image:alt" content="alt text""#));
+        assert!(out.contains(r#"property="og:site_name" content="coreyja""#));
+        assert!(out.contains(r#"property="og:locale" content="en_US""#));
+        assert!(out.contains(r#"name="twitter:site" content="@coreyja.com""#));
+        assert!(out.contains(r#"property="article:author" content="Corey""#));
     }
 }

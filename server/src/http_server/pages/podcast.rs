@@ -90,7 +90,7 @@ pub(crate) async fn podcast_index(
         OpenGraph {
             title: "coreyja.fm Podcast".to_string(),
             description: Some("The coreyja.fm podcast".to_string()),
-            ..OpenGraph::default_for(&state.app)
+            ..OpenGraph::default_for_path(&state.app, "/podcast")
         },
     ))
 }

@@ -53,6 +53,13 @@ pub(crate) fn make_router() -> Router<AppState> {
         .route("/podcast", get(pages::podcast::podcast_index))
         .route("/podcast/feed.xml", get(pages::podcast::podcast_rss_feed))
         .route("/podcast/{slug}", get(pages::podcast::podcast_get))
+        // OG card SVG routes — these are bare `{slug}` (no `.svg` suffix in the matcher)
+        // because axum 0.8's `matchit` router rejects literal text after a path param
+        // within the same segment (`{slug}.svg` errors). Handlers `strip_suffix(".svg")`
+        // on the captured slug so URLs work with or without the suffix, and the
+        // `og:image` URLs emitted in page meta tags include `.svg` so the response shape
+        // is unambiguous to scrapers. Don't reintroduce `.svg` here without first
+        // verifying axum's matchit supports it. See `pages/og.rs`.
         .route("/og/posts/{slug}", get(pages::og::og_post_svg))
         .route("/og/podcast/{slug}", get(pages::og::og_podcast_svg))
         .route("/og/weekly/{slug}", get(pages::og::og_weekly_svg))

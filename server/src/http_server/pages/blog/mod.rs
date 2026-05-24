@@ -141,7 +141,7 @@ pub(crate) async fn posts_index(
           h1 class="text-3xl" { "Blog Posts" }
           (BlogPostList(posts.by_recency()))
         },
-        OpenGraph::default_for(&state.app),
+        OpenGraph::default_for_path(&state.app, "/posts"),
     ))
 }
 

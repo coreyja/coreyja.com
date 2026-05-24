@@ -36,7 +36,7 @@ pub(crate) async fn notes_index(
           h1 class="text-3xl" { "Notes" }
           (NotePostList(posts))
         },
-        OpenGraph::default_for(&state.app),
+        OpenGraph::default_for_path(&state.app, "/notes"),
     ))
 }
 
