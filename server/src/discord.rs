@@ -40,6 +40,20 @@ pub(crate) struct DiscordClient {
     pub cache: Arc<serenity::Cache>,
 }
 
+impl DiscordClient {
+    /// Build a `DiscordClient` for tests without going through the full poise
+    /// `Framework` / `Client` setup (which expects a real `DISCORD_TOKEN` and
+    /// can attempt a gateway handshake). `serenity::Http::new` and
+    /// `serenity::Cache::new` are pure constructors with no I/O.
+    #[cfg(test)]
+    pub(crate) fn for_testing() -> Self {
+        Self {
+            http: Arc::new(serenity::Http::new("test-discord-token")),
+            cache: Arc::new(serenity::Cache::new()),
+        }
+    }
+}
+
 impl CacheHttp for DiscordClient {
     fn http(&self) -> &serenity::Http {
         self.http.as_ref()

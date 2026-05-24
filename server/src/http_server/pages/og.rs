@@ -83,55 +83,22 @@ pub async fn og_podcast_svg(
 
 #[cfg(test)]
 mod tests {
-    //! NOTE: These tests deliberately build a minimal Axum router with only the OG routes
-    //! rather than going through `test_helpers::create_test_app`. The shared helper depends
-    //! on a complete `AppState`, which requires Discord/Twitch/Google/etc. env vars that
-    //! aren't available in unit-test runs. Since the OG handlers only need `Arc<BlogPosts>`
-    //! and `Arc<PodcastEpisodes>`, a focused mini-router is sufficient to verify routing
-    //! and slug gating.
-    use super::{og_podcast_svg, og_post_svg, og_weekly_svg};
+    //! These tests exercise the real `make_router()` via `test_helpers::create_test_app`
+    //! so route wiring, the `{slug}` path matcher, and `.svg` suffix stripping are all
+    //! verified end-to-end against the same router that ships in production.
+    use crate::http_server::test_helpers::create_test_app;
     use axum::{
         body::Body,
-        extract::FromRef,
         http::{Request, StatusCode},
-        routing::get,
-        Router,
     };
     use posts::{blog::BlogPosts, podcast::PodcastEpisodes};
-    use std::sync::Arc;
     use tower::ServiceExt;
 
-    #[derive(Clone)]
-    struct TestState {
-        blog: Arc<BlogPosts>,
-        podcast: Arc<PodcastEpisodes>,
-    }
-
-    impl FromRef<TestState> for Arc<BlogPosts> {
-        fn from_ref(s: &TestState) -> Self {
-            s.blog.clone()
-        }
-    }
-
-    impl FromRef<TestState> for Arc<PodcastEpisodes> {
-        fn from_ref(s: &TestState) -> Self {
-            s.podcast.clone()
-        }
-    }
-
-    fn test_app() -> (Router, Arc<BlogPosts>, Arc<PodcastEpisodes>) {
-        let blog = Arc::new(BlogPosts::from_static_dir().unwrap());
-        let podcast = Arc::new(PodcastEpisodes::from_static_dir().unwrap());
-        let state = TestState {
-            blog: blog.clone(),
-            podcast: podcast.clone(),
-        };
-        let router = Router::new()
-            .route("/og/posts/{slug}", get(og_post_svg))
-            .route("/og/podcast/{slug}", get(og_podcast_svg))
-            .route("/og/weekly/{slug}", get(og_weekly_svg))
-            .with_state(state);
-        (router, blog, podcast)
+    fn fixtures() -> (BlogPosts, PodcastEpisodes) {
+        (
+            BlogPosts::from_static_dir().unwrap(),
+            PodcastEpisodes::from_static_dir().unwrap(),
+        )
     }
 
     async fn body_string(resp: axum::response::Response) -> String {
@@ -143,7 +110,8 @@ mod tests {
 
     #[tokio::test]
     async fn og_post_svg_returns_svg_for_known_regular_slug() {
-        let (app, blog, _) = test_app();
+        let app = create_test_app().await;
+        let (blog, _) = fixtures();
         let regular = blog
             .posts()
             .iter()
@@ -176,7 +144,7 @@ mod tests {
 
     #[tokio::test]
     async fn og_post_svg_404s_for_unknown_slug() {
-        let (app, _, _) = test_app();
+        let app = create_test_app().await;
         let resp = app
             .oneshot(
                 Request::builder()
@@ -191,7 +159,8 @@ mod tests {
 
     #[tokio::test]
     async fn og_post_and_weekly_pair_for_known_newsletter_slug() {
-        let (app, blog, _) = test_app();
+        let app = create_test_app().await;
+        let (blog, _) = fixtures();
         let newsletter_slug = "20230713";
         let nl = blog
             .posts()
@@ -228,7 +197,8 @@ mod tests {
 
     #[tokio::test]
     async fn og_weekly_svg_404s_for_regular_slug() {
-        let (app, blog, _) = test_app();
+        let app = create_test_app().await;
+        let (blog, _) = fixtures();
         let regular = blog
             .posts()
             .iter()
@@ -249,7 +219,8 @@ mod tests {
 
     #[tokio::test]
     async fn og_podcast_svg_renders() {
-        let (app, _, podcast) = test_app();
+        let app = create_test_app().await;
+        let (_, podcast) = fixtures();
         let ep = podcast.episodes.first().expect("at least one episode");
         let slug = &ep.frontmatter.slug;
         let resp = app
