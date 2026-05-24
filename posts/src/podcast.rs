@@ -34,6 +34,8 @@ pub struct PodcastFrontMatter {
     pub audio_duration: String,
     /// SRT transcript URL for podcast apps (Podcasting 2.0 transcript tag)
     pub transcript_url: Option<String>,
+    pub linkedin_url: Option<String>,
+    pub linkedin_content: Option<String>,
 }
 
 impl PostedOn for PodcastFrontMatter {
@@ -70,6 +72,10 @@ impl PodcastEpisodes {
         let episodes = dir
             .find("**/*.md")?
             .filter_map(|e| e.as_file())
+            .filter(|f| {
+                let name = f.path().file_name().and_then(|n| n.to_str()).unwrap_or("");
+                name != "linkedin.md" && !name.ends_with(".linkedin.md")
+            })
             .map(PodcastEpisode::from_file)
             .collect::<Result<Vec<_>>>()
             .wrap_err("One of the podcast episodes failed to parse")?;
@@ -93,5 +99,33 @@ mod test {
         assert!(!ep.frontmatter.slug.is_empty());
         assert!(!ep.frontmatter.youtube_id.is_empty());
         assert!(!ep.frontmatter.audio_url.is_empty());
+    }
+
+    #[test]
+    fn frontmatter_deserializes_with_linkedin_url() {
+        let yaml = "title: Sample\ndate: 2026-05-23\nslug: sample\nyoutube_id: abc\naudio_url: https://x/audio.mp3\naudio_length_bytes: 1\naudio_duration: \"01:00:00\"\nlinkedin_url: https://www.linkedin.com/feed/update/urn:li:share:1\n";
+        let fm: PodcastFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            fm.linkedin_url.as_deref(),
+            Some("https://www.linkedin.com/feed/update/urn:li:share:1")
+        );
+        assert!(fm.linkedin_content.is_none());
+    }
+
+    #[test]
+    fn frontmatter_deserializes_with_linkedin_content() {
+        let yaml = "title: Sample\ndate: 2026-05-23\nslug: sample\nyoutube_id: abc\naudio_url: https://x/audio.mp3\naudio_length_bytes: 1\naudio_duration: \"01:00:00\"\nlinkedin_content: Custom body for LinkedIn.\n";
+        let fm: PodcastFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            fm.linkedin_content.as_deref(),
+            Some("Custom body for LinkedIn.")
+        );
+    }
+
+    #[test]
+    fn from_dir_skips_linkedin_md_sibling_files() {
+        use include_dir::{include_dir, Dir};
+        static D: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../podcast");
+        let _ = PodcastEpisodes::from_dir(&D).expect("from_dir succeeds");
     }
 }

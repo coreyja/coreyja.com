@@ -50,6 +50,7 @@ pub async fn create_test_app(pool: PgPool) -> Router {
         encrypt_config: crate::encrypt::Config::from_env().unwrap(),
         posthog_key: None,
         discord: discord_setup.client,
+        linkedin: None,
     };
 
     crate::http_server::routes::make_router().with_state(state)

@@ -76,6 +76,14 @@ pub(crate) fn make_router() -> Router<AppState> {
             get(admin::auth::google_auth_callback),
         )
         .route(
+            "/admin/auth/linkedin",
+            get(admin::linkedin_auth::linkedin_auth),
+        )
+        .route(
+            "/admin/auth/linkedin/callback",
+            get(admin::linkedin_auth::linkedin_auth_callback),
+        )
+        .route(
             "/admin/jobs/refresh_youtube",
             post(admin::job_routes::refresh_youtube),
         )

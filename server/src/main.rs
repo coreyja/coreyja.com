@@ -43,6 +43,8 @@ pub(crate) mod discord_interactive;
 pub(crate) mod bluesky;
 pub(crate) mod bsky;
 
+pub(crate) mod linkedin;
+
 pub(crate) mod al;
 
 pub(crate) mod memory;
