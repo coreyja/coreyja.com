@@ -46,6 +46,7 @@ pub enum CardTag {
     Posts,
     Podcast,
     Newsletter,
+    Notes,
 }
 
 impl CardTag {
@@ -54,6 +55,7 @@ impl CardTag {
             CardTag::Posts => "POSTS",
             CardTag::Podcast => "PODCAST",
             CardTag::Newsletter => "NEWSLETTER",
+            CardTag::Notes => "NOTES",
         }
     }
 }
