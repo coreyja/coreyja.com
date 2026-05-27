@@ -4,7 +4,7 @@ author: Corey Alexander
 date: 2026-05-27
 ---
 
-I’ve flew to close to the AI sun, and this is my apology. Apology to myself, but also to all of you.
+I’ve flown to close to the AI sun, and this is my apology. Apology to myself, but also to all of you.
 
 It hasn’t been a secret that I’ve been diving head first into AI in the last year. Like a good portion of the industry I’ve been using agents to do a good portion of my coding.
 
