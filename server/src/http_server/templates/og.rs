@@ -19,7 +19,10 @@ const QUICKSAND_REGULAR_TTF: &[u8] = include_bytes!("../../../static/fonts/Quick
 const QUICKSAND_BOLD_TTF: &[u8] = include_bytes!("../../../static/fonts/Quicksand-Bold.ttf");
 
 const TITLE_MAX_CHARS: usize = 80;
-const TITLE_SINGLE_LINE_THRESHOLD: usize = 40;
+// Tuned for Quicksand Bold 64px starting at x=80 in a 1200px-wide card. Higher values
+// let medium-length titles (e.g. "Notes now syndicate to Bluesky", 30 chars) overflow
+// the right edge of the card. ~28 chars fit comfortably with margin to spare.
+const TITLE_SINGLE_LINE_THRESHOLD: usize = 28;
 
 static QUICKSAND_FONT_CSS: LazyLock<String> = LazyLock::new(|| {
     let regular_b64 = base64::engine::general_purpose::STANDARD.encode(QUICKSAND_REGULAR_TTF);
@@ -311,6 +314,19 @@ mod tests {
         let (a, b) = split_title_lines(&title);
         assert_eq!(a, title);
         assert!(b.is_none());
+    }
+
+    #[test]
+    fn split_title_lines_wraps_real_world_30_char_title() {
+        // Regression: "Notes now syndicate to Bluesky" (30 chars) rendered as one line
+        // overflowed the right edge of the 1200px card with the previous 40-char threshold.
+        let title = "Notes now syndicate to Bluesky";
+        assert!(title.chars().count() > TITLE_SINGLE_LINE_THRESHOLD);
+        let (_, line2) = split_title_lines(title);
+        assert!(
+            line2.is_some(),
+            "30-char title should wrap to two lines to stay within card bounds"
+        );
     }
 
     #[test]
