@@ -24,6 +24,10 @@ pub struct OpenGraph {
     pub author: Option<String>,
     /// Emits `article:tag` once per entry.
     pub tags: Vec<String>,
+    /// `(rel, href)` pairs emitted as `<link rel="..." href="..." />` in `<head>`.
+    /// Used to point at `site.standard.document` / `site.standard.publication`
+    /// records on the PDS for verification.
+    pub head_links: Vec<(String, String)>,
 }
 
 impl Default for OpenGraph {
@@ -47,6 +51,7 @@ impl Default for OpenGraph {
             published_time: None,
             author: None,
             tags: Vec::new(),
+            head_links: Vec::new(),
         }
     }
 }
@@ -129,6 +134,9 @@ impl Render for OpenGraph {
             @if let Some(image) = &self.image {
               meta name="twitter:image" content=(image) {}
             }
+          }
+          @for (rel, href) in &self.head_links {
+            link rel=(rel) href=(href) {}
           }
         }
     }
@@ -334,6 +342,36 @@ mod tests {
         let og = OpenGraph::default();
         let out = rendered(&og);
         assert!(!out.contains(r#"property="article:tag""#));
+    }
+
+    #[test]
+    fn head_links_emit_link_tags() {
+        let og = OpenGraph {
+            head_links: vec![
+                (
+                    "site.standard.document".to_string(),
+                    "at://did:plc:abc/site.standard.document/post-1".to_string(),
+                ),
+                (
+                    "site.standard.publication".to_string(),
+                    "at://did:plc:abc/site.standard.publication/3xyz".to_string(),
+                ),
+            ],
+            ..OpenGraph::default()
+        };
+        let out = rendered(&og);
+        assert!(out.contains(r#"rel="site.standard.document""#));
+        assert!(out.contains(r#"href="at://did:plc:abc/site.standard.document/post-1""#));
+        assert!(out.contains(r#"rel="site.standard.publication""#));
+        assert!(out.contains(r#"href="at://did:plc:abc/site.standard.publication/3xyz""#));
+    }
+
+    #[test]
+    fn empty_head_links_emit_nothing() {
+        let og = OpenGraph::default();
+        let out = rendered(&og);
+        assert!(!out.contains("site.standard.document"));
+        assert!(!out.contains("site.standard.publication"));
     }
 
     #[test]

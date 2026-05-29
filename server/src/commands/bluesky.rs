@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::bluesky::{at_uri_to_web_url, BlueskyClient, BlueskyConfig};
+use crate::commands::frontmatter;
 use chrono::NaiveDate;
 use clap::Args;
 use posts::notes::FrontMatter;
@@ -50,47 +51,15 @@ fn classify_note(path: &Path) -> cja::Result<Option<FrontMatter>> {
 
 /// Parse frontmatter from raw markdown content
 fn parse_frontmatter(content: &str) -> cja::Result<(FrontMatter, String)> {
-    let content = content.trim_start();
-    if !content.starts_with("---") {
-        return Err(cja::color_eyre::eyre::eyre!(
-            "Missing frontmatter delimiter"
-        ));
-    }
-
-    let rest = &content[3..];
-    let Some(end_idx) = rest.find("\n---") else {
-        return Err(cja::color_eyre::eyre::eyre!(
-            "Missing closing frontmatter delimiter"
-        ));
-    };
-
-    let yaml = &rest[..end_idx].trim();
-    let body = &rest[end_idx + 4..]; // Skip "\n---"
-
-    let frontmatter: FrontMatter = serde_yaml::from_str(yaml)
+    let (yaml, body) = frontmatter::split_frontmatter(content)?;
+    let fm: FrontMatter = serde_yaml::from_str(yaml)
         .map_err(|e| cja::color_eyre::eyre::eyre!("Invalid YAML: {}", e))?;
-
-    Ok((frontmatter, body.to_string()))
+    Ok((fm, body.to_string()))
 }
 
 /// Update frontmatter in a markdown file with the `bsky_url`
 fn update_frontmatter_with_bsky_url(content: &str, url: &str) -> String {
-    let content = content.trim_start();
-    if !content.starts_with("---") {
-        return content.to_string();
-    }
-
-    let rest = &content[3..];
-    let Some(end_idx) = rest.find("\n---") else {
-        return content.to_string();
-    };
-
-    let yaml = &rest[..end_idx];
-    let body = &rest[end_idx + 4..]; // Skip "\n---"
-
-    let updated_yaml = format!("{}\nbsky_url: {url}", yaml.trim_end());
-
-    format!("---\n{updated_yaml}\n---{body}")
+    frontmatter::append_frontmatter_keys(content, &[("bsky_url", url)])
 }
 
 /// Publish a single note, given an authenticated client. Idempotent: skips

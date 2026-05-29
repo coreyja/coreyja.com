@@ -1,0 +1,8 @@
+[[publication]]
+key = "blog"
+title = "coreyja"
+description = "Personal blog: Rust, side projects, Battlesnake, AI agents."
+url = "https://coreyja.com/posts"
+content_dir = "blog"
+collection = "site.standard.document"
+cover_image = "static/opengraph.png"

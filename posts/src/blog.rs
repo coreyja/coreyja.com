@@ -239,6 +239,19 @@ pub struct BlogFrontMatter {
     #[serde(default)]
     pub tags: Vec<String>,
     pub author: Option<String>,
+    /// AT URI of the `site.standard.document` record on the PDS, set after
+    /// the first successful sync. Acts as the idempotency key — its presence
+    /// means the document record has been created, so subsequent syncs use
+    /// `putRecord` against the same rkey rather than creating a new record.
+    pub atproto_uri: Option<String>,
+    /// Publication this post belongs to. Defaults to `"blog"` and corresponds
+    /// to an entry in `publications.toml`.
+    #[serde(default = "default_publication")]
+    pub publication: String,
+}
+
+fn default_publication() -> String {
+    "blog".to_string()
 }
 
 impl PostedOn for BlogFrontMatter {
@@ -323,6 +336,8 @@ mod test {
             og_image: None,
             tags: vec![],
             author: None,
+            atproto_uri: None,
+            publication: "blog".to_string(),
         };
         let post = BlogPost {
             path,
@@ -359,6 +374,8 @@ mod test {
                 og_image: None,
                 tags: vec![],
                 author: None,
+                atproto_uri: None,
+                publication: "blog".to_string(),
             },
         }
     }
@@ -379,5 +396,13 @@ mod test {
     fn og_slug_weekly_path_but_not_newsletter() {
         let post = test_post("weekly/20230713/index.md", false);
         assert_eq!(post.og_slug(), "weekly/20230713");
+    }
+
+    #[test]
+    fn frontmatter_defaults_apply_when_fields_absent() {
+        let yaml = "title: T\ndate: 2026-05-01";
+        let fm: BlogFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.publication, "blog");
+        assert!(fm.atproto_uri.is_none());
     }
 }
