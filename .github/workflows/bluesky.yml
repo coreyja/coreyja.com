@@ -85,6 +85,18 @@ jobs:
           BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
         run: ./target/release/server publish-bluesky --dir notes
 
+      - name: Init standard.site publication
+        # No-op when `publications.toml` already has `at_uri` + `at_cid`
+        # cached (see `init_publication` in `standard_site.rs`). First run
+        # after merge creates the publication record on the PDS and writes
+        # the URI/CID back; later runs short-circuit without touching the
+        # network. Failure here is fatal — sync depends on it.
+        id: init_standard
+        env:
+          BLUESKY_IDENTIFIER: ${{ secrets.BLUESKY_IDENTIFIER }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+        run: ./target/release/server publish-standard-site init blog
+
       - name: Sync standard.site
         id: sync_standard
         env:

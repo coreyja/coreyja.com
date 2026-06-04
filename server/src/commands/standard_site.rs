@@ -38,6 +38,11 @@ pub struct InitArgs {
     /// Override the default config path. The config's parent dir is the repo root.
     #[arg(long, default_value = "publications.toml")]
     pub config: PathBuf,
+    /// Re-upload the publication record even if `at_uri`/`at_cid` are already
+    /// cached. Without this, init is a no-op when the publication is already
+    /// bootstrapped — letting the workflow run it on every deploy.
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -198,7 +203,9 @@ pub async fn run(cmd: &StandardSiteCommand) -> cja::Result<()> {
     let client = BlueskyClient::login(&config).await?;
 
     match cmd {
-        StandardSiteCommand::Init(args) => init_publication(&client, &args.config, &args.key).await,
+        StandardSiteCommand::Init(args) => {
+            init_publication(&client, &args.config, &args.key, args.force).await
+        }
         StandardSiteCommand::Sync(args) => {
             let cfg = load_config(&args.config)?;
             let repo_root = repo_root_for(&args.config);
@@ -247,6 +254,7 @@ async fn init_publication(
     client: &BlueskyClient,
     config_path: &Path,
     key: &str,
+    force: bool,
 ) -> cja::Result<()> {
     let mut cfg = load_config(config_path)?;
     let pub_cfg = cfg
@@ -254,6 +262,18 @@ async fn init_publication(
         .iter_mut()
         .find(|p| p.key == key)
         .ok_or_else(|| eyre!("Publication '{key}' not found in {}", config_path.display()))?;
+
+    // Idempotent fast path: when both fields are cached and the caller didn't
+    // ask for a refresh, do nothing. This lets the workflow run `init` on
+    // every deploy without thrashing the PDS or producing churn commits
+    // (`put_publication` bumps `createdAt`/`cid` on every call).
+    if !force && pub_cfg.at_uri.is_some() && pub_cfg.at_cid.is_some() {
+        println!(
+            "Publication '{key}' already initialized (uri={}); skipping. Use --force to refresh.",
+            pub_cfg.at_uri.as_deref().unwrap_or("")
+        );
+        return Ok(());
+    }
 
     let repo_root = repo_root_for(config_path);
 
