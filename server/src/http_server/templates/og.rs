@@ -191,6 +191,27 @@ pub fn render_card_svg(data: &CardData<'_>) -> String {
     }
 }
 
+/// Render a publication-level OG card (publication name + tag, no date).
+///
+/// Used as the cover blob attached to `site.standard.publication` records via
+/// the standard.site sync CLI. Re-uses the same SVG template as per-post cards
+/// so the publication's visual identity matches.
+pub fn render_publication_card_svg(title: &str, tag: CardTag) -> String {
+    let svg = OG_TEMPLATE_SVG.to_string();
+    let svg = svg.replace("{{font_face}}", QUICKSAND_FONT_CSS.as_str());
+    let svg = svg.replace("{{logo_svg_contents}}", super::LOGO_DARK_FLAT_SVG);
+    let svg = substitute_title(&svg, title);
+    let svg = svg.replace("{{date}}", "");
+    let svg = svg.replace("{{tag}}", tag.label());
+
+    // Publication cards never embed a YouTube thumbnail; strip the block.
+    strip_block(
+        &svg,
+        "<!-- {{youtube_block_start}} -->",
+        "<!-- {{youtube_block_end}} -->",
+    )
+}
+
 /// Absolute URL to the SVG route — uses `AppConfig.base_url`.
 pub fn og_svg_url(config: &AppConfig, route_path: &str) -> String {
     config.app_url(route_path)

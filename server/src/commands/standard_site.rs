@@ -71,8 +71,6 @@ pub struct PublicationConfig {
     pub content_dir: String,
     pub collection: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover_image: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub at_uri: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub at_cid: Option<String>,
@@ -198,6 +196,55 @@ fn cutoff_date() -> chrono::NaiveDate {
     chrono::NaiveDate::parse_from_str(CUTOFF_DATE, "%Y-%m-%d").expect("CUTOFF_DATE valid")
 }
 
+/// Build the imgproxy URL that rasterizes the publication's SVG OG card to a
+/// 1200×630 PNG. Mirrors the format used by
+/// `templates::og::og_image_url` so cover images match the per-post cards.
+fn publication_cover_imgproxy_url(app_base_url: &str, imgproxy_url: &str, key: &str) -> String {
+    let svg_url = format!(
+        "{}/og/publication/{}.svg",
+        app_base_url.trim_end_matches('/'),
+        key
+    );
+    format!(
+        "{}/unsafe/rs:fill:1200:630/format:png/plain/{}",
+        imgproxy_url.trim_end_matches('/'),
+        urlencoding::encode(&svg_url)
+    )
+}
+
+/// Fetch the publication's branded OG card as a PNG via imgproxy.
+///
+/// Requires `APP_BASE_URL` (so we know where the deployed SVG endpoint lives)
+/// and `IMGPROXY_URL` (so the SVG gets rasterized). Returns `(bytes, mime)`
+/// suitable for `upload_blob`.
+async fn fetch_publication_cover_png(key: &str) -> cja::Result<(Vec<u8>, String)> {
+    let app_base_url =
+        std::env::var("APP_BASE_URL").map_err(|_| eyre!("APP_BASE_URL must be set"))?;
+    let imgproxy_url =
+        std::env::var("IMGPROXY_URL").map_err(|_| eyre!("IMGPROXY_URL must be set"))?;
+    let png_url = publication_cover_imgproxy_url(&app_base_url, &imgproxy_url, key);
+
+    let resp = reqwest::get(&png_url)
+        .await
+        .map_err(|e| eyre!("Failed to fetch cover from {png_url}: {e}"))?;
+    let status = resp.status();
+    if !status.is_success() {
+        return Err(eyre!("imgproxy returned {status} for {png_url}"));
+    }
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("image/png")
+        .to_string();
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| eyre!("Failed to read cover body: {e}"))?
+        .to_vec();
+    Ok((bytes, content_type))
+}
+
 pub async fn run(cmd: &StandardSiteCommand) -> cja::Result<()> {
     let config = BlueskyConfig::from_env()?;
     let client = BlueskyClient::login(&config).await?;
@@ -275,37 +322,29 @@ async fn init_publication(
         return Ok(());
     }
 
-    let repo_root = repo_root_for(config_path);
-
-    // Try to upload cover image (best-effort).
-    let cover: Option<Blob> = if let Some(path) = &pub_cfg.cover_image {
-        let resolved = repo_root.join(path);
-        match std::fs::read(&resolved) {
-            Ok(bytes) => {
-                let mime = mime_guess::from_path(&resolved)
-                    .first_or_octet_stream()
-                    .to_string();
-                match client.upload_blob(bytes, &mime).await {
-                    Ok(blob) => Some(blob),
-                    Err(e) => {
-                        eprintln!(
-                            "Warning: cover_image upload failed for '{}': {e}. Proceeding without cover.",
-                            resolved.display()
-                        );
-                        None
-                    }
-                }
-            }
+    // Fetch the publication's branded OG card as a PNG via imgproxy. The SVG
+    // itself is served by the deployed app at `/og/publication/{key}.svg`;
+    // imgproxy rasterizes and caches the 1200×630 PNG that the cover blob
+    // points at. Best-effort: if the fetch fails we proceed without a cover
+    // rather than aborting init.
+    let cover: Option<Blob> = match fetch_publication_cover_png(&pub_cfg.key).await {
+        Ok((bytes, mime)) => match client.upload_blob(bytes, &mime).await {
+            Ok(blob) => Some(blob),
             Err(e) => {
                 eprintln!(
-                    "Warning: could not read cover_image '{}': {e}. Proceeding without cover.",
-                    resolved.display()
+                    "Warning: cover upload failed for '{}': {e}. Proceeding without cover.",
+                    pub_cfg.key
                 );
                 None
             }
+        },
+        Err(e) => {
+            eprintln!(
+                "Warning: could not fetch generated cover for '{}': {e}. Proceeding without cover.",
+                pub_cfg.key
+            );
+            None
         }
-    } else {
-        None
     };
 
     let record = PublicationRecord {
@@ -516,7 +555,6 @@ mod tests {
             url: "https://coreyja.com/posts".to_string(),
             content_dir: "blog".to_string(),
             collection: "site.standard.document".to_string(),
-            cover_image: Some("static/opengraph.png".to_string()),
             at_uri: None,
             at_cid: None,
         }
@@ -545,7 +583,7 @@ mod tests {
         let mut f = std::fs::File::create(&path).unwrap();
         writeln!(
             f,
-            "[[publication]]\nkey = \"blog\"\ntitle = \"coreyja\"\ndescription = \"d\"\nurl = \"https://coreyja.com/posts\"\ncontent_dir = \"blog\"\ncollection = \"site.standard.document\"\ncover_image = \"static/opengraph.png\""
+            "[[publication]]\nkey = \"blog\"\ntitle = \"coreyja\"\ndescription = \"d\"\nurl = \"https://coreyja.com/posts\"\ncontent_dir = \"blog\"\ncollection = \"site.standard.document\""
         )
         .unwrap();
         let cfg = load_config(&path).unwrap();
@@ -554,9 +592,34 @@ mod tests {
         assert_eq!(p.key, "blog");
         assert_eq!(p.title, "coreyja");
         assert_eq!(p.content_dir, "blog");
-        assert_eq!(p.cover_image.as_deref(), Some("static/opengraph.png"));
         assert!(p.at_uri.is_none());
         assert!(p.at_cid.is_none());
+    }
+
+    #[test]
+    fn publication_cover_imgproxy_url_format() {
+        let out = publication_cover_imgproxy_url(
+            "https://coreyja.com",
+            "https://img.coreyja.com",
+            "blog",
+        );
+        assert!(
+            out.starts_with("https://img.coreyja.com/unsafe/rs:fill:1200:630/format:png/plain/")
+        );
+        assert!(out.ends_with(
+            &urlencoding::encode("https://coreyja.com/og/publication/blog.svg").into_owned()
+        ));
+    }
+
+    #[test]
+    fn publication_cover_imgproxy_url_strips_trailing_slashes() {
+        let out = publication_cover_imgproxy_url(
+            "https://coreyja.com/",
+            "https://img.coreyja.com/",
+            "blog",
+        );
+        assert!(!out.contains("com//og/"));
+        assert!(!out.contains("com//unsafe/"));
     }
 
     #[test]
