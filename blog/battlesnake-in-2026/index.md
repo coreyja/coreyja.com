@@ -1,6 +1,7 @@
 ---
 
 
+
 title: Battlesnake in 2026
 author: Corey Alexander
 date: 2026-01-10
@@ -9,6 +10,7 @@ tags:
   - rust
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/battlesnake-in-2026
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 I've been involved with Battlesnake for 5 years now, [since 2021](https://github.com/coreyja/battlesnake-rs/commit/ebd84eecc9ca89f7c05259a60c8ff764b469435f) when I built my first snake. It feels like both forever and no time at all.

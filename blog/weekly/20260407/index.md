@@ -1,12 +1,14 @@
 ---
 
 
+
 title: "coreyja.fm Episode 3: Lean Into the Latency"
 author: Corey Alexander
 date: 2026-04-07
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20260407
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 Hey Team! Episode 3 is out — this one's about why I think async is the natural mode for AI agent workflows, and why fighting the latency is the wrong move.

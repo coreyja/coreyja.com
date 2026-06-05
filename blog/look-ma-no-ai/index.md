@@ -1,12 +1,14 @@
 ---
 
 
+
 title: Look Ma’ no AI
 subtitle: An apology, and a recommitment to writing the words myself.
 author: Corey Alexander
 date: 2026-05-27
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/look-ma-no-ai
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 I’ve flown to close to the AI sun, and this is my apology. Apology to myself, but also to all of you.

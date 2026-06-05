@@ -1,6 +1,7 @@
 ---
 
 
+
 title: Setting up new Laptop and Upgrading to Homebrew 2
 author: Corey Alexander
 date: 2019-04-19
@@ -10,6 +11,7 @@ tags:
 color: purple
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/upgrading-to-brew-2
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 This blog post is gonna be a walk-through of setting up my new laptop, which led to [this PR](https://github.com/coreyja/dotfiles/pull/5/files) from my dotfiles repo. There were a few things I needed to update to get the laptop running. The biggest one was upgrading from Homebrew 1.x to Homebrew 2.0

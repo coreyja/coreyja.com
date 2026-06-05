@@ -1,6 +1,7 @@
 ---
 
 
+
 title: Verifying Twitch Webhooks in Rails
 author: Corey Alexander
 date: 2019-05-04
@@ -13,6 +14,7 @@ tags:
 color: orange
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/twitch-webhook-verification
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 I was recently working on adding some Twitch embedding support to dev.to! Part of this was adding webhook support.

@@ -1,6 +1,7 @@
 ---
 
 
+
 title: "I ported my blog to Gatsby 🎉"
 author: Corey Alexander
 date: 2019-05-25
@@ -13,6 +14,7 @@ color: blue
 description: "I ported my blog to Gatsby 🎉"
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/ported-blog-to-gatsby
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 For a couple years now I've used the Middleman ruby framework to build my static blog site. I choose Middleman initially since it was a very similar environment to Rails, which I have more experience in. This definitely helped my get off the ground quickly!

@@ -6,5 +6,5 @@ url = "https://coreyja.com/posts"
 content_dir = "blog"
 collection = "site.standard.document"
 at_uri = "at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.publication/3mnk6kpdbqf2g"
-at_cid = "bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu"
-cover_synced = false
+at_cid = "bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti"
+cover_synced = true

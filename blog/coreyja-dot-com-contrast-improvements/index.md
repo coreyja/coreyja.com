@@ -1,6 +1,7 @@
 ---
 
 
+
 title: coreyja.com Contrast Improvements
 author: Corey Alexander
 date: 2018-11-24
@@ -10,6 +11,7 @@ tags:
 color: green
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/coreyja-dot-com-contrast-improvements
 atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 I posted my last blog post to Reddit, and one of the responses I got was about how my blog was hard to read due to the low contrast between my colors and my backgrounds. Shoutout to [@Narishma for pointing this out](https://www.reddit.com/r/rust/comments/9yek2s/using_rust_faster_devicon_file_preview_with_fzf/ea3xhpb/)!
