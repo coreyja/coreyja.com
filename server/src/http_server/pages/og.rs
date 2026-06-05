@@ -71,6 +71,7 @@ pub async fn og_post_svg(
         title: &post.frontmatter.title,
         date: post.frontmatter.date,
         tag: CardTag::Posts,
+        subtitle: post.frontmatter.subtitle.as_deref(),
         youtube_thumbnail_b64: None,
     };
     Ok(svg_response(render_card_svg(&data)))
@@ -90,6 +91,7 @@ pub async fn og_weekly_svg(
         title: &post.frontmatter.title,
         date: post.frontmatter.date,
         tag: CardTag::Newsletter,
+        subtitle: post.frontmatter.subtitle.as_deref(),
         youtube_thumbnail_b64: None,
     };
     Ok(svg_response(render_card_svg(&data)))
@@ -109,6 +111,7 @@ pub async fn og_note_svg(
         title: &note.frontmatter.title,
         date: note.frontmatter.date,
         tag: CardTag::Notes,
+        subtitle: None,
         youtube_thumbnail_b64: None,
     };
     Ok(svg_response(render_card_svg(&data)))
@@ -146,6 +149,7 @@ pub async fn og_podcast_svg(
         title: &ep.frontmatter.title,
         date: ep.frontmatter.date,
         tag: CardTag::Podcast,
+        subtitle: None,
         youtube_thumbnail_b64: thumbnail,
     };
     Ok(svg_response(render_card_svg(&data)))

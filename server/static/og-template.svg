@@ -34,6 +34,13 @@
   <text x="80" y="525" font-family="Quicksand" font-weight="700" font-size="64" fill="#F0F0FF">{{title_line_2}}</text>
   <!-- {{title_line_2_end}} -->
 
-  <!-- Date -->
-  <text x="80" y="595" font-family="Quicksand" font-weight="400" font-size="28" fill="#A1A8FF">{{date}}</text>
+  <!-- Bottom-left: subtitle (when present) or date (when no subtitle). For
+       publication cards this slot holds the publication description. -->
+  <text x="80" y="595" font-family="Quicksand" font-weight="400" font-size="28" fill="#A1A8FF">{{bottom_left}}</text>
+  <!-- Bottom-right: date, only rendered when a subtitle is present so the
+       date doesn't get lost. Stripped on the publication card and on per-post
+       cards without a subtitle. -->
+  <!-- {{bottom_right_start}} -->
+  <text x="1120" y="595" font-family="Quicksand" font-weight="400" font-size="28" fill="#A1A8FF" text-anchor="end">{{bottom_right}}</text>
+  <!-- {{bottom_right_end}} -->
 </svg>

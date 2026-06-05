@@ -236,6 +236,9 @@ pub struct BlogFrontMatter {
     pub buttondown_id: Option<String>,
     /// Absolute URL of an OG image to use instead of the auto-generated branded card.
     pub og_image: Option<String>,
+    /// Optional short subtitle/tagline shown on the OG card in place of the
+    /// post date. When unset, the OG card renders the post date.
+    pub subtitle: Option<String>,
     #[serde(default)]
     pub tags: Vec<String>,
     pub author: Option<String>,
