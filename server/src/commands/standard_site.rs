@@ -214,16 +214,26 @@ fn publication_cover_imgproxy_url(app_base_url: &str, imgproxy_url: &str, key: &
     )
 }
 
+/// Read a required env var, treating both "unset" and "set-to-empty-string"
+/// as missing. Without the empty-string check, an unset CI secret like
+/// `IMGPROXY_URL: ${{ secrets.IMGPROXY_URL }}` produces an empty string
+/// rather than a missing var, which silently feeds an empty base into URL
+/// construction and yields a malformed relative URL at fetch time.
+fn required_env(name: &str) -> cja::Result<String> {
+    match std::env::var(name) {
+        Ok(v) if !v.is_empty() => Ok(v),
+        _ => Err(eyre!("{name} must be set (and non-empty)")),
+    }
+}
+
 /// Fetch the publication's branded OG card as a PNG via imgproxy.
 ///
 /// Requires `APP_BASE_URL` (so we know where the deployed SVG endpoint lives)
 /// and `IMGPROXY_URL` (so the SVG gets rasterized). Returns `(bytes, mime)`
 /// suitable for `upload_blob`.
 async fn fetch_publication_cover_png(key: &str) -> cja::Result<(Vec<u8>, String)> {
-    let app_base_url =
-        std::env::var("APP_BASE_URL").map_err(|_| eyre!("APP_BASE_URL must be set"))?;
-    let imgproxy_url =
-        std::env::var("IMGPROXY_URL").map_err(|_| eyre!("IMGPROXY_URL must be set"))?;
+    let app_base_url = required_env("APP_BASE_URL")?;
+    let imgproxy_url = required_env("IMGPROXY_URL")?;
     let png_url = publication_cover_imgproxy_url(&app_base_url, &imgproxy_url, key);
 
     let resp = reqwest::get(&png_url)

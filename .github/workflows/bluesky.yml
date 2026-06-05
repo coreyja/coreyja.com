@@ -19,6 +19,10 @@ concurrency:
 env:
   SQLX_OFFLINE: true
   APP_BASE_URL: https://coreyja.com
+  # Not actually secret — imgproxy is a public service that the blog itself
+  # links into for OG card rasterization. Hardcoding here keeps `init` from
+  # having to read a repo secret that didn't exist on first deploy.
+  IMGPROXY_URL: https://img.coreyja.com
 
 jobs:
   publish:
@@ -101,7 +105,6 @@ jobs:
         env:
           BLUESKY_IDENTIFIER: ${{ secrets.BLUESKY_IDENTIFIER }}
           BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
-          IMGPROXY_URL: ${{ secrets.IMGPROXY_URL }}
         run: ./target/release/server publish-standard-site init blog
 
       - name: Sync standard.site
