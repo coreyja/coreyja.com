@@ -191,17 +191,26 @@ pub fn render_card_svg(data: &CardData<'_>) -> String {
     }
 }
 
-/// Render a publication-level OG card (publication name + tag, no date).
+/// Maximum chars of description shown on a publication card. Quicksand 400
+/// at 28px fits roughly this many chars across the card width before
+/// risking overflow on the right edge.
+const PUBLICATION_DESCRIPTION_MAX_CHARS: usize = 75;
+
+/// Render a publication-level OG card (publication name + tag + description,
+/// no date).
 ///
 /// Used as the cover blob attached to `site.standard.publication` records via
 /// the standard.site sync CLI. Re-uses the same SVG template as per-post cards
-/// so the publication's visual identity matches.
-pub fn render_publication_card_svg(title: &str, tag: CardTag) -> String {
+/// so the publication's visual identity matches. The description is rendered
+/// in the slot where per-post cards show the date.
+pub fn render_publication_card_svg(title: &str, tag: CardTag, description: &str) -> String {
     let svg = OG_TEMPLATE_SVG.to_string();
     let svg = svg.replace("{{font_face}}", QUICKSAND_FONT_CSS.as_str());
     let svg = svg.replace("{{logo_svg_contents}}", super::LOGO_DARK_FLAT_SVG);
     let svg = substitute_title(&svg, title);
-    let svg = svg.replace("{{date}}", "");
+    let description = truncate_title(description, PUBLICATION_DESCRIPTION_MAX_CHARS);
+    let description_escaped = html_escape::encode_text(&description).into_owned();
+    let svg = svg.replace("{{date}}", &description_escaped);
     let svg = svg.replace("{{tag}}", tag.label());
 
     // Publication cards never embed a YouTube thumbnail; strip the block.

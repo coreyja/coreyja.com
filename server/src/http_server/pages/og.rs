@@ -26,6 +26,7 @@ struct PublicationsFile {
 struct PublicationCardStub {
     key: String,
     title: String,
+    description: String,
 }
 
 static PUBLICATION_CARD_STUBS: LazyLock<Vec<PublicationCardStub>> = LazyLock::new(|| {
@@ -115,7 +116,7 @@ pub async fn og_note_svg(
 
 /// Publication-level OG card. Looks up the publication by `key` in
 /// `publications.toml` (baked at compile time) and renders a date-less
-/// branded card with the publication title.
+/// branded card with the publication title and description.
 pub async fn og_publication_svg(Path(key): Path<String>) -> Result<Response, StatusCode> {
     let key = key.strip_suffix(".svg").unwrap_or(&key);
     let publication = PUBLICATION_CARD_STUBS
@@ -126,6 +127,7 @@ pub async fn og_publication_svg(Path(key): Path<String>) -> Result<Response, Sta
     Ok(svg_response(render_publication_card_svg(
         &publication.title,
         tag,
+        &publication.description,
     )))
 }
 
@@ -361,6 +363,10 @@ mod tests {
         assert!(body.contains("<svg"));
         assert!(body.contains("coreyja"), "title from publications.toml");
         assert!(body.contains("POSTS"), "blog publication uses Posts tag");
+        assert!(
+            body.contains("Personal blog"),
+            "description from publications.toml should appear on the card"
+        );
     }
 
     #[tokio::test]
