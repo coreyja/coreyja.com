@@ -184,6 +184,7 @@ pub(crate) async fn posts_index(
     ))
 }
 
+#[allow(clippy::too_many_lines)]
 #[instrument(skip(state, posts))]
 pub(crate) async fn post_get(
     State(state): State<AppState>,
@@ -247,7 +248,13 @@ pub(crate) async fn post_get(
         .app_url(&format!("/posts/{}", post.path.canonical_path()));
 
     let bsky_thread = if let Some(bsky_post_url) = &post.frontmatter.bsky_url {
-        Some((bsky_post_url, fetch_thread(bsky_post_url).await.unwrap()))
+        match fetch_thread(bsky_post_url).await {
+            Ok(thread) => Some((bsky_post_url, thread)),
+            Err(e) => {
+                tracing::warn!(?e, "Failed to fetch Bluesky thread for blog post");
+                None
+            }
+        }
     } else {
         None
     };
