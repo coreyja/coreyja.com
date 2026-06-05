@@ -1,5 +1,6 @@
 ---
 
+
 title: Introducing Sleet ☁️ ❄️
 author: Corey Alexander
 date: 2018-01-15
@@ -10,7 +11,7 @@ tags:
   - rspec
   - ruby
 color: blue
-
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/introducing-sleet
 ---
 
 I am super excited to introduce a new gem I've been working on called [Sleet](https://github.com/coreyja/sleet)! It's still very much in an alpha/beta phase, (currently at version 0.3.1) but currently functional!

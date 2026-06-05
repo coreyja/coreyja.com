@@ -1,4 +1,5 @@
 ---
+
 title: Digital Ocean App Platform vs Heroku
 author: Corey Alexander
 date: 2020-12-24
@@ -7,6 +8,7 @@ tags:
   - digital-ocean-app-platform
   - heroku
   - comparison
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/DOAP-vs-heroku
 ---
 
 Disclaimer: I received free Digital Ocean credit for participating in the dev.to hackathon. However, this post is not related to the hackathon, and I was not compensated for it.

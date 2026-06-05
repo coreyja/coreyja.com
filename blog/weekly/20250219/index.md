@@ -1,8 +1,10 @@
 ---
+
 title: Starting on pfp.blue
 author: Corey Alexander
 date: 2025-02-19
 is_newsletter: true
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20250219
 ---
 
 Hey Team! Look at me getting two newsletters out in one month. Let’s try and keep this up!

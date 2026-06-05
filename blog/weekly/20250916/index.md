@@ -1,9 +1,11 @@
 ---
+
 title: "Introducing backup.blue: Back Up Your AtProto Account to Your iPhone (or Mac)"
 author: Corey Alexander
 date: 2025-09-16
 is_newsletter: true
 bsky_url: https://bsky.app/profile/coreyja.com/post/3lyxgzno2ps2n
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20250916
 ---
 
 Hey Team! Been awhile, sorry for the lack of updates. I’ve been working on lots of random projects, but nothing that’s really stuck. But that’s changing! I’ve got a new project I’m excited about and plan on shipping, on a reasonable timeframe!

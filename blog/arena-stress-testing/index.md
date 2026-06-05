@@ -1,4 +1,5 @@
 ---
+
 title: Stress Testing Battlesnake Arena
 author: Corey Alexander
 date: 2026-02-08
@@ -6,6 +7,7 @@ tags:
   - battlesnake
   - rust
   - infrastructure
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/arena-stress-testing
 ---
 
 Hey Team!

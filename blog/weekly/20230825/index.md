@@ -1,8 +1,10 @@
 ---
+
 title: August 25th Update - Structural vs Nominal Types
 author: Corey Alexander
 date: 2023-08-25
 is_newsletter: true
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230825
 ---
 
 Hey Team! Hope everyone is having good week.

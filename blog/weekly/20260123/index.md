@@ -1,8 +1,10 @@
 ---
+
 title: January 2026 - I code from my phone now
 author: Corey Alexander
 date: 2026-01-24
 is_newsletter: true
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20260123
 ---
 
 Hey Team! It's been a long time since I sent one of these, but its a new year and I want to start sending them more regularly.

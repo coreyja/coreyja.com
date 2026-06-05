@@ -1,8 +1,10 @@
 ---
+
 title: coreyja weekly - July 13th Update
 author: Corey Alexander
 date: 2023-07-13
 is_newsletter: true
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230713
 ---
 
 First off, thanks for reading!

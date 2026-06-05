@@ -1,5 +1,6 @@
 ---
 
+
 title: vim-rspec in a Monorepo
 author: Corey Alexander
 date: 2018-04-15
@@ -8,7 +9,7 @@ tags:
  - vim
  - vim-rspec
  - monorepo
-
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/vim-rspec-in-a-monorepo
 ---
 
 ## Monorepos

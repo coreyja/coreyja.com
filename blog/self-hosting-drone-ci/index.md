@@ -1,4 +1,5 @@
 ---
+
 title: Self Hosting a Drone CI Instance
 author: Corey Alexander
 date: 2019-06-01
@@ -7,6 +8,7 @@ tags:
   - self-hosting
   - continuous-integration
 color: green
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/self-hosting-drone-ci
 ---
 
 ![Drone Screenshot](./drone-screenshot.png)

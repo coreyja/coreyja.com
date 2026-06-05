@@ -1,4 +1,5 @@
 ---
+
 title: VIM Spelling Suggestions with fzf
 author: Corey Alexander
 date: 2018-11-10
@@ -7,6 +8,7 @@ tags:
   - fzf
   - spell-check
 color: orange
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/vim-spelling-suggestions-fzf
 ---
 
 ## TlDr

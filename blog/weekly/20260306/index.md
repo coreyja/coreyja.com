@@ -1,9 +1,11 @@
 ---
+
 title: "coreyja.fm Episode 1: Why I'm Starting a Podcast"
 author: Corey Alexander
 date: 2026-03-06
 is_newsletter: true
 buttondown_id: em_0rfs4njzst8akvzbzz6jr9mfc6
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20260306
 ---
 
 Hey Team! Big news — I recorded a podcast!

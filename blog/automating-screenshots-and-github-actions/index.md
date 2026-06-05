@@ -1,4 +1,5 @@
 ---
+
 title: Automating Screenshots and Github Actions
 author: Corey Alexander
 date: 2024-09-18
@@ -7,6 +8,7 @@ tags:
   - oidc
   - automating
 bsky_url: https://bsky.app/profile/coreyja.com/post/3l4otpq7myc24
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/automating-screenshots-and-github-actions
 ---
 
 ### TLDR

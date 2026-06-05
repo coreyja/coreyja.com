@@ -1,4 +1,5 @@
 ---
+
 title: VIM fzf with Devicons
 author: Corey Alexander
 date: 2018-11-17
@@ -8,6 +9,7 @@ tags:
   - devicons
   - rust
 color: blue
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/vim-fzf-with-devicons
 ---
 
 ![Example Screenshot](./example-screenshot.png)]

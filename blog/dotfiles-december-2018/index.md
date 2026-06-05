@@ -1,4 +1,5 @@
 ---
+
 title: Dotfiles - January 2018
 author: Corey Alexander
 date: 2018-01-06
@@ -8,6 +9,7 @@ tags:
   - tmux
   - vim
 color: orange
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/dotfiles-december-2018
 ---
 
 # History

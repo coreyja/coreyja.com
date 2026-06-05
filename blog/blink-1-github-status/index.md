@@ -1,4 +1,5 @@
 ---
+
 title: blink(1) Github Status
 author: Corey Alexander
 date: 2018-04-29
@@ -8,6 +9,7 @@ tags:
   - github
   - graphql
   - ruby
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/blink-1-github-status
 ---
 
 A little while back I got a [blink(1)](https://blink1.thingm.com/), which is a cool little USB light that is fully programable. While it's been really fun to play with but I haven't really used it for much. Recently I was talking with some coworkers and realized that a great use for it would be as a Github status indicator, telling me the status of a specific Github branch. I'll have it set up to track our main branch and report on the CI status.

@@ -1,4 +1,5 @@
 ---
+
 title: Devicon Lookup - Binary Search Experiment
 author: Corey Alexander
 date: 2019-02-03
@@ -8,6 +9,7 @@ tags:
   - binary-search
   - cache
 color: red
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/devicon-binary-search
 ---
 
 ## Background
