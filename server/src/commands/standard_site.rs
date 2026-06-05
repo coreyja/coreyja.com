@@ -14,6 +14,17 @@ use posts::blog::{BlogFrontMatter, ToCanonicalPath};
 use posts::plain::IntoPlainText;
 use posts::MarkdownAst;
 
+/// Posts dated on or after this cutoff get a Bluesky post in addition to
+/// their `site.standard.document` record. Older posts are syndicated to
+/// standard.site only — preserves the historical Bluesky feed instead of
+/// flooding it with backfill posts on the first deploy.
+const BSKY_POST_CUTOFF_DATE: &str = "2026-05-29";
+
+fn bsky_post_cutoff() -> chrono::NaiveDate {
+    chrono::NaiveDate::parse_from_str(BSKY_POST_CUTOFF_DATE, "%Y-%m-%d")
+        .expect("BSKY_POST_CUTOFF_DATE valid")
+}
+
 #[derive(Subcommand, Debug)]
 pub enum StandardSiteCommand {
     /// Create the `site.standard.publication` record on the PDS and cache
@@ -422,10 +433,10 @@ async fn sync_one(
     let fm: BlogFrontMatter =
         serde_yaml::from_str(yaml).map_err(|e| eyre!("Invalid frontmatter: {e}"))?;
 
-    // No date cutoff — first deploy after this lands backfills every historical
-    // post; subsequent deploys are idempotent via the `atproto_uri` check in
-    // `classify_blog_post`. `published_at` on the document record is read from
-    // `fm.date`, so historical posts keep their original publication date.
+    // Document syncing has no date cutoff — every historical post gets a
+    // `site.standard.document` on first deploy. The cutoff below only gates
+    // the Bluesky post: historical posts publish to standard.site only,
+    // recent posts also get a Bluesky post.
     let outcome = classify_blog_post(&fm);
     if matches!(outcome, SyncOutcome::Skip) {
         return Ok(SyncOutcome::Skip);
@@ -433,6 +444,15 @@ async fn sync_one(
 
     // Filter by `publication` field — only sync posts that belong to this publication.
     if fm.publication != pub_cfg.key {
+        return Ok(SyncOutcome::Skip);
+    }
+
+    let is_historical = fm.date < bsky_post_cutoff();
+
+    // Historical post that already has its document synced — terminal state.
+    // (`BskyOnly` means atproto_uri set + bsky_url unset; for historical posts
+    // we never want to write a bsky_url, so this IS the desired final state.)
+    if is_historical && matches!(outcome, SyncOutcome::BskyOnly) {
         return Ok(SyncOutcome::Skip);
     }
 
@@ -463,6 +483,14 @@ async fn sync_one(
     };
 
     match outcome {
+        SyncOutcome::Both if is_historical => {
+            // Document-only for historical posts. Write atproto_uri so future
+            // runs short-circuit via the BskyOnly + is_historical check above.
+            let updated =
+                frontmatter::append_frontmatter_keys(&content, &[("atproto_uri", &doc_ref.uri)]);
+            write_back(post_path, &updated)?;
+            Ok(SyncOutcome::Both)
+        }
         SyncOutcome::Both => {
             let bsky_response = client
                 .create_blog_post(
@@ -720,13 +748,15 @@ mod tests {
 
     /// Walks `blog/**/index.md` to ensure every publishable post fits within
     /// Bluesky's 300-character post limit (title + url + separators only,
-    /// since the body is replaced by the standard.site card).
+    /// since the body is replaced by the standard.site card). Historical
+    /// posts are exempt — they syndicate to standard.site only, no bsky post.
     #[test]
     fn all_publishable_blog_posts_fit_within_bsky_post_limit() {
         let blog_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .expect("server has a parent dir")
             .join("blog");
+        let cutoff = bsky_post_cutoff();
 
         let posts = collect_index_md_files(&blog_dir).expect("walk blog/");
         let mut failures = Vec::new();
@@ -741,6 +771,9 @@ mod tests {
             let Ok(fm): Result<BlogFrontMatter, _> = serde_yaml::from_str(yaml) else {
                 continue;
             };
+            if fm.date < cutoff {
+                continue;
+            }
             let rel = path.strip_prefix(&blog_dir).unwrap_or(path);
             let canonical = rel.to_path_buf().canonical_path();
             let url = format!("https://coreyja.com/posts/{canonical}");
