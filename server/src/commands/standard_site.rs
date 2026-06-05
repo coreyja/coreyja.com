@@ -351,29 +351,26 @@ async fn init_publication(
     // imgproxy rasterizes and caches the 1200×630 PNG that the cover blob
     // points at. Best-effort: if the fetch fails we proceed without a cover
     // — `cover_synced` stays `false` so the next deploy retries.
-    let (cover, cover_synced): (Option<Blob>, bool) = match fetch_publication_cover_png(
-        &pub_cfg.key,
-    )
-    .await
-    {
-        Ok((bytes, mime)) => match client.upload_blob(bytes, &mime).await {
-            Ok(blob) => (Some(blob), true),
+    let (cover, cover_synced): (Option<Blob>, bool) =
+        match fetch_publication_cover_png(&pub_cfg.key).await {
+            Ok((bytes, mime)) => match client.upload_blob(bytes, &mime).await {
+                Ok(blob) => (Some(blob), true),
+                Err(e) => {
+                    eprintln!(
+                        "Warning: cover upload failed for '{}': {e}. Proceeding without cover.",
+                        pub_cfg.key
+                    );
+                    (None, false)
+                }
+            },
             Err(e) => {
                 eprintln!(
-                    "Warning: cover upload failed for '{}': {e}. Proceeding without cover.",
-                    pub_cfg.key
-                );
-                (None, false)
-            }
-        },
-        Err(e) => {
-            eprintln!(
                 "Warning: could not fetch generated cover for '{}': {e}. Proceeding without cover.",
                 pub_cfg.key
             );
-            (None, false)
-        }
-    };
+                (None, false)
+            }
+        };
 
     let record = PublicationRecord {
         record_type: "site.standard.publication".to_string(),
