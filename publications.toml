@@ -1,6 +1,6 @@
 [[publication]]
 key = "blog"
-title = "coreyja"
+title = "coreyja.com"
 description = "Personal blog: Rust, side projects, Battlesnake, AI agents."
 url = "https://coreyja.com/posts"
 content_dir = "blog"
