@@ -11,3 +11,4 @@ pub mod og;
 pub mod podcast;
 pub mod projects;
 pub mod videos;
+pub mod well_known;

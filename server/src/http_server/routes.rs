@@ -65,6 +65,17 @@ pub(crate) fn make_router() -> Router<AppState> {
         .route("/og/weekly/{slug}", get(pages::og::og_weekly_svg))
         .route("/og/notes/{slug}", get(pages::og::og_note_svg))
         .route("/og/publication/{key}", get(pages::og::og_publication_svg))
+        // standard.site verification endpoints (plain text, publication AT URI).
+        // `/.well-known/site.standard.publication`        → publication at domain root
+        // `/.well-known/site.standard.publication/{path}` → publication at `/{path}`
+        .route(
+            "/.well-known/site.standard.publication",
+            get(pages::well_known::well_known_publication_root),
+        )
+        .route(
+            "/.well-known/site.standard.publication/{*path}",
+            get(pages::well_known::well_known_publication_with_path),
+        )
         .route("/projects", get(pages::projects::projects_index))
         .route("/projects/{slug}", get(pages::projects::projects_get))
         .route("/videos", get(pages::videos::video_index))

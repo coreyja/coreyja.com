@@ -2,6 +2,7 @@
 
 
 
+
 title: Digital Ocean App Platform vs Heroku
 author: Corey Alexander
 date: 2020-12-24
@@ -11,7 +12,6 @@ tags:
   - heroku
   - comparison
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/DOAP-vs-heroku
-atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 

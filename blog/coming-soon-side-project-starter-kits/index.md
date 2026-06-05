@@ -2,12 +2,12 @@
 
 
 
+
 title: Coming Soon - Side Project Starter Kits
 author: Corey Alexander
 date: 2024-11-30
 bsky_url: https://bsky.app/profile/coreyja.com/post/3lc6q4roqrr2p
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/coming-soon-side-project-starter-kits
-atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 

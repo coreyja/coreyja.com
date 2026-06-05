@@ -2,13 +2,13 @@
 
 
 
+
 title: Make the Change Easy, Then Make the Easy Change
 subtitle: Refactoring
 author: Corey Alexander
 date: 2024-07-26
 bsky_url: https://bsky.app/profile/coreyja.com/post/3l3nruhvrah2q
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/make-the-change-easy
-atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 

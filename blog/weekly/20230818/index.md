@@ -2,12 +2,12 @@
 
 
 
+
 title: August 18th Update -- Rust Traits are just fancy Ruby Duck-typing
 author: Corey Alexander
 date: 2023-08-18
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230818
-atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
