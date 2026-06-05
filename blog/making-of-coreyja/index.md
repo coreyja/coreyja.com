@@ -1,5 +1,6 @@
 ---
 
+
 title:  The Making of COREYJA
 author: Corey Alexander
 date:   2017-02-18
@@ -9,6 +10,7 @@ tags:
     - ruby
 color: purple
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/making-of-coreyja
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 Hey, thanks for checking out my blog! Got it all set up, so decided my first post should be a making of post showing how I put this blog together! If you want to jump right to the source, here is the github: [github.com/coreyja/coreyja-blog](https://github.com/coreyja/coreyja-blog).

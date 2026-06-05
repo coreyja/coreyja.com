@@ -1,10 +1,12 @@
 ---
 
+
 title: coreyja weekly - July 28th Update
 author: Corey Alexander
 date: 2023-07-28
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230728
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 Hey Team, how's it going? I hope everyone had a good week!

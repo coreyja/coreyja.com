@@ -1,5 +1,6 @@
 ---
 
+
 title: Dotfiles - Put your home directory under `git`
 author: Corey Alexander
 date: 2020-12-11
@@ -9,6 +10,7 @@ tags:
   - dotfiles
   - terminal
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/dotfiles-git-in-home-dir
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 Silicon Valley Season 2 ruined it for me. Richard had worked so hard on Pied Piper, but Gavin is almost able to steal it from him. Why? Cause Richard pulled down the code he had written on his work device and ran the test suite. How could something so trivial almost cost him so much! That season embedded itself in me, and now I try to keep my personal and professional software as separate as can be. And one thing this requires is having a personal machine, on top of the computer provided by my employer.

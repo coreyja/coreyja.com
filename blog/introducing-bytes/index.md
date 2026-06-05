@@ -1,5 +1,6 @@
 ---
 
+
 title: Introducing Bytes
 author: Corey Alexander
 date: 2024-09-03
@@ -9,6 +10,7 @@ tags:
   - rust
 bsky_url: https://bsky.app/profile/coreyja.com/post/3l3df7rtvjh2g
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/introducing-bytes
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 ## Introduction

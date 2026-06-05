@@ -1,10 +1,12 @@
 ---
 
+
 title: August 11th Update -- Make the Computer do the Work
 author: Corey Alexander
 date: 2023-08-11
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230811
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 Hey Team, hope everyone's week was good! I had a good week and hope everyone did too. Today I have a quick thought about static typing and the tools they enable. But first some updates from this week!

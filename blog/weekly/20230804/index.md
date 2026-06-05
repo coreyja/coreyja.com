@@ -1,10 +1,12 @@
 ---
 
+
 title: August 4th Update - Server Side vs Client Side Rendering
 author: Corey Alexander
 date: 2023-08-04
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230804
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 Hey Team, how is everyone's Friday going?

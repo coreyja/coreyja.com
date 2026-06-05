@@ -1,10 +1,12 @@
 ---
 
+
 title: coreyja weekly - February 27th
 author: Corey Alexander
 date: 2024-02-27
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20240227
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 Hello everyone, and a warm welcome to our new subscribers!

@@ -1,5 +1,6 @@
 ---
 
+
 title: Migrating From Heroku to Dokku
 author: Corey Alexander
 date: 2018-10-27
@@ -9,6 +10,7 @@ tags:
   - self-hosting
 color: purple
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/migrating-from-heroku-to-dokku
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 ## Heroku

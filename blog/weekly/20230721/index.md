@@ -1,10 +1,12 @@
 ---
 
+
 title: coreyja weekly - July 21st Update
 author: Corey Alexander
 date: 2023-07-21
 is_newsletter: true
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20230721
+atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 ---
 
 I don't have a topic to ramble on this week, but I do have a new project I've been working on!
