@@ -2,6 +2,7 @@
 
 
 
+
 title: Battlesnake in 2026
 author: Corey Alexander
 date: 2026-01-10
@@ -9,7 +10,6 @@ tags:
   - battlesnake
   - rust
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/battlesnake-in-2026
-atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 

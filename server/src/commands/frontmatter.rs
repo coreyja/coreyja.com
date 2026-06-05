@@ -26,9 +26,15 @@ pub fn split_frontmatter(content: &str) -> cja::Result<(&str, &str)> {
     Ok((yaml, body))
 }
 
-/// Append `key: value` lines to the YAML frontmatter. Values written verbatim —
-/// safe for AT URIs and bsky URLs which contain no YAML-special chars.
-/// Returns input unchanged if document has no frontmatter.
+/// Upsert `key: value` lines in the YAML frontmatter.
+///
+/// For each key in `kv`: if a top-level `<key>:` line already exists, replace
+/// its value in place; otherwise append a new line. Values are written
+/// verbatim — safe for AT URIs and bsky URLs which contain no YAML-special
+/// chars. Returns input unchanged if the document has no frontmatter.
+///
+/// Replacement matches only top-level keys (no leading whitespace) so nested
+/// keys in mapping values aren't accidentally rewritten.
 pub fn append_frontmatter_keys(content: &str, kv: &[(&str, &str)]) -> String {
     let trimmed = content.trim_start();
     if !trimmed.starts_with("---") {
@@ -43,14 +49,30 @@ pub fn append_frontmatter_keys(content: &str, kv: &[(&str, &str)]) -> String {
     let yaml = &rest[..end_idx];
     let body = &rest[end_idx + 4..]; // Skip "\n---"
 
-    let mut updated_yaml = yaml.trim_end().to_string();
+    let mut lines: Vec<String> = yaml.lines().map(str::to_string).collect();
+
     for (key, value) in kv {
-        updated_yaml.push('\n');
-        updated_yaml.push_str(key);
-        updated_yaml.push_str(": ");
-        updated_yaml.push_str(value);
+        let prefix = format!("{key}:");
+        let existing = lines
+            .iter()
+            .position(|line| line.starts_with(&prefix) && !line.starts_with(' '));
+        match existing {
+            Some(idx) => {
+                lines[idx] = format!("{key}: {value}");
+            }
+            None => {
+                lines.push(format!("{key}: {value}"));
+            }
+        }
     }
 
+    // Trim trailing blank lines that may have come from the original YAML
+    // block so we land at exactly one blank between content and `---`.
+    while lines.last().is_some_and(|l| l.trim().is_empty()) {
+        lines.pop();
+    }
+
+    let updated_yaml = lines.join("\n");
     format!("---\n{updated_yaml}\n---{body}")
 }
 
@@ -125,6 +147,39 @@ mod tests {
         let content = "---\ntitle: T\n\nbody no closing\n";
         let updated = append_frontmatter_keys(content, &[("k", "v")]);
         assert_eq!(updated, content);
+    }
+
+    #[test]
+    fn upsert_replaces_existing_key_in_place_instead_of_duplicating() {
+        let content = "---\ntitle: T\natproto_pub_cid: old_cid\ndate: 2026-05-01\n---\n\nbody\n";
+        let updated = append_frontmatter_keys(content, &[("atproto_pub_cid", "new_cid")]);
+        // Exactly one atproto_pub_cid line, holding the new value.
+        let count = updated.matches("atproto_pub_cid:").count();
+        assert_eq!(count, 1, "should not duplicate the key");
+        assert!(updated.contains("atproto_pub_cid: new_cid"));
+        assert!(!updated.contains("old_cid"));
+        // Other keys preserved.
+        assert!(updated.contains("title: T"));
+        assert!(updated.contains("date: 2026-05-01"));
+    }
+
+    #[test]
+    fn upsert_appends_when_key_absent() {
+        let content = "---\ntitle: T\n---\n\nbody\n";
+        let updated = append_frontmatter_keys(content, &[("atproto_pub_cid", "cid")]);
+        assert!(updated.contains("atproto_pub_cid: cid"));
+    }
+
+    #[test]
+    fn upsert_mixed_update_and_append() {
+        let content = "---\ntitle: T\natproto_uri: at://existing\n---\n\nbody\n";
+        let updated = append_frontmatter_keys(
+            content,
+            &[("atproto_uri", "at://new"), ("bsky_url", "https://x")],
+        );
+        assert_eq!(updated.matches("atproto_uri:").count(), 1);
+        assert!(updated.contains("atproto_uri: at://new"));
+        assert!(updated.contains("bsky_url: https://x"));
     }
 
     #[test]

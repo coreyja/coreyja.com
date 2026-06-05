@@ -2,6 +2,7 @@
 
 
 
+
 title: Dotfiles - Put your home directory under `git`
 author: Corey Alexander
 date: 2020-12-11
@@ -11,7 +12,6 @@ tags:
   - dotfiles
   - terminal
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/dotfiles-git-in-home-dir
-atproto_pub_cid: bafyreifopjjfawsurumdvvfbjgpzdvwew3vbitunovjf66phveyy5nj2cu
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
