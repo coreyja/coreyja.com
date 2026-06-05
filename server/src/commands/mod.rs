@@ -3,7 +3,9 @@ use clap::Subcommand;
 
 pub(crate) mod bluesky;
 pub(crate) mod buttondown;
+pub(crate) mod frontmatter;
 pub(crate) mod info;
+pub(crate) mod standard_site;
 pub(crate) mod validate;
 
 #[derive(Subcommand, Default)]
@@ -16,6 +18,9 @@ pub(crate) enum Command {
     PublishButtondown(buttondown::PublishButtondownArgs),
     /// Publish a note to Bluesky
     PublishBluesky(bluesky::PublishBlueskyArgs),
+    /// Manage standard.site publications and documents on the PDS
+    #[command(subcommand)]
+    PublishStandardSite(standard_site::StandardSiteCommand),
 }
 
 impl Command {
@@ -26,6 +31,7 @@ impl Command {
             Command::Validate => validate::validate(),
             Command::PublishButtondown(args) => buttondown::publish_buttondown(args).await,
             Command::PublishBluesky(args) => bluesky::publish_bluesky(args).await,
+            Command::PublishStandardSite(cmd) => standard_site::run(cmd).await,
         }
     }
 }

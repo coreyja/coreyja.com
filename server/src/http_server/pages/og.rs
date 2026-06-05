@@ -1,7 +1,7 @@
 //! OG card SVG endpoints. These return raw SVG; `imgproxy` is responsible for rasterizing
 //! and caching the PNG version that social scrapers actually consume.
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use axum::{
     extract::{Path, State},
@@ -11,8 +11,42 @@ use axum::{
 use posts::{blog::BlogPosts, notes::NotePosts, podcast::PodcastEpisodes};
 
 use crate::http_server::templates::og::{
-    fetch_youtube_thumbnail_b64, render_card_svg, CardData, CardTag,
+    fetch_youtube_thumbnail_b64, render_card_svg, render_publication_card_svg, CardData, CardTag,
 };
+
+static PUBLICATIONS_TOML: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../publications.toml"));
+
+#[derive(serde::Deserialize)]
+struct PublicationsFile {
+    publication: Vec<PublicationCardStub>,
+}
+
+#[derive(serde::Deserialize)]
+struct PublicationCardStub {
+    key: String,
+    title: String,
+    description: String,
+}
+
+static PUBLICATION_CARD_STUBS: LazyLock<Vec<PublicationCardStub>> = LazyLock::new(|| {
+    toml::from_str::<PublicationsFile>(PUBLICATIONS_TOML)
+        .expect("publications.toml must parse")
+        .publication
+});
+
+/// Map a publication key to the `CardTag` that styles its OG card. New
+/// publications need an entry here so their cover card matches the per-post
+/// card style for that content type. Defaults to `Posts` for unknown keys —
+/// only "blog" exists today.
+fn publication_card_tag(key: &str) -> CardTag {
+    match key {
+        "podcast" => CardTag::Podcast,
+        "notes" => CardTag::Notes,
+        "newsletter" | "weekly" => CardTag::Newsletter,
+        _ => CardTag::Posts,
+    }
+}
 
 const SVG_CACHE_CONTROL: &str = "public, max-age=86400, stale-while-revalidate=604800";
 
@@ -37,6 +71,7 @@ pub async fn og_post_svg(
         title: &post.frontmatter.title,
         date: post.frontmatter.date,
         tag: CardTag::Posts,
+        subtitle: post.frontmatter.subtitle.as_deref(),
         youtube_thumbnail_b64: None,
     };
     Ok(svg_response(render_card_svg(&data)))
@@ -56,6 +91,7 @@ pub async fn og_weekly_svg(
         title: &post.frontmatter.title,
         date: post.frontmatter.date,
         tag: CardTag::Newsletter,
+        subtitle: post.frontmatter.subtitle.as_deref(),
         youtube_thumbnail_b64: None,
     };
     Ok(svg_response(render_card_svg(&data)))
@@ -75,9 +111,27 @@ pub async fn og_note_svg(
         title: &note.frontmatter.title,
         date: note.frontmatter.date,
         tag: CardTag::Notes,
+        subtitle: None,
         youtube_thumbnail_b64: None,
     };
     Ok(svg_response(render_card_svg(&data)))
+}
+
+/// Publication-level OG card. Looks up the publication by `key` in
+/// `publications.toml` (baked at compile time) and renders a date-less
+/// branded card with the publication title and description.
+pub async fn og_publication_svg(Path(key): Path<String>) -> Result<Response, StatusCode> {
+    let key = key.strip_suffix(".svg").unwrap_or(&key);
+    let publication = PUBLICATION_CARD_STUBS
+        .iter()
+        .find(|p| p.key == key)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let tag = publication_card_tag(&publication.key);
+    Ok(svg_response(render_publication_card_svg(
+        &publication.title,
+        tag,
+        &publication.description,
+    )))
 }
 
 pub async fn og_podcast_svg(
@@ -95,6 +149,7 @@ pub async fn og_podcast_svg(
         title: &ep.frontmatter.title,
         date: ep.frontmatter.date,
         tag: CardTag::Podcast,
+        subtitle: None,
         youtube_thumbnail_b64: thumbnail,
     };
     Ok(svg_response(render_card_svg(&data)))
@@ -278,6 +333,53 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .uri("/og/notes/this-note-slug-does-not-exist-anywhere.svg")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn og_publication_svg_returns_svg_for_known_key() {
+        let app = create_test_app().await;
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/og/publication/blog.svg")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let ct = resp
+            .headers()
+            .get("content-type")
+            .map(|v| v.to_str().unwrap().to_string())
+            .unwrap_or_default();
+        assert!(
+            ct.starts_with("image/svg+xml"),
+            "unexpected content-type: {ct}"
+        );
+        let body = body_string(resp).await;
+        assert!(body.contains("<svg"));
+        assert!(body.contains("coreyja"), "title from publications.toml");
+        assert!(body.contains("POSTS"), "blog publication uses Posts tag");
+        assert!(
+            body.contains("Personal blog"),
+            "description from publications.toml should appear on the card"
+        );
+    }
+
+    #[tokio::test]
+    async fn og_publication_svg_404s_for_unknown_key() {
+        let app = create_test_app().await;
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/og/publication/does-not-exist.svg")
                     .body(Body::empty())
                     .unwrap(),
             )

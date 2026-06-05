@@ -1,10 +1,49 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Redirect, Response},
 };
+
+static PUBLICATIONS_TOML: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../publications.toml"));
+
+#[derive(serde::Deserialize)]
+struct PublicationsFile {
+    publication: Vec<PublicationStub>,
+}
+
+#[derive(serde::Deserialize)]
+struct PublicationStub {
+    key: String,
+    at_uri: Option<String>,
+}
+
+static PUBLICATIONS: LazyLock<Vec<PublicationStub>> = LazyLock::new(|| {
+    toml::from_str::<PublicationsFile>(PUBLICATIONS_TOML)
+        .expect("publications.toml must parse — check syntax")
+        .publication
+});
+
+/// Build `<link rel="site.standard.*">` head links for verification.
+fn standard_site_head_links(
+    atproto_uri: Option<&str>,
+    publication_key: &str,
+) -> Vec<(String, String)> {
+    let mut head_links: Vec<(String, String)> = Vec::new();
+    if let Some(doc_uri) = atproto_uri {
+        head_links.push(("site.standard.document".to_string(), doc_uri.to_string()));
+    }
+    if let Some(pub_uri) = PUBLICATIONS
+        .iter()
+        .find(|p| p.key == publication_key)
+        .and_then(|p| p.at_uri.as_deref())
+    {
+        head_links.push(("site.standard.publication".to_string(), pub_uri.to_string()));
+    }
+    head_links
+}
 
 use maud::{html, Markup};
 use posts::{
@@ -145,6 +184,7 @@ pub(crate) async fn posts_index(
     ))
 }
 
+#[allow(clippy::too_many_lines)]
 #[instrument(skip(state, posts))]
 pub(crate) async fn post_get(
     State(state): State<AppState>,
@@ -208,7 +248,13 @@ pub(crate) async fn post_get(
         .app_url(&format!("/posts/{}", post.path.canonical_path()));
 
     let bsky_thread = if let Some(bsky_post_url) = &post.frontmatter.bsky_url {
-        Some((bsky_post_url, fetch_thread(bsky_post_url).await.unwrap()))
+        match fetch_thread(bsky_post_url).await {
+            Ok(thread) => Some((bsky_post_url, thread)),
+            Err(e) => {
+                tracing::warn!(?e, "Failed to fetch Bluesky thread for blog post");
+                None
+            }
+        }
     } else {
         None
     };
@@ -221,6 +267,11 @@ pub(crate) async fn post_get(
         .unwrap()
         .and_utc()
         .to_rfc3339();
+
+    let head_links = standard_site_head_links(
+        post.frontmatter.atproto_uri.as_deref(),
+        &post.frontmatter.publication,
+    );
 
     Ok(base_constrained(
         html! {
@@ -254,6 +305,7 @@ pub(crate) async fn post_get(
             published_time: Some(published_time),
             author: post.frontmatter.author.clone(),
             tags: post.frontmatter.tags.clone(),
+            head_links,
             ..OpenGraph::default()
         },
     )

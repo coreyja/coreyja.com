@@ -67,6 +67,10 @@ pub struct CardData<'a> {
     pub title: &'a str,
     pub date: chrono::NaiveDate,
     pub tag: CardTag,
+    /// Optional subtitle/tagline. When `Some`, replaces the rendered date
+    /// on the card. Matches the publication card pattern where the bottom
+    /// slot is used for a description rather than a date.
+    pub subtitle: Option<&'a str>,
     /// Base64-encoded JPEG (no `data:` prefix). When `Some`, the `YouTube` `<image>` block is kept.
     pub youtube_thumbnail_b64: Option<String>,
 }
@@ -171,7 +175,27 @@ pub fn render_card_svg(data: &CardData<'_>) -> String {
     let svg = svg.replace("{{font_face}}", QUICKSAND_FONT_CSS.as_str());
     let svg = svg.replace("{{logo_svg_contents}}", super::LOGO_DARK_FLAT_SVG);
     let svg = substitute_title(&svg, data.title);
-    let svg = svg.replace("{{date}}", &data.date.format("%B %-d, %Y").to_string());
+    let formatted_date = data.date.format("%B %-d, %Y").to_string();
+    let date_escaped = html_escape::encode_text(&formatted_date).into_owned();
+    let svg = if let Some(s) = data.subtitle {
+        // Subtitle present: subtitle replaces the date in the bottom-left,
+        // date moves to the bottom-right slot.
+        let truncated = truncate_title(s, BOTTOM_LEFT_MAX_CHARS);
+        let subtitle_escaped = html_escape::encode_text(&truncated).into_owned();
+        let svg = svg.replace("{{bottom_left}}", &subtitle_escaped);
+        let svg = svg.replace("<!-- {{bottom_right_start}} -->", "");
+        let svg = svg.replace("<!-- {{bottom_right_end}} -->", "");
+        svg.replace("{{bottom_right}}", &date_escaped)
+    } else {
+        // No subtitle: date occupies the bottom-left slot (legacy layout);
+        // strip the bottom-right slot entirely.
+        let svg = svg.replace("{{bottom_left}}", &date_escaped);
+        strip_block(
+            &svg,
+            "<!-- {{bottom_right_start}} -->",
+            "<!-- {{bottom_right_end}} -->",
+        )
+    };
     let svg = svg.replace("{{tag}}", data.tag.label());
 
     match &data.youtube_thumbnail_b64 {
@@ -189,6 +213,44 @@ pub fn render_card_svg(data: &CardData<'_>) -> String {
             "<!-- {{youtube_block_end}} -->",
         ),
     }
+}
+
+/// Maximum chars rendered in the bottom-left text slot (publication
+/// description, per-post subtitle). Quicksand 400 at 28px fits roughly
+/// this many chars across the card width before risking overflow on
+/// the right edge.
+const BOTTOM_LEFT_MAX_CHARS: usize = 75;
+
+/// Render a publication-level OG card (publication name + tag + description,
+/// no date).
+///
+/// Used as the cover blob attached to `site.standard.publication` records via
+/// the standard.site sync CLI. Re-uses the same SVG template as per-post cards
+/// so the publication's visual identity matches. The description is rendered
+/// in the slot where per-post cards show the date.
+pub fn render_publication_card_svg(title: &str, tag: CardTag, description: &str) -> String {
+    let svg = OG_TEMPLATE_SVG.to_string();
+    let svg = svg.replace("{{font_face}}", QUICKSAND_FONT_CSS.as_str());
+    let svg = svg.replace("{{logo_svg_contents}}", super::LOGO_DARK_FLAT_SVG);
+    let svg = substitute_title(&svg, title);
+    let description = truncate_title(description, BOTTOM_LEFT_MAX_CHARS);
+    let description_escaped = html_escape::encode_text(&description).into_owned();
+    let svg = svg.replace("{{bottom_left}}", &description_escaped);
+    let svg = svg.replace("{{tag}}", tag.label());
+
+    // Publication cards have no date, so strip the bottom-right slot.
+    let svg = strip_block(
+        &svg,
+        "<!-- {{bottom_right_start}} -->",
+        "<!-- {{bottom_right_end}} -->",
+    );
+
+    // Publication cards never embed a YouTube thumbnail; strip the block.
+    strip_block(
+        &svg,
+        "<!-- {{youtube_block_start}} -->",
+        "<!-- {{youtube_block_end}} -->",
+    )
 }
 
 /// Absolute URL to the SVG route — uses `AppConfig.base_url`.
@@ -277,6 +339,7 @@ mod tests {
             title: "Sample Title",
             date: chrono::NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
             tag: CardTag::Posts,
+            subtitle: None,
             youtube_thumbnail_b64: None,
         }
     }
@@ -343,6 +406,45 @@ mod tests {
     }
 
     #[test]
+    fn render_card_svg_with_subtitle_emits_both_subtitle_and_date() {
+        let data = CardData {
+            title: "Hello",
+            date: chrono::NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
+            tag: CardTag::Posts,
+            subtitle: Some("My great tagline"),
+            youtube_thumbnail_b64: None,
+        };
+        let svg = render_card_svg(&data);
+        assert!(
+            svg.contains("My great tagline"),
+            "subtitle should be rendered"
+        );
+        assert!(
+            svg.contains("January 10, 2026"),
+            "date should still render in the bottom-right slot"
+        );
+        // Bottom-right slot is `text-anchor="end"`, so its presence is a
+        // direct signal the date got moved out of the bottom-left.
+        assert!(
+            svg.contains(r#"text-anchor="end""#),
+            "bottom-right slot should be present when subtitle is set"
+        );
+    }
+
+    #[test]
+    fn render_card_svg_without_subtitle_omits_bottom_right_slot() {
+        let svg = render_card_svg(&sample_data());
+        assert!(
+            svg.contains("January 10, 2026"),
+            "date should render in the bottom-left slot"
+        );
+        assert!(
+            !svg.contains(r#"text-anchor="end""#),
+            "bottom-right slot should be stripped when no subtitle is set"
+        );
+    }
+
+    #[test]
     fn render_card_svg_substitutes_all_placeholders() {
         let svg = render_card_svg(&sample_data());
         assert!(
@@ -372,6 +474,7 @@ mod tests {
             title: "This is a long enough blog post title to force two-line wrapping",
             date: chrono::NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
             tag: CardTag::Posts,
+            subtitle: None,
             youtube_thumbnail_b64: None,
         };
         let svg = render_card_svg(&data);
@@ -398,6 +501,7 @@ mod tests {
             title: "Sample",
             date: chrono::NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
             tag: CardTag::Podcast,
+            subtitle: None,
             youtube_thumbnail_b64: Some("ZmFrZWltYWdl".to_string()),
         };
         let svg = render_card_svg(&data);
@@ -411,6 +515,7 @@ mod tests {
             title: "Title with <html> & \"quotes\"",
             date: chrono::NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
             tag: CardTag::Posts,
+            subtitle: None,
             youtube_thumbnail_b64: None,
         };
         let svg = render_card_svg(&data);

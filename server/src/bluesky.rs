@@ -80,10 +80,21 @@ struct CreateSessionRequest {
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct CreateRecordRequest {
+struct CreateRecordRequest<R: Serialize> {
     repo: String,
     collection: String,
-    record: PostRecord,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rkey: Option<String>,
+    record: R,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct PutRecordRequest<R: Serialize> {
+    repo: String,
+    collection: String,
+    rkey: String,
+    record: R,
 }
 
 #[derive(Serialize, Debug)]
@@ -97,6 +108,80 @@ struct PostRecord {
     facets: Option<Vec<Facet>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     embed: Option<EmbedExternal>,
+}
+
+/// `site.standard.publication` record. One per publication (the blog, the
+/// podcast, etc.). Created once by `publish-standard-site init <key>`.
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicationRecord {
+    #[serde(rename = "$type")]
+    pub record_type: String,
+    pub title: String,
+    pub description: String,
+    pub url: String,
+    pub created_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover: Option<Blob>,
+}
+
+/// `site.standard.document` record. One per blog post. rkey == post slug so
+/// re-syncing the same post `putRecord`s the existing record idempotently.
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentRecord {
+    #[serde(rename = "$type")]
+    pub record_type: String,
+    pub publication: StrongRef,
+    pub title: String,
+    pub description: String,
+    pub url: String,
+    pub published_at: String,
+    pub updated_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover: Option<Blob>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+}
+
+/// AT Protocol strong reference — pins both URI and content hash so callers
+/// can detect when a referenced record has changed.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct StrongRef {
+    pub uri: String,
+    pub cid: String,
+}
+
+/// Blob record returned from `uploadBlob`. The `$type` is always `"blob"`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Blob {
+    #[serde(rename = "$type")]
+    pub r#type: String,
+    #[serde(rename = "ref")]
+    pub r#ref: BlobRef,
+    #[serde(rename = "mimeType")]
+    pub mime_type: String,
+    pub size: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BlobRef {
+    #[serde(rename = "$link")]
+    pub link: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteRecordResponse {
+    pub uri: String,
+    pub cid: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadBlobResponse {
+    pub blob: Blob,
 }
 
 #[derive(Serialize, Debug)]
@@ -135,12 +220,19 @@ struct ExternalEmbed {
     uri: String,
     title: String,
     description: String,
+    /// `site.standard.*` strong references attached to the embed. Bluesky's
+    /// `AppView` reads these and renders an enhanced link card sourced from
+    /// the referenced `site.standard.document` / `site.standard.publication`
+    /// records instead of scraping OG tags from the URL.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    associated_refs: Vec<StrongRef>,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateRecordResponse {
     pub uri: String,
+    pub cid: String,
 }
 
 impl BlueskyClient {
@@ -205,6 +297,7 @@ impl BlueskyClient {
         let record = CreateRecordRequest {
             repo: self.session.did.clone(),
             collection: "app.bsky.feed.post".to_string(),
+            rkey: None,
             record: PostRecord {
                 record_type: "app.bsky.feed.post".to_string(),
                 text,
@@ -220,6 +313,7 @@ impl BlueskyClient {
                         uri: note_url.to_string(),
                         title: title.to_string(),
                         description: String::new(),
+                        associated_refs: Vec::new(),
                     },
                 }),
             },
@@ -249,6 +343,221 @@ impl BlueskyClient {
         let response: CreateRecordResponse = resp.json().await?;
         Ok(response)
     }
+
+    /// DID of the authenticated account. Used as the `repo` field when
+    /// composing `createRecord` / `putRecord` calls outside this module.
+    pub fn did(&self) -> &str {
+        &self.session.did
+    }
+
+    /// Generic `com.atproto.repo.createRecord` call. Server assigns the rkey
+    /// (a TID timestamp) unless one is supplied.
+    async fn create_record<R: Serialize>(
+        &self,
+        collection: &str,
+        rkey: Option<&str>,
+        record: &R,
+    ) -> cja::Result<WriteRecordResponse> {
+        let req = CreateRecordRequest {
+            repo: self.session.did.clone(),
+            collection: collection.to_string(),
+            rkey: rkey.map(str::to_string),
+            record,
+        };
+
+        let resp = self
+            .client
+            .post(format!(
+                "{}/xrpc/com.atproto.repo.createRecord",
+                self.pds_url
+            ))
+            .bearer_auth(&self.session.access_jwt)
+            .json(&req)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Failed to createRecord in {} ({}): {}",
+                collection,
+                status,
+                body
+            ));
+        }
+
+        let response: WriteRecordResponse = resp.json().await?;
+        Ok(response)
+    }
+
+    /// Generic `com.atproto.repo.putRecord` call. Creates the record if it
+    /// doesn't exist at the given rkey; otherwise overwrites it.
+    async fn put_record<R: Serialize>(
+        &self,
+        collection: &str,
+        rkey: &str,
+        record: &R,
+    ) -> cja::Result<WriteRecordResponse> {
+        let req = PutRecordRequest {
+            repo: self.session.did.clone(),
+            collection: collection.to_string(),
+            rkey: rkey.to_string(),
+            record,
+        };
+
+        let resp = self
+            .client
+            .post(format!("{}/xrpc/com.atproto.repo.putRecord", self.pds_url))
+            .bearer_auth(&self.session.access_jwt)
+            .json(&req)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Failed to putRecord in {} at rkey {} ({}): {}",
+                collection,
+                rkey,
+                status,
+                body
+            ));
+        }
+
+        let response: WriteRecordResponse = resp.json().await?;
+        Ok(response)
+    }
+
+    /// Create a `site.standard.publication` record. Server assigns the rkey
+    /// (a TID timestamp). Use `put_publication` to refresh an existing one.
+    pub async fn create_publication(
+        &self,
+        record: PublicationRecord,
+    ) -> cja::Result<WriteRecordResponse> {
+        self.create_record("site.standard.publication", None, &record)
+            .await
+    }
+
+    /// Overwrite a `site.standard.publication` record at the given rkey.
+    pub async fn put_publication(
+        &self,
+        rkey: &str,
+        record: PublicationRecord,
+    ) -> cja::Result<WriteRecordResponse> {
+        self.put_record("site.standard.publication", rkey, &record)
+            .await
+    }
+
+    /// Create-or-update a `site.standard.document` record. The rkey is the
+    /// post slug so re-syncing a post is idempotent.
+    pub async fn put_document(
+        &self,
+        rkey: &str,
+        record: DocumentRecord,
+    ) -> cja::Result<WriteRecordResponse> {
+        self.put_record("site.standard.document", rkey, &record)
+            .await
+    }
+
+    /// Upload a raw blob (e.g. publication cover image). Returns the `Blob`
+    /// payload to be embedded into a record under `cover` or similar fields.
+    pub async fn upload_blob(&self, bytes: Vec<u8>, mime_type: &str) -> cja::Result<Blob> {
+        let resp = self
+            .client
+            .post(format!("{}/xrpc/com.atproto.repo.uploadBlob", self.pds_url))
+            .bearer_auth(&self.session.access_jwt)
+            .header("Content-Type", mime_type)
+            .body(bytes)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Failed to uploadBlob ({}): {}",
+                status,
+                body
+            ));
+        }
+
+        let response: UploadBlobResponse = resp.json().await?;
+        Ok(response.blob)
+    }
+
+    /// Publish a blog post as an `app.bsky.feed.post` with an external embed.
+    ///
+    /// `associatedRefs` points at the post's `site.standard.document` and the
+    /// parent `site.standard.publication`. Body is just `"{title}\n\n{url}"`
+    /// since the enhanced card replaces the typical body text.
+    pub async fn create_blog_post(
+        &self,
+        title: &str,
+        post_url: &str,
+        description: &str,
+        associated_refs: Vec<StrongRef>,
+    ) -> cja::Result<CreateRecordResponse> {
+        let (text, facets) = compose_blog_post_text(title, post_url);
+
+        let record = CreateRecordRequest {
+            repo: self.session.did.clone(),
+            collection: "app.bsky.feed.post".to_string(),
+            rkey: None,
+            record: PostRecord {
+                record_type: "app.bsky.feed.post".to_string(),
+                text,
+                created_at: chrono::Utc::now().to_rfc3339(),
+                facets: if facets.is_empty() {
+                    None
+                } else {
+                    Some(facets)
+                },
+                embed: Some(EmbedExternal {
+                    embed_type: "app.bsky.embed.external".to_string(),
+                    external: ExternalEmbed {
+                        uri: post_url.to_string(),
+                        title: title.to_string(),
+                        description: description.to_string(),
+                        associated_refs,
+                    },
+                }),
+            },
+        };
+
+        let resp = self
+            .client
+            .post(format!(
+                "{}/xrpc/com.atproto.repo.createRecord",
+                self.pds_url
+            ))
+            .bearer_auth(&self.session.access_jwt)
+            .json(&record)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(cja::color_eyre::eyre::eyre!(
+                "Failed to create blog post on Bluesky ({}): {}",
+                status,
+                body
+            ));
+        }
+
+        let response: CreateRecordResponse = resp.json().await?;
+        Ok(response)
+    }
+}
+
+/// Compose blog post body text + facets. Output is `"{title}\n\n{post_url}"`
+/// — the `site.standard` card replaces what would normally be the body.
+fn compose_blog_post_text(title: &str, post_url: &str) -> (String, Vec<Facet>) {
+    let text = format!("{title}\n\n{post_url}");
+    let facets = make_url_facet(&text, post_url).into_iter().collect();
+    (text, facets)
 }
 
 /// Walk a markdown AST emitting Bluesky-flavored plain text and link facets.
@@ -599,6 +908,7 @@ mod tests {
         let req = CreateRecordRequest {
             repo: "did:plc:test".to_string(),
             collection: "app.bsky.feed.post".to_string(),
+            rkey: None,
             record: PostRecord {
                 record_type: "app.bsky.feed.post".to_string(),
                 text: "test".to_string(),
@@ -668,6 +978,7 @@ mod tests {
                 uri: "https://coreyja.com/notes/test".to_string(),
                 title: "Test Note".to_string(),
                 description: String::new(),
+                associated_refs: Vec::new(),
             },
         };
 
@@ -849,5 +1160,169 @@ mod tests {
         assert!(text.contains(&title));
         assert!(text.contains(&url));
         assert!(!text.contains("Body that won't fit."));
+    }
+
+    // ==================== standard.site record serialization ====================
+
+    #[test]
+    fn publication_record_serializes_with_dollar_type() {
+        let record = PublicationRecord {
+            record_type: "site.standard.publication".to_string(),
+            title: "coreyja".to_string(),
+            description: "Personal blog".to_string(),
+            url: "https://coreyja.com/posts".to_string(),
+            created_at: "2026-05-29T00:00:00Z".to_string(),
+            cover: None,
+        };
+
+        let json = serde_json::to_value(&record).unwrap();
+        assert_eq!(json["$type"], "site.standard.publication");
+        assert!(
+            json.get("record_type").is_none(),
+            "Should not have record_type key"
+        );
+        assert!(json.get("cover").is_none(), "Should skip None cover");
+    }
+
+    #[test]
+    fn document_record_serializes_with_dollar_type() {
+        let record = DocumentRecord {
+            record_type: "site.standard.document".to_string(),
+            publication: StrongRef {
+                uri: "at://did:plc:abc/site.standard.publication/xyz".to_string(),
+                cid: "bafy123".to_string(),
+            },
+            title: "A Post".to_string(),
+            description: "desc".to_string(),
+            url: "https://coreyja.com/posts/a-post/".to_string(),
+            published_at: "2026-05-01T00:00:00+00:00".to_string(),
+            updated_at: "2026-05-29T00:00:00+00:00".to_string(),
+            cover: None,
+            tags: vec!["rust".to_string()],
+        };
+
+        let json = serde_json::to_value(&record).unwrap();
+        assert_eq!(json["$type"], "site.standard.document");
+        assert!(json.get("record_type").is_none());
+    }
+
+    #[test]
+    fn document_record_skips_empty_tags() {
+        let record = DocumentRecord {
+            record_type: "site.standard.document".to_string(),
+            publication: StrongRef {
+                uri: "at://did:plc:abc/site.standard.publication/xyz".to_string(),
+                cid: "bafy123".to_string(),
+            },
+            title: "A Post".to_string(),
+            description: "desc".to_string(),
+            url: "https://coreyja.com/posts/a-post/".to_string(),
+            published_at: "2026-05-01T00:00:00+00:00".to_string(),
+            updated_at: "2026-05-29T00:00:00+00:00".to_string(),
+            cover: None,
+            tags: vec![],
+        };
+
+        let json = serde_json::to_value(&record).unwrap();
+        assert!(json.get("tags").is_none(), "empty tags should be omitted");
+    }
+
+    #[test]
+    fn strongref_serializes_with_camelcase_cid_and_uri() {
+        let r = StrongRef {
+            uri: "at://did:plc:abc/site.standard.document/post-1".to_string(),
+            cid: "bafyabc".to_string(),
+        };
+        let json = serde_json::to_value(&r).unwrap();
+        assert_eq!(
+            json["uri"],
+            "at://did:plc:abc/site.standard.document/post-1"
+        );
+        assert_eq!(json["cid"], "bafyabc");
+
+        let back: StrongRef = serde_json::from_value(json).unwrap();
+        assert_eq!(back.uri, r.uri);
+        assert_eq!(back.cid, r.cid);
+    }
+
+    #[test]
+    fn external_embed_skips_associated_refs_when_empty() {
+        let embed = ExternalEmbed {
+            uri: "https://coreyja.com/posts/x/".to_string(),
+            title: "x".to_string(),
+            description: String::new(),
+            associated_refs: Vec::new(),
+        };
+        let json = serde_json::to_value(&embed).unwrap();
+        assert!(
+            json.get("associatedRefs").is_none(),
+            "empty associated_refs should omit field; got: {json}"
+        );
+    }
+
+    #[test]
+    fn external_embed_emits_associated_refs_when_present() {
+        let embed = ExternalEmbed {
+            uri: "https://coreyja.com/posts/x/".to_string(),
+            title: "x".to_string(),
+            description: String::new(),
+            associated_refs: vec![
+                StrongRef {
+                    uri: "at://did:plc:abc/site.standard.publication/pub".to_string(),
+                    cid: "bafy1".to_string(),
+                },
+                StrongRef {
+                    uri: "at://did:plc:abc/site.standard.document/x".to_string(),
+                    cid: "bafy2".to_string(),
+                },
+            ],
+        };
+        let json = serde_json::to_value(&embed).unwrap();
+        let refs = json
+            .get("associatedRefs")
+            .expect("associatedRefs key present");
+        assert_eq!(refs.as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn compose_blog_post_text_attaches_url_facet() {
+        let (text, facets) = compose_blog_post_text("Hello", "https://coreyja.com/posts/hello/");
+        assert_eq!(text, "Hello\n\nhttps://coreyja.com/posts/hello/");
+        assert_eq!(facets.len(), 1);
+        let f = &facets[0];
+        assert_eq!(
+            &text[f.index.byte_start..f.index.byte_end],
+            "https://coreyja.com/posts/hello/"
+        );
+    }
+
+    #[test]
+    fn compose_blog_post_text_unicode_title() {
+        let (text, facets) =
+            compose_blog_post_text("Rust 🦀 ftw", "https://coreyja.com/posts/rust/");
+        assert_eq!(facets.len(), 1);
+        let f = &facets[0];
+        // The byte range should round-trip cleanly to the URL even with multi-byte chars.
+        assert_eq!(
+            &text[f.index.byte_start..f.index.byte_end],
+            "https://coreyja.com/posts/rust/"
+        );
+    }
+
+    #[test]
+    fn upload_blob_response_deserializes_camel_case() {
+        let json = r#"{
+            "blob": {
+                "$type": "blob",
+                "ref": { "$link": "bafy123" },
+                "mimeType": "image/png",
+                "size": 1234
+            }
+        }"#;
+        let resp: UploadBlobResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.blob.r#type, "blob");
+        assert_eq!(resp.blob.r#ref.link, "bafy123");
+        assert_eq!(resp.blob.mime_type, "image/png");
+        assert_eq!(resp.blob.size, 1234);
     }
 }

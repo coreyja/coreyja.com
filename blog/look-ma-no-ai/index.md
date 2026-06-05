@@ -1,5 +1,6 @@
 ---
 title: Look Ma’ no AI
+subtitle: An apology, and a recommitment to writing the words myself.
 author: Corey Alexander
 date: 2026-05-27
 ---
