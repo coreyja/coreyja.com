@@ -247,6 +247,14 @@ pub struct BlogFrontMatter {
     /// means the document record has been created, so subsequent syncs use
     /// `putRecord` against the same rkey rather than creating a new record.
     pub atproto_uri: Option<String>,
+    /// Content-hash CID of the `site.standard.publication` record this
+    /// document's `publication: StrongRef` field was pinned to at last sync.
+    /// When the publication record changes (cover swap, metadata edit),
+    /// its CID bumps and this field drifts from `publications.toml`'s
+    /// current `at_cid` — sync detects the drift and re-puts the document
+    /// with the refreshed strong reference. Spec-correct cascade: change
+    /// the referent, re-emit every referrer.
+    pub atproto_pub_cid: Option<String>,
     /// Publication this post belongs to. Defaults to `"blog"` and corresponds
     /// to an entry in `publications.toml`.
     #[serde(default = "default_publication")]
@@ -341,6 +349,7 @@ mod test {
             tags: vec![],
             author: None,
             atproto_uri: None,
+            atproto_pub_cid: None,
             publication: "blog".to_string(),
         };
         let post = BlogPost {
@@ -380,6 +389,7 @@ mod test {
                 tags: vec![],
                 author: None,
                 atproto_uri: None,
+                atproto_pub_cid: None,
                 publication: "blog".to_string(),
             },
         }

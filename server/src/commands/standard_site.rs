@@ -80,6 +80,17 @@ pub struct PublicationConfig {
     pub at_uri: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub at_cid: Option<String>,
+    /// `true` once the publication's branded OG cover blob has been
+    /// successfully uploaded and attached to the publication record. The
+    /// init step short-circuits when this is `true` AND `at_uri`/`at_cid`
+    /// are cached — so deploys don't churn the publication record.
+    ///
+    /// Flip back to `false` (or remove the line) to trigger an in-place
+    /// refresh on the next deploy: init re-puts the publication with a
+    /// new cid, sync detects the per-document `atproto_pub_cid` drift,
+    /// and every document gets re-put with the refreshed strong-ref.
+    #[serde(default)]
+    pub cover_synced: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -214,16 +225,26 @@ fn publication_cover_imgproxy_url(app_base_url: &str, imgproxy_url: &str, key: &
     )
 }
 
+/// Read a required env var, treating both "unset" and "set-to-empty-string"
+/// as missing. Without the empty-string check, an unset CI secret like
+/// `IMGPROXY_URL: ${{ secrets.IMGPROXY_URL }}` produces an empty string
+/// rather than a missing var, which silently feeds an empty base into URL
+/// construction and yields a malformed relative URL at fetch time.
+fn required_env(name: &str) -> cja::Result<String> {
+    match std::env::var(name) {
+        Ok(v) if !v.is_empty() => Ok(v),
+        _ => Err(eyre!("{name} must be set (and non-empty)")),
+    }
+}
+
 /// Fetch the publication's branded OG card as a PNG via imgproxy.
 ///
 /// Requires `APP_BASE_URL` (so we know where the deployed SVG endpoint lives)
 /// and `IMGPROXY_URL` (so the SVG gets rasterized). Returns `(bytes, mime)`
 /// suitable for `upload_blob`.
 async fn fetch_publication_cover_png(key: &str) -> cja::Result<(Vec<u8>, String)> {
-    let app_base_url =
-        std::env::var("APP_BASE_URL").map_err(|_| eyre!("APP_BASE_URL must be set"))?;
-    let imgproxy_url =
-        std::env::var("IMGPROXY_URL").map_err(|_| eyre!("IMGPROXY_URL must be set"))?;
+    let app_base_url = required_env("APP_BASE_URL")?;
+    let imgproxy_url = required_env("IMGPROXY_URL")?;
     let png_url = publication_cover_imgproxy_url(&app_base_url, &imgproxy_url, key);
 
     let resp = reqwest::get(&png_url)
@@ -312,13 +333,14 @@ async fn init_publication(
         .find(|p| p.key == key)
         .ok_or_else(|| eyre!("Publication '{key}' not found in {}", config_path.display()))?;
 
-    // Idempotent fast path: when both fields are cached and the caller didn't
-    // ask for a refresh, do nothing. This lets the workflow run `init` on
-    // every deploy without thrashing the PDS or producing churn commits
-    // (`put_publication` bumps `createdAt`/`cid` on every call).
-    if !force && pub_cfg.at_uri.is_some() && pub_cfg.at_cid.is_some() {
+    // Idempotent fast path: when the publication is cached AND its cover
+    // has been confirmed uploaded, do nothing. Without the `cover_synced`
+    // gate we'd skip a repair-and-recover case (publication was created in
+    // a previous deploy where cover fetch failed; `at_uri`/`at_cid` are
+    // populated but the publication record on the PDS has `cover: None`).
+    if !force && pub_cfg.at_uri.is_some() && pub_cfg.at_cid.is_some() && pub_cfg.cover_synced {
         println!(
-            "Publication '{key}' already initialized (uri={}); skipping. Use --force to refresh.",
+            "Publication '{key}' already initialized with cover (uri={}); skipping.",
             pub_cfg.at_uri.as_deref().unwrap_or("")
         );
         return Ok(());
@@ -328,26 +350,27 @@ async fn init_publication(
     // itself is served by the deployed app at `/og/publication/{key}.svg`;
     // imgproxy rasterizes and caches the 1200×630 PNG that the cover blob
     // points at. Best-effort: if the fetch fails we proceed without a cover
-    // rather than aborting init.
-    let cover: Option<Blob> = match fetch_publication_cover_png(&pub_cfg.key).await {
-        Ok((bytes, mime)) => match client.upload_blob(bytes, &mime).await {
-            Ok(blob) => Some(blob),
+    // — `cover_synced` stays `false` so the next deploy retries.
+    let (cover, cover_synced): (Option<Blob>, bool) =
+        match fetch_publication_cover_png(&pub_cfg.key).await {
+            Ok((bytes, mime)) => match client.upload_blob(bytes, &mime).await {
+                Ok(blob) => (Some(blob), true),
+                Err(e) => {
+                    eprintln!(
+                        "Warning: cover upload failed for '{}': {e}. Proceeding without cover.",
+                        pub_cfg.key
+                    );
+                    (None, false)
+                }
+            },
             Err(e) => {
                 eprintln!(
-                    "Warning: cover upload failed for '{}': {e}. Proceeding without cover.",
-                    pub_cfg.key
-                );
-                None
-            }
-        },
-        Err(e) => {
-            eprintln!(
                 "Warning: could not fetch generated cover for '{}': {e}. Proceeding without cover.",
                 pub_cfg.key
             );
-            None
-        }
-    };
+                (None, false)
+            }
+        };
 
     let record = PublicationRecord {
         record_type: "site.standard.publication".to_string(),
@@ -368,10 +391,11 @@ async fn init_publication(
 
     pub_cfg.at_uri = Some(response.uri.clone());
     pub_cfg.at_cid = Some(response.cid.clone());
+    pub_cfg.cover_synced = cover_synced;
     save_config(config_path, &cfg)?;
 
     println!(
-        "Publication '{key}' synced: uri={} cid={}",
+        "Publication '{key}' synced: uri={} cid={} cover_synced={cover_synced}",
         response.uri, response.cid
     );
     Ok(())
@@ -433,26 +457,38 @@ async fn sync_one(
     let fm: BlogFrontMatter =
         serde_yaml::from_str(yaml).map_err(|e| eyre!("Invalid frontmatter: {e}"))?;
 
-    // Document syncing has no date cutoff — every historical post gets a
-    // `site.standard.document` on first deploy. The cutoff below only gates
-    // the Bluesky post: historical posts publish to standard.site only,
-    // recent posts also get a Bluesky post.
-    let outcome = classify_blog_post(&fm);
-    if matches!(outcome, SyncOutcome::Skip) {
-        return Ok(SyncOutcome::Skip);
-    }
-
     // Filter by `publication` field — only sync posts that belong to this publication.
     if fm.publication != pub_cfg.key {
         return Ok(SyncOutcome::Skip);
     }
 
-    let is_historical = fm.date < bsky_post_cutoff();
+    let pub_cid = pub_cfg
+        .at_cid
+        .as_deref()
+        .ok_or_else(|| eyre!("publication at_cid missing"))?;
+    let pub_uri = pub_cfg
+        .at_uri
+        .as_deref()
+        .ok_or_else(|| eyre!("publication at_uri missing"))?;
+    let pub_ref = StrongRef {
+        uri: pub_uri.to_string(),
+        cid: pub_cid.to_string(),
+    };
 
-    // Historical post that already has its document synced — terminal state.
-    // (`BskyOnly` means atproto_uri set + bsky_url unset; for historical posts
-    // we never want to write a bsky_url, so this IS the desired final state.)
-    if is_historical && matches!(outcome, SyncOutcome::BskyOnly) {
+    let is_historical = fm.date < bsky_post_cutoff();
+    let doc_exists = fm.atproto_uri.is_some();
+    let doc_pinned_to_current_pub = fm.atproto_pub_cid.as_deref() == Some(pub_cid);
+    let bsky_exists = fm.bsky_url.is_some();
+
+    // What needs doing for this post?
+    // - Document put: any time the doc doesn't exist OR its pinned pub cid has drifted.
+    // - Bsky post: only when the post is recent (>= cutoff) and we don't have a bsky_url.
+    //   When we DO need a bsky post but the doc is already current, we still re-put the
+    //   doc so we have a fresh strong-ref to attach to the bsky post.
+    let need_bsky_post = !bsky_exists && !is_historical;
+    let need_doc_put = !doc_exists || !doc_pinned_to_current_pub || need_bsky_post;
+
+    if !need_doc_put && !need_bsky_post {
         return Ok(SyncOutcome::Skip);
     }
 
@@ -464,17 +500,8 @@ async fn sync_one(
     let ast = MarkdownAst::from_str(&content)?;
     let description: String = ast.0.plain_text().chars().take(100).collect();
 
-    let pub_ref = StrongRef {
-        uri: pub_cfg
-            .at_uri
-            .clone()
-            .ok_or_else(|| eyre!("publication at_uri missing"))?,
-        cid: pub_cfg
-            .at_cid
-            .clone()
-            .ok_or_else(|| eyre!("publication at_cid missing"))?,
-    };
-
+    // Re-put the document with the current publication strong-ref. Idempotent
+    // on rkey; produces a fresh doc cid we attach to the bsky post if needed.
     let record = build_document_record(&fm, &pub_ref, post_url.clone(), description.clone());
     let doc_response = client.put_document(&blog_rkey, record).await?;
     let doc_ref = StrongRef {
@@ -482,48 +509,45 @@ async fn sync_one(
         cid: doc_response.cid.clone(),
     };
 
-    match outcome {
-        SyncOutcome::Both if is_historical => {
-            // Document-only for historical posts. Write atproto_uri so future
-            // runs short-circuit via the BskyOnly + is_historical check above.
-            let updated =
-                frontmatter::append_frontmatter_keys(&content, &[("atproto_uri", &doc_ref.uri)]);
-            write_back(post_path, &updated)?;
-            Ok(SyncOutcome::Both)
-        }
-        SyncOutcome::Both => {
-            let bsky_response = client
-                .create_blog_post(
-                    &fm.title,
-                    &post_url,
-                    &description,
-                    vec![pub_ref.clone(), doc_ref.clone()],
-                )
-                .await?;
-            let bsky_web_url = at_uri_to_web_url(&bsky_response.uri)?;
-            let updated = frontmatter::append_frontmatter_keys(
-                &content,
-                &[("atproto_uri", &doc_ref.uri), ("bsky_url", &bsky_web_url)],
-            );
-            write_back(post_path, &updated)?;
-            Ok(SyncOutcome::Both)
-        }
-        SyncOutcome::BskyOnly => {
-            let bsky_response = client
-                .create_blog_post(
-                    &fm.title,
-                    &post_url,
-                    &description,
-                    vec![pub_ref.clone(), doc_ref.clone()],
-                )
-                .await?;
-            let bsky_web_url = at_uri_to_web_url(&bsky_response.uri)?;
-            let updated =
-                frontmatter::append_frontmatter_keys(&content, &[("bsky_url", &bsky_web_url)]);
-            write_back(post_path, &updated)?;
-            Ok(SyncOutcome::BskyOnly)
-        }
-        SyncOutcome::Skip => Ok(SyncOutcome::Skip),
+    // Conditionally publish a Bluesky post (only for recent posts without one).
+    let bsky_web_url_opt = if need_bsky_post {
+        let bsky_response = client
+            .create_blog_post(
+                &fm.title,
+                &post_url,
+                &description,
+                vec![pub_ref.clone(), doc_ref.clone()],
+            )
+            .await?;
+        Some(at_uri_to_web_url(&bsky_response.uri)?)
+    } else {
+        None
+    };
+
+    // Frontmatter updates: atproto_uri (if first put), atproto_pub_cid (every
+    // doc put), bsky_url (if we just created a bsky post). We always write
+    // atproto_pub_cid since the doc was just put against the current pub_cid.
+    let mut new_keys: Vec<(&str, &str)> = Vec::new();
+    if !doc_exists {
+        new_keys.push(("atproto_uri", &doc_ref.uri));
+    }
+    new_keys.push(("atproto_pub_cid", pub_cid));
+    let bsky_web_url = bsky_web_url_opt.unwrap_or_default();
+    if !bsky_web_url.is_empty() {
+        new_keys.push(("bsky_url", &bsky_web_url));
+    }
+    let updated = frontmatter::append_frontmatter_keys(&content, &new_keys);
+    write_back(post_path, &updated)?;
+
+    // Outcome reporting: distinguish between "both sides changed" and
+    // "only bsky changed" for the summary printout. A doc-only re-put
+    // (drift refresh) reports as Both since we did write doc-side state.
+    if need_bsky_post && (!doc_exists || !doc_pinned_to_current_pub) {
+        Ok(SyncOutcome::Both)
+    } else if need_bsky_post {
+        Ok(SyncOutcome::BskyOnly)
+    } else {
+        Ok(SyncOutcome::Both)
     }
 }
 
@@ -574,6 +598,7 @@ mod tests {
             collection: "site.standard.document".to_string(),
             at_uri: None,
             at_cid: None,
+            cover_synced: false,
         }
     }
 
@@ -590,6 +615,7 @@ mod tests {
             tags: vec![],
             author: None,
             atproto_uri: None,
+            atproto_pub_cid: None,
             publication: "blog".to_string(),
         }
     }
