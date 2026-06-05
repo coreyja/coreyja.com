@@ -29,9 +29,9 @@
   </g>
 
   <!-- Title -->
-  <text x="80" y="455" font-family="Quicksand" font-weight="700" font-size="64" fill="#F0F0FF">{{title_line_1}}</text>
+  <text x="80" y="465" font-family="Quicksand" font-weight="700" font-size="64" fill="#F0F0FF">{{title_line_1}}</text>
   <!-- {{title_line_2_start}} -->
-  <text x="80" y="525" font-family="Quicksand" font-weight="700" font-size="64" fill="#F0F0FF">{{title_line_2}}</text>
+  <text x="80" y="535" font-family="Quicksand" font-weight="700" font-size="64" fill="#F0F0FF">{{title_line_2}}</text>
   <!-- {{title_line_2_end}} -->
 
   <!-- Bottom-left: subtitle (when present) or date (when no subtitle). For
