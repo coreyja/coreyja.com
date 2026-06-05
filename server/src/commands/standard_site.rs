@@ -14,11 +14,6 @@ use posts::blog::{BlogFrontMatter, ToCanonicalPath};
 use posts::plain::IntoPlainText;
 use posts::MarkdownAst;
 
-/// Cutoff date — blog posts older than this are skipped when syncing.
-/// Mirrors the cutoff used for note syndication; prevents the first deploy
-/// from back-filling every historical post to Bluesky in one shot.
-const CUTOFF_DATE: &str = "2026-05-29";
-
 #[derive(Subcommand, Debug)]
 pub enum StandardSiteCommand {
     /// Create the `site.standard.publication` record on the PDS and cache
@@ -190,10 +185,6 @@ fn walk_index_md(dir: &Path, out: &mut Vec<PathBuf>) -> cja::Result<()> {
         }
     }
     Ok(())
-}
-
-fn cutoff_date() -> chrono::NaiveDate {
-    chrono::NaiveDate::parse_from_str(CUTOFF_DATE, "%Y-%m-%d").expect("CUTOFF_DATE valid")
 }
 
 /// Build the imgproxy URL that rasterizes the publication's SVG OG card to a
@@ -400,13 +391,12 @@ async fn sync_publication(
 
     let content_root = repo_root.join(&pub_cfg.content_dir);
     let post_paths = collect_index_md_files(&content_root)?;
-    let cutoff = cutoff_date();
 
     let mut summary = SyncSummary::default();
     let mut failures: Vec<(PathBuf, cja::color_eyre::Report)> = Vec::new();
 
     for post_path in &post_paths {
-        match sync_one(client, pub_cfg, post_path, repo_root, cutoff).await {
+        match sync_one(client, pub_cfg, post_path, repo_root).await {
             Ok(SyncOutcome::Skip) => summary.skipped += 1,
             Ok(_) => summary.synced += 1,
             Err(e) => {
@@ -425,7 +415,6 @@ async fn sync_one(
     pub_cfg: &PublicationConfig,
     post_path: &Path,
     repo_root: &Path,
-    cutoff: chrono::NaiveDate,
 ) -> cja::Result<SyncOutcome> {
     let content = std::fs::read_to_string(post_path)
         .map_err(|e| eyre!("Failed to read {}: {}", post_path.display(), e))?;
@@ -433,10 +422,10 @@ async fn sync_one(
     let fm: BlogFrontMatter =
         serde_yaml::from_str(yaml).map_err(|e| eyre!("Invalid frontmatter: {e}"))?;
 
-    if fm.date < cutoff {
-        return Ok(SyncOutcome::Skip);
-    }
-
+    // No date cutoff — first deploy after this lands backfills every historical
+    // post; subsequent deploys are idempotent via the `atproto_uri` check in
+    // `classify_blog_post`. `published_at` on the document record is read from
+    // `fm.date`, so historical posts keep their original publication date.
     let outcome = classify_blog_post(&fm);
     if matches!(outcome, SyncOutcome::Skip) {
         return Ok(SyncOutcome::Skip);
@@ -738,7 +727,6 @@ mod tests {
             .parent()
             .expect("server has a parent dir")
             .join("blog");
-        let cutoff = cutoff_date();
 
         let posts = collect_index_md_files(&blog_dir).expect("walk blog/");
         let mut failures = Vec::new();
@@ -753,9 +741,6 @@ mod tests {
             let Ok(fm): Result<BlogFrontMatter, _> = serde_yaml::from_str(yaml) else {
                 continue;
             };
-            if fm.date < cutoff {
-                continue;
-            }
             let rel = path.strip_prefix(&blog_dir).unwrap_or(path);
             let canonical = rel.to_path_buf().canonical_path();
             let url = format!("https://coreyja.com/posts/{canonical}");
