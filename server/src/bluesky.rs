@@ -112,36 +112,49 @@ struct PostRecord {
 
 /// `site.standard.publication` record. One per publication (the blog, the
 /// podcast, etc.). Created once by `publish-standard-site init <key>`.
+///
+/// Field names match the lexicon at <https://standard.site/docs/lexicons/publication/>:
+/// required `url` + `name`; optional `icon` (blob), `description`.
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicationRecord {
     #[serde(rename = "$type")]
     pub record_type: String,
-    pub title: String,
-    pub description: String,
+    pub name: String,
     pub url: String,
-    pub created_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover: Option<Blob>,
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<Blob>,
 }
 
 /// `site.standard.document` record. One per blog post. rkey == post slug so
 /// re-syncing the same post `putRecord`s the existing record idempotently.
+///
+/// Field names match the lexicon at <https://standard.site/docs/lexicons/document/>:
+/// required `site` (string URI of parent publication, NOT a strong-ref),
+/// `title`, `publishedAt`; optional `path`, `description`, `updatedAt`,
+/// `tags`, `coverImage`.
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentRecord {
     #[serde(rename = "$type")]
     pub record_type: String,
-    pub publication: StrongRef,
+    /// Plain URI (`at://...` or `https://...`) of the parent publication.
+    /// No CID — the spec deliberately uses a stable string, not a strong-ref.
+    pub site: String,
     pub title: String,
-    pub description: String,
-    pub url: String,
     pub published_at: String,
-    pub updated_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover: Option<Blob>,
+    pub path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_image: Option<Blob>,
 }
 
 /// AT Protocol strong reference — pins both URI and content hash so callers
@@ -1165,62 +1178,72 @@ mod tests {
     // ==================== standard.site record serialization ====================
 
     #[test]
-    fn publication_record_serializes_with_dollar_type() {
+    fn publication_record_serializes_with_dollar_type_and_spec_field_names() {
         let record = PublicationRecord {
             record_type: "site.standard.publication".to_string(),
-            title: "coreyja".to_string(),
-            description: "Personal blog".to_string(),
+            name: "coreyja".to_string(),
+            description: Some("Personal blog".to_string()),
             url: "https://coreyja.com/posts".to_string(),
-            created_at: "2026-05-29T00:00:00Z".to_string(),
-            cover: None,
+            icon: None,
         };
 
         let json = serde_json::to_value(&record).unwrap();
         assert_eq!(json["$type"], "site.standard.publication");
+        assert_eq!(json["name"], "coreyja", "spec field is `name`, not `title`");
         assert!(
-            json.get("record_type").is_none(),
-            "Should not have record_type key"
+            json.get("title").is_none(),
+            "legacy `title` field must not be emitted"
         );
-        assert!(json.get("cover").is_none(), "Should skip None cover");
+        assert!(json.get("icon").is_none(), "Should skip None icon");
+        assert!(
+            json.get("createdAt").is_none(),
+            "spec has no createdAt field on publication"
+        );
     }
 
     #[test]
-    fn document_record_serializes_with_dollar_type() {
+    fn document_record_serializes_with_dollar_type_and_spec_field_names() {
         let record = DocumentRecord {
             record_type: "site.standard.document".to_string(),
-            publication: StrongRef {
-                uri: "at://did:plc:abc/site.standard.publication/xyz".to_string(),
-                cid: "bafy123".to_string(),
-            },
+            site: "at://did:plc:abc/site.standard.publication/xyz".to_string(),
             title: "A Post".to_string(),
-            description: "desc".to_string(),
-            url: "https://coreyja.com/posts/a-post/".to_string(),
             published_at: "2026-05-01T00:00:00+00:00".to_string(),
-            updated_at: "2026-05-29T00:00:00+00:00".to_string(),
-            cover: None,
+            path: Some("/a-post".to_string()),
+            description: Some("desc".to_string()),
+            updated_at: Some("2026-05-29T00:00:00+00:00".to_string()),
             tags: vec!["rust".to_string()],
+            cover_image: None,
         };
 
         let json = serde_json::to_value(&record).unwrap();
         assert_eq!(json["$type"], "site.standard.document");
-        assert!(json.get("record_type").is_none());
+        assert_eq!(
+            json["site"], "at://did:plc:abc/site.standard.publication/xyz",
+            "spec field `site` is a plain URI string, not a strong-ref"
+        );
+        assert!(
+            json.get("publication").is_none(),
+            "legacy `publication: StrongRef` must not be emitted"
+        );
+        assert!(
+            json.get("url").is_none(),
+            "spec has `path`, not `url`, on documents"
+        );
+        assert_eq!(json["path"], "/a-post");
     }
 
     #[test]
     fn document_record_skips_empty_tags() {
         let record = DocumentRecord {
             record_type: "site.standard.document".to_string(),
-            publication: StrongRef {
-                uri: "at://did:plc:abc/site.standard.publication/xyz".to_string(),
-                cid: "bafy123".to_string(),
-            },
+            site: "at://did:plc:abc/site.standard.publication/xyz".to_string(),
             title: "A Post".to_string(),
-            description: "desc".to_string(),
-            url: "https://coreyja.com/posts/a-post/".to_string(),
             published_at: "2026-05-01T00:00:00+00:00".to_string(),
-            updated_at: "2026-05-29T00:00:00+00:00".to_string(),
-            cover: None,
+            path: None,
+            description: Some("desc".to_string()),
+            updated_at: None,
             tags: vec![],
+            cover_image: None,
         };
 
         let json = serde_json::to_value(&record).unwrap();

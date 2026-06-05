@@ -374,11 +374,10 @@ async fn init_publication(
 
     let record = PublicationRecord {
         record_type: "site.standard.publication".to_string(),
-        title: pub_cfg.title.clone(),
-        description: pub_cfg.description.clone(),
+        name: pub_cfg.title.clone(),
+        description: Some(pub_cfg.description.clone()),
         url: pub_cfg.url.clone(),
-        created_at: chrono::Utc::now().to_rfc3339(),
-        cover,
+        icon: cover,
     };
 
     let response = if pub_cfg.at_uri.is_none() || pub_cfg.at_cid.is_none() {
@@ -496,13 +495,17 @@ async fn sync_one(
     let blog_rkey = rkey_from_blog_path(&rel);
     let canonical = rel.canonical_path();
     let post_url = format!("https://coreyja.com/posts/{canonical}");
+    // `path` per spec is the URL path segment relative to the publication URL.
+    // Publication URL is `https://coreyja.com/posts`; the per-post URL is
+    // `https://coreyja.com/posts/<canonical>`. So path is `/<canonical>`.
+    let path = format!("/{canonical}");
 
     let ast = MarkdownAst::from_str(&content)?;
     let description: String = ast.0.plain_text().chars().take(100).collect();
 
-    // Re-put the document with the current publication strong-ref. Idempotent
-    // on rkey; produces a fresh doc cid we attach to the bsky post if needed.
-    let record = build_document_record(&fm, &pub_ref, post_url.clone(), description.clone());
+    // Re-put the document with the current publication URI. Idempotent on
+    // rkey; produces a fresh doc cid we attach to the bsky post if needed.
+    let record = build_document_record(&fm, pub_uri, path, description.clone());
     let doc_response = client.put_document(&blog_rkey, record).await?;
     let doc_ref = StrongRef {
         uri: doc_response.uri.clone(),
@@ -553,8 +556,8 @@ async fn sync_one(
 
 fn build_document_record(
     fm: &BlogFrontMatter,
-    pub_ref: &StrongRef,
-    post_url: String,
+    site: &str,
+    path: String,
     description: String,
 ) -> DocumentRecord {
     let published_at = fm
@@ -565,14 +568,14 @@ fn build_document_record(
         .to_rfc3339();
     DocumentRecord {
         record_type: "site.standard.document".to_string(),
-        publication: pub_ref.clone(),
+        site: site.to_string(),
         title: fm.title.clone(),
-        description,
-        url: post_url,
         published_at,
-        updated_at: chrono::Utc::now().to_rfc3339(),
-        cover: None,
+        path: Some(path),
+        description: Some(description),
+        updated_at: Some(chrono::Utc::now().to_rfc3339()),
         tags: fm.tags.clone(),
+        cover_image: None,
     }
 }
 
