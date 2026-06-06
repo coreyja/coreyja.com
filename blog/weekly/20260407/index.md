@@ -7,6 +7,7 @@ title: "coreyja.fm Episode 3: Lean Into the Latency"
 author: Corey Alexander
 date: 2026-04-07
 is_newsletter: true
+buttondown_id: em_1x79he62t38g09ph2xrsj43ecw
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20260407
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
