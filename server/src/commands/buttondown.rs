@@ -390,7 +390,8 @@ Hey Team!
     /// main as of 2026-06-05.
     #[test]
     fn test_parse_frontmatter_blank_lines_between_delimiter_and_first_key() {
-        let content = "---\n\n\n\n\ntitle: Test\ndate: 2026-04-07\nis_newsletter: true\n---\n\nBody.\n";
+        let content =
+            "---\n\n\n\n\ntitle: Test\ndate: 2026-04-07\nis_newsletter: true\n---\n\nBody.\n";
         let (fm, body) = parse_frontmatter(content).unwrap();
         assert_eq!(fm.title, "Test");
         assert!(body.contains("Body."));
