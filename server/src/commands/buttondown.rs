@@ -356,6 +356,47 @@ Body here.
         assert!(fm.bsky_url.is_some());
     }
 
+    /// Regression test for the shape of frontmatter written by the
+    /// `publish-standard-site sync` step. PRs #404-#408 added `atproto_uri`,
+    /// `atproto_pub_cid`, `subtitle`, and `publication` fields. A working
+    /// `publish-buttondown` must still parse a newsletter that has those
+    /// fields and no `buttondown_id` yet — otherwise the publish step
+    /// errors out instead of creating the Buttondown draft.
+    #[test]
+    fn test_parse_frontmatter_with_atproto_fields() {
+        let content = r#"---
+title: "coreyja.fm Episode 3: Lean Into the Latency"
+author: Corey Alexander
+date: 2026-04-07
+is_newsletter: true
+subtitle: Async is the natural mode for AI agent workflows
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/weekly-20260407
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
+publication: blog
+---
+
+Hey Team!
+"#;
+        let (fm, body) = parse_frontmatter(content).unwrap();
+        assert_eq!(fm.title, "coreyja.fm Episode 3: Lean Into the Latency");
+        assert!(fm.is_newsletter);
+        assert!(fm.buttondown_id.is_none());
+        assert!(body.contains("Hey Team!"));
+    }
+
+    /// Regression test for the exact byte shape that the syndication sync
+    /// produces on disk — `---` followed by blank lines before the first
+    /// key. Reproduces the layout of `blog/weekly/20260407/index.md` on
+    /// main as of 2026-06-05.
+    #[test]
+    fn test_parse_frontmatter_blank_lines_between_delimiter_and_first_key() {
+        let content =
+            "---\n\n\n\n\ntitle: Test\ndate: 2026-04-07\nis_newsletter: true\n---\n\nBody.\n";
+        let (fm, body) = parse_frontmatter(content).unwrap();
+        assert_eq!(fm.title, "Test");
+        assert!(body.contains("Body."));
+    }
+
     #[test]
     fn test_parse_frontmatter_missing_opening_delimiter() {
         let content = r"title: Test

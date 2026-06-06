@@ -8,6 +8,16 @@ on:
       - 'blog/weekly/**'
   workflow_dispatch:
 
+# Serialize newsletter publishes so two pushes never race the same
+# unpublished file through `publish-buttondown` and double-create the
+# Buttondown draft. `cancel-in-progress: false` is important — we must
+# never cancel mid-run, or we could land in a state where Buttondown has
+# the draft but the buttondown_id never gets committed back, which would
+# cause the next run to re-publish it.
+concurrency:
+  group: newsletter-publish
+  cancel-in-progress: false
+
 env:
   SQLX_OFFLINE: true
   APP_BASE_URL: https://coreyja.com
@@ -19,8 +29,31 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
     steps:
+      # The default GITHUB_TOKEN can't push to main — the branch ruleset
+      # only lets configured bypass actors through, and the App is the
+      # bypass actor (matches the pattern in bluesky.yml). Without the
+      # App token, the `Commit buttondown_id updates` step at the bottom
+      # fails after a successful publish, leaving Buttondown with a
+      # draft but the local file with no buttondown_id — so the next push
+      # re-publishes and accumulates duplicate drafts.
+      - name: Generate App token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Setup | Checkout
         uses: actions/checkout@v4
+        with:
+          # Always check out the tip of main, not the SHA that triggered
+          # the workflow. Without this, a queued run for an older commit
+          # could see stale newsletter frontmatter (missing buttondown_id
+          # updates already pushed by an earlier run) and re-publish.
+          ref: main
+          # Authenticate git operations as the App so the push bypasses
+          # the main-branch ruleset (App is a bypass actor).
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -86,12 +119,15 @@ jobs:
       - name: Commit buttondown_id updates
         if: steps.find.outputs.paths != ''
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
           git add blog/weekly/
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
             git commit -m "Add buttondown_id to published newsletters"
+            # Rebase onto whatever main looks like *now* — covers the case
+            # where main moved during this workflow run.
+            git pull --rebase origin main
             git push
           fi
