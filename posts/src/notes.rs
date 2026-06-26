@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{MarkdownAst, Post};
 
 use super::{
-    blog::ValidateMarkdown,
+    blog::{Track, ValidateMarkdown},
     date::{ByRecency, PostedOn},
     title::Title,
 };
@@ -32,6 +32,8 @@ pub struct FrontMatter {
     pub bsky_url: Option<String>,
     #[serde(default)]
     pub tags: Vec<String>,
+    #[serde(default)]
+    pub track: Track,
 }
 
 impl PostedOn for FrontMatter {
@@ -150,6 +152,46 @@ slug: test-note
         assert_eq!(fm.slug, "test-note");
         assert_eq!(fm.bsky_url, None);
         assert!(fm.tags.is_empty(), "tags should default to empty");
+        assert_eq!(fm.track, Track::Other);
+    }
+
+    #[test]
+    fn track_defaults_to_other_when_field_missing() {
+        let yaml = r"
+title: Test Note
+date: 2026-03-01
+slug: test-note
+";
+        let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.track, Track::Other);
+    }
+
+    #[test]
+    fn track_parses_battlesnake() {
+        let yaml = r"
+title: Test Note
+date: 2026-03-01
+slug: test-note
+track: battlesnake
+";
+        let fm: FrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.track, Track::Battlesnake);
+    }
+
+    #[test]
+    fn track_rejects_unknown_value() {
+        let yaml = r"
+title: Test Note
+date: 2026-03-01
+slug: test-note
+track: invalid
+";
+        let err = serde_yaml::from_str::<FrontMatter>(yaml).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("track") || msg.contains("variant"),
+            "error should mention the bad field; got: {msg}"
+        );
     }
 
     #[test]

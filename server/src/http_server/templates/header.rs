@@ -227,6 +227,18 @@ mod tests {
     }
 
     #[test]
+    fn nav_omits_pace_link() {
+        // The /pace dashboard is public for linkability but intentionally not
+        // advertised in the main nav — it's reachable by URL and linked from the
+        // admin dashboard instead.
+        let rendered = super::header().into_string();
+        assert!(
+            !rendered.contains(r#"href="/pace""#),
+            "header() should NOT link to /pace; got:\n{rendered}"
+        );
+    }
+
+    #[test]
     fn default_does_not_emit_og_url() {
         // Regression: the old default shipped the bare string "coreyja.com" as og:url.
         // The new default leaves `url` empty, and Render must skip the tag entirely.
