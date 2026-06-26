@@ -217,8 +217,11 @@ fn render_track_section(stats: &TrackStats) -> Markup {
             }
 
             div class="my-2" {
-                span class="text-5xl font-medium" { (stats.count) }
+                span class="text-4xl font-medium" { (stats.count) }
                 span class="text-2xl text-subtitle" { " / " (stats.target) }
+            }
+            p class="text-subtitle text-sm" {
+                (format!("Expected ~{:.1} by now", stats.expected_by_now))
             }
 
             // Progress bar with an expected-by-now tick marking where pace says
