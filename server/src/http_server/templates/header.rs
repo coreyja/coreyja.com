@@ -211,7 +211,6 @@ pub fn header() -> Markup {
             (HeaderLink { href: "/podcast", text: "Podcast" })
             (HeaderLink { href: "/projects", text: "Projects" })
             (HeaderLink { href: "/newsletter", text: "Newsletter" })
-            (HeaderLink { href: "/pace", text: "Pace" })
           }
         }
       }
@@ -228,11 +227,14 @@ mod tests {
     }
 
     #[test]
-    fn nav_includes_pace_link() {
+    fn nav_omits_pace_link() {
+        // The /pace dashboard is public for linkability but intentionally not
+        // advertised in the main nav — it's reachable by URL and linked from the
+        // admin dashboard instead.
         let rendered = super::header().into_string();
         assert!(
-            rendered.contains(r#"href="/pace""#),
-            "header() should link to /pace; got:\n{rendered}"
+            !rendered.contains(r#"href="/pace""#),
+            "header() should NOT link to /pace; got:\n{rendered}"
         );
     }
 
