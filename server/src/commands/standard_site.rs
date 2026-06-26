@@ -589,6 +589,7 @@ fn write_back(post_path: &Path, content: &str) -> cja::Result<()> {
 mod tests {
     use super::*;
     use chrono::NaiveDate;
+    use posts::blog::Track;
     use std::io::Write;
 
     fn sample_publication() -> PublicationConfig {
@@ -609,6 +610,7 @@ mod tests {
         BlogFrontMatter {
             title: "T".to_string(),
             date: NaiveDate::default(),
+            track: Track::default(),
             is_newsletter: false,
             bsky_url: None,
             newsletter_send_at: None,

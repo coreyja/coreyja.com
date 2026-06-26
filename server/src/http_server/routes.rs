@@ -36,6 +36,7 @@ pub(crate) fn make_router() -> Router<AppState> {
             get(|| async { Redirect::permanent("/newsletter") }),
         )
         .route("/posts/{*key}", get(pages::blog::post_get))
+        .route("/pace", get(pages::pace::pace_dashboard))
         .route("/notes", get(pages::notes::notes_index))
         .route("/notes/rss.xml", get(pages::notes::rss_feed))
         .route("/notes/{slug}", get(pages::notes::notes_get))

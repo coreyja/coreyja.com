@@ -5,6 +5,7 @@ date: 2023-03-07
 color: blue
 tags:
   - battlesnake
+track: battlesnake
 ---
 
 # Battlesnake In 2023

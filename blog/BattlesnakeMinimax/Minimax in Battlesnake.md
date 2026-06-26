@@ -7,6 +7,7 @@ image: ../diagrams/19.png
 tags:
   - battlesnake
   - Minimax
+track: battlesnake
 ---
 
 # Minimax in Battlesnake

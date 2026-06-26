@@ -223,10 +223,23 @@ pub struct PostMarkdown {
     pub ast: MarkdownAst,
 }
 
+/// Which accountability track a published artifact counts toward on the
+/// `/pace` dashboard. Set via the `track` frontmatter field; defaults to
+/// `Other` so off-topic posts count as the floor track without manual tagging.
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Track {
+    Battlesnake,
+    #[default]
+    Other,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct BlogFrontMatter {
     pub title: String,
     pub date: NaiveDate,
+    #[serde(default)]
+    pub track: Track,
     #[serde(default = "default_is_newsletter")]
     pub is_newsletter: bool,
     pub bsky_url: Option<String>,
@@ -340,6 +353,7 @@ mod test {
         let meta = BlogFrontMatter {
             title: "Sample Post".to_string(),
             date: NaiveDate::default(),
+            track: Track::default(),
             is_newsletter: false,
             bsky_url: None,
             newsletter_send_at: None,
@@ -380,6 +394,7 @@ mod test {
             frontmatter: BlogFrontMatter {
                 title: "T".to_string(),
                 date: NaiveDate::default(),
+                track: Track::default(),
                 is_newsletter,
                 bsky_url: None,
                 newsletter_send_at: None,
@@ -419,5 +434,40 @@ mod test {
         let fm: BlogFrontMatter = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(fm.publication, "blog");
         assert!(fm.atproto_uri.is_none());
+        assert_eq!(fm.track, Track::Other);
+    }
+
+    #[test]
+    fn track_defaults_to_other_when_field_missing() {
+        let yaml = "title: T\ndate: 2026-05-01";
+        let fm: BlogFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.track, Track::Other);
+    }
+
+    #[test]
+    fn track_parses_battlesnake() {
+        let yaml = "title: T\ndate: 2026-05-01\ntrack: battlesnake";
+        let fm: BlogFrontMatter = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(fm.track, Track::Battlesnake);
+    }
+
+    #[test]
+    fn track_rejects_unknown_value() {
+        let yaml = "title: T\ndate: 2026-05-01\ntrack: invalid";
+        let err = serde_yaml::from_str::<BlogFrontMatter>(yaml).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("track") || msg.contains("variant"),
+            "error should mention the bad field; got: {msg}"
+        );
+    }
+
+    #[test]
+    fn blog_load_from_static_dir() {
+        let blog = BlogPosts::from_static_dir().unwrap();
+        assert!(
+            !blog.posts.is_empty(),
+            "Should have at least one blog post loaded from the blog/ directory"
+        );
     }
 }

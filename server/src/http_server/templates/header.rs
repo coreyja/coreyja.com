@@ -211,6 +211,7 @@ pub fn header() -> Markup {
             (HeaderLink { href: "/podcast", text: "Podcast" })
             (HeaderLink { href: "/projects", text: "Projects" })
             (HeaderLink { href: "/newsletter", text: "Newsletter" })
+            (HeaderLink { href: "/pace", text: "Pace" })
           }
         }
       }
@@ -224,6 +225,15 @@ mod tests {
 
     fn rendered(og: &OpenGraph) -> String {
         og.render().into_string()
+    }
+
+    #[test]
+    fn nav_includes_pace_link() {
+        let rendered = super::header().into_string();
+        assert!(
+            rendered.contains(r#"href="/pace""#),
+            "header() should link to /pace; got:\n{rendered}"
+        );
     }
 
     #[test]

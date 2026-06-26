@@ -9,6 +9,7 @@ date: 2026-01-10
 tags:
   - battlesnake
   - rust
+track: battlesnake
 atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/battlesnake-in-2026
 atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
