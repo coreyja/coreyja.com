@@ -1709,7 +1709,7 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 [[package]]
 name = "font-awesome-embed"
 version = "0.1.0"
-source = "git+https://github.com/coreyja-studio/font-awesome-embed#4255274b948880cad9343c4be9cd9dcc78766ad5"
+source = "git+https://github.com/coreyja-studio/font-awesome-embed#4513e9cee7f0d176ede78465f824e6b4259311c1"
 dependencies = [
  "font-awesome-embed-macros",
  "maud",
@@ -1718,7 +1718,7 @@ dependencies = [
 [[package]]
 name = "font-awesome-embed-macros"
 version = "0.1.0"
-source = "git+https://github.com/coreyja-studio/font-awesome-embed#4255274b948880cad9343c4be9cd9dcc78766ad5"
+source = "git+https://github.com/coreyja-studio/font-awesome-embed#4513e9cee7f0d176ede78465f824e6b4259311c1"
 dependencies = [
  "proc-macro2",
  "quote",
