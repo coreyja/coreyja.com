@@ -27,7 +27,11 @@ COPY . .
 COPY tailwind.config.js .
 RUN ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
 
-RUN cargo build --release --locked --bin server
+# FONT_AWESOME_TOKEN is a BuildKit secret (flyctl deploy --build-secret) used
+# by font-awesome-embed to fetch icon SVGs at compile time.
+RUN --mount=type=secret,id=FONT_AWESOME_TOKEN \
+  FONT_AWESOME_TOKEN="$(cat /run/secrets/FONT_AWESOME_TOKEN)" \
+  cargo build --release --locked --bin server
 
 # Start building the final image
 FROM debian:stable-slim as final
