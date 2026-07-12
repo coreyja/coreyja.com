@@ -1,0 +1,5 @@
+[env]
+# Committed Font Awesome SVG cache — builds hit this instead of the FA API,
+# so CI/Docker need no FONT_AWESOME_TOKEN. The token is only needed locally
+# when adding an icon that isn't cached yet (commit the new cache file).
+FA_CACHE_DIR = { value = ".fa-cache", relative = true }

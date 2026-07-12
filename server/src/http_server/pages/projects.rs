@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use font_awesome_embed::maud::fa;
 use itertools::Itertools;
 use maud::{html, Markup, Render};
 use posts::projects::{Project, ProjectStatus, Projects};
@@ -170,7 +171,7 @@ pub(crate) async fn projects_get(
           div class="flex flex-row pb-8 align-middle" {
             (StatusTag(project.frontmatter.status))
             a href=(&project.frontmatter.repo) target="_blank" rel="noopener noreferrer" class="mx-2 py-3" {
-              i class="fa-brands fa-github" {}
+              (fa!("github", brands))
             }
           }
 

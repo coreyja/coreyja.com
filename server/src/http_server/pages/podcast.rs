@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::NaiveTime;
+use font_awesome_embed::maud::fa;
 use maud::{html, Markup, Render};
 use posts::podcast::{PodcastEpisode, PodcastEpisodes};
 use rss::extension::{
@@ -60,27 +61,27 @@ pub(crate) async fn podcast_index(
                 @let btn = "inline-flex items-center gap-2 px-4 py-2 rounded bg-[#A1A8FF] text-[#121131] font-semibold hover:opacity-90 no-underline";
                 @let btn_outline = "inline-flex items-center gap-2 px-4 py-2 rounded border border-[#A1A8FF] text-[#A1A8FF] font-semibold hover:opacity-90 no-underline";
                 a href="https://podcasts.apple.com/podcast/id1884025911" class=(btn) {
-                    i class="fa-brands fa-apple" {}
+                    (fa!("apple", brands))
                     "Apple Podcasts"
                 }
                 a href="https://overcast.fm/itunes1884025911" class=(btn) {
-                    i class="fa-solid fa-podcast" {}
+                    (fa!("podcast", solid))
                     "Overcast"
                 }
                 a href="https://pca.st/qx7rier3" class=(btn) {
-                    i class="fa-solid fa-podcast" {}
+                    (fa!("podcast", solid))
                     "Pocket Casts"
                 }
                 a href="https://castro.fm/itunes/1884025911" class=(btn) {
-                    i class="fa-solid fa-podcast" {}
+                    (fa!("podcast", solid))
                     "Castro"
                 }
                 a href="https://www.youtube.com/playlist?list=PL0FtqJaYsqZ1ah_BU8gEO5T_6VLPVMEPT" class=(btn) {
-                    i class="fa-brands fa-youtube" {}
+                    (fa!("youtube", brands))
                     "YouTube"
                 }
                 a href="/podcast/feed.xml" class=(btn_outline) {
-                    i class="fa-solid fa-rss" {}
+                    (fa!("rss", solid))
                     "RSS"
                 }
             }

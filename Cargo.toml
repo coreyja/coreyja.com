@@ -69,6 +69,7 @@ cja = { git = "https://github.com/coreyja/cja", branch = "main" }
 color-eyre = "0.6.3"
 db = { path = "db" }
 debug-ignore = "1.0.5"
+font-awesome-embed = { git = "https://github.com/coreyja-studio/font-awesome-embed", features = ["maud"] }
 futures = "0.3.29"
 google-youtube3 = "5.0.3"
 gql_client = { version = "1.0.8", default-features = false, features = [

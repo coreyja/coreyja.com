@@ -43,3 +43,10 @@
   background-color: rgba(161, 168, 255, 0.08);
 }
 
+
+/* Font Awesome SVGs embedded by font-awesome-embed. Tailwind's preflight
+   makes svg display:block; these are inline icons sized to the text. */
+.fa-svg {
+  display: inline-block;
+  vertical-align: -0.125em;
+}
