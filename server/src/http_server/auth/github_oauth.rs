@@ -93,10 +93,7 @@ pub(crate) async fn github_oauth(
 
     let oauth_response: GitHubOAuthResponse = serde_json::from_value(oauth_response.clone())
         .wrap_err_with(|| {
-            format!(
-                "Could not decode this JSON as a GithubOauthResponse: {:?}",
-                &oauth_response
-            )
+            format!("Could not decode this JSON as a GithubOauthResponse: {oauth_response:?}")
         })?;
 
     let user_info = client
