@@ -285,7 +285,7 @@ impl ProcessDiscordMessage {
         thread_id: Uuid,
     ) -> cja::Result<()> {
         ProcessThreadStep { thread_id }
-            .enqueue(app_state, "Discord message processing".to_string())
+            .enqueue(app_state, "Discord message processing".to_string(), None)
             .await?;
         Ok(())
     }

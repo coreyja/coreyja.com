@@ -164,7 +164,11 @@ pub(crate) async fn linear_webhook(
     if let Ok(payload) = serde_json::from_slice(&body) {
         // Enqueue the job to process the webhook in the background
         ProcessLinearWebhook { payload }
-            .enqueue(app_state.clone(), "Linear webhook processing".to_string())
+            .enqueue(
+                app_state.clone(),
+                "Linear webhook processing".to_string(),
+                None,
+            )
             .await?;
     }
 
