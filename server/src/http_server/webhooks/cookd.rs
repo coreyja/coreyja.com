@@ -45,7 +45,7 @@ pub(crate) async fn handler(
         cookd_webhook_id: db_result.cookd_webhook_id,
     };
 
-    job.enqueue(state.clone(), "Cookd Webhook".to_string())
+    job.enqueue(state.clone(), "Cookd Webhook".to_string(), None)
         .await
         .context("Could not enqueue job")?;
 

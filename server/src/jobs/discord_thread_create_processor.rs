@@ -38,6 +38,7 @@ impl JobTrait<AppState> for ProcessDiscordThreadCreate {
         .enqueue(
             app_state.clone(),
             "Discord thread creation processing".to_string(),
+            None,
         )
         .await?;
 

@@ -69,7 +69,10 @@ fn main() -> Result<()> {
 }
 
 async fn async_main() -> Result<()> {
-    setup_tracing("server")?;
+    // Keep the Eyes shutdown handle alive for the lifetime of the app so
+    // buffered telemetry is flushed on shutdown. Eyes is only active when
+    // EYES_ORG_ID and EYES_APP_ID are set in the environment.
+    let _eyes_handle = setup_tracing("server")?;
 
     let cli = CliArgs::parse();
     let command = cli.command.unwrap_or_default();

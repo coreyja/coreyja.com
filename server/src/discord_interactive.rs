@@ -29,6 +29,7 @@ impl DiscordEventHandler {
             .enqueue(
                 self.app_state.clone(),
                 "Discord message processing".to_string(),
+                None,
             )
             .await?;
 

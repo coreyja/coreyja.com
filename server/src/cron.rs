@@ -17,9 +17,9 @@ fn one_hour() -> Duration {
 pub(crate) fn cron_registry() -> CronRegistry<AppState> {
     let mut registry = CronRegistry::new();
 
-    registry.register_job(RefreshSponsors, one_hour());
-    registry.register_job(RefreshVideos, one_hour());
-    registry.register_job(RefreshDiscordChannels, one_hour());
+    registry.register_job(RefreshSponsors, None, one_hour());
+    registry.register_job(RefreshVideos, None, one_hour());
+    registry.register_job(RefreshDiscordChannels, None, one_hour());
 
     registry
 }
@@ -31,7 +31,7 @@ pub(crate) async fn run_cron(app_state: AppState) -> cja::Result<()> {
         cja::chrono_tz::US::Eastern,
         Duration::from_secs(10),
     )
-    .run()
+    .run(cja::jobs::CancellationToken::new())
     .await?;
 
     Ok(())

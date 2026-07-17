@@ -40,6 +40,7 @@ impl Job<AppState> for ProcessThreadStep {
             .enqueue(
                 app_state.clone(),
                 "Thread processing continuation".to_string(),
+                None,
             )
             .await?;
         }

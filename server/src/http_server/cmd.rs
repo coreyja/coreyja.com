@@ -132,6 +132,9 @@ pub(crate) async fn serve() -> Result<()> {
             app_state.clone(),
             job_registry,
             Duration::from_millis(500),
+            cja::jobs::DEFAULT_MAX_RETRIES,
+            cja::jobs::CancellationToken::new(),
+            cja::jobs::DEFAULT_LOCK_TIMEOUT,
         )));
     } else {
         info!("Jobs Disabled");

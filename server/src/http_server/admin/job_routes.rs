@@ -15,7 +15,7 @@ pub(crate) async fn refresh_youtube(
     _admin: AdminUser,
 ) -> cja::Result<impl IntoResponse, ServerError> {
     RefreshVideos
-        .enqueue(app_state, "Admin Dashboard Manual".to_string())
+        .enqueue(app_state, "Admin Dashboard Manual".to_string(), None)
         .await?;
 
     Ok(Redirect::to("/admin"))
