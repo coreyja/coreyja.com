@@ -73,10 +73,12 @@ async fn process_single_step(app_state: &AppState, thread_id: Uuid) -> cja::Resu
 
     if let Some(s) = previous_stitch {
         match s.stitch_type {
-            db::agentic_threads::StitchType::LlmCall => bail!(
-                "Right now we only support starting by running an LLM call and then running tool calls after.
+            db::agentic_threads::StitchType::LlmCall => {
+                bail!(
+                    "Right now we only support starting by running an LLM call and then running tool calls after.
                 So its not expected to be processing with an LLM call as the previous stitch."
-            ),
+                );
+            }
             db::agentic_threads::StitchType::ThreadResult => todo!(),
             db::agentic_threads::StitchType::InitialPrompt
             | db::agentic_threads::StitchType::ToolCall
