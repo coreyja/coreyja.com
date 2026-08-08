@@ -24,10 +24,13 @@ pub(crate) fn cron_registry() -> CronRegistry<AppState> {
     registry
 }
 
-pub(crate) async fn run_cron(app_state: AppState) -> cja::Result<()> {
+pub(crate) async fn run_cron(
+    app_state: AppState,
+    registry: CronRegistry<AppState>,
+) -> cja::Result<()> {
     Worker::new_with_timezone(
         app_state,
-        cron_registry(),
+        registry,
         cja::chrono_tz::US::Eastern,
         Duration::from_secs(10),
     )
