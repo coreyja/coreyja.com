@@ -1,0 +1,131 @@
+name: Publish to LinkedIn
+
+# Required repo secrets (set BEFORE this workflow first runs):
+#   - LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET (LinkedIn Developer Portal)
+#   - DATABASE_URL (Neon connection string — same value Fly uses)
+#   - ENCRYPTION_SECRET_KEY (same value Fly uses; required to decrypt tokens)
+# Also requires: APP_ID, APP_PRIVATE_KEY (already used by bluesky.yml).
+
+on:
+  # Chain off a successful Fly Deploy so the blog/podcast page for new content
+  # is live BEFORE the LinkedIn post (which links to that page) gets created.
+  workflow_run:
+    workflows: ["Fly Deploy"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: linkedin-publish
+  cancel-in-progress: false
+
+env:
+  SQLX_OFFLINE: true
+  APP_BASE_URL: https://coreyja.com
+
+jobs:
+  publish:
+    name: Publish to LinkedIn
+    runs-on: ubuntu-latest
+    # workflow_dispatch always runs. workflow_run only runs when the
+    # upstream Fly Deploy succeeded; a failed deploy means the page
+    # isn't live, so we shouldn't publish a link to it.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Generate App token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Setup | Checkout
+        uses: actions/checkout@v4
+        with:
+          # Always check out the tip of main, not the SHA that triggered the
+          # workflow. Without this, a queued run for an older commit could see
+          # stale posts (missing linkedin_url updates pushed by an earlier run)
+          # and re-publish them.
+          ref: main
+          # Authenticate git operations as the App so the push bypasses the
+          # main-branch ruleset (App is a bypass actor) and so the push
+          # triggers downstream workflows (App tokens trigger runs, unlike
+          # the default GITHUB_TOKEN).
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: protobuf-compiler libasound2-dev
+          version: v0
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Tailwind CSS
+        run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && \
+          chmod +x tailwindcss-linux-x64 && \
+          mv tailwindcss-linux-x64 tailwindcss && \
+          ./tailwindcss -i server/src/styles/tailwind.css -o target/tailwind.css
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Publish blog posts
+        id: publish_blog
+        continue-on-error: true
+        env:
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_SECRET_KEY: ${{ secrets.ENCRYPTION_SECRET_KEY }}
+        run: ./target/release/server publish-linkedin --kind blog --dir blog
+
+      - name: Publish newsletters
+        id: publish_newsletter
+        continue-on-error: true
+        env:
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_SECRET_KEY: ${{ secrets.ENCRYPTION_SECRET_KEY }}
+        run: ./target/release/server publish-linkedin --kind newsletter --dir blog/weekly
+
+      - name: Publish podcast episodes
+        id: publish_podcast
+        continue-on-error: true
+        env:
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_SECRET_KEY: ${{ secrets.ENCRYPTION_SECRET_KEY }}
+        run: ./target/release/server publish-linkedin --kind podcast --dir podcast
+
+      - name: Commit linkedin_url updates
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          # newsletters live under blog/weekly/, so `git add blog/` covers them.
+          git add blog/ podcast/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add linkedin_url to syndicated posts"
+            git pull --rebase origin main
+            git push
+          fi
+
+      - name: Surface publish failures
+        if: >-
+          steps.publish_blog.outcome == 'failure'
+          || steps.publish_newsletter.outcome == 'failure'
+          || steps.publish_podcast.outcome == 'failure'
+        run: |
+          echo "::error::One or more LinkedIn publish steps failed. See logs above. Next run will retry via the idempotency check."
+          exit 1

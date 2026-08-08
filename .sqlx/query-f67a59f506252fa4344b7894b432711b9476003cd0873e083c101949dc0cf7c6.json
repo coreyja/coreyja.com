@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE LinkedInUsers\n        SET\n            encrypted_access_token = $1,\n            access_token_expires_at = $2,\n            encrypted_refresh_token = $3,\n            refresh_token_expires_at = $4,\n            updated_at = NOW()\n        WHERE linkedin_user_id = $5\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Timestamptz",
+        "Bytea",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f67a59f506252fa4344b7894b432711b9476003cd0873e083c101949dc0cf7c6"
+}
