@@ -135,7 +135,10 @@ pub(crate) async fn privacy_policy() -> Result<Markup, ServerError> {
             }
 
             p class="my-4" {
-              "I am using Font Awesome for icons. This is also loaded using a CSS link tag."
+              "Icons on this site are from "
+              a href="https://fontawesome.com" { "Font Awesome" }
+              ", embedded directly into the pages at build time — no Font Awesome \
+               scripts or stylesheets are loaded in your browser."
             }
 
             h3 class="mt-8 my-4 text-xl" {

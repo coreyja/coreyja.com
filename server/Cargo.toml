@@ -27,6 +27,7 @@ axum-macros = { workspace = true }
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
 clap = { workspace = true }
+font-awesome-embed = { workspace = true }
 include_dir = { workspace = true }
 indoc = { workspace = true }
 markdown = { workspace = true }

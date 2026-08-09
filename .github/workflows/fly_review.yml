@@ -58,10 +58,38 @@ jobs:
           branch: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
+      # superfly/fly-pr-review-apps can't pass Docker build secrets, which
+      # font-awesome-embed needs at compile time — so drive flyctl directly.
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Destroy PR app
+        if: github.event.action == 'closed'
+        run: flyctl apps destroy "coreyja-com-pr-${{ github.event.number }}" -y || true
+
       - name: Deploy PR app to Fly.io
         id: deploy
-        uses: superfly/fly-pr-review-apps@1.2.1
-        with:
-          name: coreyja-com-pr-${{ github.event.number }}
-          secrets: APP_BASE_URL="https://coreyja-com-pr-${{ github.event.number }}.fly.dev" DATABASE_URL="${{ steps.create-branch.outputs.db_url }}?sslmode=require" TWITCH_CLIENT_ID="FAKE" TWITCH_CLIENT_SECRET="FAKE" TWITCH_BOT_ACCESS_TOKEN="FAKE" TWITCH_BOT_USER_ID="FAKE" TWITCH_CHANNEL_USER_ID="FAKE" GITHUB_APP_ID="123" GITHUB_APP_CLIENT_ID="FAKE" GITHUB_APP_CLIENT_SECRET="FAKE" GITHUB_APP_PRIVATE_KEY="FAKE" GITHUB_PERSONAL_ACCESS_TOKEN="FAKE" OPEN_AI_API_KEY="FAKE" GOOGLE_CLIENT_ID="FAKE" GOOGLE_CLIENT_SECRET="FAKE" ENCRYPTION_SECRET_KEY="FAKE" JOBS_DISABLED="true" CRON_DISABLED="true" DISCORD_TOKEN="FAKE" DISCORD_BOT_DISABLED="true" ANTHROPIC_API_KEY="FAKE" LINEAR_CLIENT_ID="FAKE" LINEAR_CLIENT_SECRET="FAKE" LINEAR_WEBHOOK_SECRET="FAKE"
-          memory: 512
+        if: github.event.action != 'closed'
+        env:
+          FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
+        run: |
+          app="coreyja-com-pr-${{ github.event.number }}"
+          if ! flyctl status --app "$app" > /dev/null 2>&1; then
+            flyctl apps create "$app" --org "$FLY_ORG"
+          fi
+          # --stage: applied by the deploy below; errors if values are unchanged, hence || true
+          flyctl secrets set --app "$app" --stage \
+            APP_BASE_URL="https://$app.fly.dev" \
+            DATABASE_URL="${{ steps.create-branch.outputs.db_url }}?sslmode=require" \
+            TWITCH_CLIENT_ID="FAKE" TWITCH_CLIENT_SECRET="FAKE" TWITCH_BOT_ACCESS_TOKEN="FAKE" \
+            TWITCH_BOT_USER_ID="FAKE" TWITCH_CHANNEL_USER_ID="FAKE" GITHUB_APP_ID="123" \
+            GITHUB_APP_CLIENT_ID="FAKE" GITHUB_APP_CLIENT_SECRET="FAKE" GITHUB_APP_PRIVATE_KEY="FAKE" \
+            GITHUB_PERSONAL_ACCESS_TOKEN="FAKE" OPEN_AI_API_KEY="FAKE" GOOGLE_CLIENT_ID="FAKE" \
+            GOOGLE_CLIENT_SECRET="FAKE" ENCRYPTION_SECRET_KEY="FAKE" JOBS_DISABLED="true" \
+            CRON_DISABLED="true" DISCORD_TOKEN="FAKE" DISCORD_BOT_DISABLED="true" \
+            ANTHROPIC_API_KEY="FAKE" LINEAR_CLIENT_ID="FAKE" LINEAR_CLIENT_SECRET="FAKE" \
+            LINEAR_WEBHOOK_SECRET="FAKE" || true
+          flyctl deploy --app "$app" --regions "$FLY_REGION" --remote-only --strategy immediate \
+            --build-secret FONT_AWESOME_TOKEN="$FONT_AWESOME_TOKEN" \
+            --ha=false --vm-memory 512
+          echo "url=https://$app.fly.dev" >> "$GITHUB_OUTPUT"
