@@ -11,6 +11,10 @@ blocks_in_conditions = "allow"
 must_use_candidate = "allow"
 no-effect-underscore-binding = "allow"
 items-after-statements = "allow"
+# axum handlers return Result<_, Response>, and Response is genuinely large.
+# Boxing it would mean churning every handler signature to satisfy a lint that
+# is measuring a type we do not control.
+result_large_err = "allow"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
