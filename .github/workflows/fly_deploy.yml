@@ -8,11 +8,21 @@ on:
       - completed
 jobs:
   deploy:
+    # Serialize production deploys. Two merges close together each build their
+    # own image and run `flyctl deploy` concurrently; whichever finishes last
+    # wins regardless of commit order, so prod can silently serve the older
+    # commit while both jobs report green (2026-08-21: eyes #71 overwrote #70).
+    # Queue rather than cancel: cancelling mid-`flyctl deploy` abandons a
+    # release for no gain, and GitHub drops the older *pending* entry when a
+    # newer run queues behind a running one, so the newest SHA still lands last.
+    concurrency:
+      group: deploy-coreyja
+      cancel-in-progress: false
     name: Deploy app
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only
         env:
