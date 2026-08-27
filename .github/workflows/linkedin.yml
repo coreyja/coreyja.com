@@ -115,11 +115,32 @@ jobs:
           git add blog/ podcast/
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "Add linkedin_url to syndicated posts"
-            git pull --rebase origin main
-            git push
+            exit 0
           fi
+          git commit -m "Add linkedin_url to syndicated posts"
+          # This push MUST land: linkedin_url in the frontmatter is the only
+          # idempotency record for a post we have already created on LinkedIn.
+          # If the push is dropped, the next run re-publishes and Corey gets a
+          # duplicate on his profile.
+          #
+          # A rejected push is expected, not exceptional: bluesky.yml chains off
+          # the same "Fly Deploy" completion, runs in a different concurrency
+          # group, and also rebases-and-pushes frontmatter to main. The two push
+          # windows overlap routinely, so retry rather than failing the step.
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase origin main && git push; then
+              echo "Pushed linkedin_url updates on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; retrying"
+            git rebase --abort 2>/dev/null || true
+            sleep $(( attempt * 5 ))
+          done
+          echo "::error::Could not push linkedin_url updates after 5 attempts. \
+          Posts were created on LinkedIn but are NOT recorded in frontmatter - \
+          the next run WILL duplicate them. Push the linkedin_url changes by hand \
+          before the next Fly Deploy."
+          exit 1
 
       - name: Surface publish failures
         if: >-
