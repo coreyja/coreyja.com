@@ -401,8 +401,8 @@ mod tests {
         // Reassembled they should equal the original (modulo whitespace at the split).
         assert_eq!(format!("{a} {b}"), title);
         // Lines should be reasonably balanced — neither empty, both meaningful.
-        assert!(!a.is_empty());
-        assert!(!b.is_empty());
+        assert_ne!(a, "");
+        assert_ne!(b, "");
     }
 
     #[test]
@@ -574,7 +574,7 @@ mod tests {
         let (line1, line2) = split_title_lines(title);
         assert!(line2.is_some(), "should split into two lines");
         // Each line should contain only the rocket emoji, no whitespace at the seam.
-        assert!(!line1.is_empty());
-        assert!(!line2.unwrap().is_empty());
+        assert_ne!(line1, "");
+        assert_ne!(line2.unwrap(), "");
     }
 }
