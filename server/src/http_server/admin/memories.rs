@@ -579,7 +579,7 @@ mod tests {
         };
 
         // The handler validation should reject this
-        assert!(form.identifier.trim().is_empty());
+        assert_eq!(form.identifier.trim(), "");
 
         // But the database WOULD accept it if we bypassed validation
         // This verifies that validation must happen at the handler level
@@ -606,7 +606,7 @@ mod tests {
         };
 
         // The handler validation should reject this
-        assert!(form.content.trim().is_empty());
+        assert_eq!(form.content.trim(), "");
 
         // But the database WOULD accept it if we bypassed validation
         // This verifies that validation must happen at the handler level
