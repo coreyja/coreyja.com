@@ -3,6 +3,9 @@ name: Rust Tests
 env:
   SQLX_OFFLINE: true
   APP_BASE_URL: https://ci.coreyja.com
+  # Compile-time icon fetching (font-awesome-embed). Icons are disk-cached,
+  # so this is only hit for icons missing from the runner's cache.
+  FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
 
 on:
   push:

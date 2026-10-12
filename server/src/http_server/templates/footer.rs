@@ -1,3 +1,4 @@
+use font_awesome_embed::maud::fa;
 use maud::{html, Markup, PreEscaped};
 
 use crate::http_server::templates::{LOGO_FLAT_SVG, MAX_WIDTH_CONTAINER_CLASSES};
@@ -70,27 +71,27 @@ pub fn footer() -> Markup {
 
           ul class="flex flex-row items-center text-background space-x-4 sm:space-x-8 text-xl sm:text-2xl" {
             a href="https://bsky.app/profile/coreyja.com" target="_blank" rel="noopener noreferrer" {
-              i class="fa-brands fa-bluesky" {}
+              (fa!("bluesky", brands))
             }
 
             a href="https://github.com/coreyja" target="_blank" rel="noopener noreferrer" {
-              i class="fa-brands fa-github" {}
+              (fa!("github", brands))
             }
 
             a href="https://twitch.tv/coreyja" target="_blank" rel="noopener noreferrer" {
-              i class="fa-brands fa-twitch" {}
+              (fa!("twitch", brands))
             }
 
             a href="https://youtube.com/@coreyja" target="_blank" rel="noopener noreferrer" {
-              i class="fa-brands fa-youtube" {}
+              (fa!("youtube", brands))
             }
 
             a href="https://toot.cat/@coreyja" target="_blank" rel="noopener noreferrer" {
-              i class="fa-brands fa-mastodon" {}
+              (fa!("mastodon", brands))
             }
 
             a href="/rss.xml" target="_blank" rel="noopener noreferrer" {
-              i class="fa-solid fa-rss" {}
+              (fa!("rss", solid))
             }
           }
         }

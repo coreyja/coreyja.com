@@ -1,0 +1,5 @@
+[env]
+# font-awesome-embed disk cache. Lives inside target/ so Swatinem/rust-cache
+# persists it across CI runs — icons are only fetched when new ones are added.
+# Not committed (target/ is gitignored); FA SVGs must not be redistributed.
+FA_CACHE_DIR = { value = "target/fa-cache", relative = true }
