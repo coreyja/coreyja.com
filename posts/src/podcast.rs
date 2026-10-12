@@ -98,9 +98,9 @@ mod test {
         let episodes = PodcastEpisodes::from_static_dir().unwrap();
         assert!(!episodes.episodes.is_empty());
         let ep = &episodes.episodes[0];
-        assert!(!ep.frontmatter.slug.is_empty());
-        assert!(!ep.frontmatter.youtube_id.is_empty());
-        assert!(!ep.frontmatter.audio_url.is_empty());
+        assert_ne!(ep.frontmatter.slug, "");
+        assert_ne!(ep.frontmatter.youtube_id, "");
+        assert_ne!(ep.frontmatter.audio_url, "");
     }
 
     #[test]

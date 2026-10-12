@@ -1,4 +1,5 @@
 ---
+
 title: Working in Public - Chapter 1
 author: Corey Alexander
 date: 2023-03-14
@@ -6,6 +7,8 @@ color: green
 tags:
   - bookclub
   - working-in-public
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/bookclub-working-in-public-chapter-01
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 ## Working in Public Book Club

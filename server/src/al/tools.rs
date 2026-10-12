@@ -20,6 +20,9 @@ pub struct ThreadContext {
     pub previous_stitch_id: Option<Uuid>,
 }
 
+// async_trait marks the boxed futures it generates `#[must_use]`, which
+// clippy 1.99's double_must_use flags; the attribute isn't ours to remove.
+#[allow(clippy::double_must_use)]
 #[async_trait::async_trait]
 pub trait Tool: Send + Sync + Sized + 'static {
     const NAME: &'static str;
@@ -45,6 +48,9 @@ pub trait Tool: Send + Sync + Sized + 'static {
     }
 }
 
+// async_trait marks the boxed futures it generates `#[must_use]`, which
+// clippy 1.99's double_must_use flags; the attribute isn't ours to remove.
+#[allow(clippy::double_must_use)]
 #[async_trait::async_trait]
 pub trait GenericTool: Sync + Send {
     fn tool_name(&self) -> &'static str;

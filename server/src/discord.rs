@@ -67,10 +67,18 @@ impl CacheHttp for DiscordClient {
 pub(crate) struct DiscordBot(serenity::Client);
 
 impl DiscordBot {
-    pub async fn run(mut self) -> cja::Result<()> {
-        self.0.start().await.wrap_err("Error running discord bot")?;
+    /// Runs the gateway connection until it fails or `shutdown` is cancelled,
+    /// at which point the shards are closed cleanly.
+    pub async fn run(mut self, shutdown: cja::jobs::CancellationToken) -> cja::Result<()> {
+        let shard_manager = self.0.shard_manager.clone();
 
-        Ok(())
+        tokio::select! {
+            result = self.0.start() => result.wrap_err("Error running discord bot"),
+            () = shutdown.cancelled() => {
+                shard_manager.shutdown_all().await;
+                Ok(())
+            }
+        }
     }
 }
 

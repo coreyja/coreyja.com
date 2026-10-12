@@ -157,8 +157,6 @@ pub fn head(og: impl Borrow<OpenGraph>) -> Markup {
         link rel="preconnect" href="https://fonts.gstatic.com" crossorigin {}
         link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&&display=block" rel="stylesheet" {}
 
-        link rel="stylesheet" href="https://kit.fontawesome.com/d4a1ffb2a0.css" crossorigin="anonymous";
-
         meta name="viewport" content="width=device-width, initial-scale=1";
 
         link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png";

@@ -149,22 +149,37 @@ fn rkey_from_at_uri(at_uri: &str) -> cja::Result<String> {
 }
 
 fn rkey_from_blog_path(relative_path: &Path) -> String {
-    // Each blog post lives at `<slug>/index.md`. Strip `index.md` and use
-    // the parent directory path as the rkey, replacing `/` with `-` so
-    // nested paths (`weekly/20230713/index.md`) collapse to a single segment.
-    let parent = relative_path
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_default();
-    if parent.as_os_str().is_empty() {
-        return relative_path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_default();
-    }
-    parent
+    // Most posts live at `<slug>/index.md`: strip `index.md` and use the
+    // parent directory path as the rkey, replacing `/` with `-` so nested
+    // paths (`weekly/20230713/index.md`) collapse to a single segment.
+    // Other markdown files (`bookclub/chapter-01.md`) keep their file stem so
+    // siblings in one directory get distinct rkeys.
+    let without_ext = if relative_path.file_name().and_then(|s| s.to_str()) == Some("index.md") {
+        relative_path
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_default()
+    } else {
+        relative_path.with_extension("")
+    };
+    without_ext
         .to_string_lossy()
-        .replace([std::path::MAIN_SEPARATOR, '/'], "-")
+        .chars()
+        .map(|c| match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '.' | '-' | '_' | ':' | '~' => c,
+            _ => '-',
+        })
+        .collect()
+}
+
+/// Percent-encode each segment of a canonical post path (`a b/c/` ->
+/// `a%20b/c/`) so it is usable in a URL.
+fn url_encode_path(canonical: &str) -> String {
+    canonical
+        .split('/')
+        .map(|segment| urlencoding::encode(segment).into_owned())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 fn relative_under(root: &Path, content_dir: &str, post_path: &Path) -> cja::Result<PathBuf> {
@@ -181,15 +196,16 @@ fn relative_under(root: &Path, content_dir: &str, post_path: &Path) -> cja::Resu
         })
 }
 
-/// Recursively walk `root` collecting any file named exactly `index.md`.
-fn collect_index_md_files(root: &Path) -> cja::Result<Vec<PathBuf>> {
+/// Recursively walk `root` collecting every `*.md` file, matching the set of
+/// posts the blog itself serves (`**/*.md`).
+fn collect_markdown_files(root: &Path) -> cja::Result<Vec<PathBuf>> {
     let mut out = Vec::new();
-    walk_index_md(root, &mut out)?;
+    walk_markdown(root, &mut out)?;
     out.sort();
     Ok(out)
 }
 
-fn walk_index_md(dir: &Path, out: &mut Vec<PathBuf>) -> cja::Result<()> {
+fn walk_markdown(dir: &Path, out: &mut Vec<PathBuf>) -> cja::Result<()> {
     let entries =
         std::fs::read_dir(dir).map_err(|e| eyre!("Failed to read dir {}: {}", dir.display(), e))?;
     for entry in entries {
@@ -199,10 +215,8 @@ fn walk_index_md(dir: &Path, out: &mut Vec<PathBuf>) -> cja::Result<()> {
             .file_type()
             .map_err(|e| eyre!("Failed to stat {}: {}", path.display(), e))?;
         if file_type.is_dir() {
-            walk_index_md(&path, out)?;
-        } else if file_type.is_file()
-            && path.file_name().and_then(|s| s.to_str()) == Some("index.md")
-        {
+            walk_markdown(&path, out)?;
+        } else if file_type.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
             out.push(path);
         }
     }
@@ -424,7 +438,7 @@ async fn sync_publication(
     }
 
     let content_root = repo_root.join(&pub_cfg.content_dir);
-    let post_paths = collect_index_md_files(&content_root)?;
+    let post_paths = collect_markdown_files(&content_root)?;
 
     let mut summary = SyncSummary::default();
     let mut failures: Vec<(PathBuf, cja::color_eyre::Report)> = Vec::new();
@@ -493,7 +507,7 @@ async fn sync_one(
 
     let rel = relative_under(repo_root, &pub_cfg.content_dir, post_path)?;
     let blog_rkey = rkey_from_blog_path(&rel);
-    let canonical = rel.canonical_path();
+    let canonical = url_encode_path(&rel.canonical_path());
     let post_url = format!("https://coreyja.com/posts/{canonical}");
     // `path` per spec is the URL path segment relative to the publication URL.
     // Publication URL is `https://coreyja.com/posts`; the per-post URL is
@@ -741,6 +755,57 @@ mod tests {
     }
 
     #[test]
+    fn rkey_from_blog_path_keeps_stem_for_non_index_files() {
+        assert_eq!(
+            rkey_from_blog_path(Path::new("bookclub-working-in-public/chapter-01.md")),
+            "bookclub-working-in-public-chapter-01"
+        );
+        assert_eq!(
+            rkey_from_blog_path(Path::new("bookclub-working-in-public/chapter-02.md")),
+            "bookclub-working-in-public-chapter-02"
+        );
+    }
+
+    #[test]
+    fn rkey_from_blog_path_replaces_invalid_rkey_characters() {
+        assert_eq!(
+            rkey_from_blog_path(Path::new("BattlesnakeMinimax/Minimax in Battlesnake.md")),
+            "BattlesnakeMinimax-Minimax-in-Battlesnake"
+        );
+    }
+
+    #[test]
+    fn rkey_from_blog_path_top_level_file_uses_stem() {
+        assert_eq!(rkey_from_blog_path(Path::new("hello.md")), "hello");
+    }
+
+    #[test]
+    fn url_encode_path_encodes_each_segment() {
+        assert_eq!(
+            url_encode_path("BattlesnakeMinimax/Minimax in Battlesnake/"),
+            "BattlesnakeMinimax/Minimax%20in%20Battlesnake/"
+        );
+        assert_eq!(url_encode_path("weekly/20230713/"), "weekly/20230713/");
+    }
+
+    #[test]
+    fn collect_markdown_files_includes_non_index_posts() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("a")).unwrap();
+        std::fs::create_dir_all(root.join("b/diagrams")).unwrap();
+        std::fs::write(root.join("a/index.md"), "").unwrap();
+        std::fs::write(root.join("b/chapter-01.md"), "").unwrap();
+        std::fs::write(root.join("b/diagrams/1.png"), "").unwrap();
+
+        let found = collect_markdown_files(root).unwrap();
+        assert_eq!(
+            found,
+            vec![root.join("a/index.md"), root.join("b/chapter-01.md")]
+        );
+    }
+
+    #[test]
     fn rkey_from_at_uri_parses_collection_and_rkey() {
         let rkey = rkey_from_at_uri("at://did:plc:abc/site.standard.publication/3labc").unwrap();
         assert_eq!(rkey, "3labc");
@@ -780,7 +845,7 @@ mod tests {
         assert_eq!(rel, PathBuf::from("look-ma-no-ai/index.md"));
     }
 
-    /// Walks `blog/**/index.md` to ensure every publishable post fits within
+    /// Walks `blog/**/*.md` to ensure every publishable post fits within
     /// Bluesky's 300-character post limit (title + url + separators only,
     /// since the body is replaced by the standard.site card). Historical
     /// posts are exempt — they syndicate to standard.site only, no bsky post.
@@ -792,7 +857,7 @@ mod tests {
             .join("blog");
         let cutoff = bsky_post_cutoff();
 
-        let posts = collect_index_md_files(&blog_dir).expect("walk blog/");
+        let posts = collect_markdown_files(&blog_dir).expect("walk blog/");
         let mut failures = Vec::new();
 
         for path in &posts {
@@ -836,7 +901,7 @@ mod tests {
             .parent()
             .expect("server has a parent dir")
             .join("blog");
-        let posts = collect_index_md_files(&blog_dir).expect("walk blog/");
+        let posts = collect_markdown_files(&blog_dir).expect("walk blog/");
         let mut seen: std::collections::HashMap<String, PathBuf> = std::collections::HashMap::new();
         let mut conflicts = Vec::new();
         for path in &posts {

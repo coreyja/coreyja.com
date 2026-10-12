@@ -8,12 +8,25 @@ on:
       - completed
 jobs:
   deploy:
+    # Serialize production deploys. Two merges close together each build their
+    # own image and run `flyctl deploy` concurrently; whichever finishes last
+    # wins regardless of commit order, so prod can silently serve the older
+    # commit while both jobs report green (2026-08-21: eyes #71 overwrote #70).
+    # Queue rather than cancel: cancelling mid-`flyctl deploy` abandons a
+    # release for no gain, and GitHub drops the older *pending* entry when a
+    # newer run queues behind a running one, so the newest SHA still lands last.
+    concurrency:
+      group: deploy-coreyja
+      cancel-in-progress: false
     name: Deploy app
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # The scheduled Rust Tests run only re-lints main for toolchain drift; it
+    # must not redeploy prod (and re-trigger the syndication workflows) daily.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'schedule' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy --remote-only --build-secret FONT_AWESOME_TOKEN="$FONT_AWESOME_TOKEN"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}

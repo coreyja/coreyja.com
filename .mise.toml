@@ -1,0 +1,2 @@
+[env]
+FONT_AWESOME_TOKEN = "{{ exec(command='mull secrets get font-awesome') }}"

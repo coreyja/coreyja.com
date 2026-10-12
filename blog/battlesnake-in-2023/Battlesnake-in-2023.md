@@ -1,4 +1,5 @@
 ---
+
 title: Battlesnake in 2023
 author: Corey Alexander
 date: 2023-03-07
@@ -6,6 +7,8 @@ color: blue
 tags:
   - battlesnake
 track: battlesnake
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/battlesnake-in-2023-Battlesnake-in-2023
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 # Battlesnake In 2023
