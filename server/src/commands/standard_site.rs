@@ -636,6 +636,8 @@ mod tests {
             atproto_uri: None,
             atproto_pub_cid: None,
             publication: "blog".to_string(),
+            linkedin_url: None,
+            linkedin_content: None,
         }
     }
 
