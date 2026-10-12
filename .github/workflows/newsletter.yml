@@ -74,6 +74,9 @@ jobs:
 
       - name: Build release binary
         run: cargo build --locked --release
+        env:
+          # Compile-time icon fetching (font-awesome-embed).
+          FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
 
       - name: Find unpublished newsletters
         id: find
