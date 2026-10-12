@@ -13,6 +13,14 @@ on:
       - main
   pull_request:
     types: [opened, synchronize]
+  # Re-lint main on a schedule. A green result from `push` is only as fresh as
+  # the last commit: clippy gains lints on every 6-week stable release, so an
+  # idle main keeps reporting a green it earned under an older toolchain. The
+  # first PR opened after such a bump then fails on code it never touched, and
+  # the blame lands on that PR instead of on main. See the `schedule` guards
+  # below -- only Lint runs here, since toolchain drift is what this catches.
+  schedule:
+    - cron: "0 7 * * *"
   workflow_dispatch:
 
 jobs:
@@ -44,6 +52,7 @@ jobs:
         run: cargo clippy --locked --all-targets --no-deps -- -Dwarnings
   doc:
     name: Doc
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -66,6 +75,7 @@ jobs:
         run: cargo doc --locked --workspace --no-deps
   test:
     name: Test
+    if: github.event_name != 'schedule'
     env:
       CARGO_INCREMENTAL: 0
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
@@ -116,6 +126,7 @@ jobs:
       - name: Test
         run: cargo test --locked --all-targets
   cargo-deny:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
