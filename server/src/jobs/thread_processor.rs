@@ -1774,7 +1774,7 @@ mod tests {
             cache_control: None,
         };
 
-        assert!(text_content.text.is_empty());
+        assert_eq!(text_content.text, "");
     }
 
     // Task Group 3 Tests: Integration Testing
