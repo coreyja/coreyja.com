@@ -27,6 +27,7 @@ pub(crate) fn cron_registry() -> CronRegistry<AppState> {
 pub(crate) async fn run_cron(
     app_state: AppState,
     registry: CronRegistry<AppState>,
+    shutdown: cja::jobs::CancellationToken,
 ) -> cja::Result<()> {
     Worker::new_with_timezone(
         app_state,
@@ -34,7 +35,7 @@ pub(crate) async fn run_cron(
         cja::chrono_tz::US::Eastern,
         Duration::from_secs(10),
     )
-    .run(cja::jobs::CancellationToken::new())
+    .run(shutdown)
     .await?;
 
     Ok(())

@@ -5,10 +5,10 @@ use axum::middleware::Next;
 use axum::response::Response;
 use axum_extra::extract::Host;
 use cja::server::session::Session;
+use cja::tasks::{ShutdownBudget, Supervisor};
 use cja::Result;
-use cja::{jobs::worker::job_worker, server::run_server};
+use cja::{jobs::worker::job_worker_with_shutdown_drain, server::run_server_until};
 use serde_json::Map;
-use tokio::task::JoinError;
 use tracing::info;
 
 use crate::http_server::auth::session::DBSession;
@@ -130,51 +130,82 @@ pub(crate) async fn serve() -> Result<()> {
         Some(&cron_registry),
     );
 
+    // Registers SIGTERM and SIGINT (Fly sends SIGINT, see `kill_signal` in
+    // fly.toml) and stops every task within the budget. The default budget is
+    // 2s of job drain plus 2s of exit grace, which fits the 5s `kill_timeout`.
+    let mut supervisor = Supervisor::new(ShutdownBudget::from_env())?;
+    let shutdown = supervisor.shutdown_token();
+
     info!("Spawning Tasks");
-    let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![tokio::spawn(run_server(
-        routes::make_router()
-            .layer(axum::middleware::from_fn_with_state(
-                app_state.clone(),
-                pageview_middleware,
-            ))
-            .with_state(app_state.clone()),
-    ))];
+    supervisor.spawn(
+        "server",
+        run_server_until(
+            routes::make_router()
+                .layer(axum::middleware::from_fn_with_state(
+                    app_state.clone(),
+                    pageview_middleware,
+                ))
+                .with_state(app_state.clone()),
+            shutdown.clone().cancelled_owned(),
+        ),
+    );
 
     if std::env::var("JOBS_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Jobs Enabled");
-        futures.push(tokio::spawn(job_worker(
-            app_state.clone(),
-            job_registry,
-            Duration::from_millis(500),
-            cja::jobs::DEFAULT_MAX_RETRIES,
-            cja::jobs::CancellationToken::new(),
-            cja::jobs::DEFAULT_LOCK_TIMEOUT,
-        )));
+        supervisor.spawn(
+            "jobs",
+            job_worker_with_shutdown_drain(
+                app_state.clone(),
+                job_registry,
+                Duration::from_millis(500),
+                cja::jobs::DEFAULT_MAX_RETRIES,
+                shutdown.clone(),
+                cja::jobs::DEFAULT_LOCK_TIMEOUT,
+                supervisor.budget().job_drain,
+            ),
+        );
     } else {
         info!("Jobs Disabled");
     }
 
     if std::env::var("CRON_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Cron Enabled");
-        futures.push(tokio::spawn(run_cron(app_state.clone(), cron_registry)));
+        supervisor.spawn(
+            "cron",
+            run_cron(app_state.clone(), cron_registry, shutdown.clone()),
+        );
     } else {
         info!("Cron Disabled");
     }
 
     if std::env::var("DISCORD_BOT_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Discord Bot Enabled");
-        futures.push(tokio::spawn(discord.bot.run()));
+        supervisor.spawn("discord", run_discord_bot(discord.bot, shutdown));
     } else {
         info!("Discord Bot Disabled");
     }
 
     info!("Tasks Spawned");
 
-    let results = futures::future::join_all(futures).await;
-    let results: Result<Vec<Result<()>>, JoinError> = results.into_iter().collect();
-    results?.into_iter().collect::<Result<Vec<()>>>()?;
+    let result = supervisor.run().await;
 
     info!("Main Returning");
+
+    result
+}
+
+/// The supervisor treats a task that ends by itself as fatal and stops the
+/// process. The site should stay up without the bot (as it did before the
+/// supervisor), so a bot failure is logged and the task then idles until
+/// shutdown instead of returning.
+async fn run_discord_bot(
+    bot: crate::discord::DiscordBot,
+    shutdown: cja::jobs::CancellationToken,
+) -> Result<()> {
+    if let Err(error) = bot.run(shutdown.clone()).await {
+        tracing::error!(error = %format!("{error:#}"), "Discord bot stopped; continuing without it");
+    }
+    shutdown.cancelled().await;
 
     Ok(())
 }
