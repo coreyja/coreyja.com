@@ -116,6 +116,20 @@ pub(crate) async fn serve() -> Result<()> {
     *discord.app_state_holder.lock().unwrap() = Some(app_state.clone());
     let job_registry = Jobs;
 
+    // Build the cron registry once so it can seed the Eyes boot manifest below
+    // and then drive the cron worker (when enabled).
+    let cron_registry = crate::cron::cron_registry();
+
+    // Emit this app's shape (job types, cron schedules, build version) to Eyes
+    // at boot; fire-and-forget and a no-op unless EYES_ORG_ID/EYES_APP_ID are
+    // set. Reflects the full deployed shape even if JOBS_DISABLED/CRON_DISABLED
+    // turn the workers off for this process.
+    cja::eyes_manifest::send_boot_manifest::<Jobs, AppState>(
+        Some(env!("CARGO_PKG_VERSION")),
+        option_env!("VERGEN_GIT_SHA"),
+        Some(&cron_registry),
+    );
+
     info!("Spawning Tasks");
     let mut futures: Vec<tokio::task::JoinHandle<Result<()>>> = vec![tokio::spawn(run_server(
         routes::make_router()
@@ -142,7 +156,7 @@ pub(crate) async fn serve() -> Result<()> {
 
     if std::env::var("CRON_DISABLED").unwrap_or_else(|_| "false".to_string()) == "false" {
         info!("Cron Enabled");
-        futures.push(tokio::spawn(run_cron(app_state.clone())));
+        futures.push(tokio::spawn(run_cron(app_state.clone(), cron_registry)));
     } else {
         info!("Cron Disabled");
     }

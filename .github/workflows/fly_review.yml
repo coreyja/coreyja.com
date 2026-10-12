@@ -89,7 +89,9 @@ jobs:
             CRON_DISABLED="true" DISCORD_TOKEN="FAKE" DISCORD_BOT_DISABLED="true" \
             ANTHROPIC_API_KEY="FAKE" LINEAR_CLIENT_ID="FAKE" LINEAR_CLIENT_SECRET="FAKE" \
             LINEAR_WEBHOOK_SECRET="FAKE" || true
+          # Production runs on 4GB (see fly.toml). 512MB was too tight and review
+          # apps could OOM on boot; 2GB gives headroom (#412).
           flyctl deploy --app "$app" --regions "$FLY_REGION" --remote-only --strategy immediate \
             --build-secret FONT_AWESOME_TOKEN="$FONT_AWESOME_TOKEN" \
-            --ha=false --vm-memory 512
+            --ha=false --vm-memory 2048
           echo "url=https://$app.fly.dev" >> "$GITHUB_OUTPUT"

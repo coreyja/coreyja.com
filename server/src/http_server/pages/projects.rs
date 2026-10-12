@@ -117,6 +117,11 @@ impl Render for StatusTag {
 
 #[instrument(skip_all, fields(slug))]
 #[axum_macros::debug_handler(state = AppState)]
+// `Err` is an axum `Response`, which is ~128 bytes by construction. Clippy's
+// suggested fix (box the error) is not available here: axum requires the
+// handler's error type to implement `IntoResponse`, and `Response` already is
+// the canonical one. Newly enforced by clippy 1.98.
+#[allow(clippy::result_large_err)]
 pub(crate) async fn projects_get(
     State(projects): State<Arc<Projects>>,
     State(state): State<AppState>,
