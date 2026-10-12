@@ -1,4 +1,5 @@
 ---
+
 title: Minimax in Battlesnake
 author: Corey Alexander
 date: 2022-03-05
@@ -8,6 +9,8 @@ tags:
   - battlesnake
   - Minimax
 track: battlesnake
+atproto_uri: at://did:plc:bg2gnrjiv6htfynausierbm2/site.standard.document/BattlesnakeMinimax-Minimax-in-Battlesnake
+atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 ---
 
 # Minimax in Battlesnake
