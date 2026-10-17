@@ -1,18 +1,27 @@
 name: Deploy Review App
 on:
-  # Run this workflow on every PR event. Existing review apps will be updated when the PR is updated.
+  # Deploy, or update, the review app whenever the PR's code changes.
   pull_request:
-    types: [opened, reopened, synchronize, closed]
+    types: [opened, reopened, synchronize]
+  # Tear it down on close. This has to be pull_request_target: GitHub creates
+  # no `pull_request` run at all for a PR it can't test-merge (merge conflict,
+  # or head force-pushed onto base), so `closed` never fired for those PRs and
+  # their apps ran forever (10 leaked, destroyed by hand 2026-10-17).
+  # pull_request_target runs this file from the base branch, so it fires on
+  # every close. It runs with secrets, so the cleanup job never checks out or
+  # executes PR code.
+  pull_request_target:
+    types: [closed]
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   # Set these to your Fly.io organization and preferred region.
   FLY_REGION: ewr
-  FLY_ORG: personal
+  FLY_ORG: coreyja-studio
 
 jobs:
   review_app:
-    if: ${{ !startsWith(github.head_ref || github.ref_name, 'update-screenshot-') }}
+    if: ${{ github.event_name == 'pull_request' && !startsWith(github.head_ref || github.ref_name, 'update-screenshot-') }}
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}
@@ -41,7 +50,6 @@ jobs:
 
       - name: Create Neon Branch
         id: create-branch
-        if: github.event.action != 'closed'
         uses: neondatabase/create-branch-action@v4
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
@@ -49,27 +57,14 @@ jobs:
           branch_name: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
           username: coreyja
           api_key: ${{ secrets.NEON_API_KEY }}
-      - name: Delete Neon Branch
-        id: delete-branch
-        if: github.event.action == 'closed'
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
-          api_key: ${{ secrets.NEON_API_KEY }}
 
       # superfly/fly-pr-review-apps can't pass Docker build secrets, which
       # font-awesome-embed needs at compile time — so drive flyctl directly.
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Destroy PR app
-        if: github.event.action == 'closed'
-        run: flyctl apps destroy "coreyja-com-pr-${{ github.event.number }}" -y || true
-
       - name: Deploy PR app to Fly.io
         id: deploy
-        if: github.event.action != 'closed'
         env:
           FONT_AWESOME_TOKEN: ${{ secrets.FONT_AWESOME_TOKEN }}
         run: |
@@ -89,9 +84,59 @@ jobs:
             CRON_DISABLED="true" DISCORD_TOKEN="FAKE" DISCORD_BOT_DISABLED="true" \
             ANTHROPIC_API_KEY="FAKE" LINEAR_CLIENT_ID="FAKE" LINEAR_CLIENT_SECRET="FAKE" \
             LINEAR_WEBHOOK_SECRET="FAKE" || true
-          # Production runs on 4GB (see fly.toml). 512MB was too tight and review
-          # apps could OOM on boot; 2GB gives headroom (#412).
-          flyctl deploy --app "$app" --regions "$FLY_REGION" --remote-only --strategy immediate \
+          # fly.review.toml, not prod's fly.toml: a small VM that stops when idle.
+          # VM size lives in [[vm]] there; a --vm-memory flag here did not
+          # resize existing machines (pr-398 stayed at 4GB after #414).
+          flyctl deploy --config fly.review.toml --app "$app" --regions "$FLY_REGION" \
+            --remote-only --strategy immediate \
             --build-secret FONT_AWESOME_TOKEN="$FONT_AWESOME_TOKEN" \
-            --ha=false --vm-memory 2048
+            --ha=false
           echo "url=https://$app.fly.dev" >> "$GITHUB_OUTPUT"
+
+  cleanup:
+    # Same-repo PRs only: fork PRs never get a review app (no secrets on their
+    # pull_request runs), and a fork's branch name must not reach a shell that
+    # holds secrets (delete-branch-action interpolates it into a script).
+    if: >-
+      ${{ github.event_name == 'pull_request_target'
+      && github.event.action == 'closed'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && !startsWith(github.head_ref, 'update-screenshot-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Shares the deploy job's group, so a close waits for an in-flight deploy
+    # instead of racing it (a deploy finishing after the destroy would
+    # recreate the app).
+    concurrency:
+      group: pr-${{ github.event.number }}
+    steps:
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # Fails the job if the destroy fails. Only "no such app" (the PR never
+      # got a successful deploy) is treated as success, and that's decided
+      # from the app list, not by swallowing errors with `|| true`.
+      - name: Destroy PR app
+        env:
+          APP: coreyja-com-pr-${{ github.event.number }}
+        run: |
+          apps="$(flyctl apps list --json)"
+          if jq -e --arg app "$APP" 'any(.[]; .Name == $app)' <<< "$apps" > /dev/null; then
+            flyctl apps destroy "$APP" -y
+          else
+            echo "No Fly app named $APP; nothing to destroy."
+          fi
+
+      # Runs even if the destroy failed. A failure here (e.g. the branch is
+      # already gone) is reported but doesn't fail the job: the Fly app is
+      # what costs money. head_ref matches tj-actions/branch-names'
+      # current_branch on PR events, which the create step used.
+      - name: Delete Neon Branch
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}-${{ github.head_ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}

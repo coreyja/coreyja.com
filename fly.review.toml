@@ -1,0 +1,53 @@
+# Fly config for PR review apps, used by .github/workflows/fly_review.yml via
+# `flyctl deploy --config fly.review.toml --app coreyja-com-pr-<N>`.
+# Production uses fly.toml. Previews get their own config so they are small and
+# scale to zero instead of inheriting prod's always-on shared-cpu-2x/4GB VM.
+#
+# Differences from fly.toml:
+# - [[vm]] is shared-cpu-1x/1GB. Previews run with JOBS_DISABLED, CRON_DISABLED
+#   and DISCORD_BOT_DISABLED and peaked at 358 MiB used across 15 preview apps
+#   (Fly metrics, week of 2026-10-17); prod's own peak was ~1.2 GiB with
+#   background work enabled.
+# - auto_stop_machines/min_machines_running = 0: the machine stops when idle
+#   and the Fly proxy starts it again on the next request.
+# - No [mounts] (and no DATABASE_PATH): nothing in the app reads /data, so the
+#   volume only added cost and pinned the machine to a host.
+
+primary_region = "ewr"
+kill_signal = "SIGINT"
+kill_timeout = "5s"
+
+[env]
+OTEL_SERVICE_NAME = "coreyja"
+
+[[services]]
+protocol = "tcp"
+internal_port = 3000
+processes = ["app"]
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 0
+
+[[services.ports]]
+port = 80
+handlers = ["http"]
+force_https = true
+
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
+
+[services.concurrency]
+type = "connections"
+hard_limit = 25
+soft_limit = 20
+
+[[services.tcp_checks]]
+interval = "15s"
+timeout = "2s"
+grace_period = "1s"
+restart_limit = 0
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "1gb"
