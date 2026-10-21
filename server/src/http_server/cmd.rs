@@ -7,7 +7,10 @@ use axum_extra::extract::Host;
 use cja::server::session::Session;
 use cja::tasks::{ShutdownBudget, Supervisor};
 use cja::Result;
-use cja::{jobs::worker::job_worker_with_shutdown_drain, server::run_server_until};
+use cja::{
+    jobs::{worker::job_worker, JobWorkerConfig},
+    server::run_server_until,
+};
 use serde_json::Map;
 use tracing::info;
 
@@ -154,14 +157,16 @@ pub(crate) async fn serve() -> Result<()> {
         info!("Jobs Enabled");
         supervisor.spawn(
             "jobs",
-            job_worker_with_shutdown_drain(
+            job_worker(
                 app_state.clone(),
                 job_registry,
                 Duration::from_millis(500),
                 cja::jobs::DEFAULT_MAX_RETRIES,
                 shutdown.clone(),
-                cja::jobs::DEFAULT_LOCK_TIMEOUT,
-                supervisor.budget().job_drain,
+                JobWorkerConfig {
+                    shutdown_drain_timeout: supervisor.budget().job_drain,
+                    ..JobWorkerConfig::default()
+                },
             ),
         );
     } else {

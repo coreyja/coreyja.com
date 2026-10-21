@@ -33,20 +33,9 @@ indoc = { workspace = true }
 markdown = { workspace = true }
 maud = { workspace = true, features = ["axum"] }
 mime_guess = { workspace = true }
-opentelemetry = { workspace = true }
-opentelemetry-otlp = { workspace = true }
 path-absolutize = { workspace = true }
 reqwest = { workspace = true }
 rss = { workspace = true }
-sentry = { workspace = true, features = [
-  "rustls",
-  "backtrace",
-  "contexts",
-  "panic",
-  "tower",
-  "reqwest",
-] }
-sentry-tower = { workspace = true, features = ["http"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
@@ -59,7 +48,6 @@ toml = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 tower-http = { workspace = true, features = ["trace", "cors"] }
 tracing = { workspace = true }
-tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-tree = { workspace = true }
 url = { workspace = true }
@@ -74,7 +62,6 @@ cja = { workspace = true }
 
 sqlx = { workspace = true }
 itertools = { workspace = true }
-sentry-tracing = { workspace = true }
 typify = { workspace = true }
 tower-cookies = { workspace = true, features = ["private", "signed"] }
 debug-ignore = { workspace = true }

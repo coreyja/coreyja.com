@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use cja::setup::{setup_sentry, setup_tracing};
+use cja::setup::setup_tracing;
 use clap::Parser;
 use commands::Command;
 
@@ -59,8 +59,6 @@ struct CliArgs {
 }
 
 fn main() -> Result<()> {
-    let _sentry_guard = setup_sentry();
-
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .enable_all()

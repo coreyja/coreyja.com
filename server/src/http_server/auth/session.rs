@@ -139,7 +139,7 @@ impl FromRequestParts<AppState> for AdminUser {
             }),
             Ok(None) => Err(StatusCode::UNAUTHORIZED.into_response()),
             Err(e) => {
-                sentry::capture_error(&e);
+                tracing::error!(error = ?e, "Failed to look up GitHub link for admin session");
 
                 Err(StatusCode::INTERNAL_SERVER_ERROR.into_response())
             }
