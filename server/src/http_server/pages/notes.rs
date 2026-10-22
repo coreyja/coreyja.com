@@ -68,7 +68,7 @@ pub(crate) async fn notes_get(
         .ok_or_else(|| {
             ServerError(
                 cja::color_eyre::eyre::eyre!("No such note found"),
-                StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::NOT_FOUND,
             )
         })?;
 
@@ -137,4 +137,30 @@ pub(crate) async fn notes_get(
             ..Default::default()
         },
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
+    use tower::ServiceExt;
+
+    use crate::http_server::test_helpers::create_test_app;
+
+    #[tokio::test]
+    async fn note_get_404s_for_unknown_slug() {
+        let app = create_test_app().await;
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/notes/this-slug-does-not-exist-anywhere")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
 }
