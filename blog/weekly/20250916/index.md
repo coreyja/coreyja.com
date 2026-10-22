@@ -26,7 +26,7 @@ Plus, having your own backup means you can experiment with the data yourself —
 
 ## What Backup.blue does today
 
-It doesn’t do a _ton_ but I got a speed boost right from the beginning, because the awesome [@baileytownsend.dev](https://bsky.app/profile/baileytownsend.dev) open sourced his [AT Toolbox](https://tangled.sh/@baileytownsend.dev/at_toolbox) iOS app that provides an assortment of Shortcuts to make it easy to automate any part of your AT Proto account!
+It doesn’t do a _ton_ but I got a speed boost right from the beginning, because the awesome [@baileytownsend.dev](https://bsky.app/profile/baileytownsend.dev) open sourced his [AT Toolbox](https://tangled.org/pds.dad/at_toolbox) iOS app that provides an assortment of Shortcuts to make it easy to automate any part of your AT Proto account!
 This had code for downloading a repo’s CAR file, and then iterating through all the blobs to download and save them.
 And with this my first version of backup.blue was born!
 

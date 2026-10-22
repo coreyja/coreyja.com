@@ -43,7 +43,7 @@ Next came [Powerline](http://powerline.readthedocs.io/en/master/), to which was 
       - Download and build new versions of Ruby
     - rbenv/rbenv-default-gems
       - Install a set of gems when you install a new version of ruby
-      - [https://github.com/coreyja/dotfiles/blob/main/.rbenv/default-gems](https://github.com/coreyja/dotfiles/blob/main/.rbenv/default-gems)
+      - [https://github.com/coreyja/dotfiles/blob/673e7b8f8caa/.rbenv/default-gems](https://github.com/coreyja/dotfiles/blob/673e7b8f8caa/.rbenv/default-gems)
     - ianheggie/rbenv-binstubs
       - Never have to run `bundle exec` again!
     - tpope/rbenv-ctags
@@ -55,7 +55,7 @@ Next came [Powerline](http://powerline.readthedocs.io/en/master/), to which was 
 
 Ctags are the reason I was able to leave RubyMine for vim! I LOVE the "Jump to Implementation" feature in RubyMine and ctags basically replicate that for me in VIM! I will admit they aren't _quite_ as good as I remember the "Jump to Implementation" feature being but its good enough for me! So basically ctags work by creating `tags` files which tell it where all the different classes and methods are defined. Once you have these made for your project (and your dependencies) vim can search through them to quickly jump to the definitions of functions. But getting all your ctags generated can be slightly challenging! I pretty much followed [this amazing guide](http://tbaggery.com/2011/08/08/effortless-ctags-with-git.html) by [Tim Pope (tpope)](https://github.com/tpope), so I won't go into that too much!
 
-There is one thing I have started doing different than that guide is started using [ripper-tags](https://github.com/tmm1/ripper-tags) instead of ctags for my Ruby projects, which is most of my projects at the moment. It provides better indexing for Ruby files since it is specialized just for Ruby. I modified tpope's `ctags` bash script to use ripper tags for Ruby files. [Here](https://github.com/coreyja/dotfiles/blob/main/.git_template/hooks/ctags) is my modified version of that script.
+There is one thing I have started doing different than that guide is started using [ripper-tags](https://github.com/tmm1/ripper-tags) instead of ctags for my Ruby projects, which is most of my projects at the moment. It provides better indexing for Ruby files since it is specialized just for Ruby. I modified tpope's `ctags` bash script to use ripper tags for Ruby files. [Here](https://github.com/coreyja/dotfiles/blob/8bacb87f81cb/.git_template/hooks/ctags) is my modified version of that script.
 
 I am also using [gem-ripper-tags](https://github.com/lzap/gem-ripper-tags) to automatically generate ctags using [ripper-tags](https://github.com/tmm1/ripper-tags) for all my installed gems, this is on my list of default gems so that it gets installed for each version of Ruby automatically.
 

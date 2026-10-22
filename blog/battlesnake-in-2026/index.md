@@ -61,7 +61,7 @@ One thing I knew I wanted to include in this post was my feelings on AI Coding a
 
 > I'd much rather people spend the extra time improving code quality. Do the thing that's annoying to write and has many edge cases to test but has a cleaner UX. Aggressively refactor. Tackle the TODOs
 >
-> — [Rain (@sunshowers.io)](https://bsky.app/profile/sunshowers.io/post/3mbcik4ld6s2q)
+> — [Rain (@sunshowers.io)](https://web.archive.org/web/20260103034619/https://bsky.app/profile/sunshowers.io/post/3mbcik4ld6s2q)
 
 If you poked around the repo, you might have gotten the sense that there was some AI coding happening, and you wouldn't be wrong. I find myself writing less and less code by hand nowadays, and writing almost exclusively with AI agents.
 

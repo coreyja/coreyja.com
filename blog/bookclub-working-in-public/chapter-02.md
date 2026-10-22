@@ -13,7 +13,7 @@ atproto_pub_cid: bafyreibn466glibcavfowito3sot5hosargmk4jmhg2ldx2lcw3ifcyxti
 
 ## Working in Public Book Club
 
-I've been reading ["Working in Public: The Making and Maintenance of Open Source Software"](https://press.stripe.com/working-in-public) by [Nadia Eghbal](https://nadiaeghbal.com/). And I like writing
+I've been reading ["Working in Public: The Making and Maintenance of Open Source Software"](https://press.stripe.com/working-in-public) by [Nadia Eghbal](https://nadia.xyz/). And I like writing
 little summaries and notes when I've read books with others in a book club style in the past
 
 So for this I'm going to do a 'Book Club' with all of you! As I read each chapter I'm going to write up a summary of the chapter

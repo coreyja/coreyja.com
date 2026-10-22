@@ -39,7 +39,7 @@ And recently I came across this Bluesky post.
 
 ![Thorne's Post Screenshot, full text and link included below](./bluesky-post_1.5x_postspark_2026-05-27_09-28-18.png)
 
-[Full Post Text](https://bsky.app/profile/ens0.me/post/3mox4n76hk24)
+[Full Post Text](https://bsky.app/profile/ens0.me/post/3mmox4n76hk24)
 
 > hot take: it's especially important NOT to outsource all your writing to AI, because writing is quickly becoming a far more important skill
 >
