@@ -77,6 +77,7 @@ pub(crate) fn make_router() -> Router<AppState> {
             "/.well-known/site.standard.publication/{*path}",
             get(pages::well_known::well_known_publication_with_path),
         )
+        .route("/resume", get(pages::resume::resume))
         .route("/projects", get(pages::projects::projects_index))
         .route("/projects/{slug}", get(pages::projects::projects_get))
         .route("/videos", get(pages::videos::video_index))
