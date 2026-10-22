@@ -25,7 +25,7 @@ So Side Project Start Kits are on the back burner, but ideally only for a few we
 
 So what is the distraction that I’m currently exploring you ask?
 
-It’s currently called pfp.blue, and it’s going to be a Bluesky Profile Picture app. The idea came from [this skeet](https://bsky.app/profile/cam.fyi/post/3lhzlgtcgqc2n) on Bsky from [@cam.fyi](https://bsky.app/profile/cam.fyi)
+It’s currently called pfp.blue, and it’s going to be a Bluesky Profile Picture app. The idea came from this skeet on Bsky from [@cam.fyi](https://bsky.app/profile/cam.fyi)
 
 ![Screenshot of the above linked skeet, rendered with Postspark. It reads "sorry by app i mean like, oauth'd website for setting up the feature it can programmatically download your pfp, draw on a circle, and reupload it every hour or what have you!"](./postspark_export_2025-02-19_16-04-22.png)
 

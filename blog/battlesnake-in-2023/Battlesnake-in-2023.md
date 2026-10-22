@@ -82,4 +82,4 @@ If hosting is covered for the next few months, let's use it!
 As I said in the intro, I had a lot of fun hosting and would be happy to do it again. We might be best picking an existing game mode for this tournament, so we could stick with another Snail Mode or any current mode. With the looming hosting cost issues, most 'dev' effort is best spent on reducing costs rather than new game modes in the concise term. I want to do Chess Mode, but let's leave that for a later tournament.
 
 So anyone have any ideas for our next tournament?! Hit me up in Discord if you do!
-If you aren't in the Battlesnake Discord definitely stop by: <https://play.battlesnake.com/discord>
+If you aren't in the Battlesnake Discord definitely stop by: <https://discord.gg/BYubeHQ>

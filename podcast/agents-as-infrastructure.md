@@ -64,7 +64,7 @@ But there are *lots* of pieces of an agent system that don't need a frontier mod
 
 ## What I'm Watching
 
-Both pillars are visibly forming today. The data side: every incumbent with a real corpus is figuring out how to make their data agent-friendly. The infra side: AWS Bedrock keeps adding agent primitives, [exa.sh](https://exa.sh) is targeting agent use cases specifically, Replit pivoted toward this. Both verticals exist, both are growing, and what I'm excited to watch over the next 24 to 60 months is which companies merge them — and which ones keep them separate and end up renting half their stack from somebody else.
+Both pillars are visibly forming today. The data side: every incumbent with a real corpus is figuring out how to make their data agent-friendly. The infra side: AWS Bedrock keeps adding agent primitives, [exa.sh](https://exa.ai) is targeting agent use cases specifically, Replit pivoted toward this. Both verticals exist, both are growing, and what I'm excited to watch over the next 24 to 60 months is which companies merge them — and which ones keep them separate and end up renting half their stack from somebody else.
 
 I think owning the full vertical integration is going to be a really fun problem to solve. It's the one I'm most excited about for the next few years.
 

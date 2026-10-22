@@ -34,7 +34,7 @@ In December 2023, Battlesnake went back to the community as a fully independent 
 
 One of the first things I'm working on is formalizing the rules. Right now, the Battlesnake engine and rules are defined in Go code. I want a plain-English specification — how food spawns, how turn resolution works, how collisions are handled — that's the source of truth, not any particular implementation.
 
-This matters because I want to be able to write alternative implementations (in Rust, obviously) and verify them against the spec. Plus it's a fun excuse to play with tools like [Tracy](https://github.com/FasterThanLime/tracy) that tie documentation to tests to code.
+This matters because I want to be able to write alternative implementations (in Rust, obviously) and verify them against the spec. Plus it's a fun excuse to play with tools like [Tracy](https://github.com/wolfpld/tracy) that tie documentation to tests to code.
 
 There's a draft RFC for the standard rule set in the [BattlesnakeOfficial/rfcs](https://github.com/BattlesnakeOfficial/rfcs) repo.
 

@@ -258,7 +258,7 @@ MaxN also has the disadvantage of scoring nodes multiple times, once for each sn
 
 Thanks for making it to the end!
 
-If you want to chat about the article, you can find me in the [Battlesnake Discord as @coreyja](https://play.battlesnake.com/discord/)
+If you want to chat about the article, you can find me in the [Battlesnake Discord as @coreyja](https://discord.gg/BYubeHQ)
 or on [Twitter as @coreyja_dev](https://twitter.com/coreyja_dev)
 
 Edits:

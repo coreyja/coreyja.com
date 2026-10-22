@@ -40,7 +40,7 @@ ssh -t dokku@DOKKU_HOST version
 
 ## Setting up a Rails App
 
-This mostly follows the [official docs](http://dokku.viewdocs.io/dokku/deployment/application-deployment/#deploying-to-dokku)
+This mostly follows the [official docs](https://dokku.com/docs/deployment/application-deployment/)
 
 First step was the create the first app we want to deploy
 

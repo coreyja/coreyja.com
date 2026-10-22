@@ -32,7 +32,7 @@ nnoremap z= :call FzfSpell()<CR>
 
 ## Background
 
-Recently I was looking to add spell-checking to VIM and came across this great ThoughtBot article, [Vim Spell-Checking](https://robots.thoughtbot.com/vim-spell-checking) that got me started.
+Recently I was looking to add spell-checking to VIM and came across this great ThoughtBot article, [Vim Spell-Checking](https://web.archive.org/web/20180908165359/https://robots.thoughtbot.com/vim-spell-checking) that got me started.
 This article showed me how to turn on spellchecking, and also to turn it on for specific files. Here are the snippets from the `.vimrc` that are directly inspired from this blog post.
 
 ```vim

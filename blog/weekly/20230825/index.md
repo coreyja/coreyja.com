@@ -23,7 +23,7 @@ But first let's catch up on my week!
 One of the projects we've been working on during stream is turning Byte into a full fledge chatbot. I want to be able to talk to him during stream, and we want you all to be able to chat with them in Twitch Chat.
 And on stream on Wednesday we got a version of Byte that can respond to my questions in something approaching real time! The latency is definitely something we'll work on, but it works end to end now!
 
-The process currently is that we fill up buffers of data to feed into Whisper (via [whisper-cpp](https://whisper.ggerganov.com/)) to transcribe.
+The process currently is that we fill up buffers of data to feed into Whisper (via [whisper-cpp](https://github.com/ggml-org/whisper.cpp)) to transcribe.
 And we search through those transcripts for the keywords "Byte" or "Bite". When we find the keywords we grab a bit of extra transcription and pipe that plus our custom prompt into OpenAI GPT.
 We wrapped all this up on stream on Wednesday, and I gotta say; It was really cool to see it working end to end. I was asking questions on stream and getting responses read aloud back to me!
 If you want to skip to the action, [here is the end of stream to check out](https://youtu.be/BUZ9ien9r2U?si=DTqLpczxi30eCp-1&t=5913)!
