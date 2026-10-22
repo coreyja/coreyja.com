@@ -149,14 +149,35 @@ impl IntoHtml for FootnoteDefinition {
     fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
         let id = footnote_id(&self.identifier);
         let label = self.label.unwrap_or(self.identifier);
+        let backref = html! {
+            a href=(format!("#fnref-{id}")) class="underline" aria-label="Back to reference" { "↩" }
+        };
+
+        // Inline the label (and, for a one-paragraph note, the back-link) into the
+        // first paragraph so a typical footnote reads as a single line.
+        let mut children = self.children;
+        let first_paragraph = match children.first() {
+            Some(Node::Paragraph(_)) => match children.remove(0) {
+                Node::Paragraph(p) => Some(p),
+                _ => unreachable!(),
+            },
+            _ => None,
+        };
+        let backref_inline = first_paragraph.is_some() && children.is_empty();
 
         Ok(html! {
-            div id=(format!("fn-{id}")) class="flex gap-2 max-w-prose text-sm" {
-                sup class="mt-4" { (label) }
-                div {
-                    (self.children.into_html(config, context)?)
-                    a href=(format!("#fnref-{id}")) class="underline" aria-label="Back to reference" { "↩" }
+            div id=(format!("fn-{id}")) class="max-w-prose text-sm" {
+                @if let Some(p) = first_paragraph {
+                    p class="my-4 leading-loose" {
+                        sup { (label) } " "
+                        (p.children.into_html(config, context)?)
+                        @if backref_inline { " " (backref) }
+                    }
+                } @else {
+                    sup { (label) }
                 }
+                (children.into_html(config, context)?)
+                @if !backref_inline { (backref) }
             }
         })
     }
