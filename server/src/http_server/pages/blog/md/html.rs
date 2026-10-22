@@ -2,9 +2,9 @@ use std::path::PathBuf;
 use std::unreachable;
 
 use markdown::mdast::{
-    AlignKind, Blockquote, Break, Code, Delete, Emphasis, Heading, Html, Image, InlineCode, Link,
-    List, ListItem, Node, Paragraph, Root, Strong, Table, TableCell, TableRow, Text, ThematicBreak,
-    Yaml,
+    AlignKind, Blockquote, Break, Code, Delete, Emphasis, FootnoteDefinition, FootnoteReference,
+    Heading, Html, Image, InlineCode, Link, List, ListItem, Node, Paragraph, Root, Strong, Table,
+    TableCell, TableRow, Text, ThematicBreak, Yaml,
 };
 use maud::{html, Markup, PreEscaped};
 use url::Url;
@@ -51,7 +51,7 @@ impl IntoHtml for Node {
         match self {
             Node::Root(r) => r.into_html(config, context),
             Node::Blockquote(x) => x.into_html(config, context),
-            Node::FootnoteDefinition(_) => Ok(html! {}), // Skipping for now
+            Node::FootnoteDefinition(d) => d.into_html(config, context),
             Node::List(l) => l.into_html(config, context),
             Node::Yaml(y) => y.into_html(config, context),
             Node::Break(b) => b.into_html(config, context),
@@ -76,7 +76,7 @@ impl IntoHtml for Node {
             Node::Toml(_) => todo!(),
             Node::InlineMath(_) => todo!(),
             Node::MdxTextExpression(_) => todo!(),
-            Node::FootnoteReference(_) => todo!(),
+            Node::FootnoteReference(r) => r.into_html(config, context),
             Node::ImageReference(_) => todo!(),
             Node::MdxJsxTextElement(_) => todo!(),
             Node::LinkReference(_) => todo!(),
@@ -112,6 +112,51 @@ impl IntoHtml for Paragraph {
         Ok(html! {
             p class="my-4 max-w-prose leading-loose" {
                 (self.children.into_html(config, context)?)
+            }
+        })
+    }
+}
+
+/// Footnote identifiers are free-form (`[^1]`, `[^my note]`), so normalize them
+/// into something safe to use in an `id` and a `#fragment`.
+fn footnote_id(identifier: &str) -> String {
+    identifier
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect()
+}
+
+impl IntoHtml for FootnoteReference {
+    fn into_html(self, _config: &AppConfig, _context: &MarkdownRenderContext) -> Result<Markup> {
+        let id = footnote_id(&self.identifier);
+        let label = self.label.unwrap_or(self.identifier);
+
+        Ok(html! {
+            sup id=(format!("fnref-{id}")) {
+                a href=(format!("#fn-{id}")) class="underline" { (label) }
+            }
+        })
+    }
+}
+
+impl IntoHtml for FootnoteDefinition {
+    fn into_html(self, config: &AppConfig, context: &MarkdownRenderContext) -> Result<Markup> {
+        let id = footnote_id(&self.identifier);
+        let label = self.label.unwrap_or(self.identifier);
+
+        Ok(html! {
+            div id=(format!("fn-{id}")) class="flex gap-2 max-w-prose text-sm" {
+                sup class="mt-4" { (label) }
+                div {
+                    (self.children.into_html(config, context)?)
+                    a href=(format!("#fnref-{id}")) class="underline" aria-label="Back to reference" { "↩" }
+                }
             }
         })
     }
@@ -418,5 +463,101 @@ impl IntoHtml for ThematicBreak {
         Ok(html! {
           hr class="my-8 opacity-20";
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
+
+    use posts::MarkdownAst;
+
+    use super::*;
+
+    fn render(markdown: &str) -> String {
+        let config = AppConfig {
+            base_url: Url::parse("https://coreyja.com").unwrap(),
+            imgproxy_url: None,
+        };
+        let context = MarkdownRenderContext {
+            syntax_highlighting: SyntaxHighlightingContext,
+            current_article_path: "/posts/test".to_string(),
+        };
+
+        MarkdownAst::from_str(markdown)
+            .unwrap()
+            .0
+            .into_html(&config, &context)
+            .unwrap()
+            .into_string()
+    }
+
+    #[test]
+    fn footnotes_render_reference_and_definition() {
+        let html = render(
+            "I use vim-rspec[^1] daily.\n\n[^1]: Maintained by [ThoughtBot](https://github.com/thoughtbot/vim-rspec).\n",
+        );
+
+        assert!(
+            !html.contains("[^1]"),
+            "reference left as literal text: {html}"
+        );
+        assert!(
+            html.contains(r##"<sup id="fnref-1"><a href="#fn-1" class="underline">1</a></sup>"##),
+            "{html}"
+        );
+        assert!(html.contains(r#"id="fn-1""#), "{html}");
+        assert!(
+            html.contains("Maintained by"),
+            "definition text dropped: {html}"
+        );
+        assert!(
+            html.contains(r#"href="https://github.com/thoughtbot/vim-rspec""#),
+            "link inside the definition dropped: {html}"
+        );
+        assert!(html.contains(r##"href="#fnref-1""##), "{html}");
+    }
+
+    #[test]
+    fn footnote_ids_are_fragment_safe() {
+        let html = render("Text[^Side.Note].\n\n[^Side.Note]: Body.\n");
+
+        assert!(html.contains(r##"href="#fn-side-note""##), "{html}");
+        assert!(html.contains(r#"id="fn-side-note""#), "{html}");
+    }
+
+    #[tokio::test]
+    async fn published_post_footnotes_are_visible() {
+        use axum::{
+            body::Body,
+            http::{Request, StatusCode},
+        };
+        use tower::ServiceExt;
+
+        let app = crate::http_server::test_helpers::create_test_app().await;
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/posts/vim-rspec-in-a-monorepo")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let html = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(
+            !html.contains("[^1]"),
+            "footnote reference rendered as text"
+        );
+        assert!(
+            html.contains("https://github.com/tpope/vim-dispatch"),
+            "footnote [^2] body is missing"
+        );
     }
 }
