@@ -11,5 +11,6 @@ pub mod og;
 pub mod pace;
 pub mod podcast;
 pub mod projects;
+pub mod resume;
 pub mod videos;
 pub mod well_known;
