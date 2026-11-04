@@ -17,7 +17,7 @@ env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   # Set these to your Fly.io organization and preferred region.
   FLY_REGION: ewr
-  FLY_ORG: coreyja-studio
+  FLY_ORG: personal
 
 jobs:
   review_app:
