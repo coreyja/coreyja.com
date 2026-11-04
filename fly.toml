@@ -44,4 +44,4 @@ restart_limit = 0
 
 [[vm]]
 size = "shared-cpu-2x"
-memory = "4gb"
+memory = "2gb"
