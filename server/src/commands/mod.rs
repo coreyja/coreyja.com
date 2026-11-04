@@ -5,6 +5,7 @@ pub(crate) mod bluesky;
 pub(crate) mod buttondown;
 pub(crate) mod frontmatter;
 pub(crate) mod info;
+pub(crate) mod linkedin;
 pub(crate) mod standard_site;
 pub(crate) mod validate;
 
@@ -21,6 +22,9 @@ pub(crate) enum Command {
     /// Manage standard.site publications and documents on the PDS
     #[command(subcommand)]
     PublishStandardSite(standard_site::StandardSiteCommand),
+    /// Publish to `LinkedIn`
+    #[command(name = "publish-linkedin", about = "Publish to LinkedIn")]
+    PublishLinkedin(linkedin::PublishLinkedInArgs),
 }
 
 impl Command {
@@ -32,6 +36,7 @@ impl Command {
             Command::PublishButtondown(args) => buttondown::publish_buttondown(args).await,
             Command::PublishBluesky(args) => bluesky::publish_bluesky(args).await,
             Command::PublishStandardSite(cmd) => standard_site::run(cmd).await,
+            Command::PublishLinkedin(args) => linkedin::publish_linkedin(args).await,
         }
     }
 }
