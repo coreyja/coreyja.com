@@ -151,13 +151,11 @@ pub(crate) async fn linear_webhook(
     let (event_type, action) = (
         generic_payload
             .get("type")
-            .map(|v| v.as_str().unwrap_or_default())
-            .unwrap_or_default()
+            .map_or_default(|v| v.as_str().unwrap_or_default())
             .to_string(),
         generic_payload
             .get("action")
-            .map(|v| v.as_str().unwrap_or_default())
-            .unwrap_or_default()
+            .map_or_default(|v| v.as_str().unwrap_or_default())
             .to_string(),
     );
 
