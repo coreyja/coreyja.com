@@ -167,7 +167,7 @@ impl ProcessDiscordMessage {
         let discord_metadata = DiscordMetadata {
             discord_thread_id: discord_thread_id.to_string(),
             channel_id: msg.channel_id.to_string(),
-            guild_id: msg.guild_id.map_or_default(|id| id.to_string()),
+            guild_id: msg.guild_id.map_or(Default::default(), |id| id.to_string()),
             created_by: msg.author.tag(),
             thread_name: thread_name.clone(),
         };

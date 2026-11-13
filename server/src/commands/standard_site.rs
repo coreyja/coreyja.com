@@ -155,7 +155,9 @@ fn rkey_from_blog_path(relative_path: &Path) -> String {
     // Other markdown files (`bookclub/chapter-01.md`) keep their file stem so
     // siblings in one directory get distinct rkeys.
     let without_ext = if relative_path.file_name().and_then(|s| s.to_str()) == Some("index.md") {
-        relative_path.parent().map_or_default(Path::to_path_buf)
+        relative_path
+            .parent()
+            .map_or(Default::default(), Path::to_path_buf)
     } else {
         relative_path.with_extension("")
     };

@@ -210,7 +210,7 @@ mod tests {
         let ct = resp
             .headers()
             .get("content-type")
-            .map_or_default(|v| v.to_str().unwrap().to_string());
+            .map_or(Default::default(), |v| v.to_str().unwrap().to_string());
         assert!(
             ct.starts_with("image/svg+xml"),
             "unexpected content-type: {ct}"
@@ -314,7 +314,7 @@ mod tests {
         let ct = resp
             .headers()
             .get("content-type")
-            .map_or_default(|v| v.to_str().unwrap().to_string());
+            .map_or(Default::default(), |v| v.to_str().unwrap().to_string());
         assert!(
             ct.starts_with("image/svg+xml"),
             "unexpected content-type: {ct}"
@@ -355,7 +355,7 @@ mod tests {
         let ct = resp
             .headers()
             .get("content-type")
-            .map_or_default(|v| v.to_str().unwrap().to_string());
+            .map_or(Default::default(), |v| v.to_str().unwrap().to_string());
         assert!(
             ct.starts_with("image/svg+xml"),
             "unexpected content-type: {ct}"
