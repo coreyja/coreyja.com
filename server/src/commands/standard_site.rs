@@ -157,8 +157,7 @@ fn rkey_from_blog_path(relative_path: &Path) -> String {
     let without_ext = if relative_path.file_name().and_then(|s| s.to_str()) == Some("index.md") {
         relative_path
             .parent()
-            .map(Path::to_path_buf)
-            .unwrap_or_default()
+            .map_or(PathBuf::default(), Path::to_path_buf)
     } else {
         relative_path.with_extension("")
     };
