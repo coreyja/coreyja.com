@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO LinkedInOauthStates (linkedin_oauth_state_id, state)\n        VALUES ($1, $2)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3205a9bbcc7287c5ba3d41abed24015b62feb08b2cf7447c36af8a36410cc916"
+}

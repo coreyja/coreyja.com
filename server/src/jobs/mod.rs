@@ -14,6 +14,7 @@ pub mod discord_message_processor;
 pub mod discord_thread_create_processor;
 pub mod linear_webhook_processor;
 pub mod refresh_discord;
+pub mod refresh_linkedin_token;
 pub mod sponsors;
 pub mod thread_processor;
 pub mod youtube_videos;
@@ -24,6 +25,7 @@ impl_job_registry!(
     RefreshVideos,
     bytes_discord_posts::PostByteSubmission,
     refresh_discord::RefreshDiscordChannels,
+    refresh_linkedin_token::RefreshLinkedInToken,
     ProcessThreadStep,
     ProcessDiscordMessage,
     ProcessDiscordThreadCreate,
